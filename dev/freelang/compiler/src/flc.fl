@@ -1,0 +1,3891 @@
+(
+flc
+===
+
+The official
+Freelang compiler
+written in Freelang
+for the Freeputer Virtual Machine
+
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150516
+Updated:    20150807:1731
+Version:    1.0.0.0 for FVM 1.0
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+)
+
+
+\ ============================================================================
+\                              CONFIGURATION
+\ ============================================================================
+slotFloor 16777216 \ Lowest RAM address to be used by compiled compiler.
+\ IMPORTANT: For configuration of maximum program size see also:
+\   pmodel{..MAX_SIZE} and pmodel{##pmodel}
+\   ptab{..MAX_SIZE} and ptab{##tablespace}
+\   flc{init}
+
+\ ============================================================================
+\                   flc        Compiler Logic
+\ ============================================================================
+flc{
+
+  VERSION$ ." flc.fl compiler version 1.0.0.0 for FVM 1.0 "
+
+  init compile info finish quit \ Algorithm
+
+  NAM_MAX_LEN.    32          \ Max length of names [words]
+  NAM_MAX_NAKED_LEN. 30       \ " " " " not including .#$: markers
+  TOK_MAX_LEN.    80          \ Max length of tokens [words]
+       tokBuf#    332         \ Token buf [block] = 12 + TOK_MAX_LEN * 4
+      prevBuf#    332         \ Previous token buf [block] same size as tokBuf
+       tmpBuf#    332         \ Temporary buffer [block] same size as tokBuf
+       auxBuf#    332         \ Auxiliary buffer [block] same size as tokBuf
+    nspaceBuf#    332         \ Namespace buffer [block] same size as tokBuf
+                              \   [holds name of current namespace, if any]
+    wspaceBuf#    332         \ Wordspace buffer [block] same size as tokBuf
+                              \   [holds name of current wordspace, if any]
+  STR_MAX_LEN.    80          \ Max length of strings [words]
+       strBuf#    332         \ Str lit buf [block] = 12 + TOK_MAX_LEN * 4
+      qualBuf#    332         \ Qual ref buffer [block] same size as tokBuf
+                              \   [holds nspace of qualified ref, if any]
+      lineNum#    4           \ Current line number [used by error messages]
+  readyToIncLineNum# 4        \ Flag ... if line number needs incrementing
+
+  \ Some counters
+  nInstrs#            4 \ Counter for number of instructions
+  nSimpleInstrs#      4 \ Counter for number of simple instructions
+  nComplexInstrs#     4 \ Counter for number of complex instructions
+  nDataCells#         4 \ Counter for number of data cells [=words]
+  nStrCells#          4 \ Counter for number of string cells [=words]
+
+  \ Switches
+  inComment?#      4          \ Are we in an ordinary comment?
+  inLineComment?#  4          \ Are we in a line comment?
+  inBlockComment?# 4          \ Are we in a block comment?
+  inStrDecl?# 4               \ Are we in a named string declaration?
+  expectWordDecl?# 4          \ Are we expecting a word name declaration?
+  inComplexInstr?# 4          \ Are we in a complex instr [expecting literal]?
+  inQualRef?# 4               \ Is current token a namespace-qualified ref?
+  inData?# 4                  \ Are we in a data section?
+
+  \ Some common character codes
+  cNEWLINE.       10
+  cSPACE.         32          \ Whitespace is any character code <=32
+
+  \ String constants identifying source-code constructs
+  START_COMMENT$ ." ( "         \ Starts an ordinary comment
+  END_COMMENT$   ." ) "         \ Ends an ordinary comment
+  LINE_COMMENT$  ." \ "         \ Comments out remainder of line
+  START_BCOMMENT$ ." ((( "      \ Starts a block comment
+  END_BCOMMENT$   ." ))) "      \ Ends a block comment
+  LABEL_DECL$ ." : "            \ Suffix for label declarations
+  SLOT_DECL$  ." # "            \ Suffix for slot [variable] declarations
+  CONST_DECL$ ." . "            \ Suffix for const declarations
+  STR_DECL$   ." $ "            \ Suffix for string declarations
+  SLOTFLOOR$  ." slotFloor "    \ Keyword for slotfloor declaration
+  START_DATA$ ." data "         \ Keyword for start of a data section
+  END_DATA$ ." === "            \ Keyword for end of a data section
+  START_WORD$  ." : "           \ Keyword for slotfloor declaration
+  END_WORD$    ." ; "           \ Keyword for slotfloor declaration
+  cCHAR_LITERAL. 39             \ Delimiter for start and end of char literals
+  cSTART_NSPACE. 123            \ Delimiter for start of namespace
+  cEND_NSPACE.   125            \ Delimiter for end of namespace
+  END_NSPACE$  ." } "           \ Delimiter for end of namespace
+  cSTR_PREFIX. '.'              \ Prefix for start of string literals
+  cSTR_QUOTE. '"'               \ Delimiter for start and end of str literals
+  EMPTY_NAME$ ." "              \ Empty string to use for blank name fields
+  NO_SPACE$ ." Compilation failed. Ran out of table space at: "
+
+  \ Some VM instructions
+  iWALL. 0
+  iLIT. 1
+  iCALL. 2
+  iEXIT. 145
+  iHIGHEST_COMPLEX_OPCODE. 37 \ Higher opcodes are simple instrs (or illegal)
+  iDATA. 255
+
+  \ Some flags and values whose values depend on the source code
+  srcSlotFloor# 4               \ The value of slotFloor declared in src code
+  srcSlotPtr# 4                 \ The current slot pointer for the 2nd pass
+
+  \ Send a helpful map of the compiled program to stdtrc
+  : info ( -- ) ptab{mapInfo} ;
+
+  \ Initialize the compiler
+  : init ( -- )
+    1 ##lineNum !                          \ Init the line counter
+    {..FALSE} ##readyToIncLineNum !        \ Init flag to false
+    ..TOK_MAX_LEN ##tokBuf blk{init} drop  \ Initialize the token buffer
+    ..TOK_MAX_LEN ##prevBuf blk{init} drop \ Init the previous token buffer
+    ..TOK_MAX_LEN ##tmpBuf blk{init} drop  \ Init the temporary buffer
+    ..TOK_MAX_LEN ##auxBuf blk{init} drop  \ Init the 2nd temporary buffer
+    \ Init and zero-fill the current namespace buffer
+    ..TOK_MAX_LEN ##nspaceBuf blk{init} drop ##nspaceBuf blk{zeroFill}
+    \ Init and zero-fill the current wordspace buffer
+    ..TOK_MAX_LEN ##wspaceBuf blk{init} drop ##wspaceBuf blk{zeroFill}
+    ..STR_MAX_LEN ##strBuf blk{init} drop  \ Init the string literal buffer
+    \ Init and zero-fill the qualified reference buffer
+    ..TOK_MAX_LEN ##qualBuf blk{init} drop ##qualBuf blk{zeroFill}
+    \ Zero the instruction counters
+    0 ##nInstrs !
+    0 ##nSimpleInstrs !
+    0 ##nComplexInstrs !
+    0 ##nDataCells !
+    0 ##nStrCells !
+    pmodel{init}                      \ Init the program model
+
+    {..FALSE} ##inComment? !          \ We are not in an ordinary comment
+    {..FALSE} ##inLineComment? !      \ We are not in a line comment
+    {..FALSE} ##inBlockComment? !     \ We are not in a block comment
+    {..FALSE} ##inStrDecl? !          \ We are not in a named str decl.
+    {..FALSE} ##expectWordDecl? !     \ We are not expecting a word name decl.
+    {..FALSE} ##inComplexInstr? !     \ We are not in a complex instr
+    {..FALSE} ##inQualRef? !          \ Current token is not a qualified ref
+    {..FALSE} ##inData? !             \ We are not in a data section
+    {..NO_VALUE} ##srcSlotFloor !     \ No slot floor yet declared
+    {..NO_VALUE} ##srcSlotPtr !       \ No slots yet declared
+
+    \ Program table initialization [a multi-step process].
+    \ NOTE: The capacities below are arbitrary. You may change them here to
+    \ whatever you need providing they fit in ptab{##tablespace}.
+    ptab{init}                            \ Begin ptab initialization
+    500 5000 ptab{initWords}              \ Init words table space
+      {..FALSE} go== :fail
+    1000 2000 ptab{initLabels}            \ Init labels table space
+      {..FALSE} go== :fail
+    300 2000 ptab{initSlots}              \ Init slots table space
+      {..FALSE} go== :fail
+    500 3000 ptab{initConsts}             \ Init constants table space
+      {..FALSE} go== :fail
+    1000 2000 ptab{initStrs}              \ Init named strings table space
+      {..FALSE} go== :fail
+    1000 ptab{initAnonStrs}               \ Init anonymous strings table space
+      {..FALSE} go== :fail
+    \ Program table initialization is now complete
+  ( success: )
+      ret \ Compiler successfully initialized
+    fail:
+      ." Could not initialize compiler [insufficient RAM] " errorMsg
+  ;
+
+  \ Compile the program
+  : compile ( -- )
+    ##tokBuf blk{str} parse               \ Do first pass of compiler
+    populate                              \ Do second pass of compiler
+    outputBinary                          \ Output compiled pmodel to outbin
+  ;
+
+  \ Write the entire compiled program out in binary form ready to be run
+  \ on a suitable VM instance (whose RAM address space must of course begin
+  \ at or below the slotfloor specified in the Freelang source code
+  \ from which that program was compiled).
+  : outputBinary ( -- )
+    outbin{rreset}          \ Reset the binary output device
+    0 pmodel{seek}          \ Reset cursor in pmodel
+    pmodel{size}            \ ( z ) size of pmodel
+    writing:                \ ( z )
+      go[<=0] :done         \ ( z )
+      pmodel{rread}         \ ( z n )
+      outbin{wwrite}        \ ( z )
+      dec go :writing       \ ( z- )
+    done:                   \ ( z )
+      drop                  \ ( )
+  ;
+
+  \ Populate all remaining blank cells in the pmodel based on the entries
+  \ placed in the ptab during the first pass of the compiler.
+  \ That is, populate all references to words, labels, constants, slots
+  \ and strings and also write the actual string literals into the
+  \ end of the pmodel. This constitutes the SECOND PASS OF THE COMPILER
+  \ although the pass is merely over the ptab not the source code.
+  : populate ( -- )
+      writeiWALL \ Put iWALL at program end [overflow protection]
+      ptab{populateLabelRefs}
+      ptab{populateConstRefs}
+      ptab{populateSlotDecls}
+      ptab{populateSlotRefs}
+      ptab{populateWordRefs}
+      ptab{populateStrRefs}
+      ptab{populateAnonStrRefs}
+  ;
+
+  \ Read, parse and process all the tokens in the source code one by one.
+  \ This constitutes the FIRST PASS OF THE COMPILER.
+  \
+  \ A reference k to the start of the strip of the token buffer must be
+  \ present on the stack whenever this word executes; that reference serves
+  \ as a reference to the current token as a string.
+  \
+  \ Note: to make this implementation readable, this implementation of parse
+  \ calls many other words which sometimes themselves cause execution to
+  \ jump so as to recursively cause parse to execute again. In doing
+  \ so such words drop the top return address off the return stack.
+  \ All such words begin with "parse" "next" or "handle" and MUST NEVER
+  \ be called or invoked except from within this implementation of parse.
+  : parse ( k -- k )
+    next:                                \ Read next token into tokBuf
+      ##readyToIncLineNum @ {..FALSE} go== :noLineInc
+        ##lineNum sys{vInc}
+        {..FALSE} ##readyToIncLineNum !
+     noLineInc:
+       readToken {..FALSE} go[==] :done    \ Reached end of source code?
+       {..NO_VALUE} go!= :notLineEnd       \ Reached end of a line?
+          handleLineEnd
+     notLineEnd:
+      parseBlockCommentEnd      \ End of block comment?
+      parseCommentEnd           \ End of ordinary comment?
+      nextWithinComment         \ Already within any kind of commnt?
+      parseBlockCommentStart    \ Start of block ordinary comment?
+      parseCommentStart         \ Start of ordinary comment?
+      parseLineCommentStart     \ Start of line comment?
+      parseStringLiteral        \ Named string literal?
+      parseAnonStringLiteral    \ Anonymous string literal?
+      parseSlotfloor            \ slotFloor declaration?
+      parseDataSection          \ In a data section?
+      parseInstr                \ Instruction? [VM instruction set]
+      parseStartWord            \ Start of word implementation?
+      parseWordDecl             \ Declaration of name of a word?
+      checkQualRef              \ Qualified ref?
+      parseLabelRef             \ Label reference?
+      parseIntegerLiteral       \ Integer literal?
+      errorOnComplexInstr       \ Complex instr not followed by label or lit?
+      parseCharLiteral          \ Character literal?
+      parseSlotRef              \ Slot reference?
+      parseConstRef             \ Const reference?
+      parseStringRef            \ String reference?
+      parseWordRef              \ Word ref?
+      errorOnDataSection        \ Data section literal not yet intercepted?
+      recheckQualRef            \ Qualified ref not handled by now?
+      parseStartNamespace       \ Start of a namespace?
+      parseEndNamespace         \ End of a namespace?
+      parseEndWord              \ End of word implementation?
+      parseLabelDecl            \ Label declaration?
+      parseSlotDecl             \ Slot declaration?
+      parseConstDecl            \ Const declaration?
+      parseStringDecl           \ String declaration?
+
+      ." Syntax error: " ##tokBuf dropErrors
+      halt \ Should be impossible to reach this line
+    done: \ ( k FALSE )
+      drop  ( k )
+      errorOnComplexInstr       \ Complex instr not followed by label or lit?
+      errorOnUnfinishedWord     \ Word declaration never finished?
+      drop  ( )
+  ;
+
+  \ Check for and act upon a word reference.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseWordRef ( k -- k )
+    validWordName? {..TRUE} go== :act ret
+    act:
+     ##inData? @ {..FALSE} go== :notInData
+      ." Word reference not permitted in data section: "
+         ##tokBuf popErrors
+     notInData:
+      \ Disallow use of "lit" and "call"
+      disallowLitCall
+      writeiCALL
+      \ Write word reference address into wordRefs table
+      ##inQualRef? @ {..FALSE} go== :unqualified
+        \ Reference is namespace-qualified, so use qualBuf
+        ##lineNum @ pmodel{pos} ##qualBuf blk{str} ##tokBuf blk{str}
+            ptab{addWordRef} {..FALSE} go== :ptabFail
+        {..FALSE} ##inQualRef? ! \ Remember we have intercepted the qual ref
+        go :writeBlankCell
+      unqualified: \ Reference is unqualified, so just use normal context
+        ##lineNum @ pmodel{pos} ##nspaceBuf blk{str} ##tokBuf blk{str}
+          ptab{addWordRef} {..FALSE} go== :ptabFail
+      writeBlankCell:
+       0 pmodel{wwrite} \ Write blank cell to pmodel
+      rpop drop
+      go ::parse
+    ptabFail:
+      $$NO_SPACE ##tokBuf popErrors
+  ;
+
+  \ Check for and act upon an instruction [from the VM instruction set].
+  \ This word delegates in turn to the word handleInstr.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseInstr ( k -- k ) \ Note: "lit" and "call" never occur in source.
+  ." go "         3    handleInstr
+  ." go[>0] "     4    handleInstr
+  ." go[>=0] "    5    handleInstr
+  ." go[==0] "    6    handleInstr
+  ." go[!=0] "    7    handleInstr
+  ." go[<=0] "    8    handleInstr
+  ." go[<0] "     9    handleInstr
+  ." go[>] "     10    handleInstr
+  ." go[>=] "    11    handleInstr
+  ." go[==] "    12    handleInstr
+  ." go[!=] "    13    handleInstr
+  ." go[<=] "    14    handleInstr
+  ." go[<] "     15    handleInstr
+  ." go>0 "      16    handleInstr
+  ." go>=0 "     17    handleInstr
+  ." go==0 "     18    handleInstr
+  ." go!=0 "     19    handleInstr
+  ." go<=0 "     20    handleInstr
+  ." go<0 "      21    handleInstr
+  ." go> "       22    handleInstr
+  ." go>= "      23    handleInstr
+  ." go== "      24    handleInstr
+  ." go!= "      25    handleInstr
+  ." go<= "      26    handleInstr
+  ." go< "       27    handleInstr
+  ." reador "    28    handleInstr
+  ." writor "    29    handleInstr
+  ." tracor "    30    handleInstr
+  ." getor "     31    handleInstr
+  ." putor "     32    handleInstr
+  ." readorb "   33    handleInstr
+  ." writorb "   34    handleInstr
+  ." tracorb "   35    handleInstr
+  ." getorb "    36    handleInstr
+  ." putorb "    37    handleInstr
+  ." ret "      145    handleInstr
+  ." invoke "   146    handleInstr
+  ." [invoke] " 147    handleInstr
+  ." fly "      148    handleInstr
+  ." swap "     149    handleInstr
+  ." over "     150    handleInstr
+  ." rot "      151    handleInstr
+  ." tor "      152    handleInstr
+  ." leap "     153    handleInstr
+  ." nip "      154    handleInstr
+  ." tuck "     155    handleInstr
+  ." rev "      156    handleInstr
+  ." rpush "    157    handleInstr
+  ." rpop "     158    handleInstr
+  ." drop "     159    handleInstr
+  ." drop2 "    160    handleInstr
+  ." drop3 "    161    handleInstr
+  ." drop4 "    162    handleInstr
+  ." dup "      163    handleInstr
+  ." dup2 "     164    handleInstr
+  ." dup3 "     165    handleInstr
+  ." dup4 "     166    handleInstr
+  ." hold "     167    handleInstr
+  ." hold2 "    168    handleInstr
+  ." hold3 "    169    handleInstr
+  ." hold4 "    170    handleInstr
+  ." speek "    171    handleInstr
+  ." speek2 "   172    handleInstr
+  ." speek3 "   173    handleInstr
+  ." speek4 "   174    handleInstr
+  ." spush "    175    handleInstr
+  ." spush2 "   176    handleInstr
+  ." spush3 "   177    handleInstr
+  ." spush4 "   178    handleInstr
+  ." spop "     179    handleInstr
+  ." spop2 "    180    handleInstr
+  ." spop3 "    181    handleInstr
+  ." spop4 "    182    handleInstr
+  ." dec "      183    handleInstr
+  ." decw "     184    handleInstr
+  ." dec2w "    185    handleInstr
+  ." inc "      186    handleInstr
+  ." incw "     187    handleInstr
+  ." inc2w "    188    handleInstr
+  ." @ "        189    handleInstr
+  ." ! "        190    handleInstr
+  ." [@] "      191    handleInstr
+  ." @b "       192    handleInstr
+  ." !b "       193    handleInstr
+  ." [@b] "     194    handleInstr
+  ." @@ "       195    handleInstr
+  ." @! "       196    handleInstr
+  ." [@@] "     197    handleInstr
+  ." @@b "      198    handleInstr
+  ." @!b "      199    handleInstr
+  ." [@@b] "    200    handleInstr
+  ." + "        201    handleInstr
+  ." - "        202    handleInstr
+  ." * "        203    handleInstr
+  ." / "        204    handleInstr
+  ." % "        205    handleInstr
+  ." /% "       206    handleInstr
+  ." [+] "      207    handleInstr
+  ." [-] "      208    handleInstr
+  ." [*] "      209    handleInstr
+  ." [/] "      210    handleInstr
+  ." [%] "      211    handleInstr
+  ." [/%] "     212    handleInstr
+  ." neg "      213    handleInstr
+  ." abs "      214    handleInstr
+  ." & "        215    handleInstr
+  ." | "        216    handleInstr
+  ." ^ "        217    handleInstr
+  ." [&] "      218    handleInstr
+  ." [|] "      219    handleInstr
+  ." [^] "      220    handleInstr
+  ." << "       221    handleInstr
+  ." >> "       222    handleInstr
+  ." [<<] "     223    handleInstr
+  ." [>>] "     224    handleInstr
+  ." move "     225    handleInstr
+  ." fill "     226    handleInstr
+  ." find "     227    handleInstr
+  ." match "    228    handleInstr
+  ." moveb "    229    handleInstr
+  ." fillb "    230    handleInstr
+  ." findb "    231    handleInstr
+  ." matchb "   232    handleInstr
+  ." homio "    233    handleInstr
+  ." rchan "    234    handleInstr
+  ." wchan "    235    handleInstr
+  ." gchan "    236    handleInstr
+  ." pchan "    237    handleInstr
+  ." ecode? "   238    handleInstr
+  ." rcode? "   239    handleInstr
+  ." rom? "     240    handleInstr
+  ." ram? "     241    handleInstr
+  ." map? "     242    handleInstr
+  ." stdblk? "  243    handleInstr
+  ." ds? "      244    handleInstr
+  ." ss? "      245    handleInstr
+  ." rs? "      246    handleInstr
+  ." dsn? "     247    handleInstr
+  ." ssn? "     248    handleInstr
+  ." rsn? "     249    handleInstr
+  ." tron "     250    handleInstr
+  ." troff "    251    handleInstr
+  ." reset "    252    handleInstr
+  ." reboot "   253    handleInstr
+  ." halt "     254    handleInstr
+  ." data "     255    handleInstr
+    ret \ Token is not an instruction
+  ;
+
+  \ Check for and act upon an instruction [from the VM instruction set]
+  \ where instr is a string representing the name of that instruction
+  \ in Freelang source code and opcode is its integer opcode.
+  \ The string k references tokBuf [the current token].
+  \ WARNING: NEVER call this word except from the
+  \ implementation of parseInstr.
+  : handleInstr ( k instr opcode  -- k )
+    swap leap str{eq?} {..TRUE} go== :act drop ret
+      act:
+        \ Two layers of return addresses to drop here:
+        \ 1. parseInstr 2. handleInstr
+        rpop rpop drop2
+        \ Disallow use of instruction names as word names
+        ##expectWordDecl? @ {..FALSE} go== :ok1
+          ." Cannot use reserved word as word name " pop2Error
+        \ Disallow use of instruction names in data section
+        ok1:
+        ##inData? @ {..FALSE} go== :ok2
+          ." Cannot use instruction names in data section " popError
+        ok2:
+        \ Simply write the opcode directly into the pmodel
+        dup pmodel{wwrite}
+        \ Does opcode represent a complex instruction?
+        ..iHIGHEST_COMPLEX_OPCODE go> :simpleInstr
+          \ Opcode represets a complex instruction
+          {..TRUE} ##inComplexInstr? !
+          ##nComplexInstrs sys{vInc}  \ Increment counter
+          go :end
+        simpleInstr:
+          ##nSimpleInstrs sys{vInc}   \ Increment counter
+          {..FALSE} ##inComplexInstr? !
+        end:
+          ##nInstrs sys{vInc}         \ Increment counter
+          go ::parse
+  ;
+
+  \ Indicate an error condition if supplied string is "lit" or "call".
+  : disallowLitCall ( k -- k )
+    dup ." lit " str{eq?} {..TRUE} go== :error
+    dup ." call " str{eq?} {..TRUE} go== :error ret
+      error:
+        ." Syntax error. Illegal instruction: "
+            ##tokBuf dropErrors
+  ;
+
+  \ Indicate an error condition if we are in a complex instruction.
+  \ This should be called after parseLabelRef and parseIntegerLiteral
+  \ as they would already have switched inComplexInstr? to false if they
+  \ had found a label reference or an integer literal, one or other of which
+  \ must follow a complex (address) instruction.
+  : errorOnComplexInstr ( k -- k )
+    ##inComplexInstr? @ {..TRUE} go== :error ret
+      error:
+        ." Label reference or integer literal expected here: "
+            ##tokBuf dropErrors
+  ;
+
+  \ Indicate an error condition if we are still in the definition of
+  \ a word. Only call this when all the source code has been parsed,
+  \ to detect if a word definition was never finished.
+  : errorOnUnfinishedWord ( k -- k )
+    ##wspaceBuf blk{str} str{isEmpty?} {..FALSE} go== :wordUnfinished
+    ##expectWordDecl? @ {..TRUE} go== :wordUnnamed ret
+      wordUnnamed:
+        ." Word name not declared before end of source code " dropError
+      wordUnfinished:
+        ." Word definition not ended before end of source code: "
+            ##wspaceBuf dropErrors
+  ;
+
+  \ Indicate an error condition if we are in a data section.
+  \ This should be called after parseIntegerLiteral and parseCharLiteral
+  \ as this word should never be called if either of them correctly
+  \ intercepted the current token as a data literal.
+  : errorOnDataSection ( k -- k )
+    ##inData? @ {..TRUE} go== :error ret
+      error:
+        ." Illegal format for literal in data section: "
+            ##tokBuf dropErrors
+  ;
+
+  \ Check for and act upon the start of a namespace-qualified reference.
+  : checkQualRef ( k -- k )
+    dup ..cSTART_NSPACE str{index} go>=0 :openOK go :not
+    openOK:
+      dup ..cEND_NSPACE str{endIndex} go==0 :act go :not
+    act: \ Token is a qualified reference
+      dup str{len} 3 go< :bad \ Too short [e.g. "{}"]
+       {..TRUE} ##inQualRef? !
+       \ Extract nspace from qual ref "nspace{foo}" and place it in qualBuf
+       \ (it will be used in the individual parse___Ref functions)
+       dup ##qualBuf over ..cSTART_NSPACE str{endIndex} inc 0 swap str{substr}
+       \ Ensure nspace is either nothing or valid in token "nspace{foo}"
+       dup ##auxBuf 0 leap ..cSTART_NSPACE
+           str{endIndex} inc str{substr}  \ Extracted "nspace" into auxBuf
+           ##auxBuf blk{str} str{isEmpty?} {..TRUE} go== :nspaceOK
+             ##auxBuf blk{str} validWordName? {..FALSE} go== :badNspace drop
+       nspaceOK:
+       \ Strip namespace qualification out of token "nspace{foo}"
+       \ converting token to simply "foo"
+       dup ##tmpBuf over ..cSTART_NSPACE str{index} inc
+           leap ..cEND_NSPACE str{endIndex} inc str{substr} \ Extracted "foo"
+       ##tmpBuf blk{str} str{isEmpty?} {..TRUE} go== :bad   \ "...{}"
+       ##tmpBuf blk{str} over str{copy} \ Placed "foo" in current token buffer
+      ret
+    bad:
+      ." Illegal qualified reference format: " ##tokBuf dropErrors
+    badNspace:
+      ." Illegal namespace format in qualified reference: "
+         ##tokBuf drop2Errors
+    not: \ Token is not a qualified reference
+      {..FALSE} ##inQualRef? ! \ Actually redundant (parse___Ref will do)
+  ;
+
+  \ Verify, if current token was a namespace-qualified reference,
+  \ that it has already been intercepted by one of the parse___Ref functions.
+  \ Error if it has not been [would mean illegal format of reference].
+  : recheckQualRef ( k -- k )
+    ##inQualRef? @ {..TRUE} go== :bad ret
+    bad:
+      ." Illegal qualified reference format: " ##tokBuf dropErrors
+  ;
+
+  \ Check for and act upon the start or end of a data section.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseDataSection ( k -- k )
+    dup $$START_DATA str{eq?} {..TRUE} go== :starting
+    dup $$END_DATA str{eq?} {..TRUE} go== :ending ret
+    starting:
+      ##nDataCells sys{vInc}        \ Increment counter
+      ..iDATA pmodel{wwrite}        \ Insert initial iDATA [overflow protectn]
+      {..TRUE} ##inData? !          \ Remember we are in a data section
+      go :done
+    ending:
+      ##inData? @ {..TRUE} go== :ok
+        ." === not allowed except to end a data section " popError
+      ok:
+        ##nDataCells sys{vInc}      \ Increment counter
+        ..iWALL pmodel{wwrite}      \ Insert final iWALL [overflow protection]
+        {..FALSE} ##inData? !
+    done:
+        rpop drop
+        go ::parse
+  ;
+
+  \ Check for and act upon the start of a namespace.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseStartNamespace ( k -- k )
+      dup ..cSTART_NSPACE str{endIndex} go==0 :act ret
+      act:
+        dup ##nspaceBuf 0 1 str{substr} \ Set current namespace from token
+        ##nspaceBuf blk{str} validWordName? {..FALSE} go== :badFormat drop
+        rpop drop
+        go ::parse
+      badFormat:
+        ." Bad namespace name format: " ##tokBuf pop2Errors
+  ;
+
+  \ Check for and act upon the end of a namespace.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseEndNamespace ( k -- k )
+    dup ..cEND_NSPACE str{index} go==0 :act ret
+    act:
+      dup $$END_NSPACE str{eq?} {..TRUE} go== :bad
+
+      \ Error if end-namespace token does not correspond to most recent
+      \ start-namespace token, as namespaces cannot be nested
+      dup ##tmpBuf 1 0 str{substr}     \ Name of namespace being ended
+      ##tmpBuf blk{str} ##nspaceBuf blk{str} str{eq?}
+        {..TRUE} go== :ok              \ Matches current namespace name?
+     bad:
+          ." Illegal namespace format or mismatched: "
+              ##tokBuf popErrors
+     ok:
+      \ Clear the namespace buffer as we are no longer in a namespace
+      ##nspaceBuf blk{zeroFill}
+      rpop drop
+      go ::parse
+  ;
+
+  \ Check for and act upon the start of a word implementation ( : ).
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseStartWord ( k -- k )
+    dup $$START_WORD str{eq?} {..TRUE} go== :act ret
+    act:
+     ##inData? @ {..FALSE} go== :notInData
+      ." Cannot declare a word inside a data section " popError
+     notInData:
+      {..TRUE} ##expectWordDecl? ! \ We now expect a word name decl.
+      writeiWALL
+      rpop drop
+      go ::parse
+  ;
+
+  \ Check for and act upon the end of a word implementation.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseEndWord ( k -- k )
+    dup $$END_WORD str{eq?} {..TRUE} go== :act ret
+    act:
+      ##wspaceBuf blk{zeroFill} \ Remember we are no longer in a wordspace
+      writeiEXIT
+      rpop drop
+      \ Clear the wordspace buffer as we are no longer in a namespace
+      ##wspaceBuf blk{zeroFill}
+      go ::parse
+  ;
+
+  \ Check for and act upon the declaration of a word name.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseWordDecl ( k -- k )
+    ##expectWordDecl? @ {..TRUE} go== :act ret
+    act:
+      \ Disallow use of "lit" and "call"
+      disallowLitCall
+
+      \ We are expecting the declaration of the name of a word
+      validWordName? {..FALSE} go== :notWordName
+
+      \ Write the word declaration address into wordDecl table
+      ##lineNum @ pmodel{pos} ##nspaceBuf blk{str} ##tokBuf blk{str}
+        ptab{declWord} {..FALSE} go[==] :ptabFail
+          {..NO_VALUE} go== :dupe
+
+      \ Also write a corresponding label decl addr into labelDecl table
+      ##lineNum @ pmodel{pos} ##nspaceBuf blk{str}
+        $$EMPTY_NAME ##tokBuf blk{str}
+          ptab{declLabel} {..FALSE} go[==] :ptabFail
+            {..NO_VALUE} go== :dupeLabel
+
+      \ Record that we are now in a wordspace by placing the name of this
+      \ word declaration into the wspaceBuf
+      ##tokBuf blk{str} ##wspaceBuf blk{str} str{copy}
+
+      \ Record that we no longer expecting a word name decl.
+      {..FALSE} ##expectWordDecl? !
+        rpop drop
+        go ::parse
+    dupe:
+      ." Word already declared: " ##tokBuf popErrors
+    dupeLabel:
+      ." Label already exists corresponding to word: "
+          ##tokBuf popErrors
+    notWordName:
+      ." Invalid word name declaration: "
+          ##tokBuf popErrors
+    ptabFail:
+      ." Compilation failed. Ran out of table space at: "
+          ##tokBuf popErrors
+  ;
+
+  \ Check if string k has a valid length for a naked name and return
+  \ TRUE if so, otherwise FALSE (meaning string is too long).
+  \ Naked means not including .#$: markers.
+  : validNakedNameLength? ( k -- k TRUE/FALSE )
+    dup str{len} ..NAM_MAX_NAKED_LEN go> :no {..TRUE} ret no: {..FALSE}
+  ;
+
+  \ Check if string k has a valid length for a name and return
+  \ TRUE if so, otherwise FALSE (meaning string is too long).
+  : validNameLength? ( k -- k TRUE/FALSE )
+    dup str{len} ..NAM_MAX_LEN go> :no {..TRUE} ret no: {..FALSE}
+  ;
+
+  \ Check if string k has a valid format for a word name and return
+  \ TRUE if so, otherwise FALSE.
+  \ WARNING: Uses the tmpBuf and will malfunction if tmpBuf passed in as k.
+  \ Do not pass in tmpBuf as k!
+  : validWordName? ( k -- k TRUE/FALSE )
+    validNakedNameLength? {..FALSE} go== :notWord
+    dup str{isEmpty?} {..TRUE} go== :notWord
+    \ Checks regarding first char of word name [allows A-z or _]:
+      dup ##tmpBuf 0 leap str{len} dec str{substr}
+        ##tmpBuf blk{str} \ ( k tmpk ) tmpBuf contains 1st char
+        dup 'A' 'z' str{onlyRange?} {..TRUE} go== :dropTmp        \ ( k tmpk )
+        ." _ " str{startsWith?} {..FALSE} go== :notWord           \ ( k )
+        go :checkWhole
+    dropTmp:   \ ( k tmpk )
+      drop     \ ( k )
+    \ Checks regarding word name as a whole:
+    checkWhole:
+      dup str{len} 1 go== :yes
+     hasLetter: \ Has at least one ordinary letter
+      dup 'A' 'z' str{onlyRange?} {..TRUE} go== :yes
+      dup 0 32 str{noneRange?} {..FALSE} go== :notWord
+      dup 34 '/' str{noneRange?} {..FALSE} go== :notWord
+      dup 123 2147483647 str{noneRange?} {..FALSE} go== :notWord
+      dup ':' '>' str{noneRange?} {..FALSE} go== :notWord
+      go :yes \ This allows 0-9 ?-z including a-z and A-Z in any order
+    notWord:  \ and also allows @ and ! providing 1st char meets the above.
+      {..FALSE} ret \ Does not match any allowable format of a word
+    yes:
+      {..TRUE}
+  ;
+
+  \ Check for and act upon the declaration of the slotfloor.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseSlotfloor ( k -- k )
+    dup $$SLOTFLOOR str{eq?} {..TRUE} go== :act ret
+    act:
+      ##srcSlotFloor @ {..NO_VALUE} go== :ok
+        ." Slot floor already defined earlier " popError
+    ok:
+      \ Next token must be an integer literal else error
+       readToken {..FALSE} go[==] :noValue  \ Reached end of src code?
+            {..NO_VALUE} go!= :notLineEnd   \ Reached end of a line?
+              processQuietLineEnd
+      notLineEnd:
+       dup isIntLiteral? {..FALSE} go== :badValue
+          \ Next token is indeed a valid integer literal
+          dup str{stoi}
+            {..FALSE} go== :badValue \ Should never fail here
+              go[<0] :negValue       \ Negative value of slotFloor?
+                dup ##srcSlotFloor ! \ Store positive value of slot floor
+                ##srcSlotPtr !       \ And set slot ptr for 2nd pass
+      rpop drop
+      go ::parse
+    negValue:
+      ." Slot floor value negative: " ##tokBuf pop2Errors
+    badValue:
+      ." Slot floor value bad: " ##tokBuf popErrors
+    noValue:
+      ." Slot floor value missing " popError
+  ;
+
+  \ Check for and act upon a character literal declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseCharLiteral ( k -- k )
+    dup isCharLiteral? {..TRUE} go== :act ret
+    act:
+      ##inData? @ {..TRUE} go== :noLIT
+        writeiLIT      \ Write LIT opcode to pmodel
+        go :writeCell
+      noLIT:
+        ##nDataCells sys{vInc}     \ Increment counter
+      writeCell:
+        dup inc2w @ pmodel{wwrite} \ Write actual char to pmodel [as a word]
+      rpop drop
+      go ::parse
+  ;
+
+  \ Check for and act upon an integer literal
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseIntegerLiteral ( k -- k )
+    dup isIntLiteral? {..TRUE} go== :act ret
+    act:
+      ##inData? @ {..TRUE} go== :inData
+      ##inComplexInstr? @ {..TRUE} go== :complexInstr
+        writeiLIT
+      complexInstr:
+        dup stoiCell                  \ Write integer literal to pmodel
+        {..FALSE} ##inComplexInstr? ! \ We can no longer be in a cmplx instr
+        go :done
+    inData: \ We are in a data section
+      ##nDataCells sys{vInc}     \ Increment counter
+      dup stoiCell \ Simply write integer literal directly into pmodel
+    done:
+      rpop drop
+      go ::parse
+  ;
+
+  \ Convert string s to an integer and write that integer into
+  \ the next cell of the pmodel. Error if string is not a valid
+  \ representation of an integer according to str{stoi}.
+  : stoiCell ( s -- )
+    dup str{stoi} {..TRUE} go== :ok
+      drop ." Integer literal bad: " swap str{blk} dropErrors
+    ok:
+      pmodel{wwrite} drop \ Write integer literal value to pmodel
+  ;
+
+  \ Return TRUE if string s represents an integer literal,
+  \ otherwise return FALSE.
+  : isIntLiteral? ( s -- TRUE/FALSE )
+    dup ." - " str{startsWith?} {..TRUE} go== :negative
+      dup '0' '9' str{onlyRange?} {..TRUE} go== :yes go :no \ +ve int lit?
+    negative:
+      dup ##tmpBuf 1 0 str{substr} ##tmpBuf blk{str}
+          '0' '9' str{onlyRange?} {..TRUE} go== :yes go :no \ -ve int lit?
+    no:
+      drop {..FALSE} ret
+    yes:
+      drop {..TRUE}
+  ;
+
+  \ Check for and act upon a named string literal declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseStringLiteral ( k -- k )
+    ##inStrDecl? @ {..TRUE} go== :validate ret \ In a named str declaration?
+      validate: \ Are we are at the start of a valid string literal?
+        dup str{len} 2 go== :lengthOK go :badStrLiteral
+        lengthOK:
+          dup incw @ ..cSTR_PREFIX go== :firstCharOK go :badStrLiteral
+          firstCharOK:
+            dup inc2w @ ..cSTR_QUOTE go== :act go :badStrLiteral
+      act:
+        readString
+          \ Write name and value of string literal to ptab
+              \ Strip string identifier from end of string name
+              ##prevBuf blk{str} ##tmpBuf 0 1 str{substr}
+          ##lineNum @ ##strBuf blk{str}
+            ##nspaceBuf blk{str} ##wspaceBuf blk{str} ##tmpBuf blk{str}
+              ptab{declStr} {..FALSE} go[==] :ptabFail
+                {..NO_VALUE} go== :dupe
+
+          ##tmpBuf blk{str} ##auxBuf blk{str} str{copy}
+            ##auxBuf blk{str} validWordName? {..FALSE} go== :badFormat drop
+
+          \ Record that we are no longer in a named str declaration
+              {..FALSE} ##inStrDecl? !
+        rpop drop
+        go ::parse
+      ptabFail:
+        $$NO_SPACE ##strBuf popErrors
+      dupe:
+        ." String constant already defined: "
+            ##prevBuf popErrors
+      badStrLiteral:
+        ." Bad string literal: " ##tokBuf popErrors
+      badFormat:
+        ." Bad string name format: " ##prevBuf pop2Errors
+  ;
+
+  \ Check for and act upon an anonymous string literal declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseAnonStringLiteral ( k -- k )
+      dup str{len} 2 go== :lengthOK ret
+      lengthOK:
+        dup incw @ ..cSTR_PREFIX go== :firstCharOK ret
+        firstCharOK:
+          dup inc2w @ ..cSTR_QUOTE go== :act ret
+      act:
+         readString
+         ##inData? @ {..FALSE} go== :notInData
+          ." String literal not permitted in data section: "
+             ##strBuf popErrors
+         notInData:
+          writeiLIT
+          \ Now write name and declAddr of anonymous string literal to ptab,
+          \ where declAddr is the index of the program cell into which
+          \ the second pass of the compiler will need to write
+          \ the string reference.
+          ##strBuf blk{str}
+            ##nspaceBuf blk{str} ##wspaceBuf blk{str} pmodel{pos}
+              ptab{declAnonStr} {..FALSE} go== :ptabFail
+          0 pmodel{wwrite} \ Write a zero cell [2nd pass will overwrite]
+        rpop drop
+        go ::parse
+      ptabFail:
+        $$NO_SPACE ##strBuf popErrors
+  ;
+
+  \ Return TRUE if string s represents a character literal,
+  \ otherwise return FALSE.
+  : isCharLiteral? ( s -- TRUE/FALSE )
+    dup str{len} 3 go== :lengthOK go :no
+    lengthOK:
+      dup incw @ ..cCHAR_LITERAL go== :startOK go :no
+      startOK:
+        dup {..THREE_WORDS} + @ ..cCHAR_LITERAL go== :yes
+    no:
+      drop {..FALSE} ret
+    yes:
+      drop {..TRUE}
+  ;
+
+  \ Check for and act upon a label declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseLabelDecl ( k -- k )
+    dup $$LABEL_DECL str{endsWith?} {..TRUE} go== :act ret
+    act:
+      \ Strip label identifier from end of label name
+      ##tokBuf blk{str} ##tmpBuf 0 1 str{substr}
+
+      \ Write label declaration address into labelDecl table
+      ##lineNum @ pmodel{pos} ##nspaceBuf blk{str}
+        ##wspaceBuf blk{str} ##tmpBuf blk{str}
+          ptab{declLabel} {..FALSE} go[==] :ptabFail
+            {..NO_VALUE} go== :dupe
+
+      ##tmpBuf blk{str} ##auxBuf blk{str} str{copy}
+        ##auxBuf blk{str} validWordName? {..FALSE} go== :badFormat drop
+
+      rpop drop
+      go ::parse
+    dupe:
+      ." Label (or corresponding word) already defined: "
+          ##tokBuf popErrors
+    ptabFail:
+      $$NO_SPACE ##tokBuf popErrors
+    badFormat:
+      ." Bad label name format: " ##tokBuf pop2Errors
+  ;
+
+  \ Check for and act upon a slot declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseSlotDecl ( k -- k )
+    dup $$SLOT_DECL str{endsWith?} {..TRUE} go== :act ret
+    act:
+      \ Next token must be an integer literal else error
+      readToken {..FALSE} go[==] :noValue \ Reached end of src code?
+            {..NO_VALUE} go!= :notLineEnd \ Reached end of a line?
+              processQuietLineEnd
+      notLineEnd:
+      dup isIntLiteral? {..FALSE} go== :badValue
+      \ Next token is indeed a valid integer literal
+      dup str{stoi} {..FALSE} go== :badValue
+      go[<=0] :tooSmall      \ Slot size not at least 1 byte?
+        \ Write slot size into slotDecl table
+          \ Strip slot identifier from end of slot name
+          ##lineNum @ swap ##prevBuf blk{str} ##tmpBuf 0 1 str{substr}
+        ##nspaceBuf blk{str} ##wspaceBuf blk{str} ##tmpBuf blk{str}
+
+          ptab{declSlot} {..FALSE} go[==] :ptabFail
+            {..NO_VALUE} go== :dupe
+
+          ##tmpBuf blk{str} ##auxBuf blk{str} str{copy}
+            ##auxBuf blk{str} validWordName? {..FALSE} go== :badFormat drop
+
+        rpop drop
+        go ::parse
+    dupe:
+      ." Slot already declared: " ##prevBuf popErrors
+    ptabFail:
+      $$NO_SPACE ##prevBuf popErrors
+    tooSmall:
+      ." Slot size below 1 byte: " ##tokBuf pop2Errors
+    badValue:
+      ." Slot size bad: " ##tokBuf popErrors
+    noValue:
+      ." Slot size missing "  popError
+    badFormat:
+      ." Bad slot name format: " ##prevBuf pop2Errors
+  ;
+
+  \ Check for and act upon a const declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseConstDecl ( k -- k )
+    dup $$CONST_DECL str{endsWith?} {..TRUE} go== :act ret
+    act:
+      \ Next token must be an integer literal else error
+      readToken {..FALSE} go[==] :noValue \ Reached end of src code?
+            {..NO_VALUE} go!= :notLineEnd \ Reached end of a line?
+              processQuietLineEnd
+      notLineEnd:
+      dup isIntLiteral? {..TRUE} go== :intConstant
+        dup isCharLiteral? {..TRUE} go== :charConstant
+          go :badValue
+        charConstant:
+          dup inc2w @ \ Actual char of char literal
+          go :ptabConstDecl
+        intConstant:
+          \ Next token is a valid integer literal
+          dup str{stoi} {..FALSE} go== :badValue
+        ptabConstDecl:
+        \ Write constant value into constDecl table
+          \ Strip const identifier from end of const name
+          ##lineNum @ swap ##prevBuf blk{str} ##tmpBuf 0 1 str{substr}
+          ##nspaceBuf blk{str} ##wspaceBuf blk{str} ##tmpBuf blk{str}
+
+            ptab{declConst} {..FALSE} go[==] :ptabFail
+              {..NO_VALUE} go== :dupe
+
+          ##tmpBuf blk{str} ##auxBuf blk{str} str{copy}
+            ##auxBuf blk{str} validWordName? {..FALSE} go== :badFormat drop
+
+          rpop drop
+          go ::parse
+    dupe:
+      ." Constant already defined: " ##prevBuf popErrors
+    ptabFail:
+      $$NO_SPACE ##prevBuf popErrors
+    badValue:
+      ." Constant has bad (or missing) value: " ##tokBuf popErrors
+    noValue:
+      ." Constant value missing " popError
+    badFormat:
+      ." Bad constant name format: " ##prevBuf pop2Errors
+  ;
+
+  \ Check for and act upon a string declaration
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseStringDecl ( k -- k )
+    dup $$STR_DECL str{endsWith?} {..TRUE} go== :act
+      {..FALSE} ##inStrDecl? !
+      ret
+    act:
+      {..TRUE} ##inStrDecl? !
+      rpop drop
+      go ::parse
+    ptabFail:
+      $$NO_SPACE ##prevBuf popErrors
+  ;
+
+  \ Check for and act upon a label reference
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseLabelRef ( k -- k )
+    dup $$LABEL_DECL str{startsWith?} {..TRUE} go== :act ret
+    act:
+     validNameLength? {..TRUE} go== :lengthOK
+       ." Label reference too long: " ##tokBuf popErrors
+     lengthOK:
+      ##inComplexInstr? @ {..TRUE} go== :complexInstr
+      ##inData? @ {..TRUE} go== :inData \ In DATA also skip writeiLIT
+        writeiLIT
+      inData:
+        ##nDataCells sys{vInc}
+      complexInstr:
+    \ Write label reference address into labelRefs table
+    ##inQualRef? @ {..FALSE} go== :unqualified
+      \ Reference is namespace-qualified, so use qualBuf
+      ##lineNum @ pmodel{pos} ##qualBuf blk{str}
+        ##wspaceBuf blk{str} ##tokBuf blk{str}
+          ptab{addLabelRef} {..FALSE} go== :ptabFail
+      {..FALSE} ##inQualRef? ! \ Remember we have intercepted the qual ref
+      go :writeBlankCell
+    unqualified: \ Reference is unqualified, so just use normal context
+      ##lineNum @ pmodel{pos} ##nspaceBuf blk{str}
+        ##wspaceBuf blk{str} ##tokBuf blk{str}
+          ptab{addLabelRef} {..FALSE} go== :ptabFail
+    writeBlankCell:
+        0 pmodel{wwrite}            \ Write blank cell to pmodel
+      {..FALSE} ##inComplexInstr? ! \ We can no longer be in a complex instr
+      rpop drop
+      go ::parse
+    ptabFail:
+      $$NO_SPACE ##tokBuf popErrors
+  ;
+
+  \ Check for and act upon a slot reference
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseSlotRef ( k -- k )
+    dup $$SLOT_DECL str{startsWith?} {..TRUE} go== :act ret
+    act:
+     validNameLength? {..TRUE} go== :lengthOK
+       ." Slot reference too long: " ##tokBuf popErrors
+     lengthOK:
+     ##inData? @ {..TRUE} go== :inData \ In DATA also skip writeiLIT
+        writeiLIT go :notInData
+     inData:
+        ##nDataCells sys{vInc}
+     notInData:
+      \ Write slot reference address into slotRefs table
+      ##inQualRef? @ {..FALSE} go== :unqualified
+        \ Reference is namespace-qualified, so use qualBuf
+        ##lineNum @
+         pmodel{pos} ##qualBuf blk{str} ##wspaceBuf blk{str} ##tokBuf blk{str}
+            ptab{addSlotRef} {..FALSE} go== :ptabFail
+        {..FALSE} ##inQualRef? ! \ Remember we have intercepted the qual ref
+        go :writeBlankCell
+      unqualified: \ Reference is unqualified, so just use normal context
+      ##lineNum @
+       pmodel{pos} ##nspaceBuf blk{str} ##wspaceBuf blk{str} ##tokBuf blk{str}
+        ptab{addSlotRef} {..FALSE} go== :ptabFail
+      writeBlankCell:
+       0 pmodel{wwrite} \ Write blank cell to pmodel
+      rpop drop
+      go ::parse
+    ptabFail:
+      $$NO_SPACE ##tokBuf popErrors
+  ;
+
+  \ Check for and act upon a const reference
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseConstRef ( k -- k )
+    dup $$CONST_DECL str{startsWith?} {..TRUE} go== :act ret
+    act:
+     validNameLength? {..TRUE} go== :lengthOK
+       ." Constant reference too long: " ##tokBuf popErrors
+     lengthOK:
+     ##inData? @ {..TRUE} go== :inData \ In DATA also skip writeiLIT
+        writeiLIT go :notInData
+     inData:
+        ##nDataCells sys{vInc}
+     notInData:
+      \ Write const reference address into constRefs table
+      ##inQualRef? @ {..FALSE} go== :unqualified
+        \ Reference is namespace-qualified, so use qualBuf
+        ##lineNum @
+        pmodel{pos} ##qualBuf blk{str} ##wspaceBuf blk{str} ##tokBuf blk{str}
+            ptab{addConstRef} {..FALSE} go== :ptabFail
+        {..FALSE} ##inQualRef? ! \ Remember we have intercepted the qual ref
+        go :writeBlankCell
+      unqualified: \ Reference is unqualified, so just use normal context
+      ##lineNum @
+      pmodel{pos} ##nspaceBuf blk{str} ##wspaceBuf blk{str} ##tokBuf blk{str}
+        ptab{addConstRef} {..FALSE} go== :ptabFail
+      writeBlankCell:
+       0 pmodel{wwrite} \ Write blank cell to pmodel
+      rpop drop
+      go ::parse
+    ptabFail:
+      $$NO_SPACE ##tokBuf popErrors
+  ;
+
+  \ Write LIT opcode to pmodel
+  : writeiLIT
+    ..iLIT pmodel{wwrite} ##nInstrs sys{vInc} ##nComplexInstrs sys{vInc}
+  ;
+
+  \ Write CALL opcode to pmodel
+  : writeiCALL
+    ..iCALL pmodel{wwrite} ##nInstrs sys{vInc} ##nComplexInstrs sys{vInc}
+  ;
+
+  \ Write EXIT opcode to pmodel
+  : writeiEXIT
+    ..iEXIT pmodel{wwrite} ##nInstrs sys{vInc} ##nSimpleInstrs sys{vInc}
+  ;
+
+  \ Write WALL opcode to pmodel
+  : writeiWALL
+    ..iWALL pmodel{wwrite} ##nInstrs sys{vInc} ##nSimpleInstrs sys{vInc}
+  ;
+
+  \ Check for and act upon a string reference
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseStringRef ( k -- k )
+    dup $$STR_DECL str{startsWith?} {..TRUE} go== :act ret
+      act:
+     validNameLength? {..TRUE} go== :lengthOK
+       ." String reference too long: " ##tokBuf popErrors
+     lengthOK:
+    ##inData? @ {..TRUE} go== :inData \ In DATA also skip writeiLIT
+      writeiLIT go :notInData
+    inData:
+      ##nDataCells sys{vInc}
+    notInData:
+      \ Write string reference address into strRefs table
+      ##inQualRef? @ {..FALSE} go== :unqualified
+        \ Reference is namespace-qualified, so use qualBuf
+        ##lineNum @ pmodel{pos} ##qualBuf blk{str}
+          ##wspaceBuf blk{str} ##tokBuf blk{str}
+            ptab{addStrRef} {..FALSE} go== :ptabFail
+        {..FALSE} ##inQualRef? ! \ Remember we have intercepted the qual ref
+        go :writeBlankCell
+      unqualified: \ Reference is unqualified, so just use normal context
+        ##lineNum @ pmodel{pos} ##nspaceBuf blk{str}
+          ##wspaceBuf blk{str} ##tokBuf blk{str}
+            ptab{addStrRef} {..FALSE} go== :ptabFail
+      writeBlankCell:
+       0 pmodel{wwrite} \ Write blank cell to pmodel
+        rpop drop
+        go ::parse
+     ptabFail:
+       $$NO_SPACE ##tokBuf popErrors
+  ;
+
+
+  \ Check if we are currently within any kind of comment and act accordingly.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : nextWithinComment ( k -- k )
+    ##inBlockComment? @ {..TRUE} go== :act
+    ##inComment? @ {..TRUE} go== :act
+    ##inLineComment? @ {..TRUE} go== :act ret
+      act: rpop drop go ::parse
+  ;
+
+  \ Check for and act upon the start of an ordinary comment.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseCommentStart ( k -- k )
+    dup $$START_COMMENT str{eq?} {..TRUE} go== :act ret
+      act: rpop drop {..TRUE} ##inComment? ! go ::parse
+  ;
+
+  \ Check for and act upon the start of a block comment.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseBlockCommentStart ( k -- k )
+    dup $$START_BCOMMENT str{eq?} {..TRUE} go== :act ret
+      act: rpop drop {..TRUE} ##inBlockComment? ! go ::parse
+  ;
+
+  \ Check for and act upon the end of an ordinary comment.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseCommentEnd ( k -- k )
+    dup $$END_COMMENT str{eq?} {..TRUE} go== :act ret
+      act: rpop drop {..FALSE} ##inComment? ! go ::parse
+  ;
+
+  \ Check for and act upon the end of a block comment.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseBlockCommentEnd ( k -- k )
+    dup $$END_BCOMMENT str{eq?} {..TRUE} go== :act ret
+      act: rpop drop {..FALSE} ##inBlockComment? ! go ::parse
+  ;
+
+  \ Assume that a line end has just been reached and act accordingly.
+  \ That is, if we are in a block comment or line comment then parse the
+  \ *next* token but if not than carry on parsing the *current* token.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : handleLineEnd ( k -- k )
+    {..TRUE} ##readyToIncLineNum !
+    dup $$LINE_COMMENT str{eq?} {..TRUE} go== :act \ Is a \ at end of line?
+    ##inBlockComment? @ {..TRUE} go== :cont \ In a block comment?
+    ##inLineComment? @ spush                \ In a line comment?
+      {..FALSE} ##inLineComment? !          \ Set inLineComment? switch off
+    spop {..TRUE} go== :act                 \ Were we already in line comment?
+      cont:
+        dup str{isEmpty?} {..TRUE} go== :act ret \ Current token empty?
+      act: rpop drop go ::parse
+  ;
+
+  \ Like handleLineEnd but called from functions that do not wish to ever
+  \ short-circuit execution directly back to ::parse. That is, called by
+  \ functions that make special additional use of readToken.
+  : processQuietLineEnd ( k -- k )
+    {..TRUE} ##readyToIncLineNum !
+    {..FALSE} ##inLineComment? !          \ Set inLineComment? switch off
+  ;
+
+  \ Show the supplied string s as a simple error message
+  \ without moving to a new line and without prepending the line number.
+  : error ( s -- ) dbg{puts} ;
+
+  \ Show the supplied string s as a simple error message
+  \ without prepending the line number. Then move to a new line.
+  : errorln ( s -- ) dbg{print} ;
+
+  \ Show the supplied string s as an error message,
+  \ automatically prepending the current line number to the error message.
+  \ WARNING: This halts the VM.
+  \ TODO If in future the compiler is modified so that the VM does not halt
+  \ upon a compile error then return stack may need pruning here.
+  : errorMsg ( s -- ) ##lineNum @ dbg{putd} ." : " error errorln halt ;
+  : dropError ( n s -- ) nip errorMsg ;
+  : drop2Error ( n n s -- ) spush drop2 spop errorMsg ;
+  : drop3Error ( n n n s -- ) spush drop3 spop errorMsg ;
+  : popError ( n s -- ) ( { n -- } ) spush rpop drop2 spop errorMsg ;
+  : pop2Error ( n n s -- ) ( { n -- } ) spush rpop drop3 spop errorMsg ;
+  : pop3Error ( n n n s-- ) ( { n -- } ) spush rpop drop4 spop errorMsg ;
+  \ WARNING: This halts the VM.
+  : errorMsgNoLineNum ( s -- ) errorln halt ;
+
+  \ Show the supplied string s and then the string contained
+  \ in the block bk as one error message, automatically prepending
+  \ the current line number to the error message.
+  \ WARNING: This halts the VM.
+  : errorMsgs ( s bk -- )
+    ##lineNum @ dbg{putd} ." : " error swap error blk{str} errorln halt ;
+  : dropErrors ( n s bk -- ) spush2 drop spop2 errorMsgs ;
+  : drop2Errors ( n n s bk -- ) spush2 drop2 spop2 errorMsgs ;
+  : drop3Errors (  n n n s bk -- ) spush2 drop3 spop2 errorMsgs ;
+  : popErrors ( n s bk -- ) ( { n -- } ) spush2 rpop drop2 spop2 errorMsgs ;
+  : pop2Errors ( n n s bk -- ) ( { n -- } )
+    spush2 rpop drop3 spop2 errorMsgs ;
+  : pop3Errors ( n n n s bk -- ) ( { n -- } )
+    spush2 rpop drop4 spop2 errorMsgs ;
+
+  \ WARNING: This halts the VM.
+  : errorNoSuch ( nspace wspace name type lineNum -- )
+      dbg{putd} ." : " error
+      ." No such  " error error
+      ." : " error error
+      ."  in word( " error error
+      ." ) in namespace( " error error
+      ." ) " errorln
+      halt
+  ;
+  \ WARNING: This halts the VM.
+  : errorNoSuchWord ( nspace name type lineNum -- )
+      dbg{putd} ." : " error
+      ." No such  " error error
+      ." : " error error
+      ."  in namespace( " error error
+      ." ) " errorln
+      halt
+  ;
+
+  \ Check for and act upon the start of a line comment.
+  \ WARNING: NEVER call this word except from the implementation of parse.
+  : parseLineCommentStart ( k -- k )
+    dup $$LINE_COMMENT str{eq?} {..TRUE} go== :act ret
+      act: rpop drop {..TRUE} ##inLineComment? ! go ::parse
+  ;
+
+  \ Return the length of the token currently in the token buffer
+  : tokenLen ( -- n ) ##tokBuf blk{str} str{len} ;
+
+  \ Copy the string currently in the token buffer [tokBuf] into
+  \ the previous token buffer [prevBuf]
+  : rememberToken ( -- )
+     ##tokBuf blk{str} ##prevBuf blk{str} str{copy} \ Remember last token
+  ;
+
+  \ Call rememberToken then...
+  \ Zero-fill the token buffer, then read the next token from source
+  \ code into the token buffer. Return TRUE if there is more source
+  \ code to read or FALSE if there is no more source code to read
+  \ or NO_VALUE if the token is ended by a marker for the end of a line.
+  \ Error if token exceeds maximum token length.
+  : readToken ( -- TRUE/FALSE/NO_VALUE )
+    rememberToken                     \ ( ) Copy tokBuf to prevBuf
+    ##tokBuf blk{zeroFill}            \ ( )
+    ..TOK_MAX_LEN                     \ ( i ) Max num chars to read
+    ##tokBuf blk{strip}               \ ( i a ) Addr to write char to
+    \ First we ignore any amount of consecutive whitespace
+    ignoring:                         \ ( i a )
+      insrc{rread}                    \ ( i a c ) Char from source code
+      {..NO_VALUE} go[==] :noMore     \ ( i a c ) End of source code?
+        ..cSPACE go[>] :haveChar      \ ( i a c ) Whitespace?
+          ..cNEWLINE go[==] :lineEnd  \ ( i a c ) Newline?
+            drop go :ignoring         \ ( i a ) Ignore all other whitespace
+    \ Now we read the actual token
+    reading:                          \ ( i a )
+      insrc{rread}                    \ ( i a c ) Char from source code
+      {..NO_VALUE} go[==] :noMore     \ ( i a c ) End of source code?
+        ..cNEWLINE go[==] :lineEnd    \ ( i a c ) Newline?
+          ..cSPACE go[<=] :done       \ ( i a c ) End of token?
+            haveChar:                 \ ( i a c ) We have a non-whitespc char
+              over !                  \ ( i a ) Write c to addr a in tokBuf
+              incw swap dec           \ ( a+ i- )
+              go[<0] :tooLong         \ ( a+ i- ) Token too long?
+              swap go :reading        \ ( i- a+ )
+    tooLong:                          \ ( a+ i- )
+      ." Token too long: " ##tokBuf drop2Errors
+    done:                             \ ( i a c )
+      drop3 {..TRUE} ret              \ ( )
+    noMore:                           \ ( i a c )
+      drop3 {..FALSE} ret             \ ( )
+    lineEnd:                          \ ( i a c ) We hit a newline char
+      drop3 {..NO_VALUE}              \ ( )
+  ;
+
+  \ Zero-fill the string literal buffer then read an entire string into it.
+  \ Error if string literal exceeds maximum allowable string length
+  \ or if end of source code before end of string.
+  : readString ( -- )
+    ##strBuf blk{zeroFill}            \ ( )
+    ..STR_MAX_LEN 2 +                 \ ( i ) Max num chars to read + 1
+    ##strBuf blk{strip}               \ ( i a ) Addr to write char to
+    reading:                          \ ( i a )
+      insrc{rread}                    \ ( i a c ) Char from source code
+      {..NO_VALUE} go[==] :endSrcCode \ ( i a c ) End of source code?
+        ..cSTR_QUOTE go[==] :done     \ ( i a c ) End of string literal?
+            over !                    \ ( i a ) Write c to addr a in strBuf
+            incw swap dec             \ ( a+ i- )
+            go[<=0] :tooLong           \ ( a+ i- ) String too long?
+            swap go :reading          \ ( i- a+ )
+    tooLong:                          \ ( a+ i- )
+      ." String literal too long: " ##strBuf drop2Errors
+    done:                             \ ( i a c )
+      leap ..STR_MAX_LEN 2 + go== :literalIsEmptyString \ ." " empty string?
+      drop nip decw [@]               \ ( a- @a- )
+        ..cSPACE go!= :syntaxErr      \ ( a- ) Space preceded closing " ?
+        0 swap ! ret                  \ ( ) Zero out final space from strBuf
+      literalIsEmptyString:           \ ( i a c )
+        drop3 ret                     \ ( )
+    syntaxErr:                        \ ( a- )
+      ." End of string literal quote not preceded by a space: "
+        ##strBuf dropErrors
+    endSrcCode:                       \ ( i a c )
+      ." End of source code before end of string: " ##strBuf drop3Errors
+  ;
+
+  \ Note: the following functions are for debugging the compiler.
+  \ Trace the token buffer contents
+  : dbgTokenBuf ( -- )
+    ##tokBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the previous token buffer contents
+  : dbgPrevBuf ( -- )
+    ##prevBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the string buffer contents
+  : dbgStrBuf ( -- )
+    '"' dbg{putc} ##strBuf incw dbg{puts} '"' dbg{putc} dbg{newline}
+  ;
+
+  \ Trace the namespace buffer contents
+  : dbgNspaceBuf ( -- )
+    ##nspaceBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the wordspace buffer contents
+  : dbgWspaceBuf ( -- )
+    ##wspaceBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the qualified reference buffer contents
+  : dbgQualBuf ( -- )
+    ##qualBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the temporary string buffer contents
+  : dbgTmpBuf ( -- )
+    ##tmpBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Trace the auxiliary string buffer contents
+  : dbgAuxBuf ( -- )
+    ##auxBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Gracefully shut down the compiler
+  : finish ( -- ) ;
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}flc
+
+\ ============================================================================
+\                   STRING LIBRARY
+\     Utility library for strings. Note that strings are always stored
+\   as blocks but are conveniently referenced by k not bk. That is,
+\   a reference to a string is a reference to k, the word in the
+\   string block that specifies the size of its 'strip' x:
+\
+\               [[bk][k][x           ][iWALL]]
+\
+\      bk = iDATA [an opcode, 1 word wide]
+\      k  = 1 word specifying the number of words z [chars] in the strip
+\           [not necessarily the number of chars in the string as the
+\            string might not fill the entire strip but might rather
+\            be zero-terminated within the strip].
+\           Regardless of the actual character encoding used, strings
+\           are always stored such that each character occupies
+\           one word [4 bytes]. For example, a string might be read from
+\           a stream as UTF-8 or written to a stream as UTF-8 but
+\           nevertheless will be stored in memory such that each character
+\           occupies one word. This is simple, easy and flexible.
+\      x  = the content of the string [1 word per character]
+\   iWALL = an opcode, 1 word wide
+\
+\     Strings are mutable [except if they are in ROM or the like].
+\
+\     See also BLOCK LIBRARY below.
+\
+\ ============================================================================
+str{
+
+  \ Some character constants
+  cDigitZero. 48 cDigitNine. 57 cMinus. 45
+
+  \ If s1 is no longer than the free space available in the strip
+  \ of string s2 [where 'free space' means the number of words above and
+  \ including the first 0 in the strip] then append s1 to the string
+  \ [or to the empty string] already present there and return TRUE
+  \ otherwise do nothing and return FALSE.
+  \ WARNING: Does not check that the containing blocks are valid.
+  \   Do not pass in such invalid references!
+  \ WARNING: Of course, s2 must not be in ROM or a VM trap will result.
+  : append ( s1 s2 -- TRUE/FALSE )
+    over len hold over len            \ ( s1 s2 len1 len2 ) [ len1 ]
+    \ Calc number of words spc of free space at end of strip of s2
+    leap @ swap -                     \ ( s1 s2 len1 spc ) [ len1 ]
+    \ Do nothing if there is no free space there
+    go[<=0] :fail2                    \ ( s1 s2 len1 spc ) [ len1 ]
+    \ Do nothing if s1 is too long to fit in free space there
+    go> :fail                         \ ( s1 s2 ) [ len1 ]
+    dup len spush                     \ ( s1 s2 ) [ len1 len2 ]
+    \ Calc source destination addresses for strip appends
+    sys{INC2} spop sys{bytes} +       \ ( source dest ) [ len1 ]
+    \ Do the append
+    spop tor move {..TRUE} ret        \ ( TRUE ) [ ]
+    fail2:                            \ ( s1 s2 len1 spc ) [ len1 ]
+      drop2                           \ ( s1 s2 ) [ len1 ]
+    fail:                             \ ( s1 s2 )
+      spop drop3 {..FALSE}            \ ( FALSE )
+  ;
+
+  \ Return the address bk of the block in which string s1 resides.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : blk ( s1 -- bk ) decw ;
+
+  \ Copy as much of string s1 as will fit into the block in which string s2
+  \ resides after zero-filling the block in which s2 resides.
+  \ WARNING: Does not check that the containing blocks are valid.
+  \   Do not pass in such invalid references!
+  \ WARNING: Of course, s2 must not be in ROM or a VM trap will result.
+  : copy ( s1 s2 -- )
+    dup blk blk{zeroFill}     \ ( s1 s2 ) Zero-fill block of s2
+    over @ over @ sys{lesser} \ ( s1 s2 z ) Find size of smallest block
+    tor sys{INC2} move        \ ( ) Copy s1 to s2
+  ;
+
+  \ Convert character c to integer i which is the value of the digit
+  \ that c represents or NO_VALUE if c is not a digit.
+  : ctoi ( c -- n )
+    ..cDigitZero go[<] :none
+      ..cDigitNine go[>] :none
+        ..cDigitZero - ret
+    none:
+      drop {..NO_VALUE}
+  ;
+
+  \ Return the index in string s1 of the first occurrence of character c1
+  \ [that is, the occurence closest to the start of the string]
+  \ or, if that character is not present in the string, return NO_VALUE.
+  \ The index is from the END of the string [which is index 0].
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : endIndex ( s1 c1 -- n )
+    swap dup len hold tor incw find   \ ( index ) [ len ]
+    {..NO_VALUE} go[==] :none         \ ( index ) [ len ]
+      spop dec swap - ret             \ ( endIndex ) [ ]
+    none:                             \ ( NO_VALUE ) [ len ]
+      spop drop                       \ ( NO_VALUE )
+  ;
+
+  \ Return TRUE if the string s1 ends with the string s2 and
+  \ s1 is stored in a block which is at least as large as the block
+  \ s2 is stored in; otherwise return FALSE.
+  \ WARNING: Does not check that the containing blocks are valid.
+  \   Do not pass in such invalid references!
+  : endsWith? ( s1 s2 -- TRUE/FALSE )
+    over @ over @ go< :false            \ Block containing s1 shorter?
+    over len over len - go[<0] :false2  \ Actual string s1 shorter than s2?
+      sys{bytes} rot incw + \ ( s2 a1 )   Addr a1 in s1 from which to match
+      swap dup len          \ ( a1 s2 z ) Len z of s2 in wds = num wds to mtch
+      tor incw              \ ( z a1 a2 ) Addr a2 in s2 from which to match
+      match ret             \ ( TRUE/FALSE ) s1 ends with s2?
+    false2:
+      drop
+    false:
+      drop2 {..FALSE}
+  ;
+
+  \ Return TRUE if the string s1 is identical to the string s2.
+  \ For example, "hello" is identical with "hello" regardless of where
+  \ those strings are stored in memory [this is not a test to see if two
+  \ string references refer to the same memory address].
+  \ WARNING: Does not check that the containing blocks are valid.
+  \   Do not pass in such invalid references!
+  : eq? ( s1 s2 -- TRUE/FALSE )
+    over len over len go!= :false     \ Actual strings have different lengths?
+      dup len tor sys{INC2} match ret \ Actual strings identical?
+    false:
+      drop2 {..FALSE}
+  ;
+
+  \ Return the index in string s1 of the first occurrence of character c1
+  \ [that is, the occurence closest to the start of the string]
+  \ or, if that character is not present in the string, return NO_VALUE.
+  \ The index is from the START of the string [which is index 0].
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : index ( s1 c1 -- n ) swap dup len tor incw find ;
+
+  \ Return TRUE if str{len} for supplied string s is 0, otherwise FALSE
+  : isEmpty? ( s -- TRUE/FALSE ) len 0 go== :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ Return the effective length n of string s calculated as follows:
+  \ if s entirely fills the strip of the block in which it is contained,
+  \ or if the size of that strip is 0, then n is the size of the strip
+  \ in words; otherwise, if s is terminated by a word having the value 0
+  \ prior to the end of the strip then n is the size of s in words
+  \ up to but not including the first word having the value 0.
+  \ That is, this function works for either exact-length strings
+  \ or zero-terminated strings providing the string is
+  \ entirely contained in a block.
+  \ WARNING: This function treats any word other than 0 as a valid char.
+  \   Thus whitespace and control characters are considered part of
+  \   the string for the purposes of determining its length!
+  : len ( s -- n )
+     [@] swap incw                   \ ( z x ) Size of str, start of strip
+     dup2 0 swap find                \ ( z x n ) Index of first 0 if any
+     {..NO_VALUE} go[==] :noZero     \ ( z x n ) Is str zero-terminated?
+        \ Str is zero-terminated
+        over +                       \ ( z x a ) Addr a of first 0
+        swap - nip ret               \ ( a-x ) Length is a - x
+     noZero:                         \ ( z x n )
+        \ Str is not zero terminated
+        drop2                        \ ( z ) Strip size is string length
+  ;
+
+  \ Return TRUE if the string s1, within its actual length as determined
+  \ by str{len}, contains none of the characters in the range between the
+  \ lower bound c1 and the higher bound c2 inclusive, otherwise FALSE;
+  \ also true if c1 > c2 or str{len} is 0.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : noneRange? ( s1 c1 c2 -- TRUE/FALSE )
+    dup2 go> :true2                 \ ( s1 c1 c2 )
+    leap len go==0 :true2           \ ( s1 c1 c2 )
+    rot dup len swap incw swap      \ ( c1 c2 a=s1+ l=len )
+    checking:                       \ ( c1 c2 a l )
+      go[<=0] :true                 \ ( c1 c2 a l )
+      hold2 drop @                  \ ( c1 c2 c ) [ a l ] Current char c of s1
+      leap go[<] :next              \ ( c1 c2 c ) [ a l ] Is char c < c1?
+      over go[>] :next              \ ( c1 c2 c ) [ a l ] Is char c > c2?
+      go :false2                    \ ( c1 c2 c ) [ a l ]
+     next:                          \ ( c1 c2 c ) [ a l ]
+      drop spop dec spop incw swap  \ ( c1 c2 a+ l- ) [ ]
+      go :checking                  \ ( c1 c2 a+ l- ) [ ]
+    true:                           \ ( c1 c2 a l )
+      drop4 {..TRUE} ret            \ ( TRUE )
+    false2:                         \ ( c1 c2 @a ) [ a l ]
+      drop3 spop2 drop2 {..FALSE} ret \ ( FALSE )
+    true2:                          \ ( x y z )
+      drop3 {..TRUE}                \ ( TRUE )
+  ;
+
+  \ Return TRUE if the string s1, within its actual length as determined
+  \ by str{len}, contains only characters in the range between the
+  \ lower bound c1 and the higher bound c2 inclusive, otherwise FALSE;
+  \ also false if c1 > c2 or str{len} is 0.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : onlyRange? ( s1 c1 c2 -- TRUE/FALSE )
+    dup2 go> :false                 \ ( s1 c1 c2 )
+    leap len go==0 :false           \ ( s1 c1 c2 )
+    rot dup len swap incw swap      \ ( c1 c2 a=s1+ l=len )
+    checking:                       \ ( c1 c2 a l )
+      go[<=0] :true                 \ ( c1 c2 a l )
+      hold2 drop @                  \ ( c1 c2 c ) [ a l ] Current char c of s1
+      leap go[<] :false2            \ ( c1 c2 c ) [ a l ] Is char c < c1?
+      over go[>] :false2            \ ( c1 c2 c ) [ a l ] Is char c > c2?
+      drop spop dec spop incw swap  \ ( c1 c2 a+ l- ) [ ]
+      go :checking                  \ ( c1 c2 a+ l- ) [ ]
+    true:                           \ ( c1 c2 a l )
+      drop4 {..TRUE} ret            \ ( TRUE )
+    false2:                         \ ( c1 c2 @a ) [ a l ]
+      spop2 drop2                   \ ( c1 c2 @a )
+    false:                          \ ( x y z )
+      drop3 {..FALSE}               \ ( FALSE )
+  ;
+
+  \ Return TRUE if the string s1, within its actual length as determined
+  \ by str{len}, contains at least 1 character in the range between the
+  \ lower bound c1 and the higher bound c2 inclusive, otherwise FALSE;
+  \ also false if c1 > c2 or str{len} is 0.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  : someRange? ( s1 c1 c2 -- TRUE/FALSE )
+    dup2 go> :false                 \ ( s1 c1 c2 )
+    leap len go==0 :false           \ ( s1 c1 c2 )
+    rot dup len swap incw swap      \ ( c1 c2 a=s1+ l=len )
+    checking:                       \ ( c1 c2 a l )
+      go[<=0] :false2               \ ( c1 c2 a l )
+      hold2 drop @                  \ ( c1 c2 c ) [ a l ] Current char c of s1
+      leap go[<] :next              \ ( c1 c2 c ) [ a l ] Is char c < c1?
+      over go[>] :next              \ ( c1 c2 c ) [ a l ] Is char c > c2?
+      go :true                      \ ( c1 c2 c ) [ a l ]
+    next:                           \ ( c1 c2 c ) [ a l ]
+      drop spop dec spop incw swap  \ ( c1 c2 a+ l- ) [ ]
+      go :checking                  \ ( c1 c2 a+ l- ) [ ]
+    true:                           \ ( c1 c2 c ) [ a l ]
+      drop3 spop2 drop2 {..TRUE} ret  \ ( TRUE )
+    false2:                         \ ( w x y z )
+      drop                          \ ( x y z )
+    false:                          \ ( x y z )
+      drop3 {..FALSE}               \ ( FALSE )
+  ;
+
+  \ Return TRUE if the string s1 starts with the string s2 and
+  \ s1 is stored in a block which is at least as large as the block
+  \ s2 is stored in; otherwise return FALSE.
+  \ WARNING: Does not check that the containing blocks are valid.
+  \   Do not pass in such invalid references!
+  : startsWith? ( s1 s2 -- TRUE/FALSE )
+    over @ over @ go< :false      \ Block containing s1 shorter?
+      [@] tor sys{INC2} match ret \ s1 starts with s2?
+    false:
+      drop2 {..FALSE}
+  ;
+
+  \ Convert string s1 to integer i and return i and TRUE if succeeded
+  \ or 0 and FALSE if failed. The conversion will succeed if:
+  \   (a) The string contains only digits or
+  \       the string starts with "-" followed by only digits; and
+  \   (b) the integer value of the string is within the range
+  \         that the VM is capable of holding in a single word.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  \ MIN32BIT: Will not work if Freeputer word size is not 32 bits
+  \   [which should never be the case but noted here as a courtesy]
+  : stoi ( s1 -- i TRUE/FALSE )
+      dup len 9 go<= :safe       \ Overflow is impossible if s1 this short
+
+     \ ----------- What follows is purely overflow protection ----------------
+      stoiBuf# 56                \ String buffer used in overflow prevention
+      11 #stoiBuf blk{init} drop \ Init and zero-fill buffer
+      isNeg?# 4 \ To remember if string s1 starts with - sign
+      dup ." - " startsWith? #isNeg? !
+      #isNeg? @ {..FALSE} go== :positive
+     ( negative: )
+        dup len 10 go<= :safe   \ Cannot overflow if negative s1 this short
+        dup len 11 go> :failure \ s1 too long for negative number
+        dup #stoiBuf 1 1 str{substr} \ Chopped off - sign and last digit
+        go :preventOverflow
+      positive:
+        dup len 9 go<= :safe    \ Cannot overflow if positive s1 this short
+        dup len 10 go> :failure \ s1 too long for positive number
+        dup #stoiBuf 0 1 str{substr} \ Chopped off last digit
+      preventOverflow:
+        \ We now make a recursive call to stoi. This is safe because
+        \ the string in stoiBuf is always positive and 9 digits long;
+        \ overflow is therefore impossible and program flow through
+        \ stoi will jump directly to :safe.
+        #stoiBuf blk{str} stoi
+           {..FALSE} go== :fail2 \ Should never happen.
+        \ Now we test if the first 9 digits of the absolute value
+        \   of s1 as an integer is large enough to definitely overflow.
+        214748364 go[>] :fail2 \ abs(s1) >= 2147483650, would overflow.
+        214748364 go< :safe    \ abs(s1) < 2147483640, definitely safe.
+        \ Now we know that 2147483640 < abs(s1) < 2147483649,
+        \ so we have to check the final digit. We do this by making
+        \ a second recursive call to stoi for only that digit.
+        \ Note: this is done, rather than making simple character comparisons,
+        \ to avoid obscure complications caused by encoding/endianness.
+        #isNeg? @ {..FALSE} go== :limit7
+      ( limit8: )
+           dup #stoiBuf 10 0 str{substr} #stoiBuf blk{str} stoi
+         {..FALSE} go== :fail2 \ Should never happen.
+           8 go> :failure       \ s1 < -2147483648, would overflow [too low]
+             go :safe           \ -2147483648 <= s1 <= -2147483640, safe
+        limit7:
+         dup #stoiBuf 9 0 str{substr} #stoiBuf blk{str} stoi
+         {..FALSE} go== :fail2 \ Should never happen.
+           7 go> :failure       \ s1 > 2147483647, would overflow
+             go :safe           \ 2147483640 <= s1 <= 2147483647, safe
+
+     \ ----------- What follows is the actual conversion algorithm -----------
+     safe:
+      dup len go[<=0] :fail2              \ ( s1 z ) Empty string?
+      dec                                 \ ( s1 z=z-1 ) Adjust len as index
+      swap incw over sys{bytes} +         \ ( z a ) Address of final char
+      \ NOTE: to avoid overflow, all numbers are initially treated as
+      \ being negative; positive numbers are later converted back to positive.
+      \ Range is -2147483648 to 2147483647. Hence negative magnitude below:
+      -1 spush swap                       \ ( a z ) [ m=1 ] Magnitude = -1
+      0 tor                               \ ( r=0 a z ) [ m ] Result = 0
+    calc:                                 \ ( r a z ) [ m ]
+      go[<=0] :firstChar                  \ ( r a z ) [ m ]
+      rev over @                          \ ( z a r c ) [ m ] Current char
+        ctoi {..NO_VALUE} go[==] :fail4   \ ( z a r d ) [ m ] Illegal digit?
+          speek * +                       \ ( z a r ) [ m ] Cumulative result
+          rev dec                         \ ( r a z- ) [ m ]
+          swap decw swap                  \ ( r a- z- ) [ m ]
+          spop                            \ ( r a- z- m ) [ ]
+          -1000000000 go[<=] :noMult      \ ( r a- z- m ) [ ]
+            10 *                          \ ( r a- z- m*10 ) [ ]
+          noMult:                         \ ( r a- z- M ) [ ]
+            spush                         \ ( r a- z- ) [ M ]
+      go :calc                            \ ( r a- z- ) [ M ] Previous char
+    firstChar:                            \ ( r a z ) [ m ] We are at 1st char
+      drop                                \ ( r a ) [ m ]
+      @ ..cMinus go[==] :negative         \ ( r c ) [ m ] Is minus sign?
+      ctoi {..NO_VALUE} go[==] :fail3     \ ( r d ) [ m ] Illegal digit?
+      spop * +                            \ ( i ) [ ]
+      -2147483648 go[==] :failure         \ Too big to convert back to +ve?
+      neg go :success                     \ ( i ) [ ] Convert back to +ve
+    negative:                             \ ( r c ) [ m ] Str starts with "-"
+      spop drop                           \ ( r c ) [ ]
+      drop go[==0] :failure               \ ( r ) [ ] Was string "-" or "-0"?
+      go :success                         \ ( -r ) [ ] Let remain -ve
+    fail4:                                \ ( z a r d ) [ m ]
+      drop2                               \ ( x y ) [ m ]
+    fail3:                                \ ( x y ) [ m ]
+      spop drop                           \ ( x y ) [ ]
+    fail2:                                \ ( x y ) [ ]
+      drop                                \ ( x ) [ ]
+    failure:                              \ ( x ) [ ]
+      drop 0 {..FALSE}       ret          \ ( 0 FALSE ) [ ]
+    success:                              \ ( i ) [ ]
+      {..TRUE}                            \ ( i TRUE ) [ ]
+  ;
+
+  \ Zero-fill block bk then populate it with a substring of string s1
+  \ from the start of the string plus i1 to the end of the string,
+  \ as determined by str{len}, minus i2. If i1 < 0, or i2 < 0,
+  \ or str{len} is 0, or str{len} is insufficient to accommodate the
+  \ supplied values of i1 and i2, or the size of block bk is insufficient
+  \ to accommodate the substring then do not populate bk with any substring
+  \ but simply leave it as a zero-filled empty string.
+  \ WARNING: This implementation does not behave exactly as described above
+  \   as to behave correctly it requires that the size of the strip of bk
+  \   is at least as long as s1 len. TODO: fix this minor bug.
+  \ WARNING: Does not check that the containing block of s1 is valid.
+  \   Do not pass in such an invalid reference!
+  \ WARNING: Passing in an invalid block bk will cause the VM to immediately
+  \   halt as this word refuses to zero-fill an invalid block reference.
+  \ WARNING: Of course, bk must not be in ROM or a trap will result.
+  : substr ( s1 bk i1 i2 )
+    leap dup blk{validate} {..FALSE} go== ::quit \ Halt if block invalid
+    blk{zeroFill}                      \ ( s1 bk i1 i2 ) bk is now emtpy str
+    go[<0] :empty                      \ ( s1 bk i1 i2 ) Is i2 < 0?
+    over go<0 :empty                   \ ( s1 bk i1 i2 ) Is i1 < 0?
+    spush2 over str{len} go[==0] :empty2 \ ( s1 bk lWds=len ) [ i1 i2 ] 0 len?
+    speek2 + go[<=] :empty2            \ ( s1 bk lWds ) [ i1 i2 ] len accom?
+    over blk{size} go[>] :empty2       \ ( s1 bk lWds ) [ i1 i2 ] bk accom?
+    \ We are ready to substring the string:
+    sys{bytes}                         \ ( s1 bk lBytes ) [ i1 i2 ]
+    leap incw + spop sys{bytes} -      \ ( s1 bk endAddr ) [ i1 ]
+    rot incw spop sys{bytes} +         \ ( bk endAddr startAddr ) [ ]
+    tuck - sys{wds}                    \ ( bk startAddr numWds ) [ ]
+    rot blk{strip}                     \ ( startAddr numWds x ) [ ] Strip addr
+    swap tor                           \ ( numWds startAddr x ) Ready for move
+    move ret                           \ ( ) [ ] Substring now in bk
+    \ No substring calculation needed:
+    empty2:                            \ ( s1 bk l ) [ i1 i2 ]
+      drop spop2                       \ ( s1 bk i1 i2 ) [ ]
+    empty:                             \ ( w x y z )
+      drop4                            \ ( ) Result is bk is an empty string
+  ;
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}str
+
+\ ============================================================================\                   INSRC    "in source" or "source input"
+\     The interface for the input device from which the source
+\   code will be read. This interface serves as a layer of abstraction
+\   such that the source code could actually come, via this interface,
+\   from a stream, a block device or memory but the compiler shall
+\   treat it as a stream. This initial implementation uses stdin
+\   and assumes that source code character encoding is UTF-8.
+\
+\ ============================================================================
+insrc{
+
+  \ Return the next character of source code or, if there is no more
+  \ source code or an invalid character is encountered or an I/O error
+  \ occurs, return {..NO_VALUE}
+  : rread ( -- c )
+    _readChar
+    utf8{..EMPTY} go[==] :noValue
+      utf8{..INVALID} go[==] :noValue
+        ret
+    noValue:
+      drop {..NO_VALUE}
+ ;
+
+  \ --------------------------------------------------------------------------
+  \ End of public interface of insrc. Below is private implementation.
+  \ --------------------------------------------------------------------------
+
+  \ Returns a character from stdimp assuming UTF-8 encoding
+  \  or utf8{..EMPTY} or utf8{..INVALID} [see utf8{read} for details]
+  : _readChar ( -- c ) ::_readb utf8{read} ;
+
+  \ Attempt to read a single byte and return that byte if the read
+  \ succeeded otherwise return {..NO_VALUE}. Possible reasons for NO_VALUE
+  \ include an I/O error or simply reaching end of stream.
+  : _readb ( -- b/NO_VALUE )
+    readorb :readFailed
+      .._MIN_CHAR go[<] :apparentEOS
+      go :end
+    apparentEOS:
+      drop
+    readFailed:
+      {..NO_VALUE}
+    end:
+  ;
+
+  \ Any character code less than this apparently can signal
+  \   EOF/EOS on Linux, and exactly which character code
+  \   (eg 5, 6 or 7) seems to vary unpredictably.
+  _MIN_CHAR. 10
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}insrc
+
+\ ============================================================================
+\                   OUTBIN    "out bin" or "binary output"
+\     The interface for the output device to which the compiled
+\   program will be written. This interface serves as a layer of abstraction
+\   such that the compiled program could actually go, via this interface,
+\   to a stream, a block device or memory but the compiler shall
+\   treat it as a stream. This initial implementation uses stdout.
+\
+\ ============================================================================
+outbin{
+
+  \ Reset the output device so that the next word will be written
+  \ to whatever is considered to be the start of that output device.
+  \ This word can do nothing if the device has no beginning.
+  \ Note: this implementation indeed does nothing.
+  : rreset ( -- ) ;
+
+  \ Write the next word of the compiled program.
+  : wwrite ( n -- ) {..STDOUT} wchan writor ::wfail ;
+
+  \ Traps
+  wfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}outbin
+
+\ ============================================================================
+\                   PMODEL    "P model" or "program model"
+\     The interface for the program model. The program model [pmodel]
+\   is the temporary, dynamic representation of the program being compiled.
+\   During the first pass, as the source code is read, the compiler
+\   consecutively writes values to all pmodel cells that it can populate,
+\   leaving blank any program cells that cannot yet be populated.
+\   During the second pass, the compiler correctly populates the blank
+\   cells throughout the pmodel and then writes all named string
+\   declarations into the end of the pmodel. The completed pmodel then
+\   contains the entire compiled program ready to be sent to outbin.
+\   The actual implementation of the pmodel could be in memory or
+\   in a block device or in some combination of the two.
+\   This initial implementation uses system memory.
+\ ============================================================================
+pmodel{
+
+  \ IMPORTANT NOTE: see the comment for ptab{##tablespace} for a discussion
+  \ of hardware requirements for the VM instance running the compiled
+  \ compiler. That comment explains that a compiler could easily be
+  \ written to run on hardware with very little RAM simply by providing
+  \ implementations of the pmodel and the ptab which use block devices
+  \ rather than VM RAM for storage. The program model size declared below
+  \ is arbitrary and could be much larger [say, a gigabyte] if needed.
+  MAX_SIZE. 131072         \ Max size of pmodel in words [arbitrary]
+  pmodel# 524300          \ Slot for pmodel block [12 + 4 * MAX_SIZE]
+
+  pProg# 4                \ Ptr to lowest address in pmodel
+  iProgCell# 4            \ Index of current program cell for read/write
+  iProgHighest# 4         \ Index of highest cell written to so far
+
+  \ WARNING: The next constant MUST have the same value as that in the
+  \ flc and ptab namespaces for the compiler to function reliably!
+  STR_MAX_LEN.    80      \ Max length of strings [size in words]
+
+  \ Initialize the pmodel ready for use.
+  \ This zero-fills any previous content of the pmodel.
+  : init ( -- )
+    ..MAX_SIZE ##pmodel blk{init}               \ Create pmodel block
+    ##pProg !                                   \ Init pProg ptr
+    ##pmodel blk{zeroFill}                      \ Zero-fill pmodel blk
+    0 ##iProgCell !                             \ Current cell is 0
+    -1 ##iProgHighest !                         \ Highest is -1 meaning empty
+  ;
+
+  \ Return the index of the current program cell for read/write.
+  : pos ( -- n ) ##iProgCell @ ;
+
+  \ Return the maximum possible size of the pmodel in words.
+  \ That is, the capacity [in program cells] of this pmodel implementation.
+  \ Different implementations of pmodel might be capable of representing
+  \ programs of different sizes.
+  : maxsize ( -- n ) ..MAX_SIZE ;
+
+  \ Return the current size of the pmodel in words.
+  : size ( -- n ) ##iProgHighest @ inc ;
+
+  \ Copy string literal s into the end of the pmodel.
+  \ WARNING: Size of strip of string s must be appropriate.
+  \ WARNING: Must not call this until the end of the second pass.
+  : addStr ( s -- )
+    \ Check that there is enough space left in the pmodel
+    dup str{len} blk{gross} ##iProgHighest @ + ..MAX_SIZE go> ::quit
+    \ Init an empty block at the top of the pmodel for the destination string
+    dup str{len} hold ##pProg @ size sys{bytes} +
+      blk{init} decw \ ( s s2 ) [ z ]
+      str{copy}      \ ( ) [ z ]
+    \ Advance counter and iProgHighest appropriately
+    spop blk{gross} dup
+      \ TODO This is an example of some tight coupling to flc which
+      \ would best be refactored out in future:
+      flc{##nStrCells} @ + flc{##nStrCells} !
+        ##iProgHighest @ + ##iProgHighest !
+  ;
+
+  \ Read value n from the current program cell,
+  \ then increment program cell pointer to next cell.
+  \ WARNING: This implementation halts the VM if the read would attempt
+  \ to immediately now read beyond the bounds of the pmodel.
+  : rread ( n -- )
+    ##iProgCell @ gget              \ Read from the current program cell
+    ##iProgCell sys{vInc}           \ Increment ptr to current program cell
+  ;
+
+  \ Write value n to the current program cell,
+  \ then increment program cell pointer to next cell.
+  \ WARNING: This implementation halts the VM if the write would attempt
+  \ to immediately now write beyond the bounds of the pmodel.
+  : wwrite ( n -- )
+    ##iProgCell @ pput              \ Write to the current program cell
+    ##iProgCell @ ##iProgHighest !  \ Update ptr to highest cell written to
+    ##iProgCell sys{vInc}           \ Increment ptr to current program cell
+  ;
+
+  \ Set the current program cell for read/write to the specified cell i.
+  \ WARNING: This implementation halts the VM if a out of pmodel bounds.
+  : seek ( i -- )
+    go[<0] ::quit
+      ..MAX_SIZE go[>] ::quit
+        ##iProgCell !
+  ;
+
+  \ Get value n from cell i in the pmodel.
+  \ WARNING: This implementation halts the VM if i out of pmodel bounds.
+  : gget ( i -- n )
+    go[<0] ::quit
+      ..MAX_SIZE go[>] ::quit
+        sys{bytes} ##pProg @ + @
+  ;
+
+  \ Put value n at cell i in the pmodel.
+  \ WARNING: This implementation halts the VM if i out of pmodel bounds.
+  : pput ( n i -- )
+    go[<0] ::quit
+      ..MAX_SIZE go[>] ::quit
+          ##iProgHighest @ go[<=] :store  \ Higher a than any previous a?
+            dup ##iProgHighest !          \ Update ptr to highest program cell
+          store:
+            sys{bytes} ##pProg @ + !
+  ;
+
+  \ Halt
+  : quit ( -- ) ." pmodel access out of bounds " dbg{puts} halt ;
+
+  \ Trace the pmodel contents [useful when debugging the compiler]
+  : dbgPmodel ( -- )
+    ." pmodel: " dbg{puts}
+      ##pmodel blk{strip} size dbg{MEMDUMP} dbg{newline}
+        ##pmodel blk{strip} size dbg{CHARDUMP} dbg{newline}
+  ;
+
+}pmodel
+
+\ ============================================================================
+\                   PTAB     "P tab" or "program table"
+\     The interface for the program table. The program table [ptab]
+\   is used during compilation to store declarations and references.
+\   It is used by the pmodel to populate blank cells in the second pass
+\   and also to populate named string declarations. The program table
+\   could equally well be called the program tables [plural] since
+\   it effectively stores each kind of declaration and each kind
+\   of reference in an organized manner. These are:
+\   words [functions], labels, slots [variables], constants and strings;
+\   strings are divided into named strings and anonymous strings.
+\   The actual implementation of the ptab could be in memory or
+\   in a block device or in some combination of the two.
+\   This initial implementation uses system memory.
+\
+\   WARNING: To fully initialize the program table and allocate adequate
+\   table space all of the following functions MUST be called [in any order]
+\   before the first pass of the compiler and AFTER calling init:
+\     initWords, initLabels, initSlots, initConsts, initStrs, initAnonStrs
+\ ============================================================================
+ptab{
+
+  \ The following constitutes the total available size for the program table.
+  \ Since this ptab implementation uses system memory, the VM instance
+  \ used to run the compiled compiler must of course have not only
+  \ enough RAM to contain the tablespace# slot but also, if using the
+  \ above pmodel implementation, enough RAM to contain the pmodel# slot,
+  \ otherwise that VM implementation will not be able to run the
+  \ compiled compiler as compiled from this source code.
+  \ To actually compile programs on hardware which is very limited in RAM,
+  \ implementations of the pmodel and the ptab which use block devices
+  \ rather than VM RAM for storage could be created.
+  \ The tablespace size declared below is arbitrary and could be
+  \ much larger [say, a gigabyte] if desired.
+  MAX_SIZE.     2097152    \ Max size of tablespace in words [arbitrary]
+  tablespace#   8388620    \ Slot for tablespace block [12 + 4 * MAX_SIZE]
+
+  \ WARNING: The next two constants MUST have the same values as those in the
+  \ flc and pmodel namespaces for the compiler to function reliably!
+  NAM_MAX_LEN.    32          \ Max length of names [size in words]
+  STR_MAX_LEN.    80          \ Max length of strings [size in words]
+
+  \ Note: in tables, all sizes of all fields are specified in words and
+  \ are always equal to namMaxLen (see further below) unless otherwise noted.
+  namMaxLen# 4            \ Slot for block gross size of name fields
+  strMaxLen# 4            \ Slot for block gross size of string fields
+
+  \ Memory management within the tablespace.
+  \ This implementation uses a rudimentary stack-like heap which
+  \ grows upward in memory within the tablespace block within the
+  \ tablespace# slot.
+  pStartHeap#   4 \ Ptr to start [lowest word] of heap space. Static.
+  pHeap#        4 \ Ptr to current top of the heap.           Dynamic.
+  pEndHeap#     4 \ Ptr to end [highest word] of heap space.  Static.
+
+  pStartConstDecls#     4 \ Ptr to start of const decls table
+  pConstDecls#          4 \ Ptr to current position in const decls table
+  pEndConstDecls#       4 \ Ptr to end of const decls table
+  pStartConstRefs#      4 \ Ptr to start of const refs table
+  pConstRefs#           4 \ Ptr to current position in const refs table
+  pEndConstRefs#        4 \ Ptr to end of const refs table
+  nConstDecls#          4 \ Counter for number of constants declared
+  nConstRefs#           4 \ Counter for number of constants references
+
+  pStartWordDecls#      4 \ Ptr to start of word decls table
+  pWordDecls#           4 \ Ptr to current position in word decls table
+  pEndWordDecls#        4 \ Ptr to end of word decls table
+  pStartWordRefs#       4 \ Ptr to start of word refs table
+  pWordRefs#            4 \ Ptr to current position in word refs table
+  pEndWordRefs#         4 \ Ptr to end of word refs table
+  nWordDecls#           4 \ Counter for number of words declared
+  nWordRefs#            4 \ Counter for number of words references
+
+  pStartLabelDecls#     4 \ Ptr to start of label decls table
+  pLabelDecls#          4 \ Ptr to current position in label decls table
+  pEndLabelDecls#       4 \ Ptr to end of label decls table
+  pStartLabelRefs#      4 \ Ptr to start of label refs table
+  pLabelRefs#           4 \ Ptr to current position in label refs table
+  pEndLabelRefs#        4 \ Ptr to end of label refs table
+  nLabelDecls#          4 \ Counter for number of labels declared
+  nLabelRefs#           4 \ Counter for number of labels references
+
+  pStartSlotDecls#      4 \ Ptr to start of slot decls table
+  pSlotDecls#           4 \ Ptr to current position in slot decls table
+  pEndSlotDecls#        4 \ Ptr to end of slot decls table
+  pStartSlotRefs#       4 \ Ptr to start of slot refs table
+  pSlotRefs#            4 \ Ptr to current position in slot refs table
+  pEndSlotRefs#         4 \ Ptr to end of slot refs table
+  nSlotDecls#           4 \ Counter for number of slots declared
+  nSlotRefs#            4 \ Counter for number of slots references
+
+  pStartStrDecls#       4 \ Ptr to start of string decls table
+  pStrDecls#            4 \ Ptr to current position in string decls table
+  pEndStrDecls#         4 \ Ptr to end of string decls table
+  pStartStrRefs#        4 \ Ptr to start of string refs table
+  pStrRefs#             4 \ Ptr to current position in string refs table
+  pEndStrRefs#          4 \ Ptr to end of string refs table
+  nStrDecls#            4 \ Counter for number of strings declared
+  nStrRefs#             4 \ Counter for number of string references
+
+  pStartAnonStrDecls#   4 \ Ptr to start of anon string decls table
+  pAnonStrDecls#        4 \ Ptr to current position in anon string decls table
+  pEndAnonStrDecls#     4 \ Ptr to end of anon string decls table
+  nAnonStrDecls#        4 \ Counter for number of anon strings declared
+
+  pDummy#               4 \ A slot to use as a very temporary pointer
+
+  LABEL_DECL$ ." : "      \ Suffix for label declarations
+  SLOT_DECL$  ." # "      \ Suffix for slot [variable] declarations
+  CONST_DECL$ ." . "      \ Suffix for const declarations
+  STR_DECL$   ." $ "      \ Suffix for string declarations
+  EMPTY_NAME$ ." "        \ Empty string to use for blank name fields
+  namBuf# 332             \ Temporary buffer [block] for name str manipulation
+
+  \ Begin initialization of the program table.
+  \ IMPORTANT: After calling this function, the following additional
+  \ functions MUST each be called [in any order] before the first pass
+  \ of the compiler begins [to ensure correct compiler behaviour]:
+  \   initWords, initLabels, initSlots, initConsts, initStrs, initAnonStrs
+  : init ( -- )
+    ..MAX_SIZE ##tablespace blk{init} drop  \ Init tablespace block
+    ##tablespace blk{zeroFill}              \ Zero-fill tablespace block
+    ##tablespace blk{strip} dup dup
+      ##pStartHeap !                        \ Set static ptr to start of heap
+      ##pHeap !                             \ Set heap ptr to start of heap
+      ..MAX_SIZE dec sys{bytes} +
+        ##pEndHeap !                        \ Set static ptr to end of heap
+    ..NAM_MAX_LEN blk{gross} ##namMaxLen !  \ Blk gross size for name fields
+    ..STR_MAX_LEN blk{gross} ##strMaxLen !  \ Blk gross size for string fields
+
+    \ Initialize all other pointers to NO_VALUE for now.
+    \ They will be properly initialized by the other init... functions.
+    {..NO_VALUE} ##pStartConstDecls !
+    {..NO_VALUE} ##pConstDecls !
+    {..NO_VALUE} ##pEndConstDecls !
+    {..NO_VALUE} ##pStartConstRefs !
+    {..NO_VALUE} ##pConstRefs !
+    {..NO_VALUE} ##pEndConstRefs !
+    0 ##nConstDecls !
+    0 ##nConstRefs !
+
+    {..NO_VALUE} ##pStartWordDecls !
+    {..NO_VALUE} ##pWordDecls !
+    {..NO_VALUE} ##pEndWordDecls !
+    {..NO_VALUE} ##pStartWordRefs !
+    {..NO_VALUE} ##pWordRefs !
+    {..NO_VALUE} ##pEndWordRefs !
+    0 ##nWordDecls !
+    0 ##nWordRefs !
+
+    {..NO_VALUE} ##pStartLabelDecls !
+    {..NO_VALUE} ##pLabelDecls !
+    {..NO_VALUE} ##pEndLabelDecls !
+    {..NO_VALUE} ##pStartLabelRefs !
+    {..NO_VALUE} ##pLabelRefs !
+    {..NO_VALUE} ##pEndLabelRefs !
+    0 ##nLabelDecls !
+    0 ##nLabelRefs !
+
+    {..NO_VALUE} ##pStartSlotDecls !
+    {..NO_VALUE} ##pSlotDecls !
+    {..NO_VALUE} ##pEndSlotDecls !
+    {..NO_VALUE} ##pStartSlotRefs !
+    {..NO_VALUE} ##pSlotRefs !
+    {..NO_VALUE} ##pEndSlotRefs !
+    0 ##nSlotDecls !
+    0 ##nSlotRefs !
+
+    {..NO_VALUE} ##pStartStrDecls !
+    {..NO_VALUE} ##pStrDecls !
+    {..NO_VALUE} ##pEndStrDecls !
+    {..NO_VALUE} ##pStartStrRefs !
+    {..NO_VALUE} ##pStrRefs !
+    {..NO_VALUE} ##pEndStrRefs !
+    0 ##nStrDecls !
+    0 ##nStrRefs !
+
+    {..NO_VALUE} ##pStartAnonStrDecls !
+    {..NO_VALUE} ##pAnonStrDecls !
+    {..NO_VALUE} ##pEndAnonStrDecls !
+
+    {..NO_VALUE} ##pDummy !
+
+    ..NAM_MAX_LEN ##namBuf blk{init} drop  \ Init the temporary name str buf
+
+  ;
+
+  \ Initialize table space for word declarations and word references
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations and maxRefs references;
+  \ negative values shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for word declarations is:
+  \            [wordName][inNamespace][1:wordAddress][1:lineNum]
+  \               and record size in words is 2 + 2 * namMaxLen
+  \            Note: lineNum of decl is an unused, unpopulated field
+  \        * Table structure for word references is:
+  \            [wordName][inNamespace][1:refAddress][1:lineNum]
+  \               and record size in words is 2 + 2 * namMaxLen
+  : initWords ( maxDecls maxRefs -- TRUE/FALSE )
+    _floorBoth                                \ ( D=maxDecls R=maxRefs )
+    ##namMaxLen @ 2 * 2 + hold                \ ( D R z ) [ z ] Record sizes
+    * _requestHeap {..FALSE} go== :fail2      \ ( D a ) [ z ] Request space
+    dup ##pStartWordRefs ! ##pWordRefs !      \ ( D ) [ z ] Refs table alloc
+    ##pHeap @ decw ##pEndWordRefs !           \ ( D ) [ z ]  and init ptrs
+    spop                                      \ ( D z ) [ ]
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartWordDecls ! ##pWordDecls !    \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndWordDecls !           \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail2:                                    \ ( D R a ) [ z ]
+      spop drop                               \ ( x y ) [ ]
+    fail:                                     \ ( x y ) [ ]
+      drop2 {..FALSE}                         \ ( FALSE ) [ ]
+  ;
+
+  \ Initialize table space for label declarations and label references
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations and maxRefs references;
+  \ negative values shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for label declarations is:
+  \            [labelName][inWord][inNamespace][1:labelAddress][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  \            Note: lineNum of decl is an unused, unpopulated field
+  \        * Table structure for label references is:
+  \            [labelName][inWord][inNamespace][1:refAddress][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  : initLabels ( maxDecls maxRefs -- TRUE/FALSE )
+    _floorBoth                                \ ( D=maxDecls R=maxRefs )
+    ##namMaxLen @ 3 * 2 + hold                \ ( D R z ) [ z ] Record sizes
+    * _requestHeap {..FALSE} go== :fail2      \ ( D a ) [ z ] Request space
+    dup ##pStartLabelRefs ! ##pLabelRefs !    \ ( D ) [ z ] Refs table alloc
+    ##pHeap @ decw ##pEndLabelRefs !          \ ( D ) [ z ]  and init ptrs
+    spop                                      \ ( D z ) [ ]
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartLabelDecls ! ##pLabelDecls !  \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndLabelDecls !         \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail2:                                    \ ( D R a ) [ z ]
+      spop drop                               \ ( x y ) [ ]
+    fail:                                     \ ( x y ) [ ]
+      drop2 {..FALSE}                         \ ( FALSE ) [ ]
+  ;
+
+  \ Initialize table space for slot declarations and slot references
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations and maxRefs references;
+  \ negative values shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for slot declarations is:
+  \            [slotName][inWord][inNamespace][1:slotSize][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  \ The slotSize gets overwritten in the 2nd pass with an absolute
+  \ slot address somewhere appropriately above the slotFloor.
+  \            Note: lineNum of decl is an unused, unpopulated field
+  \
+  \        * Table structure for slot reference is:
+  \            [slotName][inWord][inNamespace][1:refAddress][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  : initSlots ( maxDecls maxRefs -- TRUE/FALSE )
+    _floorBoth                                \ ( D=maxDecls R=maxRefs )
+    ##namMaxLen @ 3 * 2 + hold                \ ( D R z ) [ z ] Record sizes
+    * _requestHeap {..FALSE} go== :fail2      \ ( D a ) [ z ] Request space
+    dup ##pStartSlotRefs ! ##pSlotRefs !      \ ( D ) [ z ] Refs table alloc
+    ##pHeap @ decw ##pEndSlotRefs !           \ ( D ) [ z ]  and init ptrs
+    spop                                      \ ( D z ) [ ]
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartSlotDecls ! ##pSlotDecls !    \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndSlotDecls !          \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail2:                                    \ ( D R a ) [ z ]
+      spop drop                               \ ( x y ) [ ]
+    fail:                                     \ ( x y ) [ ]
+      drop2 {..FALSE}                         \ ( FALSE ) [ ]
+  ;
+
+  \ Initialize table space for constant declarations and constant references
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations and maxRefs references;
+  \ negative values shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for const declarations is:
+  \            [constName][inWord][inNamespace][1:constValue][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  \            Note: lineNum of decl is an unused, unpopulated field
+  \        * Table structure for const references is:
+  \            [constName][inWord][inNamespace][1:refAddress][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  : initConsts ( maxDecls maxRefs -- TRUE/FALSE )
+    _floorBoth                                \ ( D=maxDecls R=maxRefs )
+    ##namMaxLen @ 3 * 2 + hold                \ ( D R z ) [ z ] Record sizes
+    * _requestHeap {..FALSE} go== :fail2      \ ( D a ) [ z ] Request space
+    dup ##pStartConstRefs ! ##pConstRefs !    \ ( D ) [ z ] Refs table alloc
+    ##pHeap @ decw ##pEndConstRefs !          \ ( D ) [ z ]  and init ptrs
+    spop                                      \ ( D z ) [ ]
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartConstDecls ! ##pConstDecls !  \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndConstDecls !         \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail2:                                    \ ( D R a ) [ z ]
+      spop drop                               \ ( x y ) [ ]
+    fail:                                     \ ( x y ) [ ]
+      drop2 {..FALSE}                         \ ( FALSE ) [ ]
+  ;
+
+  \ Initialize table space for named string declarations and references
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations and maxRefs references;
+  \ negative values shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for named string declarations is:
+  \   [strName][inWord][inNamespace][strMaxLen:stringValue]
+  \                                               [1:pmodelStrAddr][1:lineNum]
+  \            Note: lineNum of decl is an unused, unpopulated field
+  \     and record size in words is 1 + strMaxLen + 3 * namMaxLen
+  \        * Table structure for string references is:
+  \            [strName][inWord][inNamespace][1:refAddress][1:lineNum]
+  \               and record size in words is 2 + 3 * namMaxLen
+  \ Named strings are only written into the program if they are referenced
+  \ at least once. Otherwise they are omitted from the compiled program.
+  : initStrs ( maxDecls maxRefs -- TRUE/FALSE )
+    _floorBoth                                \ ( D=maxDecls R=maxRefs )
+    ##namMaxLen @ 3 * 2 +                     \ ( D R z ) [ ] Ref record size
+    ##namMaxLen @ 3 * inc ##strMaxLen @ + inc spush
+                                              \ ( D R z ) [ Z ] Decl rec sz
+    * _requestHeap {..FALSE} go== :fail2      \ ( D a ) [ Z ] Request space
+    dup ##pStartStrRefs ! ##pStrRefs !        \ ( D ) [ Z ] Refs table alloc
+    ##pHeap @ decw ##pEndStrRefs !            \ ( D ) [ Z ]  and init ptrs
+    spop                                      \ ( D Z ) [ ]
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartStrDecls ! ##pStrDecls !      \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndStrDecls !           \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail2:                                    \ ( D R a ) [ z ]
+      spop drop2                              \ ( x y ) [ ]
+    fail:                                     \ ( x y ) [ ]
+      drop2 {..FALSE}                         \ ( FALSE ) [ ]
+  ;
+
+  \ Initialize table space for anonymous string declarations
+  \ and return TRUE if initialization succeeded or FALSE if it failed.
+  \ Unless initialization fails, table space shall be allocated sufficient
+  \ for maxDecls declarations; negative maxDecls shall be treated as 0.
+  \ WARNING: Do not attempt to compile a program if this fails!
+  \ NOTES: * Table structure for anonymous string declarations is:
+  \   [1:declCell][inWord][inNamespace][strMaxLen:stringValue]
+  \     and record size in words is 1 + strMaxLen + 2 * namMaxLen
+  \ Of course, there are no references to anonymous strings
+  \ so there is only a declarations table and no references table here.
+  : initAnonStrs ( maxDecls -- TRUE/FALSE )
+    sys{floor0}                               \ ( D=maxDecls )
+    ##namMaxLen @ 2 * 1 + ##strMaxLen @ +     \ ( D z ) [ ] Decl record size
+    * _requestHeap {..FALSE} go== :fail       \ ( a ) [ ] Request space
+    dup ##pStartAnonStrDecls ! ##pAnonStrDecls ! \ ( ) [ ] Decls table alloc
+    ##pHeap @ decw ##pEndAnonStrDecls !       \ ( ) [ ]  and init ptrs
+  ( success: )                                \ ( ) [ ]
+      {..TRUE} ret                            \ ( TRUE ) [ ]
+    fail:                                     \ ( a ) [ ]
+      drop {..FALSE}                          \ ( FALSE ) [ ]
+  ;
+
+  \ Add a label declaration to the table of label declarations
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declLabel ( ln labelAddr inNamespace inWord labelName -- TRUE/FALSE )
+    dup3 ##pStartLabelDecls ##nLabelDecls @ declExists?
+      {..FALSE} go== :checkSpace
+        \ Decl already exists [don't duplicate it]
+        drop4 {..NO_VALUE} ret
+    checkSpace:
+    ##pLabelDecls @ ##pEndLabelDecls @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret           \ Table space insufficient
+    ok:                             \ Table space sufficient
+      ##pLabelDecls tableNameString \ Copy labelName str to record
+      ##pLabelDecls tableNameString \ Copy inWord str to record
+      ##pLabelDecls tableNameString \ Copy inNamespace str to record
+      sys{bytes} ##pLabelDecls @ !  \ Copy labelAddr [in bytes] to record
+      ##pLabelDecls sys{pINC}
+      ##pLabelDecls @ !             \ Copy line number to record
+      ##pLabelDecls sys{pINC}       \ Now points at next record
+      ##nLabelDecls sys{vInc}       \ Increment counter
+      {..TRUE}                      \ ( TRUE )
+  ;
+
+  \ Add a label reference to the table of label references
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : addLabelRef ( ln refAddress inNamespace inWord labelName -- TRUE/FALSE )
+    ##pLabelRefs @ ##pEndLabelRefs @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret            \ Table space insufficient
+    ok:                              \ Table space sufficient
+      hold                           \ Hold ref name
+      ##namBuf 1 0 str{substr}       \ Remove leading identifier
+      ##namBuf blk{str} $$LABEL_DECL str{startsWith?} {..FALSE} go== :local
+        \ Reference began with a duplicated identifier so is not word-local
+        spop                         \ Retrieve held ref name
+        ##namBuf 2 0 str{substr}     \ Remove duplicate leading identifiers
+          ##namBuf blk{str}          \ Simplified name [now in namBuf]
+        ##pLabelRefs tableNameString \ Copy ref name to record
+        drop $$EMPTY_NAME ##pLabelRefs tableNameString \ No wordspace
+        go :nspace
+    local:
+      spop drop                    \ Discard held ref name
+      ##namBuf blk{str}            \ Simplified name [now in namBuf]
+      ##pLabelRefs tableNameString \ Copy ref name to record
+      ##pLabelRefs tableNameString \ Copy inWord str to record
+    nspace:
+      ##pLabelRefs tableNameString \ Copy inNamespace str to record
+      ##pLabelRefs @ !             \ Copy refAddress to record
+     ##pLabelRefs sys{pINC}
+     ##pLabelRefs @ !              \ Copy line number to record
+      ##pLabelRefs sys{pINC}       \ Now points at next record
+      ##nLabelRefs sys{vInc}       \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a word declaration to the table of word declarations
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first two arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declWord ( ln wordAddr inNamespace wordName -- TRUE/FALSE )
+    dup2 ##pStartWordDecls ##nWordDecls @ wordExists?
+      {..FALSE} go== :checkSpace
+        \ Decl already exists [don't duplicate it]
+        drop3 {..NO_VALUE} ret
+    checkSpace:
+      ##pWordDecls @ ##pEndWordDecls @ go<= :ok \ No more table space avail?
+        drop3 {..FALSE} ret        \ Table space insufficient
+    ok:                            \ Table space sufficient
+      ##pWordDecls tableNameString \ Copy wordName str to record
+      ##pWordDecls tableNameString \ Copy inNamespace str to record
+      sys{bytes} ##pWordDecls @ !  \ Copy wordAddr [in bytes] to record
+     ##pWordDecls sys{pINC}
+     ##pWordDecls @ !              \ Copy line number to record
+      ##pWordDecls sys{pINC}       \ Now points at next record
+      ##nWordDecls sys{vInc}       \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a word reference to the table of word references
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first two arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : addWordRef ( ln refAddr inNamespace wordName -- TRUE/FALSE )
+    ##pWordRefs @ ##pEndWordRefs @ go<= :ok \ No more table space avail?
+      drop3 {..FALSE} ret          \ Table space insufficient
+    ok:                            \ Table space sufficient
+      ##pWordRefs tableNameString  \ Copy wordName str to record
+      ##pWordRefs tableNameString  \ Copy inNamespace str to record
+      ##pWordRefs @ !              \ Copy refAddr to record
+     ##pWordRefs sys{pINC}
+     ##pWordRefs @ !               \ Copy line number to record
+      ##pWordRefs sys{pINC}        \ Now points at next record
+      ##nWordRefs sys{vInc}        \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a constant declaration to the table of constant declarations
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declConst ( ln constValue inNamespace inWord constName -- TRUE/FALSE )
+    dup3 ##pStartConstDecls ##nConstDecls @ declExists?
+      {..FALSE} go== :checkSpace
+        \ Decl already exists [don't duplicate it]
+        drop4 {..NO_VALUE} ret
+    checkSpace:
+    ##pConstDecls @ ##pEndConstDecls @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret           \ Table space insufficient
+    ok:                             \ Table space sufficient
+      ##pConstDecls tableNameString \ Copy constName str to record
+      ##pConstDecls tableNameString \ Copy inWord str to record
+      ##pConstDecls tableNameString \ Copy inNamespace str to record
+      ##pConstDecls @ !             \ Copy constValue to record
+     ##pConstDecls sys{pINC}
+     ##pConstDecls @ !              \ Copy line number to record
+      ##pConstDecls sys{pINC}       \ Now points at next record
+      ##nConstDecls sys{vInc}       \ Increment counter
+      {..TRUE}                      \ ( TRUE )
+  ;
+
+  \ Add a constant reference to the table of constant references
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : addConstRef ( ln refAddress inNamespace inWord constName -- TRUE/FALSE )
+    ##pConstRefs @ ##pEndConstRefs @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret             \ Table space insufficient
+    ok:                               \ Table space sufficient
+      hold                            \ Hold ref name
+      ##namBuf 1 0 str{substr}        \ Remove leading identifier
+      ##namBuf blk{str} $$CONST_DECL str{startsWith?} {..FALSE} go== :local
+        \ Reference began with a duplicated identifier so is not word-local
+        spop                          \ Retrieve held ref name
+        ##namBuf 2 0 str{substr}      \ Remove duplicate leading identifiers
+          ##namBuf blk{str}           \ Simplified name [now in namBuf]
+        ##pConstRefs tableNameString  \ Copy ref name to record
+        drop $$EMPTY_NAME ##pConstRefs tableNameString \ No wordspace
+        go :nspace
+    local:
+      spop drop                    \ Discard held ref name
+      ##namBuf blk{str}            \ Simplified name [now in namBuf]
+      ##pConstRefs tableNameString \ Copy constName str to record
+      ##pConstRefs tableNameString \ Copy inWord str to record
+    nspace:
+      ##pConstRefs tableNameString \ Copy inNamespace str to record
+      ##pConstRefs @ !             \ Copy refAddress to record
+     ##pConstRefs sys{pINC}
+     ##pConstRefs @ !              \ Copy line number to record
+      ##pConstRefs sys{pINC}       \ Now points at next record
+      ##nConstRefs sys{vInc}       \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a slot declaration to the table of slot declarations
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declSlot ( ln slotSize inNamespace inWord slotName -- TRUE/FALSE )
+    dup3 ##pStartSlotDecls ##nSlotDecls @ declExists?
+      {..FALSE} go== :checkSpace
+        \ Decl already exists [don't duplicate it]
+        drop4 {..NO_VALUE} ret
+    checkSpace:
+    ##pSlotDecls @ ##pEndSlotDecls @ go<= :ok \ No more table space avail?
+      drop drop4 {..FALSE} ret     \ Table space insufficient
+    ok:                            \ Table space sufficient
+      ##pSlotDecls tableNameString \ Copy slotName str to record
+      ##pSlotDecls tableNameString \ Copy inWord str to record
+      ##pSlotDecls tableNameString \ Copy inNamespace str to record
+      ##pSlotDecls @ !             \ Copy slotSize to record
+     ##pSlotDecls sys{pINC}
+     ##pSlotDecls @ !              \ Copy line number to record
+      ##pSlotDecls sys{pINC}       \ Now points at next record
+      ##nSlotDecls sys{vInc}       \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a slot reference to the table of slot references
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are string references.
+  \ WARNING: Do not continue with compilation if this fails!
+  : addSlotRef ( ln refAddress inNamespace inWord slotName -- TRUE/FALSE )
+    ##pSlotRefs @ ##pEndSlotRefs @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret           \ Table space insufficient
+    ok:                             \ Table space sufficient
+      hold                          \ Hold ref name
+      ##namBuf 1 0 str{substr}      \ Remove leading identifier
+      ##namBuf blk{str} $$SLOT_DECL str{startsWith?} {..FALSE} go== :local
+        \ Reference began with a duplicated identifier so is not word-local
+        spop                        \ Retrieve held ref name
+        ##namBuf 2 0 str{substr}    \ Remove duplicate leading identifiers
+          ##namBuf blk{str}         \ Simplified name [now in namBuf]
+        ##pSlotRefs tableNameString \ Copy ref name to record
+        drop $$EMPTY_NAME ##pSlotRefs tableNameString \ No wordspace
+        go :nspace
+    local:
+      spop drop                     \ Discard held ref name
+      ##namBuf blk{str}             \ Simplified name [now in namBuf]
+      ##pSlotRefs tableNameString   \ Copy ref name to record
+      ##pSlotRefs tableNameString   \ Copy inWord str to record
+    nspace:
+      ##pSlotRefs tableNameString   \ Copy inNamespace str to record
+      ##pSlotRefs @ !               \ Copy refAddress to record
+     ##pSlotRefs sys{pINC}
+     ##pSlotRefs @ !                \ Copy line number to record
+      ##pSlotRefs sys{pINC}         \ Now points at next record
+      ##nSlotRefs sys{vInc}         \ Increment counter
+      {..TRUE}                      \ ( TRUE )
+  ;
+
+  \ Add a named string declaration to the table of named string declarations
+  \ and return TRUE if succeeded or FALSE if failed
+  \ or NO_VALUE if not added as would have been a duplicate declaration.
+  \ The first three arguments are strings of strip size NAM_MAX_LEN.
+  \ The fourth argument [strValue] is a string of strip size STR_MAX_LEN.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declStr ( ln strValue inNamespace inWord strName -- TRUE/FALSE/NO_VALUE )
+    dup3 ##pStartStrDecls ##nStrDecls @ strExists? {..FALSE} go== :checkSpace
+      \ Decl already exists [don't duplicate it]
+      drop4 {..NO_VALUE} ret
+    checkSpace:
+    ##pStrDecls @ ##pEndStrDecls @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret          \ Table space insufficient
+    ok:                            \ Table space sufficient
+      ##pStrDecls tableNameString  \ Copy strName str to record
+      ##pStrDecls tableNameString  \ Copy inWord str to record
+      ##pStrDecls tableNameString  \ Copy inNamespace str to record
+      ##pStrDecls tableStrValue    \ Copy strValue to record
+      {..NO_VALUE} ##pStrDecls @ ! \ Stamp pmodelStrAddr as no value for now
+     ##pStrDecls sys{pINC}
+     ##pStrDecls @ !               \ Copy line number to record
+      ##pStrDecls sys{pINC}        \ Now points at next record
+      ##nStrDecls sys{vInc}        \ Increment counter
+      {..TRUE}                     \ ( TRUE )
+  ;
+
+  \ Add a named string reference to the table of named string references
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The first three arguments are strings of strip size NAM_MAX_LEN.
+  \ WARNING: Do not continue with compilation if this fails!
+  : addStrRef ( ln refAddress inNamespace inWord strName -- TRUE/FALSE )
+    ##pStrRefs @ ##pEndStrRefs @ go<= :ok \ No more table space avail?
+      drop4 {..FALSE} ret          \ Table space insufficient
+    ok:                            \ Table space sufficient
+      hold                         \ Hold ref name
+      ##namBuf 1 0 str{substr}     \ Remove leading identifier
+      ##namBuf blk{str} $$STR_DECL str{startsWith?} {..FALSE} go== :local
+        \ Reference began with a duplicated identifier so is not word-local
+        spop                       \ Retrieve held ref name
+        ##namBuf 2 0 str{substr}   \ Remove duplicate leading identifiers
+          ##namBuf blk{str}        \ Simplified name [now in namBuf]
+        ##pStrRefs tableNameString \ Copy ref name to record
+        drop $$EMPTY_NAME ##pStrRefs tableNameString \ No wordspace
+        go :nspace
+    local:
+      spop drop                  \ Discard held ref name
+      ##namBuf blk{str}          \ Simplified name [now in namBuf]
+      ##pStrRefs tableNameString \ Copy ref name to record
+      ##pStrRefs tableNameString \ Copy inWord str to record
+    nspace:
+      ##pStrRefs tableNameString \ Copy inNamespace str to record
+      ##pStrRefs @ !             \ Copy refAddress to record
+     ##pStrRefs sys{pINC}
+     ##pStrRefs @ !              \ Copy line number to record
+      ##pStrRefs sys{pINC}       \ Now points at next record
+      ##nStrRefs sys{vInc}       \ Increment counter
+      {..TRUE}                   \ ( TRUE )
+  ;
+
+  \ Add an anon string declaration to the table of anon string declarations
+  \ and return TRUE if succeeded or FALSE if failed.
+  \ The 1st argument [declAddr] is a word; it is the index of the program
+  \ cell into which the second pass of the compiler will need to write
+  \ the string reference.
+  \ The 2nd and 3rd arguments are strings of strip size NAM_MAX_LEN.
+  \ The fourth argument [strValue] is a string of strip size STR_MAX_LEN.
+  \ WARNING: Do not continue with compilation if this fails!
+  : declAnonStr ( strValue inNamespace inWord declAddr -- TRUE/FALSE )
+    ##pAnonStrDecls @ ##pEndAnonStrDecls @ go<= :ok
+                                      \ No more table space avail?
+      drop4 {..FALSE} ret             \ Table space insufficient
+    ok:                               \ Table space sufficient
+      ##pAnonStrDecls @ !             \ Copy declAddr to record
+      ##pAnonStrDecls sys{pINC}       \ Now points at next record
+      ##pAnonStrDecls tableNameString \ Copy inWord str to record
+      ##pAnonStrDecls tableNameString \ Copy inNamespace str to record
+      ##pAnonStrDecls tableStrValue   \ Copy strValue to record
+      ##nAnonStrDecls sys{vInc}       \ Increment counter
+      {..TRUE}                        \ ( TRUE )
+  ;
+
+  \ Advance the supplied pointer p so that it points at an address
+  \ exactly namMaxLen higher than the address it currently points at.
+  \ WARNING: Does not check that p points at a valid address.
+  \ Do not pass in an invalid pointer here!
+  : advNamMaxLen ( p -- ) [@] addNamMaxLen swap ! ;
+
+  \ Like calling advNamMaxLen 2 times.
+  : advNamMaxLen2 ( p -- ) [@] addNamMaxLen2 swap ! ;
+
+  \ Like calling advNamMaxLen 3 times.
+  : advNamMaxLen3 ( p -- ) [@] addNamMaxLen3 swap ! ;
+
+  \ Add namMaxLen bytes to n1 giving n2
+  : addNamMaxLen ( n1 -- n2 ) ##namMaxLen @ sys{bytes} + ;
+
+  \ Like calling namMaxLen 2 times.
+  : addNamMaxLen2 ( n1 -- n2 ) ##namMaxLen @ sys{bytes} 2 * + ;
+
+  \ Like calling namMaxLen 3 times.
+  : addNamMaxLen3 ( n1 -- n2 ) ##namMaxLen @ sys{bytes} 3 * + ;
+
+  \ Rewind the supplied pointer p so that it points at an address
+  \ exactly namMaxLen lower than the address it currently points at.
+  \ WARNING: Does not check that p points at a valid address.
+  \ Do not pass in an invalid pointer here!
+  : revNamMaxLen ( p -- ) [@] ##namMaxLen @ sys{bytes} - swap ! ;
+
+  \ Like calling revNamMaxLen 2 times.
+  : revNamMaxLen2 ( p -- ) [@] ##namMaxLen @ sys{bytes} 2 * - swap ! ;
+
+  \ Like calling revNamMaxLen 3 times.
+  : revNamMaxLen3 ( p -- ) [@] ##namMaxLen @ sys{bytes} 3 * - swap ! ;
+
+  \ Advance the supplied pointer p so that it points at an address
+  \ exactly strMaxLen higher than the address it currently points at.
+  \ WARNING: Does not check that p points at a valid address.
+  \ Do not pass in an invalid pointer here!
+  : advStrMaxLen ( p -- ) [@] addStrMaxLen swap ! ;
+
+  \ Add strMaxLen bytes to n1 giving n2
+  : addStrMaxLen ( n1 -- n2 ) ##strMaxLen @ sys{bytes} + ;
+
+  \ Call blk{init} to initialize a block at the bk address pointed to by
+  \ pointer p of strip size NAM_MAX_LEN so that it will exactly
+  \ fit in the gross block size of namMaxLen.
+  \ WARNING: Does not check that p points at a valid address.
+  \ Do not pass in an invalid pointer here!
+  \ WARNING: Checks neither that sufficient memory space exists above
+  \ nor that the block would fit within allocated tablespace.
+  : initForName ( p -- p ) dup @ ..NAM_MAX_LEN swap blk{init} drop ;
+
+  \ Call blk{init} to initialize a block at the bk address pointed to by
+  \ pointer p of strip size STR_MAX_LEN so that it will exactly
+  \ fit in the gross block size of strMaxLen.
+  \ WARNING: Does not check that p points at a valid address.
+  \ Do not pass in an invalid pointer here!
+  \ WARNING: Checks neither that sufficient memory space exists above
+  \ nor that the block would fit within allocated tablespace.
+  : initForStr ( p -- p ) dup @ ..STR_MAX_LEN swap blk{init} drop ;
+
+  \ Copy string s of strip size NAM_MAX_LEN to the table record field pointed
+  \ to by pointer p and advance pointer p to just beyond the newly
+  \ populated table record field.
+  \ WARNING: Checks neither the validity of p nor for possible overflow.
+  \ Ensure that p correctly points at the start of a field
+  \ and that no overflow would occur!
+  : tableNameString ( s p -- )
+      tuck initForName @ blk{str} str{copy} advNamMaxLen
+  ;
+
+  \ Copy string s of strip size STR_MAX_LEN to the table record field pointed
+  \ to by pointer p and advance pointer p to just beyond the newly
+  \ populated table record field.
+  \ WARNING: Checks neither the validity of p nor for possible overflow.
+  \ Ensure that p correctly points at the start of a field
+  \ and that no overflow would occur!
+  : tableStrValue ( s p -- )
+      tuck initForStr @ blk{str} str{copy} advStrMaxLen
+  ;
+
+  \ Populate label references
+  : populateLabelRefs ( -- )
+    \ Wind back pointers to point at start of tables
+    ##pStartLabelDecls @ ##pLabelDecls !
+    ##pStartLabelRefs @ ##pLabelRefs !
+    \ Populate references if any
+    search:
+      ##nLabelRefs @ spush \ Hold refs counter
+      nextRef: \ Current ref
+          speek go<=0 :done
+        ##nLabelDecls @ spush \ Hold decl counter
+        nextDecl: \ Try to find a decl matching our current ref
+          speek go<=0 :noMatch
+          ##pLabelDecls ##pLabelRefs match3names {..TRUE} go== :matched
+            \ Ref does not match this decl, need to check next decl
+            ##pLabelRefs revNamMaxLen3 \ Rewind to start of this ref
+            ##pLabelDecls sys{p2INC}    \ Advance to start of next decl
+            spop dec spush  \ Decrement decl counter
+            drop2 \ Drop decl & ref pointers
+            go :nextDecl
+      matched:
+        spop drop3 \ Drop decl counter and the decl & ref pointers
+        ##pLabelDecls @@   \ Declaration address
+        ##pLabelRefs @@    \ Reference address
+        pmodel{pput}       \ Populate reference cell with declaration addr
+        ##pStartLabelDecls @ ##pLabelDecls ! \ Wind back to start of decl tble
+        ##pLabelRefs sys{p2INC} \ Advance to start of next ref
+        spop dec spush  \ Decrement ref counter
+        go :nextRef \ The current ref matched ok, now try to match next ref
+    done: \ Either there were no refs or all refs successfully populated
+      spop drop \ Drop ref counter
+      ret \ All done
+    noMatch:
+      spop2 drop2 \ Drop decl and ref counters
+      ##pLabelRefs @ blk{str}
+        ##pLabelRefs advNamMaxLen ##pLabelRefs @ blk{str}
+        ##pLabelRefs advNamMaxLen ##pLabelRefs @ blk{str}
+        rev ." label "
+        ##pLabelRefs advNamMaxLen ##pLabelRefs sys{pINC} ##pLabelRefs @@
+        flc{errorNoSuch}
+  ;
+
+  \ This is called before populateSlotRefs. It walks through the
+  \ slot declarations one by one and overwrites the slotSize of each
+  \ declaration with an absolute slot address, each one following the
+  \ previous one starting at the slotFloor upwards.
+  \   Note: TODO Some ptab functions are too tightly coupled to flc{____}
+  \ and it would be good to refactor to remove such tight coupling in future.
+  \ This is one example of such a function.
+  : populateSlotDecls ( -- )
+    ##nSlotDecls @ go>0 :populate ret \ Nothing to do if no slot declarations
+    populate:
+      flc{##srcSlotFloor} @ {..NO_VALUE} go== :noSlotFloor
+      \ Wind back pointer to point at start of slot decl table
+      ##pStartSlotDecls @ ##pSlotDecls !
+      ##nSlotDecls @ spush \ Hold decl counter
+      nextDecl:
+        speek go<=0 :done
+          ##pSlotDecls dup advNamMaxLen3 [@@]        \ Declared slot size
+          flc{##srcSlotPtr} @ hold + flc{##srcSlotPtr} ! \ Hold old srcSlotPtr
+          spop swap @! \ Store old srcSlotPtr val into slotSize field of decl
+          ##pSlotDecls sys{p2INC} \ Advance to start of next decl
+          spop dec spush  \ Decrement decl counter
+          go :nextDecl
+      done:
+        \ Finished writing absolute slot addresses (if any)
+         spop drop ret \ drop decl counter and return
+      noSlotFloor:
+        ." No slotFloor defined. Cannot declare slots. " flc{errorln}
+        ." Define a slotFloor RAM address such as: slotFloor 16777216 "
+                flc{errorMsgNoLineNum}
+  ;
+
+  \ Populate slot references
+  : populateSlotRefs ( -- )
+    \ Wind back pointers to point at start of tables
+    ##pStartSlotDecls @ ##pSlotDecls !
+    ##pStartSlotRefs @ ##pSlotRefs !
+    \ Populate references if any
+    search:
+      ##nSlotRefs @ spush \ Hold refs counter
+      nextRef: \ Current ref
+          speek go<=0 :done
+        ##nSlotDecls @ spush \ Hold decl counter
+        nextDecl: \ Try to find a decl matching our current ref
+          speek go<=0 :noMatch
+          ##pSlotDecls ##pSlotRefs match3names {..TRUE} go== :matched
+            \ Ref does not match this decl, need to check next decl
+            ##pSlotRefs revNamMaxLen3 \ Rewind to start of this ref
+            ##pSlotDecls sys{p2INC} \ Advance to start of next decl
+            spop dec spush  \ Decrement decl counter
+            drop2 \ Drop decl & ref pointers
+            go :nextDecl
+      matched:
+        spop drop3 \ Drop decl counter and the decl & ref pointers
+        ##pSlotDecls @@   \ Declared slot addr [updated earlier in 2nd pass]
+        ##pSlotRefs @@    \ Reference address
+        pmodel{pput}       \ Populate reference cell with declaration addr
+        ##pStartSlotDecls @ ##pSlotDecls ! \ Wind back to start of decl tble
+        ##pSlotRefs sys{p2INC} \ Advance to start of next ref
+        spop dec spush  \ Decrement ref counter
+        go :nextRef \ The current ref matched ok, now try to match next ref
+    done: \ Either there were no refs or all refs successfully populated
+      spop drop \ Drop ref counter
+      ret \ All done
+    noMatch:
+      spop2 drop2 \ Drop decl and ref counters
+      ##pSlotRefs @ blk{str}
+        ##pSlotRefs advNamMaxLen ##pSlotRefs @ blk{str}
+        ##pSlotRefs advNamMaxLen ##pSlotRefs @ blk{str}
+        rev ." slot "
+        ##pSlotRefs advNamMaxLen ##pSlotRefs sys{pINC} ##pSlotRefs @@
+        flc{errorNoSuch}
+  ;
+
+  \ Populate constant references
+  : populateConstRefs ( -- )
+    \ Wind back pointers to point at start of tables
+    ##pStartConstDecls @ ##pConstDecls !
+    ##pStartConstRefs @ ##pConstRefs !
+    \ Populate references if any
+    search:
+      ##nConstRefs @ spush \ Hold refs counter
+      nextRef: \ Current ref
+          speek go<=0 :done
+        ##nConstDecls @ spush \ Hold decl counter
+        nextDecl: \ Try to find a decl matching our current ref
+          speek go<=0 :noMatch
+          ##pConstDecls ##pConstRefs match3names {..TRUE} go== :matched
+            \ Ref does not match this decl, need to check next decl
+            ##pConstRefs revNamMaxLen3 \ Rewind to start of this ref
+            ##pConstDecls sys{p2INC}    \ Advance to start of next decl
+            spop dec spush  \ Decrement decl counter
+            drop2 \ Drop decl & ref pointers
+            go :nextDecl
+      matched:
+        spop drop3 \ Drop decl counter and the decl & ref pointers
+        ##pConstDecls @@   \ Declaration address
+        ##pConstRefs @@    \ Reference address
+        pmodel{pput}       \ Populate reference cell with declaration addr
+        ##pStartConstDecls @ ##pConstDecls ! \ Wind back to start of decl tble
+        ##pConstRefs sys{p2INC} \ Advance to start of next ref
+        spop dec spush  \ Decrement ref counter
+        go :nextRef \ The current ref matched ok, now try to match next ref
+    done: \ Either there were no refs or all refs successfully populated
+      spop drop \ Drop ref counter
+      ret \ All done
+    noMatch:
+      spop2 drop2 \ Drop decl and ref counters
+      ##pConstRefs @ blk{str}
+        ##pConstRefs advNamMaxLen ##pConstRefs @ blk{str}
+        ##pConstRefs advNamMaxLen ##pConstRefs @ blk{str}
+        rev ." constant "
+        ##pConstRefs advNamMaxLen ##pConstRefs sys{pINC} ##pConstRefs @@
+        flc{errorNoSuch}
+  ;
+
+  \ Populate word references
+  : populateWordRefs ( -- )
+    \ Wind back pointers to point at start of tables
+    ##pStartWordDecls @ ##pWordDecls !
+    ##pStartWordRefs @ ##pWordRefs !
+    \ Populate references if any
+    search:
+      ##nWordRefs @ spush \ Hold refs counter
+      nextRef: \ Current ref
+          speek go<=0 :done
+        ##nWordDecls @ spush \ Hold decl counter
+        nextDecl: \ Try to find a decl matching our current ref
+          speek go<=0 :noMatch
+          ##pWordDecls ##pWordRefs match2names {..TRUE} go== :matched
+            \ Ref does not match this decl, need to check next decl
+            ##pWordRefs revNamMaxLen2 \ Rewind to start of this ref
+            ##pWordDecls sys{p2INC}    \ Advance to start of next decl
+            spop dec spush  \ Decrement decl counter
+            drop2 \ Drop decl & ref pointers
+            go :nextDecl
+      matched:
+        spop drop3 \ Drop decl counter and the decl & ref pointers
+        ##pWordDecls @@   \ Declaration address
+        ##pWordRefs @@    \ Reference address
+        pmodel{pput}       \ Populate reference cell with declaration addr
+        ##pStartWordDecls @ ##pWordDecls ! \ Wind back to start of decl tble
+        ##pWordRefs sys{p2INC} \ Advance to start of next ref
+        spop dec spush  \ Decrement ref counter
+        go :nextRef \ The current ref matched ok, now try to match next ref
+    done: \ Either there were no refs or all refs successfully populated
+      spop drop \ Drop ref counter
+      ret \ All done
+    noMatch:
+      spop2 drop2 \ Drop decl and ref counters
+      ##pWordRefs @ blk{str}
+        ##pWordRefs advNamMaxLen ##pWordRefs @ blk{str}
+        swap ." word "
+        ##pWordRefs advNamMaxLen ##pWordRefs sys{pINC} ##pWordRefs @@
+        flc{errorNoSuchWord}
+  ;
+
+  \ Populate string references
+  : populateStrRefs ( -- )
+    \ Wind back pointers to point at start of tables
+    ##pStartStrDecls @ ##pStrDecls !
+    ##pStartStrRefs @ ##pStrRefs !
+    \ Populate references if any
+    search:
+      ##nStrRefs @ spush \ Hold refs counter
+      nextRef: \ Current ref
+          speek go<=0 :done
+        ##nStrDecls @ spush \ Hold decl counter
+        nextDecl: \ Try to find a decl matching our current ref
+          speek go<=0 :noMatch
+          ##pStrDecls ##pStrRefs match3names {..TRUE} go== :matched
+            \ Ref does not match this decl, need to check next decl
+            ##pStrRefs revNamMaxLen3 \ Rewind to start of this ref
+            \ Advance to start of next decl
+            ##pStrDecls advStrMaxLen ##pStrDecls sys{p2INC}
+            spop dec spush  \ Decrement decl counter
+            drop2 \ Drop decl & ref pointers
+            go :nextDecl
+      matched:
+        spop drop3 \ Drop decl counter and the decl & ref pointers
+        ##pStrDecls @ blk{str}      \ Addr of actual string in decl table
+        ##pStrDecls advStrMaxLen
+         ##pStrDecls @@ \ Value of pmodelStrAddr field
+        {..NO_VALUE} go== :writeStrToPmodel
+          drop \ Drop addr of actual string in decl table, not needed here
+          \ String already written to end of pmodel
+          go :populateRefAddr
+        writeStrToPmodel:
+          \ String not previously written to end of pmodel
+          pmodel{size} inc spush \ Remember where the new string starts [k]
+          pmodel{addStr}     \ Add the new string to the pmodel
+          \ Write new str addr [in bytes] just added to pmodel
+          \ into pmodelStrAddr field
+          spop sys{bytes} ##pStrDecls @!
+        populateRefAddr:   \ ( ) [ i ]
+          ##pStrDecls @@   \ Value of pmodelStrAddr field in str decl record
+          ##pStrRefs @@    \ Value of refAddr field in string ref record
+          pmodel{pput}     \ Populate ref cell with actual string lit addr
+          ##pStartStrDecls @ ##pStrDecls ! \ Wind back to start of decl tble
+          ##pStrRefs sys{p2INC} \ Advance to start of next ref
+          spop dec spush  \ Decrement ref counter
+          go :nextRef \ The current ref matched ok, now try to match next ref
+    done: \ Either there were no refs or all refs successfully populated
+      spop drop \ Drop ref counter off software stack
+      ret \ All done
+    noMatch:
+      spop2 drop2 \ Drop decl and ref counters
+      ##pStrRefs @ blk{str}
+        ##pStrRefs advNamMaxLen ##pStrRefs @ blk{str}
+        ##pStrRefs advNamMaxLen ##pStrRefs @ blk{str}
+        rev ." string "
+        ##pStrRefs advNamMaxLen ##pStrRefs sys{pINC} ##pStrRefs @@
+        flc{errorNoSuch}
+  ;
+
+  \ Populate string references
+  : populateAnonStrRefs ( -- )
+    \ Wind back pointer to point at start of table
+    ##pStartAnonStrDecls @ ##pAnonStrDecls !
+    \ Populate anon strings if any
+        ##nAnonStrDecls @ spush \ Hold decl counter
+        nextDecl: \ ( ) [ i ]
+          speek go<=0 :done
+          \ Write anon string to pmodel
+          ##pAnonStrDecls @@ spush  \ ( ) [ i declCell ]
+          \ Advance ptr to start of stringValue field
+          ##pAnonStrDecls sys{pINC} ##pAnonStrDecls advNamMaxLen2
+          \ Remember where the new anonymous string starts
+          pmodel{size} spush        \ ( ) [ i declCell pmodelStrLitIndex ]
+          \ Add the new anonymous string to the pmodel
+          ##pAnonStrDecls @ blk{str} pmodel{addStr}
+          \ Write the pmodel index [in bytes] of
+          \   the str literal [k] into declCell
+          spop inc sys{bytes} spop pmodel{pput}
+          \ Advance to start of next decl
+          ##pAnonStrDecls advStrMaxLen
+          spop dec spush            \ ( ) [ i- ] Decrement decl counter
+          go :nextDecl
+    done:                           \ ( ) [ i ]
+      spop drop \ Drop decl counter off software stack
+      ret
+  ;
+
+  \ Return TRUE if the table of declarations pointed to by pointer p
+  \ and containing exactly i records already contains at least one record
+  \ in namespace N, wordspace W and having the specified name,
+  \ otherwise return FALSE. This function is used to avoid adding
+  \ duplicate declarations to a table of declarations.
+  \ Note: this does not work for word and string declarations,
+  \ instead use wordExists? and strExists? respectively.
+  \ WARNING: No overflow checking and no validity checking on arguments.
+  \ Do not pass in bad or inappropriate arguments!
+  : declExists? ( N W name p i -- TRUE/FALSE )
+    spush                                 \ ( N W name p ) [ i ]
+    dummyPtr                              \ ##pDummy henceforth used as p
+    nextDecl:                             \ ( N W name p ) [ i ]
+      speek go<=0 :noMatch                \ ( N W name p ) [ i ]
+      matchRecord? {..TRUE} go== :matched \ ( N W name p ) [ i ]
+        \ Advance pointer p to start of next declaration
+        dup sys{pINC}
+        spop dec spush  \ Decrement decl counter
+        go :nextDecl
+    matched:                              \ ( N W name p ) [ i ]
+      drop4 spop drop {..TRUE}            \ ( TRUE ) [ ]
+      wipeDummyPtr ret                    \ ( TRUE ) [ ]
+    noMatch:                              \ ( N W name p ) [ i ]
+      drop4 spop drop {..FALSE}           \ ( FALSE ) [ ]
+      wipeDummyPtr                        \ ( FALSE ) [ ]
+  ;
+
+  \ Return TRUE if the supplied namespace N, wordspace W and name match
+  \ those of the record pointed to by pointer p, otherwise return FALSE.
+  \ Also advance pointer p to the beginning of its next field
+  \ after its inNamespace field.
+  \ Note: this does not work for word records, instead use matchWord?
+  \ WARNING: No overflow checking and no validity checking on arguments.
+  \ Do not pass in bad or inappropriate arguments!
+  : matchRecord? ( N W name p -- N W name p+ TRUE/FALSE )
+    hold4                      \ ( N W name p ) [ N W name p ]
+    @ blk{str}                 \ ( N W name s ) [ N W name p ]
+    str{eq?}                   \ ( N W TRUE/FALSE ) [ N W name p ]
+    {..FALSE} go== :noMatch    \ ( N W ) [ N W name p ]
+    speek advNamMaxLen         \ ( N W ) [ N W name p+ ]
+    speek @ blk{str} str{eq?}  \ ( N TRUE/FALSE ) [ N W name p+ ]
+    {..FALSE} go== :noMatch2   \ ( N ) [ N W name p+ ]
+    speek advNamMaxLen         \ ( N ) [ N W name p++ ]
+    speek @ blk{str} str{eq?}  \ ( TRUE/FALSE ) [ N W name p++ ]
+    {..FALSE} go== :noMatch3   \ ( ) [ N W name p++ ]
+  ( matched: )                 \ ( ) [ N W name p++ ]
+      speek advNamMaxLen       \ ( ) [ N W name p+++ ]
+      spop4 {..TRUE}           \ ( N W name p+++ TRUE ) [ ]
+      ret                      \ ( N W name p+++ TRUE ) [ ]
+    noMatch:                   \ ( N W ) [ N W name p ]
+      speek advNamMaxLen       \ ( N W ) [ N W name p+ ]
+      drop                     \ ( N ) [ N W name p+ ]
+    noMatch2:                  \ ( N ) [ N W name p+ ]
+      speek advNamMaxLen       \ ( N ) [ N W name p++ ]
+      drop                     \ ( ) [ N W name p++ ]
+    noMatch3:                  \ ( ) [ N W name p++ ]
+      speek advNamMaxLen       \ ( ) [ N W name p+++ ]
+      spop4 {..FALSE}          \ ( N W name p+++ FALSE ) [  ]
+  ;
+
+  \ Like matchRecord? but for word records.
+  \ WARNING: No overflow checking and no validity checking on arguments.
+  \ Do not pass in bad or inappropriate arguments!
+  : matchWord? ( N name p -- N name p+ TRUE/FALSE )
+    hold3                      \ ( N name p ) [ N name p ]
+    @ blk{str}                 \ ( N name s ) [ N name p ]
+    str{eq?}                   \ ( N TRUE/FALSE ) [ N name p ]
+    {..FALSE} go== :noMatch    \ ( N ) [ N name p ]
+    speek advNamMaxLen         \ ( N ) [ N name p+ ]
+    speek @ blk{str} str{eq?}  \ ( TRUE/FALSE ) [ N W name p+ ]
+    {..FALSE} go== :noMatch2   \ ( ) [ N name p+ ]
+  ( matched: )                 \ ( ) [ N name p+ ]
+      speek advNamMaxLen       \ ( ) [ N name p++ ]
+      spop3 {..TRUE} ret       \ ( N name p++ TRUE ) [ ]
+    noMatch:                   \ ( N ) [ N name p ]
+      speek advNamMaxLen       \ ( N ) [ N name p+ ]
+      drop                     \ ( ) [ N name p+ ]
+    noMatch2:                  \ ( ) [ N name p+ ]
+      speek advNamMaxLen       \ ( ) [ N name p++ ]
+      spop3 {..FALSE}          \ ( N name p++ FALSE ) [  ]
+  ;
+
+  \ Make ##pDummy be a duplicate of the supplied pointer p, so that thereafter
+  \ ##pDummy can be used as p without disturbing the value of p itself.
+  : dummyPtr ( p -- ##pDummy ) @ ##pDummy ! ##pDummy ;
+
+  \ Assign the value {..NO_VALUE} to the dummy pointer ##pDummy.
+  \ This should be done for safety and as a courtesy whenever finished
+  \ using ##pDummy or when initializing ##pDummy for the first time.
+  : wipeDummyPtr ( -- ) {..NO_VALUE} ##pDummy ! ;
+
+  \ Like declExists? but for string declarations.
+  \ WARNING: No overflow checking and no validity checking on arguments.
+  \ Do not pass in bad or inappropriate arguments!
+  : strExists? ( N W name p i -- TRUE/FALSE )
+    spush                                 \ ( N W name p ) [ i ]
+    dummyPtr                              \ ##pDummy henceforth used as p
+    nextDecl:                             \ ( N W name p ) [ i ]
+      speek go<=0 :noMatch                \ ( N W name p ) [ i ]
+      matchRecord? {..TRUE} go== :matched \ ( N W name p ) [ i ]
+        \ Advance pointer p to start of next string declaration
+        dup advStrMaxLen dup sys{pINC}
+        spop dec spush  \ Decrement decl counter
+        go :nextDecl
+    matched:                              \ ( N W name p ) [ i ]
+      drop4 spop drop {..TRUE}            \ ( TRUE ) [ ]
+      wipeDummyPtr ret                    \ ( TRUE ) [ ]
+    noMatch:                              \ ( N W name p ) [ i ]
+      drop4 spop drop {..FALSE}           \ ( FALSE ) [ ]
+      wipeDummyPtr                        \ ( FALSE ) [ ]
+  ;
+
+  \ Like declExists? but for word declarations.
+  \ WARNING: No overflow checking and no validity checking on arguments.
+  \ Do not pass in bad or inappropriate arguments!
+  : wordExists? ( N name p i -- TRUE/FALSE )
+    spush                                 \ ( N name p ) [ i ]
+    dummyPtr                              \ ##pDummy henceforth used as p
+    nextDecl:                             \ ( N name p ) [ i ]
+      speek go<=0 :noMatch                \ ( N name p ) [ i ]
+      matchWord? {..TRUE} go== :matched   \ ( N name p ) [ i ]
+        \ Advance pointer p to start of next word declaration
+        dup sys{pINC}
+        spop dec spush  \ Decrement decl counter
+        go :nextDecl
+    matched:                              \ ( N name p ) [ i ]
+      drop3 spop drop {..TRUE}            \ ( TRUE ) [ ]
+      wipeDummyPtr ret                    \ ( TRUE ) [ ]
+    noMatch:                              \ ( N name p ) [ i ]
+      drop3 spop drop {..FALSE}           \ ( FALSE ) [ ]
+      wipeDummyPtr                        \ ( FALSE ) [ ]
+  ;
+
+  \ Given pointer d [bk] that points to the start of a declaration record
+  \ and pointer r [bk] that points to the start of a reference record,
+  \ return TRUE if the 3 strings of NAM_MAX_LEN strip size,
+  \ which are consecutive (as 3 blocks) from those addresses upwards,
+  \ are respectively equal otherwise return FALSE.
+  \ Thus TRUE if the fully qualified reference matches
+  \ the fully qualified declaration.
+  \ The pointers will each be advanced to the fourth block.
+  : match3names ( d r -- D R TRUE/FALSE )
+    pbsEq? {..FALSE} go== :no1st advNam2
+    pbsEq? {..FALSE} go== :no2nd advNam2
+    pbsEq? {..FALSE} go== :no3rd advNam2
+    {..TRUE} ret
+
+    no1st: advNam2 \ 1st strings did not match
+    no2nd: advNam2 \ 2nd strings did not match
+    no3rd: advNam2 \ 3rd strings did not match
+    {..FALSE}
+  ;
+
+  \ Like match3names but only matches 2 consecutive names instead of 3.
+  : match2names ( d r -- D R TRUE/FALSE )
+    pbsEq? {..FALSE} go== :no1st advNam2
+    pbsEq? {..FALSE} go== :no2nd advNam2
+    {..TRUE} ret
+
+    no1st: advNam2 \ 1st strings did not match
+    no2nd: advNam2 \ 2nd strings did not match
+    {..FALSE}
+  ;
+
+  \ Return TRUE if the 2 strings are equal that are contained in the
+  \ blocks pointed to by the supplied pointers.
+  : pbsEq? ( pBk1 pBk2 -- pBk1 pBk2 TRUE/FALSE )
+    over @ blk{str}
+    over @ blk{str}
+    str{eq?}
+  ;
+
+  \ Advance each of the supplied pointers by namMaxLen
+  : advNam2 ( p1 p2 -- P1 P2 )
+    over advNamMaxLen dup advNamMaxLen
+  ;
+
+  \ Request z words of contiguous heap space.
+  \ Returns address a of that space and TRUE if succeeded,
+  \ otherwise returns 0 and FALSE if insufficient heap space available.
+  : _requestHeap ( z -- a TRUE/FALSE )
+    dup _heapAvail swap - go<0 :fail              \ ( z ) Sufficient space?
+      ##pHeap @ hold swap sys{bytes} + ##pHeap !  \ ( ) [ a ] Update heap ptr
+      spop {..TRUE} ret                           \ ( a TRUE ) [ ]
+    fail:                                         \ ( z )
+      drop 0 {..FALSE}                            \ ( 0 FALSE ) [ ]
+  ;
+
+  \ Return size [in words] of available contiguous free space on the heap.
+  : _heapAvail ( -- n ) ##pEndHeap @ ##pHeap @ - sys{wds} ;
+
+  \ Separately apply sys{floor0} to n1 and n2 returning N1 and N2.
+  \ This means any negative values become zero.
+  : _floorBoth ( n1 n2 -- N1 N2 ) swap sys{floor0} swap sys{floor0} ;
+
+  \ Trace the temporary name buffer contents
+  : dbgNamBuf ( -- )
+    ##namBuf incw dbg{puts} dbg{newline}
+  ;
+
+  \ Output a helpful map of the pmodel to stdtrc
+  : mapInfo ( -- )
+    dbg{newline} flc{$$VERSION} dbg{print}
+    ." Program Compiled " dbg{print} dbg{newline}
+    divider
+    ." INSTRUCTIONS          =  " flc{##nInstrs} dbg{infovar}
+    ."   Simple              =  " flc{##nSimpleInstrs} dbg{infovar}
+    ."   Complex             =  " flc{##nComplexInstrs} dbg{infovar}
+    ." LABELS                =  " ##nLabelDecls dbg{infovar}
+    ."   Refs                =  " ##nLabelRefs dbg{infovar}
+    ." WORDS                 =  " ##nWordDecls dbg{infovar}
+    ."   Refs                =  " ##nWordRefs dbg{infovar}
+    ." CONSTANTS             =  " ##nConstDecls dbg{infovar}
+    ."   Refs                =  " ##nConstRefs dbg{infovar}
+    ." SLOTS                 =  " ##nSlotDecls dbg{infovar}
+    ."   Refs                =  " ##nSlotRefs dbg{infovar}
+    ." Unnamed STRINGS       =  " ##nAnonStrDecls dbg{infovar}
+    ." Named   STRINGS       =  " ##nStrDecls dbg{infovar}
+    ."   Refs                =  " ##nStrRefs dbg{infovar}
+    divider
+    ."     Instruction cells =  "
+      flc{##nSimpleInstrs} @ flc{##nComplexInstrs} @ 2 * + dbg{infonum}
+    ."          String cells =  " flc{##nStrCells} dbg{infovar}
+    ."            Data cells =  " flc{##nDataCells} dbg{infovar}
+    ."          Program size =  " dbg{puts} pmodel{size} hold dbg{putd}
+                                  ."  words " dbg{print}
+    ."        Program extent =  " dbg{puts} spop {..WORD} * hold dbg{putd}
+                                  ."  bytes " dbg{print}
+    ."                From   = 0 " dbg{print}
+    ."                  To   =  " dbg{puts} spop dec dbg{printd}
+    ."             RAM usage =  " dbg{puts}
+      flc{##srcSlotPtr} @ flc{##srcSlotFloor} @ hold2 - go[<=0] :noSlots
+                                  dbg{putd} ."  bytes " dbg{print}
+      ."                From   =  " spop dbg{infonum}
+      ."                  To   =  " spop dec dbg{infonum}
+      go :details
+    noSlots:
+      spop2 drop3
+      ." 0 bytes " dbg{print}
+    details:
+      divider
+      dbg{newline} ." WORDS " dbg{print}
+      mapWords
+      dbg{newline} ." LABELS " dbg{print}
+      mapLabels
+      dbg{newline} ." SLOTS " dbg{print}
+      mapSlots
+      dbg{newline} ." STRINGS " dbg{print}
+      mapStrs
+      dbg{newline} ." ANONYMOUS STRINGS " dbg{print}
+      mapAnonStrs
+      divider
+  ;
+
+  \ Output a dividing line of hyphens to stdtrc
+  : divider ( -- ) ."   --------------------- " dbg{print} ;
+
+  \ Output a helpful map of declared words to stdtrc
+  : mapWords ( -- )
+    ##pStartWordDecls @ ##pWordDecls ! \ Wind back pointer
+    ##nWordDecls @ spush               \ Hold counter
+    printing:                          \ Print info about each word decl
+      speek go<=0 :end
+        ##pWordDecls @ addNamMaxLen2 dbg{putv} dbg{space}   \ wordAddress
+        ##pWordDecls @ blk{str} dbg{puts}                   \ wordName
+        ."  { " dbg{puts}
+        ##pWordDecls dup advNamMaxLen @ blk{str} dbg{puts}  \ inNamespace
+        ." }  " dbg{print}
+        ##pWordDecls dup advNamMaxLen sys{p2INC}            \ Next decl
+        spop dec spush \ Decrement counter
+      go :printing
+    end:
+      spop drop \ Drop counter
+  ;
+
+  \ Output a helpful map of declared labels to stdtrc
+  : mapLabels ( -- )
+    ##pStartLabelDecls @ ##pLabelDecls ! \ Wind back pointer
+    ##nLabelDecls @ spush                \ Hold counter
+    printing:                            \ Print info about each label decl
+      speek go<=0 :end
+        ##pLabelDecls @ addNamMaxLen3 dbg{putv} dbg{space}   \ labelAddress
+        ##pLabelDecls @ blk{str} dbg{puts}                   \ labelName
+        ."  ( " dbg{puts}
+        ##pLabelDecls dup advNamMaxLen @
+                        blk{str} dbg{puts}                   \ inWord
+        ." ) " dbg{puts}
+        ."  { " dbg{puts}
+        ##pLabelDecls dup advNamMaxLen @ blk{str} dbg{puts}  \ inNamespace
+        ." }  " dbg{print}
+        ##pLabelDecls dup advNamMaxLen sys{p2INC}            \ Next decl
+        spop dec spush \ Decrement counter
+      go :printing
+    end:
+      spop drop \ Drop counter
+  ;
+
+  \ Output a helpful map of declared slots to stdtrc
+  : mapSlots ( -- )
+    ##pStartSlotDecls @ ##pSlotDecls !   \ Wind back pointer
+    ##nSlotDecls @ spush                 \ Hold counter
+    printing:                            \ Print info about each slot decl
+      speek go<=0 :end
+        ##pSlotDecls @ addNamMaxLen3 dbg{putv} dbg{space}   \ slotAddress
+        ##pSlotDecls @ blk{str} dbg{puts}                   \ slotName
+        ."  ( " dbg{puts}
+        ##pSlotDecls dup advNamMaxLen @
+                        blk{str} dbg{puts}                  \ inWord
+        ." ) " dbg{puts}
+        ."  { " dbg{puts}
+        ##pSlotDecls dup advNamMaxLen @ blk{str} dbg{puts}  \ inNamespace
+        ." }  " dbg{print}
+        ##pSlotDecls dup advNamMaxLen sys{p2INC}            \ Next decl
+        spop dec spush \ Decrement counter
+      go :printing
+    end:
+      spop drop \ Drop counter
+  ;
+
+  \ Output a helpful map of declared named strings to stdtrc
+  : mapStrs ( -- )
+    ##pStartStrDecls @ ##pStrDecls !     \ Wind back pointer
+    ##nStrDecls @ spush                  \ Hold counter
+    printing:                            \ Print info about each str decl
+      speek go<=0 :end
+        ##pStrDecls @ addNamMaxLen3 addStrMaxLen
+                                    dbg{putv} dbg{space}   \ pmodelStrAddr
+        ##pStrDecls @ blk{str} dbg{puts}                   \ strName
+        ."  ( " dbg{puts}
+        ##pStrDecls dup advNamMaxLen @
+                        blk{str} dbg{puts}                 \ inWord
+        ." ) " dbg{puts}
+        ."  { " dbg{puts}
+        ##pStrDecls dup advNamMaxLen @ blk{str} dbg{puts}  \ inNamespace
+        ." }: " dbg{puts}
+          flc{..cSTR_QUOTE} dbg{putc}
+             ##pStrDecls dup advNamMaxLen @
+                blk{str} dbg{puts}                         \ stringValue
+                  flc{..cSTR_QUOTE} dbg{putc} dbg{newline}
+        ##pStrDecls dup advStrMaxLen sys{p2INC}            \ Next decl
+        spop dec spush \ Decrement counter
+      go :printing
+    end:
+      spop drop \ Drop counter
+  ;
+
+  \ Output a helpful map of anonymous strings to stdtrc
+  : mapAnonStrs ( -- )
+    ##pStartAnonStrDecls @ ##pAnonStrDecls !     \ Wind back pointer
+    ##nAnonStrDecls @ spush                      \ Hold counter
+    printing:                                    \ Print info about each str
+      speek go<=0 :end
+        ##pAnonStrDecls @@ pmodel{gget}          \ declCell --> pmodelStrAddr
+          dbg{putd} dbg{space}
+          ##pAnonStrDecls dup dup sys{pINC}
+            advNamMaxLen2                        \ stringValue
+            ." : " dbg{puts}
+              flc{..cSTR_QUOTE} dbg{putc}
+                @ blk{str} dbg{puts}
+                  flc{..cSTR_QUOTE} dbg{putc} dbg{newline}
+        ##pAnonStrDecls advStrMaxLen             \ Next decl
+        spop dec spush \ Decrement counter
+      go :printing
+    end:
+      spop drop \ Drop counter
+  ;
+
+}ptab
+
+\ ============================================================================
+\                              UTF-8 LIBRARY
+\
+\     The use of this library ensures there is no tight coupling
+\   between the compiler and the use of UTF-8 character encoding by
+\   its input devices.
+\
+\ ============================================================================
+utf8{
+  \ WARNING: These values are arbitrary and might be changed in future.
+  \          Therefore reference the constant NAMES not the values!
+  EMPTY. -1 INVALID. -2
+
+  \ Read between 1 and 4 bytes until either:
+  \ (a) a valid UTF-8 character is decoded and returned; or
+  \ (b) an I/O error occurs [or hit end of stream] so .EMPTY is returned; or
+  \ (c) an invalid byte is encountered so .INVALID is returned.
+  \ The supplied function f must read 1 byte from the desired
+  \   stream device or return NO_VALUE if for any reason it cannot read
+  \   [see insrc{_readb} for an example of a suitable such function].
+  \ WARNING: be sure the function f does exactly the above and nothing else!
+  \             It will be invoked multiple times!
+  \ WARNING: only mimimal validity checking of bytes read is done, so
+  \   if the input is not valid UTF-8 the result may be garbage.
+  \ MIN32BIT: Will not work if Freeputer word size is smaller than 32 bits
+  \   [which should never be the case but noted here as a courtesy]
+  \ NOTE: This is an example of functional programming in Freelang
+  : read ( f -- c )
+    dup invoke {..NO_VALUE} go[==] :fail    \ Read 1st byte of char
+      isUTF8single? {..TRUE} go== :single
+      isUTF8double? {..TRUE} go== :double
+      isUTF8triple? {..TRUE} go== :triple
+      isUTF8quad? {..TRUE} go== :quad
+      drop2 go :invalid \ Hit bad 1st byte of char
+      quad:   \ byte is the first of a 4-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 4th byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 24 << |
+      go :success
+      triple: \ byte is the first of a 3-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+      go :success
+      double: \ byte is the first of a 2-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+      go :success
+      single: go :success \ byte is a 1-byte UTF=8 char
+      badByte: drop2 go :invalid \ Hit bad 2nd, 3rd or 4th byte of char
+    fail: drop2 ..EMPTY ret \ I/O error or end of stream [nothing to read]
+    invalid: ..INVALID ret \ Invalid char
+    success: nip \ Discard f and return c
+  ;
+
+  \ The binary values used for parsing UTF-8 are shown commented out below.
+  \ As this self-hosted compiler only supports decimal literals in source code
+  \ [not binary or hexadecimal ones] these have for now been converted
+  \ into decimal equivalents below. TODO Support binary and hex literals.
+(
+  _UTF8_single_mask. 0b10000000
+  _UTF8_2x_byte_mask. 0b11100000 _UTF8_2x_byte_start. 0b11000000
+  _UTF8_3x_byte_mask. 0b11110000 _UTF8_3x_byte_start. 0b11100000
+  _UTF8_4x_byte_mask. 0b11111000 _UTF8_4x_byte_start. 0b11110000
+  _UTF8_subseq_mask. 0b11000000  _UTF8_subseq_start. 0b10000000
+)
+  _UTF8_single_mask. 128
+  _UTF8_2x_byte_mask. 224 _UTF8_2x_byte_start. 192
+  _UTF8_3x_byte_mask. 240 _UTF8_3x_byte_start. 224
+  _UTF8_4x_byte_mask. 248 _UTF8_4x_byte_start. 240
+  _UTF8_subseq_mask. 192  _UTF8_subseq_start. 128
+
+  \ Returns TRUE. if byte b has the correct format to be a single-byte
+  \ character in UTF-8, otherwise FALSE.
+  : isUTF8single? ( b -- b B )
+    dup .._UTF8_single_mask & go==0 :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a two-byte character in UTF-8, otherwise FALSE.
+  : isUTF8double? ( b -- b B )
+    dup .._UTF8_2x_byte_mask &
+    .._UTF8_2x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a three-byte character in UTF-8, otherwise FALSE.
+  : isUTF8triple? ( b -- b B )
+    dup .._UTF8_3x_byte_mask &
+    .._UTF8_3x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a four-byte character in UTF-8, otherwise FALSE.
+  : isUTF8quad? ( b -- b B )
+    dup .._UTF8_4x_byte_mask &
+    .._UTF8_4x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the second or
+  \ subseqent byte of a multibyte UTF-8 character, otherwise FALSE.
+  : isUTF8subseq? ( b -- b B )
+    dup .._UTF8_subseq_mask &
+    .._UTF8_subseq_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+}utf8
+
+\ ============================================================================
+\                               BLOCK LIBRARY
+\
+\       By Freelang convention, a 'block' [in memory or in a block device]
+\     always has the following structure:
+\
+\                   [[bk][k][x           ][iWALL]]
+\
+\             Symbol    Description
+\                bk   : a word containing the opcode iDATA
+\                 k   : a word specifying the number of words in the strip
+\                 x   : known as the 'strip', this is 0 or more words of data
+\               iWALL : a word containing the opcode iWALL [that is, 0]
+\
+\       The opcodes iDATA and iWALL serve as overflow protection since the
+\     FVM immediately halts upon encountering an iDATA, iWALL or iHALT opcode.
+\     Overflow protection is fundamental in Freeputer. The Freelang compiler
+\     precedes all Freelang word definitions with iWALL [that is, 0].
+\
+\     Note: the use of "blocks" as a data format is not mandatory.
+\     Block devices can store data in any format whatsoever.
+\
+\ ============================================================================
+blk{
+
+  \ Initialize static block bk:[[iDATA]k:[[z]x:[z zero-filled words]][iWALL]]
+  \ in memory and return pointer p to the start of the 'strip' x of the block.
+  \ WARNING: Does not check memory bounds and therefore could trap.
+  : init ( z bk -- p )
+    ..iDATA over ! dup2 incw ! inc2w swap over 0 swap fill ;
+
+  \ Return size of block [that is, its strip size in words] in memory at bk.
+  \ This is known as the 'net size' or simply 'size' of a block.
+  : size ( bk -- z ) incw @ ;
+
+  \ Return the 'gross size' in words of a block [ie, not only its strip size
+  \ but the total size of every part of the block] that would have
+  \ the strip size z in words. That is, if you wanted to make a block big
+  \ enough to hold a strip of size z words then grossSize is
+  \ the amount of memory you would require to do so, including this whole
+  \ structure: bk:[[iDATA]k:[[z]x:[z zero-filled words]][iWALL]]
+  : gross ( z -- grossSize ) 3 + ;
+
+  \ Return address x of strip of block in memory at bk
+  \ Note: not to be confused with blk{str}
+  : strip ( bk -- x ) inc2w ;
+
+  \ Return address k of body of block in memory at bk.
+  \ Note: this word is a synonym of str.
+  : body ( bk -- k ) incw ;
+
+  \ Return address k of body of block in memory at bk.
+  \ This is the address to use as a string reference if the block is a string.
+  \ Note: this word is a synonym of body.
+  \ Note: not to be confused with blk{strip}
+  : str ( bk -- k ) incw ;
+
+  \ Validate block in memory at bk. A block is considered valid if:
+  \   - it begins with the word iDATA at bk; and
+  \   - the value z at word k indicating block size is >=0; and
+  \   - the value at x + z + WORD is the word iWALL.
+  \ Return TRUE if block valid, FALSE otherwise.
+  \ WARNING: Does not check memory bounds and therefore could trap.
+  : validate ( bk -- TRUE/FALSE )
+    [@] ..iDATA go!= :invalid2                  \ Check starts with iDATA
+      incw [@] go<0 :invalid2                   \ Check size is >=0
+        [@] sys{bytes} swap incw + @ ..iWALL go!= :invalid
+                                                \ Check ends with iWALL
+          {..TRUE} ret                          \ All checks passed
+    invalid2:                                   \ ( bk )
+      drop                                      \ ( )
+    invalid:                                    \ ( )
+      {..FALSE}
+        ret                             \ At least one check failed
+  ;
+
+  \ Zero-fill the strip of the block in memory at bk.
+  \ WARNING: Does not check if block is valid.
+  \   You should call validate before using this word.
+  \ WARNING: May overwrite other data if block is invalid.
+  \ WARNING: Does not check memory bounds and therefore could cause VM trap.
+  : zeroFill ( bk -- ) hold size 0 spop strip fill ;
+
+  iDATA. 255   iWALL. 0 \ opcodes
+
+}blk
+
+\ ============================================================================
+\                                 SYSTEM
+\                      Some very commonly used words
+\ ============================================================================
+sys{
+
+  \ Return number of bytes contained within n words
+  : bytes ( n -- numBytes ) {..WORD} * ;
+
+  \ Convert n to z decimal chars placed on the data stack in reverse order
+  : deci ( n -- c1..* z )
+      -2147483648 go[==] :negIntMax
+      0 ( n z=0 ) swap go[>=0] :positive
+      ( negative: ) '-' spush swap inc spush -1 * go :digits
+        positive:   '+' spush swap spush
+      digits: 10 /% '0' + swap spop inc spush go[>0] :digits drop
+      ( handleSign: ) spop spop '+' go[==] :ignoreSign
+        ( showSign: ) swap ret ( c1..* '-' z )
+        ignoreSign:   drop     ( c1..*  z    )
+        ret
+      negIntMax:              \ ( n ) [ ]
+        drop '8'              \ ( '8' ) [ ]
+        214748364 deci drop   \ Recurse ( '8' '4' ... '2' ) [ ]
+        '-' 11                \ ( '8' '4' ... '2' '-' 11 ) [ ]
+  ;
+
+  \ If n1 is less than 0 then return 0 otherwise return n1.
+  : floor0 ( n1 -- n2 ) 0 go[<] :one ret one: drop 0 ;
+
+  \ If n1 is less than 1 then return 1 otherwise return n1.
+  : floor1 ( n1 -- n2 ) 1 go[<] :one ret one: drop 1 ;
+
+  \ Increment n1 and n2 by size of a word in bytes
+  : INC2 ( n1 n2 -- n1+WS n2+WS ) spush incw spop incw ;
+
+  \ Increment pointer to point at the next word
+  : pINC ( p -- ) [@] incw swap ! ;
+
+  \ Increment pointer to point at the word after the next word
+  : p2INC ( p -- ) [@] inc2w swap ! ;
+
+  \ Decrement the value of a variable by 1
+  : vDec ( v -- ) [@] dec swap ! ;
+
+  \ Increment the value of a variable by 1
+  : vInc ( v -- ) [@] inc swap ! ;
+
+  \ Decrement the value of a variable by the size of a word in bytes
+  : vDEC ( v -- ) [@] decw swap ! ;
+
+  \ Increment the value of a variable by the size of a word in bytes
+  : vINC ( v -- ) [@] incw swap ! ;
+
+  \ If n1 is less than n2 then return n1 otherwise return n2.
+  : lesser ( n1 n2 -- n ) dup2 go< :n1 nip ret n1: drop ;
+
+  \ Execute f function n times (function must not disrupt data stack )
+  : times ( f n -- ) exec: go[<=0] :end spush [invoke] spop dec go :exec
+    end: drop2 ;
+
+  \ Return number of whole words contained within n bytes
+  : wds ( n -- numWholeWords ) {..WORD} / ;
+
+  \ Drop n elements from the software stack.
+  \ WARNING: No underflow checking, could cause the VM to trap!
+  : ssDrops ( n -- ) go[<=0] :end spop drop dec go ::ssDrops end: drop ;
+
+}sys
+
+\ ============================================================================
+\                                DEBUGGING
+\
+\     Here, debugging output is written to stdtrc not stdout and uses the
+\   tracor instruction rather than the writor instruction. This
+\   implementation is able to trace UTF-8 characters [but via puts only].
+\
+\ ============================================================================
+
+dbg{
+
+  cNEWLINE. 10 cSPACE. 32 \ Some common character codes
+  cMAXCHAR. 126           \ Maximum char code treated as printable by putc
+
+  \ Trace details of memory in character format as z words from addr a
+  : CHARDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @ putc incw swap dec
+        go ::CHARDUMP
+    end: drop2
+  ;
+
+  \ Trace the string message at k to stdtrc then CHARDUMP and snapshot
+  : infochar ( k a z )
+    newline rot puts newline '[' putc CHARDUMP ']' putc newline snapshot ;
+
+  \ Trace the string message at k to stdtrc then snapshot
+  : infosnap ( k ) newline puts snapshot ;
+
+  \ Trace the string message at k to stdtrc then decimal value of variable v
+  : infovar ( k v ) swap puts @ printd ;
+
+  \ Trace the string message at k to stdtrc then decimal value of n
+  : infonum ( k n ) swap puts printd ;
+
+  \ Trace details of memory in decimal format as z words from addr a
+  : MEMDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @ putd space incw swap dec
+        go ::MEMDUMP
+    end: drop2
+  ;
+
+  \ Write newline to stdtrc
+  : newline ( -- ) ..cNEWLINE putc ;
+
+  \ Same as puts but followed by a newline
+  : print ( k -- ) puts newline ;
+
+  \ Same as putd but followed by a newline
+  : printd ( k -- ) putd newline ;
+
+  \ Same as putv but followed by a newline
+  : printv ( k -- ) putv newline ;
+
+  \ Trace "T" if n is {..TRUE}, "F" if n is {.FALSE}, otherwise trace "?"
+  : putbool ( n -- )
+    {..FALSE} go[==] :false
+      {..TRUE}  go[==] :true
+        drop '?' putc ret
+    false:
+      drop 'F' putc ret
+    true:
+      drop 'T' putc
+  ;
+
+  \ Write character to stdtrc (or a dot if character not printable).
+  \ This word only supports basic ASCII characters.
+  : putc ( c -- )
+      ..cNEWLINE go[==] :ok
+      ..cMAXCHAR go[>] :putdot
+      ..cSPACE go[<] :putdot
+      go :ok
+        putdot: drop '.'
+      ok: tracorb ::tfail
+  ;
+
+  \ Write decimal integer to stdtrc
+  : putd ( n -- )
+    sys{deci} put: go[<=0] :end dec spush putc spop go :put
+    end: drop
+  ;
+
+  \ Write the string at k to stdtrc but:
+  \   (a) do not exceed block size in words as indicated at k
+  : puts ( k -- ) [@] swap incw swap sys{bytes} tracs ;
+
+  \ Trace the value of the variable v
+  : putv ( v -- ) @ putd ;
+
+  \ Write a space to stdtrc
+  : space ( -- ) ..cSPACE putc ;
+
+  \ Send a single line of VM trace information to stdtrc
+  : snapshot ( -- ) tron troff ;
+
+  \ Trace z BYTES of a string starting at address a in memory,
+  \   but do not trace (that is, skip) any byte having a value of 0.
+  \   This means whatever character encoding happened to have been used
+  \   during the storage of that text is crudely preserved to some extent.
+  : tracs ( a z -- )
+    tracing:                  \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            tracorb ::tfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :tracing         \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+  ;
+
+  \ Traps
+  tfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}dbg
+
+\ ============================================================================
+\                             FREELANG GLOBALS
+\ ============================================================================
+FALSE. 0 TRUE. 1 NO_VALUE. -1 SUCCESS. 0 FAILURE. 1
+WORD. 4           \ The size of a word in bytes [always 32 bits wide]
+TWO_WORDS. 8      \ The size of two adjacent words in bytes
+THREE_WORDS. 12   \ The size of three adjacent words in bytes
+STDOUT. -1        \ Stream device number of stdout
+

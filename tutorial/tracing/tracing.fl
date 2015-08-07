@@ -1,0 +1,54 @@
+
+  \ You must deploy this program to an FVM whose RAM starts at 16777216
+  \ Note: use the ready-made fvm16-16MB executable
+
+  slotFloor 16777216 \ Direct the compiler to put lowest slot at 16777216
+  mySlot# 4          \ Declare a slot of size 4 bytes (1 word)
+
+
+  tron          \ (         ) Turn on tracing (note: DS is empty)
+  3 #mySlot !   \ (         ) Store the value 3 into that slot
+  oneTwoThree   \ ( 1 2 3   ) Call oneTwoThree, it will put 1 2 3 on DS
+  3             \ ( 1 2 3 3 ) Put another 3 on the DS
+  go== :noFour  \ ( 1 2     ) Branch to label noFour: if top 2 elements equal
+
+    \ We will never hit the next line because the top 2 elements were
+    \   indeed equal so go== will have branched to the label noFour: below
+    4           \ ( 1 2 4 ) Would put 4 on DS if we hit this line
+    halt        \ ( 1 2 4 ) Would halt with 1 2 4 on DS if we hit this line
+
+  noFour:       \ ( 1 2   )
+    drop2       \ (       ) Discard the top two elements of DS
+    troff       \ (       ) Turn off tracing (note: DS is empty)
+    halt        \ (       ) Halt the FVM
+
+  \ Put 1 2 3 on the DS
+  : oneTwoThree \ ( -- 1 2 3 ) This is a word definition
+    1 2         \ ( 1 2   ) Put 1 and 2 on the DS
+    ##mySlot @  \ ( 1 2 3 ) Load the value stored in mySlot (namely 3)
+  ;             \ ( 1 2 3 ) Return (compiler inserts ret where ; is located)
+
+\ ============================================================================
+(
+Program:    tracing.fl
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150807
+Updated:    20150807:1754
+Version:    1.0.0.0 for FVM 1.0
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+)
+\ ============================================================================
+

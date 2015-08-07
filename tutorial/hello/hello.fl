@@ -1,0 +1,79 @@
+\ ============================================================================
+\                               HELLO WORLD
+\           A demonstration of output in Chinese and English,
+\                  written in Freelang for Freeputer.
+\
+\               You must view this source code in UTF-8
+\
+\   The Chinese output will only work if your terminal emulator is set to use
+\   UTF-8 character encoding and supports the display of Chinese characters.
+\   If not then simply comment out the line: ." 你好 " print
+\
+\   Note: you must compile this program with flc not flx.
+\
+\ ============================================================================
+HelloWorld{ \ This is the start of the HelloWorld namespace
+
+  newline                 \ Write one blank line
+  ." 你好 " print          \ Say hello in Chinese (comment out if unsupported)
+  ." Hello world! " print \ Say hello in English
+  newline
+  halt                    \ Exit with success
+
+  \ Write the supplied Freeputer string one byte at a time
+  \ but do not write (that is, skip) any byte having a value of 0.
+  \ This means whatever character encoding happened to have been used
+  \ during the storage of that string is crudely preserved to some extent.
+  \ In this case, this source code was saved using UTF-8 character encoding
+  \ and so this simple technique of skipping 0-value bytes works nicely.
+  \ Note: a Freeputer string starts with a word indicating its
+  \ size in characters and each character is 32 bits wide.
+  : print ( s -- )
+    [@] 4 * swap incw swap    \ ( a z ) a=addr of 1st char   z=number of bytes
+    writing:                  \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            writorb ::wfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :writing         \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+      newline                 \ ( )
+  ;
+
+  \ Write a newline character
+  : newline ( -- ) 10 writorb ::wfail ;
+
+  \ Exit point upon I/O error
+  wfail: halt
+
+}HelloWorld \ end of namespace
+\ ============================================================================
+(
+Program:    hello.fl
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150807
+Updated:    20150807:1753
+Version:    1.0.0.0 for FVM 1.0
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+)
+\ ============================================================================
+

@@ -1,0 +1,487 @@
+(
+fld
+===
+
+The official
+Freelang decompiler
+written in Freelang
+for the Freeputer Virtual Machine
+
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150705
+Updated:    20150807:1500
+Version:    1.0.0.0 for FVM 1.0
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+)
+
+VERSION$ ." fld.fl decompiler version 1.0.0.0 for FVM 1.0 "
+
+
+\ ============================================================================
+\                              CONFIGURATION
+\ ============================================================================
+slotFloor 16384
+
+\ ============================================================================
+\                   fld        Decompiler Logic
+\ ============================================================================
+fld{
+
+  decompile finish quit \ Algorithm
+
+  \ Some VM instructions
+  iWALL. 0 iLIT. 1 iDATA. 255
+  iHIGHEST_COMPLEX_OPCODE. 37 \ Higher opcodes are simple instrs (or illegal)
+
+  \ Decompile a compiled program
+  : decompile
+    dbg{newline} {$$VERSION} dbg{print}
+    ." DECOMPILED PROGRAM: " dbg{print}
+    prevOpcode# 4                         \ Previous opcode
+      {..NO_VALUE} #prevOpcode !          \   Default to none
+    expectLiteral?# 4                     \ Expecting a literal value?
+      {..FALSE} #expectLiteral? !         \   Default to false
+    inData?# 4                            \ In a DATA block?
+      {..FALSE} #inData? !                \   Default to false
+    inSize?# 4                            \ In size cell of a DATA block?
+      {..FALSE} #inSize? !                \   Default to false
+    cellAddr# 4                           \ Current cell
+    0 #cellAddr !                         \ Start at beginning
+    decompiling:
+        readCell {..NO_VALUE} go[==] :done     \ Nothing more to read?
+                 {..TRUE} go[!=] :errorReading \ Should never happen
+                 drop                          \ ( cellValue ) [ ]
+        dbg{newline} #cellAddr dbg{putv} ."  :  " dbg{puts} \ Write cell addr
+        #expectLiteral? @ {..TRUE} go== :inLiteral
+        #inData? @ {..TRUE} go== :inData
+          ."   :  " dbg{puts}
+          dup ..iWALL go!= :notWall
+            \ opcode is iWALL and is not a literal and is not in a DATA block
+            ." === " dbg{puts} go :nextCell
+          notWall:
+            dup decompileOpcode {..FALSE} go== :error
+            dup ..iHIGHEST_COMPLEX_OPCODE go> :simple
+        ( complex: ) \ opcode is a complex instruction
+            {..TRUE} #expectLiteral? ! go :nextCell
+          simple:    \ opcode is a simple instruction
+            dup ..iDATA go!= :nextCell
+              \ opcode is iDATA, the start of a DATA block
+              {..TRUE} #inData? !
+              {..TRUE} #inSize? !
+          go :nextCell
+        inLiteral:
+         #prevOpcode @ ..iLIT go!= :noChar
+           decompileChar go :writeInt       \ Write cell value as char
+         noChar:
+           ."   :  " dbg{puts}
+         writeInt:
+          dup dbg{putd}                     \ Also write cell value as integer
+          {..FALSE} #expectLiteral? !       \ No longer expecting a literal
+          go :nextCell
+        inData:
+          #inSize? @ {..TRUE} go== :inSize  \ In the size cell of DATA block?
+          dup ..iWALL go== :endData         \ Reached end of DATA block?
+            decompileChar                   \ Write cell value as char
+            dup dbg{putd}                   \ Also write cell value as integer
+            {..FALSE} #expectLiteral? !     \ No longer expecting a literal
+            go :nextCell
+          endData: \ We reached the end of a DATA block
+            ."   :  " dbg{puts}
+            ." === " dbg{puts}
+            {..FALSE} #inData? !            \ No longer in a DATA block
+            go :nextCell
+          inSize: \ We are in the size cell of a DATA block
+            {..FALSE} #inSize? !
+            ."   :  " dbg{puts}
+            dup dbg{putd}                   \ Write cell value as integer
+            go :nextCell
+        nextCell:
+          #prevOpcode !                     \ Remember as previous opcode
+          #cellAddr sys{vINC}               \ Increment cellAddr by WORD bytes
+          go :decompiling
+    done:
+      drop2 dbg{newline} dbg{newline} ret
+    error:
+      drop dbg{newline}
+      ." ERROR: INVALID OPCODE HERE, CANNOT DECOMPILE " dbg{print} ret
+    errorReading:
+      drop2 dbg{newline}
+      ." ERROR ATTEMPTING TO READ PROGRAM TO DECOMPILE " dbg{print}
+  ;
+
+  \ In parentheses, write the supplied character code n to stdtrc
+  \ as a chararacter or write a blank space if n is invalid character code.
+  \ NOTE: validity here is arbitrarily defined as being 32 <= n <= 1279.
+  : decompileChar ( n -- n )
+    32 go[<] :invalidChar
+    1279 go[>] :invalidChar
+  ( validChar: )
+      dup dbg{putc} go :end
+    invalidChar:
+      dbg{space}
+    end:
+      ."  :  " dbg{puts}
+  ;
+
+  \ Decompile supplied opcode [from the VM instruction set] and return TRUE
+  \ or, if the opcode is invalid, do nothing and return FALSE.
+  : decompileOpcode ( opcode -- TRUE/FALSE )
+    ." lit "        1    handleOpcode {..TRUE} go== :done
+    ." call "       2    handleOpcode {..TRUE} go== :done
+    ." go "         3    handleOpcode {..TRUE} go== :done
+    ." go[>0] "     4    handleOpcode {..TRUE} go== :done
+    ." go[>=0] "    5    handleOpcode {..TRUE} go== :done
+    ." go[==0] "    6    handleOpcode {..TRUE} go== :done
+    ." go[!=0] "    7    handleOpcode {..TRUE} go== :done
+    ." go[<=0] "    8    handleOpcode {..TRUE} go== :done
+    ." go[<0] "     9    handleOpcode {..TRUE} go== :done
+    ." go[>] "     10    handleOpcode {..TRUE} go== :done
+    ." go[>=] "    11    handleOpcode {..TRUE} go== :done
+    ." go[==] "    12    handleOpcode {..TRUE} go== :done
+    ." go[!=] "    13    handleOpcode {..TRUE} go== :done
+    ." go[<=] "    14    handleOpcode {..TRUE} go== :done
+    ." go[<] "     15    handleOpcode {..TRUE} go== :done
+    ." go>0 "      16    handleOpcode {..TRUE} go== :done
+    ." go>=0 "     17    handleOpcode {..TRUE} go== :done
+    ." go==0 "     18    handleOpcode {..TRUE} go== :done
+    ." go!=0 "     19    handleOpcode {..TRUE} go== :done
+    ." go<=0 "     20    handleOpcode {..TRUE} go== :done
+    ." go<0 "      21    handleOpcode {..TRUE} go== :done
+    ." go> "       22    handleOpcode {..TRUE} go== :done
+    ." go>= "      23    handleOpcode {..TRUE} go== :done
+    ." go== "      24    handleOpcode {..TRUE} go== :done
+    ." go!= "      25    handleOpcode {..TRUE} go== :done
+    ." go<= "      26    handleOpcode {..TRUE} go== :done
+    ." go< "       27    handleOpcode {..TRUE} go== :done
+    ." reador "    28    handleOpcode {..TRUE} go== :done
+    ." writor "    29    handleOpcode {..TRUE} go== :done
+    ." tracor "    30    handleOpcode {..TRUE} go== :done
+    ." getor "     31    handleOpcode {..TRUE} go== :done
+    ." putor "     32    handleOpcode {..TRUE} go== :done
+    ." readorb "   33    handleOpcode {..TRUE} go== :done
+    ." writorb "   34    handleOpcode {..TRUE} go== :done
+    ." tracorb "   35    handleOpcode {..TRUE} go== :done
+    ." getorb "    36    handleOpcode {..TRUE} go== :done
+    ." putorb "    37    handleOpcode {..TRUE} go== :done
+    ." ret "      145    handleOpcode {..TRUE} go== :done
+    ." invoke "   146    handleOpcode {..TRUE} go== :done
+    ." [invoke] " 147    handleOpcode {..TRUE} go== :done
+    ." fly "      148    handleOpcode {..TRUE} go== :done
+    ." swap "     149    handleOpcode {..TRUE} go== :done
+    ." over "     150    handleOpcode {..TRUE} go== :done
+    ." rot "      151    handleOpcode {..TRUE} go== :done
+    ." tor "      152    handleOpcode {..TRUE} go== :done
+    ." leap "     153    handleOpcode {..TRUE} go== :done
+    ." nip "      154    handleOpcode {..TRUE} go== :done
+    ." tuck "     155    handleOpcode {..TRUE} go== :done
+    ." rev "      156    handleOpcode {..TRUE} go== :done
+    ." rpush "    157    handleOpcode {..TRUE} go== :done
+    ." rpop "     158    handleOpcode {..TRUE} go== :done
+    ." drop "     159    handleOpcode {..TRUE} go== :done
+    ." drop2 "    160    handleOpcode {..TRUE} go== :done
+    ." drop3 "    161    handleOpcode {..TRUE} go== :done
+    ." drop4 "    162    handleOpcode {..TRUE} go== :done
+    ." dup "      163    handleOpcode {..TRUE} go== :done
+    ." dup2 "     164    handleOpcode {..TRUE} go== :done
+    ." dup3 "     165    handleOpcode {..TRUE} go== :done
+    ." dup4 "     166    handleOpcode {..TRUE} go== :done
+    ." hold "     167    handleOpcode {..TRUE} go== :done
+    ." hold2 "    168    handleOpcode {..TRUE} go== :done
+    ." hold3 "    169    handleOpcode {..TRUE} go== :done
+    ." hold4 "    170    handleOpcode {..TRUE} go== :done
+    ." speek "    171    handleOpcode {..TRUE} go== :done
+    ." speek2 "   172    handleOpcode {..TRUE} go== :done
+    ." speek3 "   173    handleOpcode {..TRUE} go== :done
+    ." speek4 "   174    handleOpcode {..TRUE} go== :done
+    ." spush "    175    handleOpcode {..TRUE} go== :done
+    ." spush2 "   176    handleOpcode {..TRUE} go== :done
+    ." spush3 "   177    handleOpcode {..TRUE} go== :done
+    ." spush4 "   178    handleOpcode {..TRUE} go== :done
+    ." spop "     179    handleOpcode {..TRUE} go== :done
+    ." spop2 "    180    handleOpcode {..TRUE} go== :done
+    ." spop3 "    181    handleOpcode {..TRUE} go== :done
+    ." spop4 "    182    handleOpcode {..TRUE} go== :done
+    ." dec "      183    handleOpcode {..TRUE} go== :done
+    ." decw "     184    handleOpcode {..TRUE} go== :done
+    ." dec2w "    185    handleOpcode {..TRUE} go== :done
+    ." inc "      186    handleOpcode {..TRUE} go== :done
+    ." incw "     187    handleOpcode {..TRUE} go== :done
+    ." inc2w "    188    handleOpcode {..TRUE} go== :done
+    ." @ "        189    handleOpcode {..TRUE} go== :done
+    ." ! "        190    handleOpcode {..TRUE} go== :done
+    ." [@] "      191    handleOpcode {..TRUE} go== :done
+    ." @b "       192    handleOpcode {..TRUE} go== :done
+    ." !b "       193    handleOpcode {..TRUE} go== :done
+    ." [@b] "     194    handleOpcode {..TRUE} go== :done
+    ." @@ "       195    handleOpcode {..TRUE} go== :done
+    ." @! "       196    handleOpcode {..TRUE} go== :done
+    ." [@@] "     197    handleOpcode {..TRUE} go== :done
+    ." @@b "      198    handleOpcode {..TRUE} go== :done
+    ." @!b "      199    handleOpcode {..TRUE} go== :done
+    ." [@@b] "    200    handleOpcode {..TRUE} go== :done
+    ." + "        201    handleOpcode {..TRUE} go== :done
+    ." - "        202    handleOpcode {..TRUE} go== :done
+    ." * "        203    handleOpcode {..TRUE} go== :done
+    ." / "        204    handleOpcode {..TRUE} go== :done
+    ." % "        205    handleOpcode {..TRUE} go== :done
+    ." /% "       206    handleOpcode {..TRUE} go== :done
+    ." [+] "      207    handleOpcode {..TRUE} go== :done
+    ." [-] "      208    handleOpcode {..TRUE} go== :done
+    ." [*] "      209    handleOpcode {..TRUE} go== :done
+    ." [/] "      210    handleOpcode {..TRUE} go== :done
+    ." [%] "      211    handleOpcode {..TRUE} go== :done
+    ." [/%] "     212    handleOpcode {..TRUE} go== :done
+    ." neg "      213    handleOpcode {..TRUE} go== :done
+    ." abs "      214    handleOpcode {..TRUE} go== :done
+    ." & "        215    handleOpcode {..TRUE} go== :done
+    ." | "        216    handleOpcode {..TRUE} go== :done
+    ." ^ "        217    handleOpcode {..TRUE} go== :done
+    ." [+] "      218    handleOpcode {..TRUE} go== :done
+    ." [|] "      219    handleOpcode {..TRUE} go== :done
+    ." [^] "      220    handleOpcode {..TRUE} go== :done
+    ." << "       221    handleOpcode {..TRUE} go== :done
+    ." >> "       222    handleOpcode {..TRUE} go== :done
+    ." [<<] "     223    handleOpcode {..TRUE} go== :done
+    ." [>>] "     224    handleOpcode {..TRUE} go== :done
+    ." move "     225    handleOpcode {..TRUE} go== :done
+    ." fill "     226    handleOpcode {..TRUE} go== :done
+    ." find "     227    handleOpcode {..TRUE} go== :done
+    ." match "    228    handleOpcode {..TRUE} go== :done
+    ." moveb "    229    handleOpcode {..TRUE} go== :done
+    ." fillb "    230    handleOpcode {..TRUE} go== :done
+    ." findb "    231    handleOpcode {..TRUE} go== :done
+    ." matchb "   232    handleOpcode {..TRUE} go== :done
+    ." homio "    233    handleOpcode {..TRUE} go== :done
+    ." rchan "    234    handleOpcode {..TRUE} go== :done
+    ." wchan "    235    handleOpcode {..TRUE} go== :done
+    ." gchan "    236    handleOpcode {..TRUE} go== :done
+    ." pchan "    237    handleOpcode {..TRUE} go== :done
+    ." ecode? "   238    handleOpcode {..TRUE} go== :done
+    ." rcode? "   239    handleOpcode {..TRUE} go== :done
+    ." rom? "     240    handleOpcode {..TRUE} go== :done
+    ." ram? "     241    handleOpcode {..TRUE} go== :done
+    ." map? "     242    handleOpcode {..TRUE} go== :done
+    ." stdblk? "  243    handleOpcode {..TRUE} go== :done
+    ." ds? "      244    handleOpcode {..TRUE} go== :done
+    ." ss? "      245    handleOpcode {..TRUE} go== :done
+    ." rs? "      246    handleOpcode {..TRUE} go== :done
+    ." dsn? "     247    handleOpcode {..TRUE} go== :done
+    ." ssn? "     248    handleOpcode {..TRUE} go== :done
+    ." rsn? "     249    handleOpcode {..TRUE} go== :done
+    ." tron "     250    handleOpcode {..TRUE} go== :done
+    ." troff "    251    handleOpcode {..TRUE} go== :done
+    ." reset "    252    handleOpcode {..TRUE} go== :done
+    ." reboot "   253    handleOpcode {..TRUE} go== :done
+    ." halt "     254    handleOpcode {..TRUE} go== :done
+    ." data "     255    handleOpcode {..TRUE} go== :done
+    drop {..FALSE} ret \ Invalid opcode
+    done:
+      drop {..TRUE}    \ Valid opcode handled
+  ;
+
+  \ Check if the supplied opcode matches known opcode n and if so
+  \ write corresponding string representation s to stdtrc and
+  \ return TRUE; otherwise do nothing and return FALSE.
+  \ Used by the decompiler [see decompileOpcode].
+  : handleOpcode ( opcode s n  -- opcode TRUE/FALSE )
+    leap go== :matched drop {..FALSE}
+      ret
+    matched:
+      dbg{puts} {..TRUE}
+  ;
+
+  \ Read the value of the next cell of the binary program being decompiled
+  \ or return NO_VALUE upon error or if there is nothing more to read.
+  : readCell ( -- cellValue )
+    inbin{rread}
+  ;
+
+  \ Gracefully shut down the decompiler
+  : finish ( -- ) ;
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+
+}fld
+
+\ ============================================================================
+\                   INBIN    "in bin" or "binary input"
+\     The interface for the input device from which the program
+\   binary will be read. This interface serves as a layer of abstraction
+\   such that the program binary could actually come, via this interface,
+\   from a stream, a block device or memory but the decompiler shall
+\   treat it as a stream. This initial implementation uses stdin.
+\
+\ ============================================================================
+inbin{
+
+  \ Return the value of the next cell of the binary program and TRUE or,
+  \ if there is nothing more to be read or an I/O error occurs,
+  \ return {..NO_VALUE} and {..NO_VALUE}
+  : rread ( -- cellValue/NO_VALUE TRUE/NO_VALUE )
+    reador :readFailed
+      {..TRUE}
+      go :end
+    readFailed:
+      {..NO_VALUE} {..NO_VALUE}
+    end:
+ ;
+
+}inbin
+
+\ ============================================================================
+\                   OUTTXT    "out text" or "text output"
+\     The interface for the output device to which the decompiled
+\   program will be written. This interface serves as a layer of abstraction
+\   such that the decompiled program could actually go, via this interface,
+\   to a stream, a block device or memory but the decompiler shall
+\   treat it as a stream. This initial implementation uses stdout.
+\
+\ ============================================================================
+outtxt{
+
+  \ Write the next word of the decompiled program.
+  : wwrite ( n -- ) {..STDOUT} wchan writor ::wfail ;
+
+  \ Traps
+  wfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}outtxt
+
+\ ============================================================================
+\                                 SYSTEM
+\                      Some very commonly used words
+\ ============================================================================
+sys{
+
+  \ Return number of bytes contained within n words
+  : bytes ( n -- numBytes ) {..WORD} * ;
+
+  \ Convert n to z decimal chars placed on the data stack in reverse order
+  : deci ( n -- c1..* z )
+      -2147483648 go[==] :negIntMax
+      0 ( n z=0 ) swap go[>=0] :positive
+      ( negative: ) '-' spush swap inc spush -1 * go :digits
+        positive:   '+' spush swap spush
+      digits: 10 /% '0' + swap spop inc spush go[>0] :digits drop
+      ( handleSign: ) spop spop '+' go[==] :ignoreSign
+        ( showSign: ) swap ret ( c1..* '-' z )
+        ignoreSign:   drop     ( c1..*  z    )
+        ret
+      negIntMax:              \ ( n ) [ ]
+        drop '8'              \ ( '8' ) [ ]
+        214748364 deci drop   \ Recurse ( '8' '4' ... '2' ) [ ]
+        '-' 11                \ ( '8' '4' ... '2' '-' 11 ) [ ]
+  ;
+
+  \ Increment the value of a variable by 1
+  : vInc ( v -- ) [@] inc swap ! ;
+
+  \ Increment the value of a variable by the size of a word in bytes
+  : vINC ( v -- ) [@] incw swap ! ;
+
+}sys
+
+\ ============================================================================
+\                                DEBUGGING
+\
+\     Here, debugging output is written to stdtrc not stdout and uses the
+\   tracor instruction rather than the writor instruction. This
+\   implementation is able to trace UTF-8 characters [but via puts only].
+\
+\ ============================================================================
+
+dbg{
+
+  cNEWLINE. 10 cSPACE. 32     \ Some common character codes
+  cMAXCHAR. 126               \ Maximum char code treated as printable by putc
+
+  \ Write newline to stdtrc
+  : newline ( -- ) ..cNEWLINE putc ;
+
+  \ Same as puts but followed by a newline
+  : print ( k -- ) puts newline ;
+
+  \ Same as putd but followed by a newline
+  : printd ( k -- ) putd newline ;
+
+  \ Write character to stdtrc (or a dot if character not printable).
+  \ This word only supports basic ASCII characters.
+  : putc ( c -- )
+      ..cNEWLINE go[==] :ok
+      ..cMAXCHAR go[>] :putdot
+      ..cSPACE go[<] :putdot
+      go :ok
+        putdot: drop '.'
+      ok: tracorb ::tfail
+  ;
+
+  \ Write decimal integer to stdtrc
+  : putd ( n -- )
+    sys{deci} put: go[<=0] :end dec spush putc spop go :put
+    end: drop
+  ;
+
+  \ Write the string at k to stdtrc but:
+  \   (a) do not exceed block size in words as indicated at k
+  : puts ( k -- ) [@] swap incw swap sys{bytes} tracs ;
+
+  \ Trace the value of the variable v
+  : putv ( v -- ) @ putd ;
+
+  \ Write a space to stdtrc
+  : space ( -- ) ..cSPACE putc ;
+
+  \ Trace z BYTES of a string starting at address a in memory,
+  \   but do not trace (that is, skip) any byte having a value of 0.
+  \   This means whatever character encoding happened to have been used
+  \   during the storage of that text is crudely preserved to some extent.
+  : tracs ( a z -- )
+    tracing:                  \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            tracorb ::tfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :tracing         \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+  ;
+
+  \ Traps
+  tfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}dbg
+
+\ ============================================================================
+\                             FREELANG GLOBALS
+\ ============================================================================
+FALSE. 0 TRUE. 1 NO_VALUE. -1 SUCCESS. 0 FAILURE. 1
+WORD. 4           \ The size of a word in bytes [always 32 bits wide]
+STDOUT. -1        \ Stream device number of stdout
+

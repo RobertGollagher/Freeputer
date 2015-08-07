@@ -1,0 +1,1188 @@
+<p><meta http-equiv="content-type" content="text/html;charset=utf-8"></p>
+<h1 id="freeputer">Freeputer</h1>
+<p>Freeputer ( ) [ ] { } forever free</p>
+<h2 id="what-is-freeputer">What is Freeputer?</h2>
+<p>Freeputer is a free computer. Free as in freedom.</p>
+<p>Freeputer is a tiny virtual machine easily ported to most modern architectures, including bare metal, and requiring neither file system nor operating system. This offers extreme portability and the freedom to use software forever without designed obsolescence.</p>
+<ul>
+<li>Freeputer is a virtual machine: the Freeputer Virtual Machine (FVM).</li>
+<li>Freeputer is a self-hosted, self-contained software development platform.</li>
+<li>Freeputer is a platform for modular software that lasts forever.</li>
+<li>Freeputer is a powerful platform for bare metal computing.</li>
+<li>Freeputer is a user's computer not a vendor's computer.</li>
+<li>Freeputer supports the freedom of the user.</li>
+<li>Freeputer is a not an operating system.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Freeputer is brand new. It was released on 8 August 2015. It should be considered betaware.</p>
+<p>Freeputer and Freelang are the product of several years of independent research by Robert Gollagher (in Brisbane, Australia). Although the current implementation is brand new, the general design concept has been well proven by earlier prototypes. The Freelang language is stable and productive.</p>
+<h2 id="software">Software</h2>
+<p>This distribution contains:</p>
+<ul>
+<li><strong>fvm</strong> : an FVM 1.0 for x86 32-bit Linux (<code>fvm.s, assemble-fvm.sh</code>)</li>
+<li><strong>FreeLine</strong> : a text editor for Freeputer (<code>fl.fl</code>)</li>
+<li><strong>flc</strong> : a Freelang compiler for Freeputer (<code>flc.fl, flc.sh</code>)</li>
+<li><strong>fld</strong> : a Freelang decompiler for Freeputer (<code>fld.fl, fld.sh</code>)</li>
+<li><strong>fvmtest</strong> : a suite of unit tests for Freeputer (<code>fvmtest.fl, fvmtest.sh</code>)</li>
+<li><strong>flx</strong> : a Freelang cross compiler and decompiler (<code>flx.rb</code>)</li>
+</ul>
+<p>All of these components are for FVM 1.0.</p>
+<h2 id="reading-this-document">Reading this document</h2>
+<p>This is a technical document intended for software developers.</p>
+<p>You <em>must</em> set your web browser or text editor to view UTF-8 character encoding before reading this document, otherwise it will not display properly.</p>
+<p>Please read the whole document in order. Important information explained in earlier sections is not repeated in later sections as it is assumed you have read from the beginning. If you intend to make serious use of Freeputer you will also need to read the extensive comments in all of the source code listed in the <a href="#software">Software</a> section above. You should also study the source code to explore Freelang programming techniques.</p>
+<h2 id="hello-world">Hello world</h2>
+<p>Here is the output from a simple Freeputer program:</p>
+<div class="figure">
+<img src="doc/img/Hello-World.png" alt="Hello from Freeputer" /><p class="caption">Hello from Freeputer</p>
+</div>
+<p>As you can see, the program greets the user in Chinese and English.</p>
+<p>The program was written in Freelang. Freelang is a stack-oriented, concatenative, compiled language for Freeputer. It is the first language available for the FVM. It is a fairly low-level language, whose core vocabulary is essentially that of the FVM instruction set, but it is surprisingly productive and capable. It is inherently extensible. Its syntax uses reverse Polish notation (RPN).</p>
+<p>Here is the Freelang program that produced the above output:</p>
+<pre class="forth"><code>
+\ ============================================================================
+\                               HELLO WORLD
+\           A demonstration of output in Chinese and English,
+\                  written in Freelang for Freeputer.
+\
+\               You must view this source code in UTF-8
+\
+\   The Chinese output will only work if your terminal emulator is set to use
+\   UTF-8 character encoding and supports the display of Chinese characters.
+\   If not then simply comment out the line: .&quot; 你好 &quot; print
+\
+\   Note: you must compile this program with flc not flx.
+\
+\ ============================================================================
+HelloWorld{ \ This is the start of the HelloWorld namespace
+
+  newline                 \ Write one blank line
+  .&quot; 你好 &quot; print          \ Say hello in Chinese (comment out if unsupported)
+  .&quot; Hello world! &quot; print \ Say hello in English
+  newline
+  halt                    \ Exit with success
+
+  \ Write the supplied Freeputer string one byte at a time
+  \ but do not write (that is, skip) any byte having a value of 0.
+  \ This means whatever character encoding happened to have been used
+  \ during the storage of that string is crudely preserved to some extent.
+  \ In this case, this source code was saved using UTF-8 character encoding
+  \ and so this simple technique of skipping 0-value bytes works nicely.
+  \ Note: a Freeputer string starts with a word indicating its
+  \ size in characters and each character is 32 bits wide.
+  : print ( s -- )
+    [@] 4 * swap incw swap    \ ( a z ) a=addr of 1st char   z=number of bytes
+    writing:                  \ ( a z )
+      go[&lt;=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            writorb ::wfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :writing         \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+      newline                 \ ( )
+  ;
+
+  \ Write a newline character
+  : newline ( -- ) 10 writorb ::wfail ;
+
+  \ Exit point upon I/O error
+  wfail: halt
+
+}HelloWorld \ end of namespace
+</code></pre>
+<p>And here is what Freelang looks like with syntax highlighting:</p>
+<div class="figure">
+<img src="doc/img/Hello-Highlighted.png" alt="Freelang syntax highlighting" /><p class="caption">Freelang syntax highlighting</p>
+</div>
+<p>Freelang is not Forth but its syntax is similar enough that Forth highlighting generally works quite well for Freelang. This allows you to leverage existing tools. The above screenshot was taken in <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> 3.4.2 set to Forth highlight mode.</p>
+<h2 id="how-can-i-try-freeputer">How can I try Freeputer?</h2>
+<p>Please see the <a href="#quick-start">Quick Start</a> section below.</p>
+<p>The Quick Start steps are:</p>
+<ol style="list-style-type: decimal">
+<li><a href="#review-the-system-requirements">Review</a> the System Requirements</li>
+<li><a href="#download-freeputer">Download</a> Freeputer</li>
+<li><a href="#run-the-freeline-text-editor">Run</a> the FreeLine text editor</li>
+<li><a href="#run-the-freeputer-unit-tests">Run</a> the Freeputer unit tests</li>
+<li><a href="#use-flx-the-freelang-cross-compiler">Use</a> flx, the Freelang cross compiler</li>
+<li><a href="#use-flc-the-freelang-compiler">Use</a> flc, the Freelang compiler</li>
+<li><a href="#use-fld-the-freelang-decompiler">Use</a> fld, the Freelang decompiler</li>
+<li><a href="#assemble-the-fvm">Assemble</a> the FVM</li>
+<li><a href="#review-the-fvm-instruction-set">Review</a> the FVM instruction set</li>
+<li><a href="#learn-freelang">Learn</a> Freelang</li>
+</ol>
+<p>Note: the Quick Start steps <em>must</em> be read in the above order.</p>
+<h2 id="why-use-freeputer">Why use Freeputer?</h2>
+<h3 id="free-as-in-freedom">Free as in freedom</h3>
+<p>Freeputer is free software. This means you have the <a href="http://www.gnu.org/philosophy/free-sw.html">freedoms</a> to run, copy, distribute, study, change and improve the software according to the terms of the GNU General Public License (Version 3). These freedoms are important but unfortunately are not enough in themselves to allow you to use your own software and data forever. Therefore Freeputer offers additional freedoms outlined below.</p>
+<h3 id="modular-not-monolithic">Modular not monolithic</h3>
+<p>Freeputer is simple and modular. Complex, monolithic software is fundamentally at odds with freedom because it takes large teams of experts to successfully make changes to it or to port it to new hardware. Thus, as far as the individual is concerned, there is limited freedom. True freedom in computing therefore requires that software be written as simple portable modules with very few dependencies. Freeputer makes this easy to achieve.</p>
+<h3 id="write-once-run-forever">Write once, run forever</h3>
+<p>Freeputer is extremely portable. The minimal dependencies of the FVM are easily satisfied by almost any modern 32-bit microcontroller plus a few I/O drivers. There is no need for sophisticated hardware, a host operating system or even a file system. Therefore your investment in writing a software module to run on the FVM is protected in that you can easily move that module to run on an FVM implementation on some other platform, even after current platforms no longer exist.</p>
+<h3 id="hardware-freedom">Hardware freedom</h3>
+<p>Freeputer does not require a C compiler. It is easy for a single software engineer to create an implementation of the FVM using only assembly language. Freeputer thus provides extreme freedom in choice of hardware.</p>
+<h3 id="development-freedom">Development freedom</h3>
+<p>Freeputer is a self-hosted software development platform. This is best explained by analogy. The JVM was released in 1995 with a compiler called javac for a language called Java that is compiled to JVM bytecode. The FVM was released in 2015 with a compiler called flc for a language called Freelang that is compiled to FVM bytecode.</p>
+<p>flc is a self-hosted compiler; that is, it is written in Freelang, runs on the FVM and can compile itself. You can use the FreeLine text editor (accessed from a terminal emulator) to write Freelang source code on one Freeputer instance, compile that source code with flc on a second Freeputer instance, then deploy and run your newly compiled Freeputer program on a third Freeputer instance. It is convenient to coordinate this from the Linux command line but such coordination could instead easily be done by a fourth Freeputer instance supporting a few simple commands and connected to a physical terminal, or a single Freeputer instance could do it all.</p>
+<p>In principle, all you need to be able to continue to support, maintain, enhance and create Freeputer software in future is Freeputer itself.</p>
+<h3 id="freedom-from-undefined-behaviour">Freedom from undefined behaviour</h3>
+<p>Freeputer has no undefined internal behaviour. That is, there is no undefined behaviour in Freeputer except for that which could reasonably be expected to originate from an I/O device (such as an appropriate but unpredictable I/O error or a random number being properly received by an input device); any other undefined behaviour is a bug in an FVM implementation.</p>
+<p>This is a major advantage of Freeputer as a reliable platform for running software and of Freelang as a reliable language for writing software. This safety is fundamental to the whole concept of Freeputer and is built into the FVM instruction set.</p>
+<p>For example, adding two signed integers in C can result in undefined behaviour (because in C the behaviour upon signed integer overflow is undefined). Instead of allowing undefined internal behaviour, Freeputer stops. That is, the FVM automatically traps any situation (such as integer overflow) that would otherwise result in undefined internal behaviour; the FVM never allows undefined internal behaviour. An FVM instance can be configured to do one of three things when a trap occurs: halt, reboot or reset. In contrast, traps never occur as a result of I/O errors; instead, an I/O operation branches upon whatever the I/O device deems to be an error.</p>
+<h3 id="freely-extensible">Freely extensible</h3>
+<p>Freeputer can be extended in a modular manner. Such extension uses devices. An FVM implementation must provide a minimum of 2 input streams (stdin = standard input, stdimp = standard import), 3 output streams (stdout = standard output, stdexp = standard export, stdtrc = standard trace), and 1 standard block device (stdblk) but may optionally support up to a maximum of 2147483647 input streams, 2147483647 output streams, 2147483648 block devices, and 0 or more memory-mapped devices. An FVM implementation can be extended either by modifying the behaviour of stdin, stdimp, stdout or stdexp or by providing additional I/O devices.</p>
+<p>For example, you might connect a printing service to stdexp, a random number generator to stdimp, provide a clock as a new block device, provide a math coprocessor as a new block device, provide a graphical display as a memory-mapped device, or enable a networking connection as an input stream paired with an output stream.</p>
+<p>Of course, it is better to connect several simple Freeputer instances than to have one complex Freeputer instance; dependencies on monolithic or proprietary systems should be minimized; and excessive dependencies should be avoided.</p>
+<p>Input streams have positive IDs. Output streams have negative IDs. They are typically paired. The reserved IDs are: stdin is 1, stdout is -1; stdimp is 2, stdexp is -2. stdtrc has no ID. For block devices: stdblk is 0; any other block devices have positive IDs.</p>
+<p>Note that memory-mapped devices are permitted to read only from the MAP area of system memory and are not permitted to write to any part of system memory. Also note that the behaviour of stdblk, unlike that of other block devices, must always be that of a simple read/write, addressable storage device that faithfully stores and retrieves values.</p>
+<h3 id="from-tiny-to-large">From tiny to large</h3>
+<p>Freeputer can be sized as desired.</p>
+<p>The FVM is a 32-bit stack-based virtual machine with 3 stacks: the data stack (DS), the return stack (RS) and the software stack (SS). The DS and RS are similar to those of Forth. The SS is a simple auxiliary stack that facilitates software development.</p>
+<p>Stack elements are 32-bit words. Typical FVM implementations should support a maximum of 32 elements per stack but this is not mandatory; an FVM implementation may support a lesser (within reason) or greater number of stack elements. Stack elements are always treated as signed two's-complement 32-bit integers for all arithmetic operations and for addressing.</p>
+<p>The maximum possible address space of Freeputer memory is from byte 0 to byte 2147483647; ROM always begins at 0; RAM (if any) begins immediately after ROM; MAP (if any) begins immediately after RAM. Negative addresses are not permitted. MAP is an optional area of memory in which one or more memory-mapped <em>output</em> devices may reside. The term MAP (memory access point, a backronym) is simply prounounced &quot;map&quot;. The maximum possible address space of any one block device is from byte 0 to byte 2147483647; smaller block devices are common. All non-zero sizings of memory areas and block devices must be an even multiple of 4 bytes.</p>
+<p>Although the standard block device (stdblk) is mandatory it can be of 0 size, as can RAM and MAP. ROM only needs to be large enough to hold whatever program you wish your Freeputer instance to run; program execution automatically begins at address 0 in ROM upon FVM start up. Therefore the smallest practical FVM instance would provide a few dozen bytes of ROM and little else. You could run such a teensy FVM on a feeble microcontroller. At the other end of the scale, a large FVM instance could have 2 GiB of memory (divided between ROM, RAM and MAP) and a 2 GiB stdblk. This could be supplemented by up to 2147483647 additional 2 GiB block devices.</p>
+<p>Most Freeputer instances are small to medium in size. For example: fld, the Freelang decompiler, runs on a small FVM instance having 16 kiB of ROM (and needs only 20 <em>bytes</em> of RAM); flc, the Freelang compiler, requires less than 64 kiB of ROM and runs on an FVM instance having 16 MiB of RAM (more than sufficient for it to compile itself).</p>
+<h3 id="simple-and-effective">Simple and effective</h3>
+<p>Although Freelang is a fairly low-level language with no standard library, its simplicity and extensibility make it surprisingly productive. Freelang is a stack-oriented concatenative language that allows you to effortlessly define your own words and makes it easy to create your own domain specific languages (essentially just vocabularies). It supports functional programming. It is not object oriented. And Freelang development does not require an operating system (neither at compile time nor at runtime).</p>
+<p>You can get things done with surprisingly little coding. Take, for example, FreeLine: a simple text editor (with UTF-8 support) accessed from a terminal emulator. It is less than 2000 lines of Freelang (including extensive comments) yet is more than capable of importing, editing and exporting its own source code. The compiled program is less than 32 kiB. Even flc, the self-hosted Freelang compiler, is less than 4000 lines of Freelang (again including extensive comments). It is less than 64 kiB compiled.</p>
+<p>Whether you are writing portable software or programming an embedded device, Freeputer allows you to get things done simply and effectively.</p>
+<h2 id="freeputer-limitations">Freeputer limitations</h2>
+<ol style="list-style-type: decimal">
+<li><p><strong>Freeputer is not an operating system.</strong> Freeputer is a virtual machine not an operating system. Freeputer is intended to make it easy to write software as simple portable modules with very few dependencies. Doing so does not require any operating system. Indeed the use of a complex operating system is often inimical to that goal. However, you could write a simple guest operating system to run on Freeputer and it might be fun and useful to do so.</p></li>
+<li><p><strong>Freeputer is not 64 bit.</strong> Freeputer is a 32-bit computer. This is primarily a mathematical decision made to <em>reduce complexity</em>. From a mathematical point of view, quite independent of whatever technology Freeputer happens to be running on, the fact that the address space of FVM memory is limited to 2147483648 bytes tends to limit complexity. That is enough space for 100 million instructions plus data. That is enough. Preferably programs should never be that large as gigantic programs are essentially impossible to maintain. Furthermore, using such a convenient but reasonably small stack-element size reduces footprint. Perhaps in two decades 1024-bit computers may be common, or the whole concept of sizing a computer by CPU register size may have become technologically irrelevant. Yet there will still be a place for a small, portable virtual machine that is easy to implement, providing the software it runs is <em>simple</em>, portable, modular and useful.</p></li>
+<li><p><strong>Freeputer is not natively floating point.</strong> The FVM instruction set includes bitwise operations and integer arithmetic but has no floating-point instructions. The FVM is therefore easy to implement on hardware that has no native support for floating-point operations. This <em>maximises hardware freedom</em>. If you need fast floating-point operations you should either delegate them to an external system or implement devices (streams, block devices or memory-mapped devices) to support them. The Freelang compiler does not support floating-point literals but you could easily implement slow floating-point operations (including bignums) in Freelang.</p></li>
+</ol>
+<h2 id="versioning">Versioning</h2>
+<p>In the initial release of Freeputer on 7 August 2015 each of the included <a href="#software">Software</a> components were individually designated as version 1.0.0.0; nevertheless they should be considered betaware. The version numbers of these components may at times differ from each other as they are individually maintained and enhanced.</p>
+<p>The four levels of versioning are called:</p>
+<ul>
+<li>major release (e.g. <strong>1</strong> as from <strong>1</strong>.0.0.0)</li>
+<li>significant release (e.g. <strong>1.0</strong> as from 1.<strong>0</strong>.0.0)</li>
+<li>minor release (e.g. <strong>1.0.0</strong> as from 1.0.<strong>0</strong>.0)</li>
+<li>patch (e.g. <strong>1.0.0.0</strong> as from 1.0.0.<strong>0</strong>)</li>
+</ul>
+<p>The FVM platform itself, as an implied standard rather than as an implementation, can in effect also be considered to be versioned. It has only a major release number and a significant release number. Any significant changes to the FVM platform standard that might seriously affect the ability of existing FVM bytecode to run on that platform, such as a change in its instruction set, shall as a minimum be indicated by an increase in its significant release number. No such changes are currently foreseen.</p>
+<p>The major and significant version numbers of any FVM implementations provided in this distribution match those of the implied FVM platform standard they implement. This is also true of any Freelang compilers, FVM bytecode decompilers and FVM test suites provided in this distribution.</p>
+<h2 id="quick-start">Quick Start</h2>
+<p>The Quick Start steps are:</p>
+<ol style="list-style-type: decimal">
+<li><a href="#review-the-system-requirements">Review</a> the System Requirements</li>
+<li><a href="#download-freeputer">Download</a> Freeputer</li>
+<li><a href="#run-the-freeline-text-editor">Run</a> the FreeLine text editor</li>
+<li><a href="#run-the-freeputer-unit-tests">Run</a> the Freeputer unit tests</li>
+<li><a href="#use-flx-the-freelang-cross-compiler">Use</a> flx, the Freelang cross compiler</li>
+<li><a href="#use-flc-the-freelang-compiler">Use</a> flc, the Freelang compiler</li>
+<li><a href="#use-fld-the-freelang-decompiler">Use</a> fld, the Freelang decompiler</li>
+<li><a href="#assemble-the-fvm">Assemble</a> the FVM</li>
+<li><a href="#review-the-fvm-instruction-set">Review</a> the FVM instruction set</li>
+<li><a href="#learn-freelang">Learn</a> Freelang</li>
+</ol>
+<p>Note: the Quick Start steps <em>must</em> be read in the above order.</p>
+<h3 id="review-the-system-requirements">1. Review the System Requirements</h3>
+<p>This Freeputer distribution is for 32-bit Linux running on x86 hardware.</p>
+<p><em>Note: this is in no way a limitation of Freeputer. It just so happens that this particular implementation of the FVM is for x86 32-bit Linux. It is hoped that the community will make <a href="http://www.gnu.org/philosophy/free-sw.html">free</a> FVM implementations available for other platforms in the future.</em></p>
+<h3 id="download-freeputer">2. Download Freeputer</h3>
+<p>Download and unzip the Freeputer distribution from <a href="https://github.com/RobertGollagher/Freeputer">GitHub</a> or <a href="https://bitbucket.org/RobertGollagher/freeputer">BitBucket</a>, then follow the instructions below. Note: these instructions were prepared on Debian 7.8.</p>
+<h3 id="run-the-freeline-text-editor">3. Run the FreeLine text editor</h3>
+<h4 id="introduction">Introduction</h4>
+<p>FreeLine is the first demonstration application for Freeputer. It is a basic text editor, sufficient for writing short documents or editing Freelang source code. More correctly, it is a <em>software module for text editing</em>. It only does text editing. Nothing else. And it does so in a manner almost completely devoid of dependencies. It requires neither operating system nor file system. In fact it does not even support the concept of a document having a name. Such things would be the responsibility of other software modules or of an external system. It just so happens that the particular implementation of the FVM that FreeLine here is running on uses Linux as that external system.</p>
+<p>How does it work? When FreeLine is started it loads whatever text exists at the start of the standard block device (stdblk) of the FVM instance it is running on. It then allows you to edit this text. If you choose to save your changes to the text, FreeLine safely persists those changes back to stdblk (here the binary file 'std.blk'). When you are happy with the text you can export it to standard export (stdexp, here the text file 'std.exp'). FreeLine also has an import function that allows you to import text from standard import (stdimp, here the text file 'std.imp'). Thus you can edit, save, import and export text.</p>
+<h4 id="instructions">Instructions</h4>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Set your terminal size to exactly 80 columns x 24 rows.</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory to the editor app: <code>cd apps/editor</code></li>
+<li>Start FreeLine: <code>./fl.sh</code></li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Editing-Mode.png" alt="FreeLine in Editing Mode" /><p class="caption">FreeLine in Editing Mode</p>
+</div>
+<ol start="6" style="list-style-type: decimal">
+<li>FreeLine starts in Editing Mode. This is indicated by the word EDITING shown in the status row at the bottom of the terminal. In this mode you can create and edit text. To issue commands (such as to save, import or export) you must enter Escape Mode. To enter Escape Mode hit <strong>Esc</strong>. This will make a yellow menu appear.</li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Escape-Mode.png" alt="Freeline in Escape Mode" /><p class="caption">Freeline in Escape Mode</p>
+</div>
+<ol start="7" style="list-style-type: decimal">
+<li>Now press <strong>s</strong> to save your text. The message TEXT SAVED will appear. Your text has been saved to stdblk. You can now immediately continue editing your text. <br/><br>Note: Be aware that FreeLine never automatically saves your changes. It is up to you to remember to save your work. If you make changes that you do not wish to keep, simply exit FreeLine without saving.</li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Save.png" alt="TEXT SAVED message confirms successful save" /><p class="caption">TEXT SAVED message confirms successful save</p>
+</div>
+<ol start="8" style="list-style-type: decimal">
+<li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>x</strong> to export your text. The message TEXT EXPORTED will appear. Your text has been exported to stdexp. You can now immediately continue editing your text. <br/><br>Note: If you now open 'std.exp' in some other text editor you will see that your text was indeed exported to that text file. WARNING: Be aware that the next time you start FreeLine the contents of 'std.exp' will automatically be erased.</li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Export.png" alt="TEXT EXPORTED message confirms successful export" /><p class="caption">TEXT EXPORTED message confirms successful export</p>
+</div>
+<ol start="9" style="list-style-type: decimal">
+<li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>h</strong> to view help. Using this help screen as a guide you can now explore the other functions of FreeLine.</li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Help.png" alt="Freeline Help" /><p class="caption">Freeline Help</p>
+</div>
+<ol start="10" style="list-style-type: decimal">
+<li><p>Now quit FreeLine: enter Escape Mode by hitting <strong>Esc</strong> then press <strong>q</strong>.</p></li>
+<li><p>In preparation for importing it into FreeLine, copy the Freelang source code for the FreeLine text editor itself to the standard import file 'std.imp'. Assuming that you are still in the apps/editor directory, do this by: <br/><br/> <code>cp ../../dev/freelang/editor/src/fl.fl std.imp</code></p></li>
+<li><p>Now restart FreeLine by: <code>./fl.sh</code></p></li>
+<li><p>Move to the end of your text by repeatedly hitting the down arrow then hit <strong>Enter</strong> a couple of times so as to leave a blank line between your existing text and where the imported text will begin. Now enter Escape Mode by hitting <strong>Esc</strong> then press <strong>i</strong> to do the import. The entire source code for the FreeLine text editor will now be imported. The message TEXT IMPORTED will appear.</p></li>
+<li><p>Page down through the source code by hitting <strong>PageDn</strong> repeatedly. What you are looking at is the Freelang program for the FreeLine text editor itself. This what the Freelang language looks like.</p></li>
+</ol>
+<div class="figure">
+<img src="doc/img/FreeLine-Source-Code.png" alt="The Freelang source code for FreeLine, viewed in FreeLine" /><p class="caption">The Freelang source code for FreeLine, viewed in FreeLine</p>
+</div>
+<p>You can use <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> in Forth highlight mode to view Freelang with syntax highlighting. Usually the only thing not properly highlighted are those particular multiple-line comments which in Freelang begin and end with triple parentheses.</p>
+<div class="figure">
+<img src="doc/img/gedit-FreeLine.png" alt="The Freelang source code for FreeLine, viewed in gedit" /><p class="caption">The Freelang source code for FreeLine, viewed in gedit</p>
+</div>
+<p>You have now learned how to edit, save, import and export text in FreeLine. Although FreeLine is of course not being presented here as a serious competitor to existing text editors, it is a signficant demonstration of what can be achieved on the Freeputer platform. Remember that FreeLine has no operating system dependencies and will run on a bare metal FVM implementation. It is a simple editor free of distractions.</p>
+<p>FreeLine currently has some known limitations:</p>
+<ol style="list-style-type: decimal">
+<li><p>There is no way to quickly <strong>delete an entire text</strong> from within FreeLine. The workaround is to quit FreeLine, then at the Linux command line copy the supplied 'std.blk.empty' to 'std.blk', then restart FreeLine.</p></li>
+<li><p>There is no way to <strong>switch between different documents</strong>. The workaround is to quit FreeLine, then at the Linux command line copy 'std.blk' to some memorable filename such as 'document2.blk', then copy a previously made copy such as 'document1.blk' to 'std.blk', then restart FreeLine.</p></li>
+<li><p>The rendering algorithm used by FreeLine is accurate but needlessly slow. Rendering needs to be refactored. In the meantime the screen renders itself a little slowly. This is not a problem when typing but it is noticeable during pagination and makes pasting more than a few words (via the paste function of your terminal emulator) extremely slow. The workaround is to <strong>import instead of pasting</strong>.</p></li>
+<li><p>FreeLine is not intended for <strong>very large documents</strong>. In order to keep its design as simple as possible it does not use a gap buffer for its document model. Nevertheless on a desktop PC it has no problem editing 4000 lines of source code.</p></li>
+</ol>
+<h5 id="a-note-on-freeputer-performance">A note on Freeputer performance</h5>
+<p>Slow rendering is due merely to a poor algorithm in FreeLine. Nevertheless, this is an opportune time to mention that although Freeputer is an <em>extremely</em> lightweight platorm it is only a <em>moderately</em> fast platform. This is partly because the FVM enforces, in everything it does, an absolute lack of undefined internal behaviour. This trades speed for safety.</p>
+<p>Different FVM implementations greatly differ in speed. For example, a fast FVM might be optimized for speed but as a result be larger in footprint and not support tracing. Such a fast FVM can count the signed integers from 0 to 2147483647 (<em>with</em> checks to trap any undefined behaviour) in about 9 seconds on an i5 3 GHz desktop computer. This compares (<em>without</em> any checks to trap any undefined behaviour) to roughly: 1 second for C; 12 seconds for Lua; over 240 seconds for Python; over 260 seconds for Ruby. Were just-in-time compilers to become available for the FVM then the performance gap between Freeputer and C would narrow. Of course, you can use an FVM I/O device written in C or assembly language to carry out some task with great speed.</p>
+<h3 id="run-the-freeputer-unit-tests">4. Run the Freeputer unit tests</h3>
+<h4 id="introduction-1">Introduction</h4>
+<p>The Freelang program fvmtest is a suite of unit tests for the FVM. Its purpose is to verify that an FVM implementation is working correctly. It does this by running on that FVM implementation and testing each instruction in the FVM instruction set. In doing so it causes the FVM to restart more than 200 times, verifying that traps occurred when they should have done. Nevertheless it only takes a few seconds to run.</p>
+<p>The Freelang source code for these tests is found at: 'dev/freelang/fvmtest/src/fvmtest.fl'. If you would like to understand in detail what the tests do and how to use them to test your own FVM implementation, please read that source code. It is extensively commented. Please note that the test coverage, although extensive, is not yet complete.</p>
+<p>fvmtest demonstrates how to write unit tests for Freelang code. Although it might be nice to have one, you do not need a unit-testing framework. You can roll your own quite easily, using functional and concatenative programming techniques.</p>
+<h4 id="instructions-1">Instructions</h4>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory to the fvmtest area: <code>cd dev/fvm/x86/fvmtest</code></li>
+<li>Start fvmtest: <code>./fvmtest.sh</code></li>
+</ol>
+<p>This will produce a very large test report (over 1000 lines long) in the terminal (most but not all of which will also be in 'std.trc'). In the terminal you should see that the report begins with something like...</p>
+<pre><code>Freeputer
+
+Running fvmtest test suite...
+
+testWALL             : expecting trap...
+
+HIT WALL          
+ just before:     
+0000128c ret               ( ) [ ] { } 
+
+                     : pass
+testLIT              : expecting trap...
+</code></pre>
+<p>...followed by a very large number of error messages. These are normal and to be expected. The tests intentionally cause traps. You will notice that many of the error messages display the state of the three stacks in the FVM: the data stack (DS), whose contents are shown within parentheses, the software stack (SS), whose contents are shown within square brackets, and the return stack (RS), whose contents are shown within braces. Incidentally, this explains the Freeputer logo <code>( ) [ ] { }</code>. It depicts the three stacks of the FVM. The report should end with something like:</p>
+<pre><code>testIllegalOpcode    : expecting trap...
+
+ILLEGAL OPCODE    
+ just before:     
+0000abe8 ===      00000001 ( ) [ ] { } 
+
+                     : pass
+
+OK     : The FVM restarted 225 times as expected
+OK     : ( ) [ ] { n } as expected
+OK     : All tests passed</code></pre>
+<p>If you do not see <code>OK     : All tests passed</code> then the FVM implementation has failed the test suite. It either failed at least one test or stopped prematurely.</p>
+<p>Consider the report. From it you will gain an impression that there are many dozens of instructions in the FVM instruction set and that a great many of them are capable of causing traps such as stack overflows, stack underflows, math overflow, divide by zero, and so on. These traps prevent program execution continuing after such unrecoverable errors and comprehensively guard against undefined internal behaviour.</p>
+<h3 id="use-flx-the-freelang-cross-compiler">5. Use flx, the Freelang cross compiler</h3>
+<p><strong>Please read this exercise even if you plan to skip it, as this section contains important information about Freelang and Freeputer that you will need to understand in order to write Freelang programs.</strong></p>
+<h4 id="introduction-2">Introduction</h4>
+<p>The principal official Freelang compiler, flc, is a self-hosted compiler; that is, it is written in Freelang, runs on the FVM and can compile itself. However, before flc could be created it was first necessary to write a cross compiler, written in another language and running on another platform. Otherwise it would have been impossible to compile the Freelang source code for flc for the first time. That cross compiler was and is flx.</p>
+<p>flx was written in Ruby on x86 32-bit Linux. It should work on 32-bit little-endian platforms running Ruby 1.9.3. If you don't have Ruby you can just use flc instead, although sometimes the cross compiler is more convenient (see 'flx.rb' for details).</p>
+<p>Freeputer is <strong>little endian</strong> with respect to how it arranges the individual bytes of a word in program cells, in memory, in block devices and in communication with I/O devices.</p>
+<p>You will note that Freelang is a stack-oriented concatenative language that uses reverse Polish notation (RPN). If you are not familiar with such languages, take a quick look at the Wikipedia page for <a href="https://en.wikipedia.org/wiki/Forth_%28programming_language%29">Forth</a>.</p>
+<h4 id="instructions-2">Instructions</h4>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory as follows: <code>cd dev/xcompiler/ruby</code></li>
+<li>Here create an empty called 'add.fl' by: <code>touch add.fl</code></li>
+<li>Open 'add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</li>
+</ol>
+<pre class="forth"><code>\ A simple Freelang program that adds 3 to 2 and leaves
+\   the result, namely 5, on the data stack.
+
+2 3 + halt
+</code></pre>
+<ol start="6" style="list-style-type: decimal">
+<li>Compile 'add.fl' by: <code>./flx.rb add.fl rom.fp</code></li>
+<li>rom.fp now contains your compiled program as FVM bytecode.</li>
+</ol>
+<p>With a hex editor you would now see that rom.fp is a binary file of size 28 bytes, consisting of 7 words each 32-bits wide and having the values:</p>
+<pre><code>0x00000001
+0x00000002
+0x00000001
+0x00000003
+0x000000c9
+0x000000fe
+0x00000000</code></pre>
+<p>These values correspond to FVM opcodes and literals as follows:</p>
+<pre><code>LIT
+2
+LIT
+3
+ADD
+HALT
+WALL</code></pre>
+<p>The meaning of this is:</p>
+<pre><code>Push the literal 2 onto the data stack
+Push the literal 3 onto the data stack
+Replace the top two elements of the data stack with their sum
+Halt the FVM
+Trap!</code></pre>
+<p>The second-last opcode, <code>0x000000fe</code>, is the HALT instruction. It represents a program-requested halt. It corresponds to the Freelang reserved word 'halt'. Upon encountering it the FVM will halt indicating success.</p>
+<p>The last opcode, <code>0x00000000</code>, is the WALL instruction. It is automatically inserted by the Freelang compiler. Its purpose here is program overflow protection. If program flow ever hit this WALL the FVM would immediately trap (with a trapWall) because program flow should never under any circumstances hit a WALL. If it has done so it means there is either a bug in the program or a bug in the FVM.</p>
+<p>There is of course a much easier way to inspect a compiled Freelang program: decompile it. There are two ways to decompile. Either you can use the self-hosted decompiler, fld, or you can use flx since it is not only a compiler but also a decompiler. When you invoke flx with only one argument it acts as a decompiler. Do this now: <code>./flx.rb rom.fp</code></p>
+<p>This decompiles the specified bytecode file to a text file suffixed with '.fpd' (meaning Freeputer program decompiled), in this case 'rom.fp.fpd', whose contents are:</p>
+<pre><code>000000000 00000000 lit                          0x00000001
+000000004 00000004 2                            0x00000002
+000000008 00000008 lit                          0x00000001
+000000012 0000000c 3                            0x00000003
+000000016 00000010 +                            0x000000c9
+000000020 00000014 halt                         0x000000fe
+000000024 00000018 ===                          0x00000000</code></pre>
+<p>The columns here are:</p>
+<ol style="list-style-type: decimal">
+<li>Program cell address (decimal)</li>
+<li>Program cell address (hexadecimal)</li>
+<li>Freelang reserved word name or decimal literal value</li>
+<li>Cell value (hexadecimal)</li>
+</ol>
+<p>By now you will have noticed that all FVM opcodes are in fact 32 bits wide, as are all literals. Thus the term 'FVM bytecode' is loosely used and perhaps 'FVM wordcode' would be more descriptive. The huge advantage of this scheme is that it is <strong>simple and easy to implement</strong>, not only for the virtual machine itself (on multiple platforms) but also for compilers, decompilers, software libraries and software tools. Furthermore, if space were ever really a problem then you could simply compress programs and have an FVM implementation that decompressed its programs on the fly. Nevertheless, the entire FVM instruction set is not large and consists of far fewer than 256 opcodes.</p>
+<h5 id="using-map.info-or-std.trc">Using map.info or std.trc</h5>
+<p>When you compile a Freelang program with flx there are two informational files produced as well as the actual compiled program itself. The first is 'debug.flx'; you can ignore this file, it is only useful for debugging the cross compiler. The second is 'map.info'; this file is extremely important because it is of great assistance in debugging Freelang programs. (The equivalent output from flc is found in 'std.trc'.) Here is its content:</p>
+<pre><code>flx.rb Freeputer Freelang cross compiler
+add.fl
+Program Compiled
+
+  ---------------------
+INSTRUCTIONS          = 5
+  Simple              = 3
+  Complex             = 2
+LABELS                = 0
+  Refs                = 0
+WORDS                 = 0
+  Refs                = 0
+CONSTANTS             = 0
+  Refs                = 0
+SLOTS                 = 0
+  Refs                = 0
+Unnamed STRINGS       = 0
+Named   STRINGS       = 0
+  Refs                = 0
+  ---------------------
+    Instruction cells = 7
+         String cells = 0
+           Data cells = 0
+         Program size = 7 words
+       Program extent = 28 bytes
+               From   = 0
+                 To   = 27
+            RAM usage = 0 bytes
+  ---------------------
+
+WORDS
+
+LABELS
+
+SLOTS
+
+STRINGS
+
+ANONYMOUS STRINGS
+  ---------------------</code></pre>
+<p>As you can see it shows a detailed breakdown of program structure. In this example it is of little use since our program does not contain any words (that is, functions), labels, constants, slots (that is, variables) or strings. However, it does show us that the program contains 2 complex instructions and 3 simple instructions. A complex instruction is one that occupies two program cells: the first cell being an opcode (e.g. <code>0x00000001</code> = LIT) and the second cell being a literal value or address (e.g. <code>0x00000002</code>). A simple instruction is an opcode and occupies only one program cell (e.g. <code>0x000000fe</code> = HALT).</p>
+<p>'map.info' is invaluable as it lists under the sections WORDS, LABELS, SLOTS, STRINGS and ANONYMOUS STRINGS the program cell address of each instance of those entities, along with other useful information. You can learn about this by experimenting.</p>
+<p>The following is the 'map.info' created by compiling 'fl.fl', the Freelang source code for the FreeLine text editor. Note: all but the first 5 lines of each section have been redacted.</p>
+<pre><code>flx.rb Freeputer Freelang cross compiler
+fl.fl
+Program Compiled
+
+  ---------------------
+INSTRUCTIONS          = 2504
+  Simple              = 1001
+  Complex             = 1503
+LABELS                = 363
+  Refs                = 299
+WORDS                 = 177
+  Refs                = 485
+CONSTANTS             = 91
+  Refs                = 253
+SLOTS                 = 25
+  Refs                = 210
+Unnamed STRINGS       = 69
+Named   STRINGS       = 15
+  Refs                = 15
+  ---------------------
+    Instruction cells = 4007
+         String cells = 3077
+           Data cells = 0
+         Program size = 7084 words
+       Program extent = 28336 bytes
+               From   = 0
+                 To   = 28335
+            RAM usage = 16777096 bytes
+               From   = 16777216
+                 To   = 33554311
+  ---------------------
+
+WORDS
+000000052 00000034 init {FreeLine} 
+000000372 00000174 load {FreeLine} 
+000000540 0000021c show {FreeLine} 
+000000556 0000022c edit {FreeLine} 
+000001660 0000067c import {FreeLine}
+...
+
+
+LABELS
+000000052 00000034 init () {FreeLine} 
+000000372 00000174 load () {FreeLine} 
+000000540 0000021c show () {FreeLine} 
+000000556 0000022c edit () {FreeLine} 
+000000564 00000234 skipMsg (edit) {FreeLine} 
+...
+
+SLOTS
+016777216 01000000 txtspace () {FreeLine} 
+033554216 01ffff28 cols () {FreeLine} 
+033554220 01ffff2c rows () {FreeLine} 
+033554224 01ffff30 pFblk () {FreeLine} 
+033554228 01ffff34 pTxt () {FreeLine}
+... 
+
+STRINGS
+000018236 0000473c ABOUT_MODE () {FreeLine}:&quot;ABOUT     Press any key to co&quot;...
+000017644 000044ec EDIT_MODE () {FreeLine}:&quot;EDITING              Esc:comma&quot;...
+000017792 00004580 EDIT_MODE_W () {FreeLine}:&quot;EDITING WIDE       Esc:comma&quot;...
+000018088 000046a8 EDIT_MODE_T () {FreeLine}:&quot;EDITING TALL       Esc:comma&quot;...
+000017940 00004614 EDIT_MODE_WT () {FreeLine}:&quot;EDITING TALL WIDE Esc:comma&quot;...
+...
+
+ANONYMOUS STRINGS
+000018556 0000487c 1: &quot;FreeLine, a text editor for Fr&quot;...
+000018716 0000491c 2: &quot;Copyright (C) 2015 Robert Goll&quot;...
+000018868 000049b4 3: &quot;This program is free software:&quot;...
+000019152 00004ad0 4: &quot;it under the terms of the GNU &quot;...
+000019436 00004bec 5: &quot;the Free Software Foundation, &quot;...
+...
+  ---------------------</code></pre>
+<p>The columns are:</p>
+<ol style="list-style-type: decimal">
+<li>Program cell address (decimal)</li>
+<li>Program cell address (hexadecimal)</li>
+<li>Name of word, label, slot or string</li>
+<li>String literal (partial)</li>
+</ol>
+<p>The names within braces are namespaces. Thus the words <code>init</code>, <code>load</code>, <code>show</code>, <code>edit</code> and <code>import</code> belong to the namespace <code>FreeLine</code>. Namespaces cannot be nested.</p>
+<p>You will notice that for each word the compiler automatically creates a corresponding label. This greatly facilitates functional programming.</p>
+<p>The names within parenthesis are wordspaces. Thus the label <code>skipMsg</code> belongs to the wordspace <code>edit</code> within the namespace <code>FreeLine</code>; that is, <code>skipMsg</code> is a local label located within the word <code>edit</code> which in turn is located within the namespace <code>FreeLine</code>. Wordspaces cannot be nested; that is, a word cannot be defined inside the definition of another word.</p>
+<p>The entries in each section are sequential. Therefore you can deduce the size of each entity. For example, the word <code>init</code> starts at program cell address 52; the next word, <code>load</code>, starts at program cell address 372; therefore the word (that is, function) <code>init</code> occupies 320 bytes (that is, 80 words; that is, 80 program cells) in the compiled program. This is especially useful for understanding slots. A slot is a contiguous area of RAM assigned to a variable name in a Freelang program; you can see that the slot <code>txtspace</code> is very large (almost 16 MiB) whereas the slot <code>cols</code> is just one word (4 bytes) in size.</p>
+<h3 id="use-flc-the-freelang-compiler">6. Use flc, the Freelang compiler</h3>
+<h4 id="introduction-3">Introduction</h4>
+<p>The principal official Freelang compiler is flc, a self-hosted compiler; that is, it is written in Freelang, runs on the FVM and can compile itself. Whenever reasonably possible you should use flc not flx. This is because flc is more actively maintained and more regularly tested by actual use than is flx. Where the behaviour of flc differs from that of flx, the behaviour of flc should be taken to be the correct behaviour unless obviously a bug. Indeed there are a few known bugs in flx (they are minor; see comments in 'flx.rb').</p>
+<p>Using flc is much the same as using the flx cross compiler. Of course, the two compilers normally produce an absolutely identical compiled program; it would be a compiler bug if they did not. The equivalent information to that found in 'map.info' is sent by flc to standard trace (stdtrc); that is, it can be found in the text file 'std.trc'. That information is extremely useful for debugging Freelang programs. Its format is slightly different in that it only shows numbers in decimal (not hexadecimal) but the information is the same.</p>
+<p>Ensure you have read the <a href="#use-flx-the-freelang-cross-compiler">previous section</a> before proceeding.</p>
+<p>For further information see the extensive comments in:</p>
+<ul>
+<li>'dev/freelang/compiler/src/flc.fl'</li>
+<li>'dev/freelang/compiler/src/flc.sh'</li>
+<li>'dev/xcompiler/ruby/flx.rb'</li>
+<li>'dev/fvm/x86/src/fvm.s'</li>
+<li>'dev/fvm/x86/src/assemble-fvm.sh'</li>
+</ul>
+<p>You will note that, apart from 'flc.sh', several other files are present in the 'apps/compiler' directory. These files constitute the FVM and its devices; some of these are automatically created when the FVM first runs.</p>
+<h5 id="a-note-on-deployment">A note on deployment</h5>
+<p>When you compile a Freelang program you should nearly always compile it to a file called 'rom.fp' since the FVM will automatically load the contents of that file into ROM upon start up; it will then run your program starting at ROM address 0.</p>
+<p>Therefore to deploy your compiled program simply place your newly compiled 'rom.fp' file in a directory containing:</p>
+<ol style="list-style-type: decimal">
+<li><p>A <em>suitably sized</em> FVM executable <em>for your program</em> (such as perhaps the ready-made 'fvm16-0kB' or 'fvm16-16MB'); if your program uses slots (variables) then the FVM's RAM space must start at or below the value specified by the <code>slotFloor</code> directive in your program.</p></li>
+<li><p>A zero-filled 'std.blk' file of the exact size expected by that FVM executable for its standard block device.</p></li>
+<li><p>An empty file called 'std.imp'. This will be used by the FVM as the source of data for its standard import device (stdimp).</p></li>
+</ol>
+<p>See the comments near the end of 'dev/fvm/x86/src/fvm.s', in its TRAPS: STREAMS section, for how to create 'std.blk' and 'std.imp'.</p>
+<p>See also the CONSTANTS section near the start of 'dev/fvm/x86/src/fvm.s' for how to configure the sizing of an FVM instance. See the comments in 'dev/fvm/x86/src/assemble-fvm.sh' for how to <a href="#assemble-the-fvm">assemble</a> a new FVM instance.</p>
+<h4 id="instructions-3">Instructions</h4>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory as follows: <code>cd apps/compiler</code></li>
+<li>Create an empty file called 'add.fl' in the work subdirectory by: <code>touch work/add.fl</code></li>
+<li>Open 'work/add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</li>
+</ol>
+<pre class="forth"><code>\ A simple Freelang program that adds 3 to 2 and leaves
+\   the result, namely 5, on the data stack.
+
+2 3 + halt
+</code></pre>
+<ol start="6" style="list-style-type: decimal">
+<li><p>Compile 'work/add.fl' by: <code>./flc.sh work/add.fl work/rom.fp</code> <br/><br/><strong>WARNING: Be very careful that you compile to 'work/rom.fp' and not accidentally to 'rom.fp' otherwise you will destroy the compiler.</strong> <br/><br/>The compiled flc compiler resides in 'apps/compiler/rom.fp' and if you accidentally overwrite it or accidentally delete it you will no longer be able to compile. To recover you can either copy 'dev/freelang/compiler/bin/rom.fp' to 'apps/compiler/rom.fp' or use the <a href="#use-flx-the-freelang-cross-compiler">flx</a> cross compiler to recompile flc from 'dev/freelang/compiler/src/flc.fl'.</p></li>
+<li><p>'work/rom.fp' now contains your compiled program as FVM bytecode unless there was an error during compilation. You <em>must</em> check 'std.trc' to see if there was an error during compilation as errors are <em>not</em> reported to the terminal.</p></li>
+</ol>
+<h5 id="the-compiler-compiling-itself">The compiler compiling itself</h5>
+<p>The flc compiler can easily compile itself. Simply follow the above instructions but substitute 'flc.fl' for 'add.fl'. That is, copy 'dev/freelang/compiler/src/flc.fl' to 'apps/compiler/work/flc.fl' and then compile as above. After you have <em>very carefully</em> checked that the compile did indeed succeed, you then disregard the above warning and intentionally manually copy the newly compiled flc compiler present in 'apps/compiler/work/rom.fp' over the old compiled flc compiler present in 'apps/compiler/rom.fp'. It is wise to first back up the original 'apps/compiler/rom.fp' in case you need to roll back.</p>
+<h3 id="use-fld-the-freelang-decompiler">7. Use fld, the Freelang decompiler</h3>
+<h4 id="introduction-4">Introduction</h4>
+<p>fld is a self-hosted decompiler for Freelang programs. It is written in Freelang and runs on the FVM. It is one of two tools you can use to decompile compiled Freelang programs. The other tool is <a href="#use-flx-the-freelang-cross-compiler">flx</a>.</p>
+<p>Please ensure you have read about <a href="#use-flx-the-freelang-cross-compiler">flx</a> before proceeding, as that section explains how to read decompiler output. The decompiler output produced by fld differs slightly in format from that produced by flx but the information is essentially the same.</p>
+<h4 id="instructions-4">Instructions</h4>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory as follows: <code>cd apps/decompiler</code></li>
+<li>Copy the compiled Freelang program, that you wish to decompile, to the work subdirectory. Usually this will be a file called 'rom.fp'. Assuming that is the case, a copy of it should now reside in 'apps/decompiler/work/rom.fp'.</li>
+<li>Decompile the file by: <code>./fld.sh work/rom.fp</code></li>
+</ol>
+<p>fld sends its decompiler output to stdtrc. Therefore you will now find the decompiler output in 'apps/decompiler/std.trc'.</p>
+<p>Here is the fld decompiler output for the 'add.fl' program:</p>
+<pre><code>fld.fl decompiler
+DECOMPILED PROGRAM:
+
+0 :   : lit
+4 :   : 2
+8 :   : lit
+12 :   : 3
+16 :   : +
+20 :   : halt
+24 :   : ===
+</code></pre>
+<p>The columns are:</p>
+<ol style="list-style-type: decimal">
+<li>Program cell address (decimal)</li>
+<li>Character value (only within ASCII range) or blank</li>
+<li>Freelang reserved word name or decimal literal value</li>
+</ol>
+<h3 id="assemble-the-fvm">8. Assemble the FVM</h3>
+<h4 id="introduction-5">Introduction</h4>
+<p>Freeputer does not require a C compiler. That is, it is easy for a single software engineer to create an implementation of the FVM using only assembly language. Freeputer thus provides extreme freedom in choice of hardware. For example, you could implement a new CPU in an FPGA and port the FVM to it using only an assembler.</p>
+<p>To demonstrate this freedom, and for reasons of performance, simplicity and size, the initial FVM implementation supplied with this Freeputer distribution is written in x86 assembly language for 32-bit Linux. The executable is easily smaller than 32 kiB.</p>
+<p>You do not have to assemble the FVM from source. Instead you can use one of the ready-made FVM executables provided with this Freeputer distribution. They are found in 'dev/fvm/x86/bin' (and also in the subdirectories of 'apps' where you have already been using them to run FreeLine, flc and fld). They include:</p>
+<ul>
+<li><strong>fvm16-0kB</strong>: 16 kiB ROM, 16 kiB RAM, 0 kiB MAP, 0 kiB stdblk</li>
+<li><strong>fvm16-0MB</strong>: 16 MiB ROM, 16 MiB RAM, 0 MiB MAP, 0 MiB stdblk</li>
+<li><strong>fvm16-16MB</strong>: 16 MiB ROM, 16 MiB RAM, 0 MiB MAP, 16 MiB stdblk</li>
+<li><strong>fvm16-16MB-nt</strong>: same as fvm16-16MB but <em>no tracing</em> (thus better performance)</li>
+<li><strong>fvm16-16MB-sr-append</strong>: same as fvm16-16MB but configured to <em>soft reset</em> rather than halt upon a trap, and configured to <em>append</em> to 'std.trc' rather than truncating 'std.trc' upon start up; this is a special FVM instance only used by fvmtest</li>
+</ul>
+<p>It is very helpful to examine the applications beneath the 'apps' directory (flc, fld and FreeLine) and their source code under 'dev/freelang'. Pay particular attention to the scripts used to start those applications, the FVM executables they use, and the <code>slotFloor</code> directives in their Freelang source code. You will soon understand how different applications are best suited to different FVM sizings and how they are configured and started; this can serve as a guideline for your own Freeputer applications.</p>
+<h4 id="prerequisites">Prerequisites</h4>
+<p>You must have the GNU assembler (as) and the GNU linker (ld) installed. That is, you must have GNU Binutils installed. See 'assemble-fvm.sh' for details.</p>
+<h4 id="instructions-5">Instructions</h4>
+<p>If you wish to assemble an FVM instance:</p>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory as follows: <code>cd dev/fvm/x86/src</code></li>
+<li>Copy 'fvm.s' to a safe location so you can roll back if you need to.</li>
+<li>Open 'fvm.s' in your favourite text editor. This is the x86 assembly language source for the FVM. Carefully read the comments in the ASSEMBLER DIRECTIVES and CONSTANTS section near the start of the file. If you are happy with the current configuration you can skip to the next step. Otherwise, make changes to achieve the FVM sizing you desire and to enable or disable tracing. Save your changes, close the file and exit your text editor. You are now ready to assemble a new FVM executable.</li>
+<li>Read the instructions in 'assemble-fvm.sh'. By default it is configured to assemble the FVM for production. Leave it so. (Only if you wish to assemble the FVM for the purpose of debugging the FVM executable itself, follow the instructions in 'assemble-fvm.sh' to comment and uncomment the appropriate lines.)</li>
+<li>Assemble and link the FVM executable by: <code>./assemble-fvm.sh</code></li>
+</ol>
+<p>Unless there was an error this will produce:</p>
+<ul>
+<li>build/fvm = the VM executable (ready for <a href="#a-note-on-deployment">deployment</a>)</li>
+<li>build/fvm.o = object file (you can discard this)</li>
+</ul>
+<p>Note: you may now rename your newly created 'fvm' executable to some memorable name that helps to indicate its sizing and configuration.</p>
+<h2 id="review-the-fvm-instruction-set">9. Review the FVM instruction set</h2>
+<p>There are 149 instructions in the FVM instruction set: 37 complex instructions (consisting of two program cells, the second of which is a literal or address) and 112 simple instructions (consisting of one program cell).</p>
+<p>The simple instructions are WALL (opcode 0) and the 111 opcodes from 145 to 255 inclusive; in the future if further simple instructions are ever added to the instruction set they would start at 144 and grow downwards. The complex instructions are the 37 opcodes from 1 to 37 inclusive; in the future if further complex instructions are ever added to the instruction set they would start at 38 and grow upwards. It is intended that the FVM instruction set should never contain more than 256 instructions. The existing set of 149 instructions is stable and has proven to be quite sufficient for most purposes.</p>
+<p>The instruction set is a complex instruction set rather than a minimal instruction set because comprehensive testing has demonstrated that using a complex instruction set <em>dramatically</em> improves FVM performance. Nevertheless the instruction set is only of moderate size, predominantly simple, and easy to implement.</p>
+<p>A program cell is a little-endian two's-complement 32-bit word (4 bytes). Nevertheless compiled Freeputer programs are loosely called 'FVM bytecode'. More accurately they can be called 'FVM wordcode'.</p>
+<p>Stack elements are always 32 bits wide. Stack elements are always treated as signed two's-complement 32-bit integers for all arithmetic operations and for addressing.</p>
+<p>All instructions that manipulate or depend upon a stack can cause a trap related to stack underflow or stack overflow of that stack. All arithmetic instructions can cause trapMathOverflow. Instructions that do division can cause trapDivideByZero. All memory read operations can cause trapMemBounds. All memory write operations can cause trapRAMBounds. All bitshifting operations can cause trapXsBitshift. A trapPcOverflow occurs if the program counter (that is, program flow) goes beyond program memory, for example due to a branch or jump. For a complete list of traps please see TRAPS section near the end of the source code of 'dev/fvm/x86/src/fvm.s'.</p>
+<p>Except LIT and CALL, all FVM instructions have an equivalent reserved word in Freelang. Those reserved words together form the core vocabulary of Freelang.</p>
+<p>The complete list below shows:</p>
+<ol style="list-style-type: decimal">
+<li>Opcode number</li>
+<li>FVM instruction name</li>
+<li>Equivalent reserved word in Freelang (in <strong>bold</strong>)</li>
+<li>Software stack ( -- ), data stack [ -- ] and reserve stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
+<li>Notes; 'cv' means &quot;the value in the next program cell&quot;</li>
+</ol>
+<p>The terms &quot;branch&quot; and &quot;jump&quot; can be used as synonyms. However, &quot;branch&quot; is often used to mean &quot;to conditionally branch while <em>preserving</em> at least one stack operand used to evaluate that condition,&quot; whereas &quot;jump&quot; is often used to mean &quot;to unconditionally branch, or to conditionally branch after <em>consuming</em> all stack operands used to evaluate that condition.&quot; This explains the parallel series of instructions beginning with BR and J.</p>
+<p>The constant TRUE is 1. The constant FALSE is 0.</p>
+<p>The following list is for reference. You do not need to memorize it now. You should focus on learning the Freelang names (e.g. remember the reserved word <strong>go</strong> not JMP). Learn them one at a time as you begin writing Freelang programs. After a while it is quite easy to remember most of them. It is illegal to redefine a reserved word in Freelang.</p>
+<p><u>Simple instruction (1):</u></p>
+<ol start="0" style="list-style-type: decimal">
+<li>WALL : <strong>===</strong> ( -- ) [ -- ] { -- } <br/>This instruction is used to end data blocks (see DATA) and also inserted by the Freelang compiler prior to word declarations and at the end of a program. Note: trapWall occurs if hit (protection against program overflow). Note: the FVM automatically fills system memory with WALLs (0s) upon start up.</li>
+</ol>
+<p><u>Complex instructions (37):</u></p>
+<ol style="list-style-type: decimal">
+<li><p>LIT ( -- n1 ) [ -- ] { -- } <br/><code>push cv to DS</code></p></li>
+<li><p>CALL ( -- ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to cv</code></p></li>
+<li><p>JMP : <strong>go</strong> ( -- ) [ -- ] { -- } <br/><code>jump to cv</code></p></li>
+<li><p>BRGZ : <strong>go[&gt;0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt; 0 then branch to cv</code></p></li>
+<li><p>BRGEZ : <strong>go[&gt;=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt;= 0 then branch to cv</code></p></li>
+<li><p>BRZ : <strong>go[==0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 == 0 then branch to cv</code></p></li>
+<li><p>BRNZ : <strong>go[!=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 != 0 then branch to cv</code></p></li>
+<li><p>BRLEZ : <strong>go[&lt;=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt;= 0 then branch to cv</code></p></li>
+<li><p>BRLZ : <strong>go[&lt;0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt; 0 then branch to cv</code></p></li>
+<li><p>BRG : <strong>go[&gt;]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt; n2 then branch to cv</code></p></li>
+<li><p>BRGE : <strong>go[&gt;=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt;= n2 then branch to cv</code></p></li>
+<li><p>BRE : <strong>go[==]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 == n2 then branch to cv</code></p></li>
+<li><p>BRNE : <strong>go[!=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 != n2 then branch to cv</code></p></li>
+<li><p>BRLE : <strong>go[&lt;=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt;= n2 then branch to cv</code></p></li>
+<li><p>BRL : <strong>go[&lt;]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt; n2 then branch to cv</code></p></li>
+<li><p>JGZ : <strong>go&gt;0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &gt; 0 then jump to cv</code></p></li>
+<li><p>JGEZ : <strong>go&gt;=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &gt;= 0 then jump to cv</code></p></li>
+<li><p>JZ : <strong>go==0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 == 0 then jump to cv</code></p></li>
+<li><p>JNZ : <strong>go!=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 != 0 then jump to cv</code></p></li>
+<li><p>JLEZ : <strong>go&lt;=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &lt;= 0 then jump to cv</code></p></li>
+<li><p>JLZ : <strong>go&lt;0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &lt; 0 then jump to cv</code></p></li>
+<li><p>JG : <strong>go&gt;</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &gt; n2 then jump to cv</code></p></li>
+<li><p>JGE : <strong>go&gt;=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &gt;= n2 then jump to cv</code></p></li>
+<li><p>JE : <strong>go==</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 == n2 then jump to cv</code></p></li>
+<li><p>JNE : <strong>go!=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 != n2 then jump to cv</code></p></li>
+<li><p>JLE : <strong>go&lt;=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &lt;= n2 then jump to cv</code></p></li>
+<li><p>JL : <strong>go&lt;</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if then n1 &lt; n2 jump to cv</code></p></li>
+<li><p>READOR : <strong>reador</strong> ( -- n1 ) [ -- ] { -- } <br/><code>read from stream or branch to cv if I/O error</code></p></li>
+<li><p>WRITOR : <strong>writor</strong> ( n1 -- ) [ -- ] { -- } <br/><code>write n1 to stream or branch to cv if I/O error</code></p></li>
+<li><p>TRACOR : <strong>tracor</strong> ( n1 -- ) [ -- ] { -- } <br/><code>trace (that is, write) n1 to stdtrc or branch to cv if I/O error</code></p></li>
+<li><p>GETOR : <strong>getor</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>get from a1 of block device or branch to cv if I/O error</code></p></li>
+<li><p>PUTOR : <strong>putor</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>put n1 to a1 of block device or branch to cv if I/O error</code></p></li>
+<li><p>READORB : <strong>readorb</strong> ( -- b1 ) [ -- ] { -- } <br/><code>read byte from stream or branch to cv if I/O error</code></p></li>
+<li><p>WRITORB : <strong>writorb</strong> ( b1 -- ) [ -- ] { -- } <br/><code>write byte b1 to stream or branch to cv if I/O error</code></p></li>
+<li><p>TRACORB : <strong>tracorb</strong> ( b1 -- ) [ -- ] { -- } <br/><code>trace (that is, write) byte b1 to stdtrc or branch to cv if I/O error</code></p></li>
+<li><p>GETORB : <strong>getorb</strong> ( a1 -- b1 ) [ -- ] { -- } <br/><code>get byte b1 from a1 of block device or branch to cv if I/O error</code></p></li>
+<li><p>PUTORB : <strong>putorb</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>put byte b1 to a1 of block device or branch to cv if I/O error</code></p></li>
+</ol>
+<p><u>Simple instructions (111):</u></p>
+<ol start="145" style="list-style-type: decimal">
+<li><p>EXIT : <strong>ret</strong> ( -- ) [ -- ] { r1 -- } <br/><code>pop r1 from RS and branch to r1</code></p></li>
+<li><p>DCALL : <strong>invoke</strong> ( a1 -- ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to a1</code></p></li>
+<li><p>RDCALL : <strong>[invoke]</strong> ( a1 -- a1 ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to a1</code></p></li>
+<li><p>DJMP : <strong>fly</strong> ( a1 -- ) [ -- ] { -- } <br/><code>jump to a1</code></p></li>
+<li><p>SWAP : <strong>swap</strong> ( n1 n2 -- n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>OVER : <strong>over</strong> ( n1 n2 -- n1 n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>ROT : <strong>rot</strong> ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>TOR : <strong>tor</strong> ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>LEAP : <strong>leap</strong> ( n1 n2 n3 -- n1 n2 n3 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>NIP : <strong>nip</strong> ( n1 n2 -- n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>TUCK : <strong>tuck</strong> ( n1 n2 -- n2 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>REV : <strong>rev</strong> ( n1 n2 n3 -- n3 n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>RPUSH : <strong>rpush</strong> ( n1 -- ) [ -- ] { -- n1 } <br/><code>move n1 from DS to RS</code></p></li>
+<li><p>RPOP : <strong>rpop</strong> ( -- n1 ) [ -- ] { n1 -- } <br/><code>move n1 from RS to DS</code></p></li>
+<li><p>DROP : <strong>drop</strong> ( n1 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DROP2 : <strong>drop2</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DROP3 : <strong>drop3</strong> ( n1 n2 n3 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DROP4 : <strong>drop4</strong> ( n1 n2 n3 n4 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DUP : <strong>dup</strong> ( n1 -- n1 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DUP2 : <strong>dup2</strong> ( n1 n2 -- n1 n2 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DUP3 : <strong>dup3</strong> ( n1 n2 n3 -- n1 n2 n3 n1 n2 n3 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>DUP4 : <strong>dup4</strong> ( n1 n2 n3 n4 -- n1 n2 n3 n4 n1 n2 n3 n4 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
+<li><p>HOLD : <strong>hold</strong> ( n1 -- n1 ) [ n1 -- ] { -- } <br/><code>copy top element of DS to SS</code></p></li>
+<li><p>HOLD2 : <strong>hold2</strong> ( n1 n2 -- n1 n2 ) [ n1 n2 -- ] { -- } <br/><code>copy top 2 elements of DS to SS</code></p></li>
+<li><p>HOLD3 : <strong>hold3</strong> ( n1 n2 n3 -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- } <br/><code>copy top 3 elements of DS to SS</code></p></li>
+<li><p>HOLD4 : <strong>hold4</strong> ( n1 n2 n3 n4 -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- } <br/><code>copy top 4 elements of DS to SS</code></p></li>
+<li><p>SPEEK : <strong>speek</strong> ( -- n1 ) [ n1 -- n1 ] { -- } <br/><code>copy top element of SS to DS</code></p></li>
+<li><p>SPEEK2 : <strong>speek2</strong> ( -- n1 n2 ) [ n1 n2 -- n1 n2 ] { -- } <br/><code>copy top 2 elements of SS to DS</code></p></li>
+<li><p>SPEEK3 : <strong>speek3</strong> ( -- n1 n2 n3 ) [ n1 n2 n3 -- n1 n2 n3 ] { -- } <br/><code>copy top 3 elements of SS to DS</code></p></li>
+<li><p>SPEEK4 : <strong>speek4</strong> ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- n1 n2 n3 n4 ] { -- } <br/><code>copy top 4 elements of SS to DS</code></p></li>
+<li><p>SPUSH : <strong>spush</strong> ( n1 -- ) [ -- n1 ] { -- } <br/><code>move top element from DS to SS</code></p></li>
+<li><p>SPUSH2 : <strong>spush2</strong> ( n1 n2 -- ) [ -- n1 n2 ] { -- } <br/><code>move top 2 elements from DS to SS</code></p></li>
+<li><p>SPUSH3 : <strong>spush3</strong> ( n1 n2 n3 -- ) [ -- n1 n2 n3 ] { -- } <br/><code>move top 3 elements from DS to SS</code></p></li>
+<li><p>SPUSH4 : <strong>spush4</strong> ( n1 n2 n3 n4 -- ) [ -- n1 n2 n3 n4 ] { -- } <br/><code>move top 4 elements from DS to SS</code></p></li>
+<li><p>SPOP : <strong>spop</strong> ( -- n1 ) [ n1 -- ] { -- } <br/><code>move top element from SS to DS</code></p></li>
+<li><p>SPOP2 : <strong>spop2</strong> ( -- n1 n2 ) [ n1 n2 -- ] { -- } <br/><code>move top 2 elements from SS to DS</code></p></li>
+<li><p>SPOP3 : <strong>spop3</strong> ( -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- } <br/><code>move top 3 elements from SS to DS</code></p></li>
+<li><p>SPOP4 : <strong>spop4</strong> ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- } <br/><code>move top 4 elements from SS to DS</code></p></li>
+<li><p>DEC : <strong>dec</strong> ( n1 -- n1-1 ) [ -- ] { -- } <br/><code>decrement n1 by 1</code></p></li>
+<li><p>DECW : <strong>decw</strong> ( n1 -- n1-4 ) [ -- ] { -- } <br/><code>decrement n1 by 4 (word size)</code></p></li>
+<li><p>DEC2W : <strong>dec2w</strong> ( n1 -- n1-8 ) [ -- ] { -- } <br/><code>decrement n1 by 8 (twice word size)</code></p></li>
+<li><p>INC : <strong>inc</strong> ( n1 -- n1+1 ) [ -- ] { -- } <br/><code>increment n1 by 1</code></p></li>
+<li><p>INCW : <strong>incw</strong> ( n1 -- n1+4 ) [ -- ] { -- } <br/><code>increment n1 by 4 (word size)</code></p></li>
+<li><p>INC2W : <strong>inc2w</strong> ( n1 -- n1+8 ) [ -- ] { -- } <br/><code>increment n1 by 8 (twice word size)</code></p></li>
+<li><p>LOAD : <strong>@</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>load value from a1 (memory address)</code></p></li>
+<li><p>STORE : <strong>!</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>store n1 to a1 (memory address)</code></p></li>
+<li><p>RLOAD : <strong>[@]</strong> ( a1 -- a1 n1 ) [ -- ] { -- } <br/><code>load value from a1 (memory address)</code></p></li>
+<li><p>LOADB : <strong><span class="citation">@b</span></strong> ( a1 -- b1 ) [ -- ] { -- } <br/><code>load byte value from a1 (memory address)</code></p></li>
+<li><p>STOREB : <strong>!b</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>store byte value b1 to a1 (memory address)</code></p></li>
+<li><p>RLOADB : <strong><span class="citation">[@b]</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from a1 (memory address)</code></p></li>
+<li><p>PLOAD : <strong>@@</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>load value from address loaded from a1 (memory pointer)</code></p></li>
+<li><p>PSTORE : <strong>@!</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>store n1 to address loaded from a1 (memory pointer)</code></p></li>
+<li><p>RPLOAD : <strong>[@@]</strong> ( a1 -- a1 n1 ) [ -- ] { -- } <br/><code>load value from address loaded from a1 (memory pointer)</code></p></li>
+<li><p>PLOADB : <strong>@<span class="citation">@b</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from address loaded from a1 (memory pointer)</code></p></li>
+<li><p>PSTOREB : <strong>@!b</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>store byte value b1 to address loaded from a1 (memory pointer)</code></p></li>
+<li><p>RPLOADB : <strong><span class="citation">[@@b]</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from address loaded from a1 (memory pointer)</code></p></li>
+<li><p>ADD : <strong>+</strong> ( n1 n2 -- n1+n2 ) [ -- ] { -- } <br/><code>addition</code></p></li>
+<li><p>SUB : <strong>-</strong> ( n1 n2 -- n1-n2 ) [ -- ] { -- } <br/><code>subtraction</code></p></li>
+<li><p>MUL : <strong>*</strong> ( n1 n2 -- n1*n2 ) [ -- ] { -- } <br/><code>multiplication</code></p></li>
+<li><p>DIV : <strong>/</strong> ( n1 n2 -- n1/n2 ) [ -- ] { -- } <br/><code>integer division</code></p></li>
+<li><p>MOD : <strong>%</strong> ( n1 n2 -- n1%n2 [ -- ] { -- } <br/><code>modulo</code></p></li>
+<li><p>DIVMOD : <strong>/%</strong> ( n1 n2 -- n1/n2 n1%n2 ) [ -- ] { -- } <br/><code>integer division and modulo</code></p></li>
+<li><p>RADD : <strong>[+]</strong> ( n1 n2 -- n1 n2+n1 ) [ -- ] { -- } <br/><code>addition</code></p></li>
+<li><p>RSUB : <strong>[-]</strong> ( n1 n2 -- n1 n2-n1 ) [ -- ] { -- } <br/><code>reversed subtraction</code></p></li>
+<li><p>RMUL : <strong>[*]</strong> ( n1 n2 -- n1 n2*n1 ) [ -- ] { -- } <br/><code>multiplication</code></p></li>
+<li><p>RDIV : <strong>[\]</strong> ( n1 n2 -- n1 n2\n1 ) [ -- ] { -- } <br/><code>reversed integer division</code></p></li>
+<li><p>RMOD : <strong>[%]</strong> ( n1 n2 -- n1 n2%n1 ) [ -- ] { -- } <br/><code>reversed modulo</code></p></li>
+<li><p>RDIVMOD : <strong>[\%]</strong> ( n1 n2 -- n1 n2\n1 n2%n1 ) [ -- ] { -- } <br/><code>reversed integer division and reversed modulo</code></p></li>
+<li><p>NEG : <strong>neg</strong> ( n1 -- n1*-1 ) [ -- ] { -- } <br/><code>negation</code></p></li>
+<li><p>ABS : <strong>abs</strong> ( n1 -- |n1| ) [ -- ] { -- } <br/><code>absolute value</code></p></li>
+<li><p>AND : <strong>&amp;</strong> ( n1 n2 -- n1&amp;n2 ) [ -- ] { -- } <br/><code>bitwise AND</code></p></li>
+<li><p>OR : <strong>|</strong> ( n1 n2 -- n1|n2 ) [ -- ] { -- } <br/><code>bitwise OR</code></p></li>
+<li><p>XOR : <strong>^</strong> ( n1 n2 -- n1^n2 ) [ -- ] { -- } <br/><code>bitwise XOR</code></p></li>
+<li><p>RAND : <strong>[&amp;]</strong> ( n1 n2 -- n1 n2 n2&amp;n1 ) [ -- ] { -- } <br/><code>bitwise AND</code></p></li>
+<li><p>ROR : <strong>[|]</strong> ( n1 n2 -- n1 n2 n2|n1 ) [ -- ] { -- } <br/><code>bitwise OR</code></p></li>
+<li><p>RXOR : <strong>[^]</strong> ( n1 n2 -- n1 n2 n2^n1) [ -- ] { -- } <br/><code>bitwise XOR</code></p></li>
+<li><p>SHL : <strong>&lt;&lt;</strong> ( n1 n2 -- n1&lt;&lt;n2 ) [ -- ] { -- } <br/><code>bitshift n1 left by n2 bits</code></p></li>
+<li><p>SHR : <strong>&gt;&gt;</strong> ( n1 n2 -- n1&gt;&gt;n2) [ -- ] { -- } <br/><code>bitshift n1 right by n2 bits</code></p></li>
+<li><p>RSHL : <strong>[&lt;&lt;]</strong> ( n1 n2 -- n1 n2 n1&lt;&lt;n2 ) [ -- ] { -- } <br/><code>bitshift n1 left by n2 bits</code></p></li>
+<li><p>RSHR : <strong>[&gt;&gt;]</strong> ( n1 n2 -- n1 n2 n1&gt;&gt;n2) [ -- ] { -- } <br/><code>bitshift n1 right by n2 bits</code></p></li>
+<li><p>MOVE : <strong>move</strong> ( numWords src dest -- ) [ -- ] { -- } <br/><code>copy memory (negative numWords = descending copy)</code></p></li>
+<li><p>FILL : <strong>fill</strong> ( numWords n1 dest -- ) [ -- ] { -- } <br/><code>fill memory with value n1</code></p></li>
+<li><p>FIND : <strong>find</strong> ( numWords n1 src -- wordIndex ) [ -- ] { -- } <br/><code>find index (-1 if not found) of 1st instance of n1 from src upwards</code> <br/><code>(downwards if negative numWords)</code></p></li>
+<li><p>MATCH : <strong>match</strong> ( numWords src dest -- TRUE/FALSE) [ -- ] { -- } <br/><code>see if word sequences ('strings') match</code></p></li>
+<li><p>MOVEB : <strong>moveb</strong> ( numBytes src dest -- ) [ -- ] { -- } <br/><code>copy memory (negative numBytes = descending copy)</code></p></li>
+<li><p>FILLB : <strong>fillb</strong> ( numBytes b1 dest -- ) [ -- ] { -- } <br/><code>fill memory with byte value b1</code></p></li>
+<li><p>FINDB : <strong>findb</strong> ( numBytes b1 src -- byteIndex ) [ -- ] { -- } <br/><code>find index (-1 if not found) of 1st instance of byte value b1 from src upwards</code> <br/><code>(downwards if negative numBytes)</code></p></li>
+<li><p>MATCHB : <strong>matchb</strong> ( numBytes src dest -- TRUE/FALSE ) [ -- ] { -- } <br/><code>see if byte sequences ('strings') match</code></p></li>
+<li><p>HOMIO : <strong>homio</strong> ( -- ) [ -- ] { -- } <br/><code>set I/O channels to default channels:</code> <br/><code>READOR and READORB will subsequently use stdin</code> <br/><code>WRITOR and WRITORB will subsequently use stdout</code> <br/><code>GETOR, GETORB, PUTOR and PUTORB will subsequently use stdblk</code></p></li>
+<li><p>RCHAN : <strong>rchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change read channel to stream having ID n1 (affects future READOR, READORB operations)</code> <br/><code>note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently trap)</code></p></li>
+<li><p>WCHAN : <strong>wchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change write channel to stream having ID n1 (affects future WRITOR, WRITORB operations)</code> <br/><code>note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently trap)</code></p></li>
+<li><p>GCHAN : <strong>gchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change get channel to block device having ID n1 (affects future GETOR, GETORB operations)</code> <br/><code>note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently trap)</code></p></li>
+<li><p>PCHAN : <strong>pchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change put channel to block device having ID n1 (affects future PUTOR, PUTORB operations)</code> <br/><code>note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently trap)</code></p></li>
+<li><p>ECODE : <strong>ecode?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: last automated exit code (0 if none or if was success)</code> <br/><code>note: exit code reflects trap number if any (see fvm.s source)</code> <br/><code>note: will always be 0 unless FVM configured to soft reset upon a trap</code></p></li>
+<li><p>RCODE : <strong>rcode?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: last program-request restart code (0 if none)</code> <br/><code>note: 1 indicates reset (soft reset), 2 indicates reboot (hard reset)</code> <br/><code>note: will always be 0 unless reset or reboot since last manual start up</code></p></li>
+<li><p>ROM : <strong>rom?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of ROM in bytes</code> <br/><code>note: cannot be 0</code></p></li>
+<li><p>RAM : <strong>ram?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of RAM in bytes</code> <br/><code>note: will be 0 if FVM has no RAM</code></p></li>
+<li><p>MAP : <strong>map?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of MAP in bytes</code> <br/><code>note: will be 0 if FVM has no memory-mapped devices</code></p></li>
+<li><p>STDBLK : <strong>stdblk?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of stdblk in bytes</code> <br/><code>note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would trap on stdblk)</code></p></li>
+<li><p>DS : <strong>ds?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on data stack</code></p></li>
+<li><p>SS : <strong>ss?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on software stack</code></p></li>
+<li><p>RS : <strong>rs?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on return stack</code></p></li>
+<li><p>DSN : <strong>dsn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on data stack</code></p></li>
+<li><p>SSN : <strong>ssn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on software stack</code></p></li>
+<li><p>RSN : <strong>rsn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on return stack</code></p></li>
+<li><p>TRON : <strong>tron</strong> ( -- ) [ -- ] { -- } <br/><code>turn tracing on (trace goes to stdtrc; slow but useful for debugging programs)</code> <br/><code>note: this has no effect on an FVM configured not to support tracing</code></p></li>
+<li><p>TROFF : <strong>troff</strong> ( -- ) [ -- ] { -- } <br/><code>turn tracing off</code> <br/><code>note: this has no effect on an FVM configured not to support tracing</code></p></li>
+<li><p>RESET : <strong>reset</strong> ( -- ) [ -- ] { -- } <br/><code>reset (that is, soft reset) the FVM</code> <br/><code>note: this wipes FVM stacks and FVM variables but not system memory</code></p></li>
+<li><p>REBOOT : <strong>reboot</strong> ( -- ) [ -- ] { -- } <br/><code>reboot (that is, hard reset) the FVM</code> <br/><code>note: this wipes FVM stacks, wipes FVM variables and wipes system memory</code> <br/><code>note: this has the same effect as a normal manual start up</code> <br/><code>in every respect except that rcode? will return 2 not 0</code></p></li>
+<li><p>HALT : <strong>halt</strong> ( -- ) [ -- ] { -- } <br/><code>halt (that is, shut down indicating success) the FVM</code></p></li>
+<li><p>DATA : <strong>data</strong> ( -- ) [ -- ] { -- } <br/><code>declares the start of a block of data</code> <br/><code>note: next program cell should contain size of data strip in words</code> <br/><code>note: at end of block of data there should be a WALL instruction</code> <br/><code>note: by convention a Freeputer string is stored in such a block</code> <br/><code>note: trapData occurs if hit (protection against program overflow)</code></p></li>
+</ol>
+<p>The above list is a summary. For exact definitions of each instruction please read the source code of 'dev/fvm/x86/src/fvm.s'. For unit tests see the source of 'dev/freelang/fvmtest/src/fvmtest.fl'.</p>
+<h2 id="learn-freelang">10. Learn Freelang</h2>
+<p><strong>Important: This tutorial assumes you have read the entire document up to this point. You must be familiar with the tools and concepts introduced earlier.</strong></p>
+<h3 id="scope-of-tutorial">Scope of tutorial</h3>
+<p>This is a brief introduction to Freelang programming, just enough to get you started. You will then be able to continue learning by experimenting on your own. To learn advanced Freelang programming techniques you will later need to peruse the following source code:</p>
+<ul>
+<li>the FreeLine text editor: 'dev/freelang/editor/src/fl.fl'</li>
+<li>fld, the Freelang decompiler: 'dev/freelang/decompiler/src/fld.fl'</li>
+<li>the fvmtest unit tests: 'dev/freelang/fvmtest/src/fvmtest.fl'</li>
+<li>flc, the FreeLine compiler: 'dev/freelang/compiler/src/flc.fl'</li>
+</ul>
+<h3 id="preamble">Preamble</h3>
+<p>If you are unfamiliar with stack-oriented concatenative languages then before continuing this tutorial you should take a quick look at <a href="https://en.wikipedia.org/wiki/Forth_%28programming_language%29">Forth</a>. Please read the first few chapters of a good Forth tutorial such as the famous <a href="http://www.forth.com/starting-forth/sf1/sf1.html">Starting FORTH</a> by Leo Brodie.</p>
+<p>Freelang is not Forth but there similarities:</p>
+<ul>
+<li><p>Both languages use a data stack (DS) and a return stack (RS) in the same way (except that by convention in Freelang you should not use the RS for any purpose other than manipulating return addresses). Freelang conveniently provides a third stack called the software stack (SS) that facilitates programming. The SS is somewhere to temporarily park elements from the DS during the execution of a function. By convention the state of the SS should be the same when program flow leaves a function as it was when program flow entered that function.</p></li>
+<li><p>Both languages are extensible in that they easily allow you to define your own words (that is, functions). This makes it trivially easy to create your own domain specific languages (essentially just vocabularies). Parentheses are not used (except to demarcate comments). All this can make a line of code look like an English sentence; for example, here is the top-level algorithm for FreeLine:</p></li>
+</ul>
+<pre class="forth"><code>  init load show edit finish quit \ Algorithm</code></pre>
+<ul>
+<li><p>Freelang syntax is somewhat similar to Forth syntax. So much so that you can use Forth syntax highlighting for Freelang. This works quite well.</p></li>
+<li><p>Both languages use <a href="https://en.wikipedia.org/wiki/Reverse_Polish_notation">Reverse polish notation</a> (RPN), which you <em>must</em> read about before continuing if it is new to you. Otherwise you will be hopelessly lost.</p></li>
+</ul>
+<p>Freelang has some marked differences to Forth:</p>
+<ul>
+<li><p>Freelang is not interactive. Freelang is compiled much like Java is compiled. That is, you create Freelang source code in a text editor, where you can read it in full, and then you compile it using a compiler. Nevetheless, flc can easily run on bare metal.</p></li>
+<li><p>Freelang has very strict naming conventions to differentiate declarations from references, and to differentiate words, labels, slots (that is, variables), constants and strings from each other. It has namespaces and wordspaces.</p></li>
+<li><p>Freelang is arguably a lower-level language than Forth and feels more like a concatenative assembly language at times. Freelang does not have flow-control words such as IF, THEN, ELSE, BEGIN, REPEAT, UNTIL and the like.</p></li>
+<li><p>Freelang is a simpler language than Forth.</p></li>
+<li><p>Freeputer is a virtual machine. Freelang is just one possible language (the first one) in which to program Freeputer. Freelang is lightweight, convenient and productive because it is extensible and matches the FVM instruction set. It is expected that one of the primary uses of Freelang will be <em>to write high-level languages</em>.</p></li>
+<li><p>The FVM has no undefined internal behaviour and can be extended in a standard modular manner by means of I/O devices. Freelang supports this.</p></li>
+</ul>
+<h3 id="functional-programming">Functional programming</h3>
+<p>You will often discover opportunities to use <a href="https://en.wikipedia.org/wiki/Functional_programming">functional</a> programming in Freelang. The language would lend itself well to the creation of a functional programming vocabulary. Some rudimentary (and rather impure) examples follow.</p>
+<p>Here is a word whose purpose is to repeatedly invoke a supplied function:</p>
+<pre class="forth"><code>  \ Execute f function n times
+  \ Note: function must not disrupt data stack
+  : times ( f n -- )
+    once: go[&lt;=0] :end spush [invoke] spop dec go :once end: drop2
+  ;</code></pre>
+<p>Note: <code>times</code> would be written differently if it were intended to be used to invoke functions which added elements to the data stack. You could take the view that, as it is, <code>times</code> is invoking side-effects not functions, but such a discussion is beyond the scope of this tutorial.</p>
+<p>The fvmtest unit-testing suite for the FVM uses functional programming:</p>
+<pre class="forth"><code>  \ Trace the supplied string msg, then invoke unit test function f,
+  \ then trace a success message indicating that the test passed.
+  \ IMPORTANT: The supplied unit test function f should trace
+  \ a failure message and halt if it does not pass.
+  : test ( f msg -- )
+    dbg{puts} .&quot;  :  &quot; dbg{puts} invoke $$PASS dbg{print}
+  ;</code></pre>
+<p>See also the word <code>read</code> in the UTF-8 LIBRARY section of the 'fl.fl' source code for the FreeLine text editor. It decodes UTF-8 text by accepting and invoking a function whose purpose is to read one byte from a stream. Here is the first part of that word:</p>
+<pre class="forth"><code>  \ Read between 1 and 4 bytes until either:
+  \ (a) a valid UTF-8 character is decoded and returned; or
+  \ (b) an I/O error occurs [or hit end of stream] so .EMPTY is returned; or
+  \ (c) an invalid byte is encountered so .INVALID is returned.
+  \ The supplied function f must read 1 byte from the desired
+  \   stream device or return NO_VALUE if for any reason it cannot read
+  \   [see imp{readb} for an example of a suitable such function].
+  : read ( f -- c )
+   dup invoke {..NO_VALUE} go[==] :fail    \ Read 1st byte of char
+      isUTF8single? {..TRUE} go== :single
+      isUTF8double? {..TRUE} go== :double
+      isUTF8triple? {..TRUE} go== :triple
+      isUTF8quad? {..TRUE} go== :quad
+      drop2 go :invalid \ Hit bad 1st byte of char
+      quad:   \ byte is the first of a 4-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 &lt;&lt; |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 &lt;&lt; |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 4th byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 24 &lt;&lt; |
+      go :success</code></pre>
+<h3 id="factoring">Factoring</h3>
+<p>At the end of the day, no matter which stack-oriented concatenative language you are using, whether it be Freelang or <a href="https://en.wikipedia.org/wiki/Forth_%28programming_language%29">Forth</a> or <a href="https://en.wikipedia.org/wiki/Factor_%28programming_language%29">Factor</a>, what you do with stack-oriented concatenative languages is:</p>
+<ol style="list-style-type: decimal">
+<li>You create a vocabulary of words</li>
+<li>You heavily refactor to get smaller, more reusable words</li>
+</ol>
+<p>Factoring is really the heart of these languages.</p>
+<p>Of course, in the real world you do not always have the time needed to refactor code into smaller, more reusable words, and there are sometimes good reasons not to do so, such as performance or legibility.</p>
+<h3 id="simplicity">Simplicity</h3>
+<p>Freelang has some very simple features:</p>
+<ul>
+<li><p>Freelang is not object oriented. And, of course, there is no garbage collection; such a concept is a higher-level concept than the relatively low level at which Freelang operates. Indeed there is no heap management or garbage collection baked into the FVM. You could however use Freelang to write a high-level object-oriented language, including both the compiler and the runtime support within the FVM for such a language. Or you could simply create a vocabulary of words for object-oriented programming in Freelang.</p></li>
+<li><p>Freelang programs are compiled from a single source. In practical terms this usually means that, unlike C and Java, your whole program must be contained in one source file.</p></li>
+<li><p>Freelang supports namespaces that allow you to conveniently divide your program into separate naming contexts, thus preventing naming conflicts. Namespaces cannot be nested but the declaration of each word is in itself its own little namespace, called a wordspace. One word declaration cannot be nested inside another word declaration.</p></li>
+<li><p>Freelang has no preprocessor and no macros. However, there is nothing to stop you using your favourite preprocessor to support macros and to combine multiple source files into a single source file prior to compiling. Indeed, it is important to remember that a Freelang word reference is like a word reference in Forth: a very different thing to a macro. Do <em>not</em> make the mistake of coding Freelang as if words were macros; if you do you will have a very compact program but one with performance problems since each instance of a word reference is actually an implicit CALL to that word.</p></li>
+<li><p>What you code is what you get. There are no compiler settings or directives other than that visible in the Freelang source code itself: specifically, the directive <code>slotFloor</code> which precedes an integer literal specifying the address in RAM that the compiler shall allocate to the lowest slot (that is, variable) and after which the compiler shall sequentially locate all other slots in the order they occur in the source code. Furthermore, Freelang compilers are intentionally <em>not</em> optimizing. What you code is what you get. Other than some very simple things, like automatically adding WALL at the start of each word declaration and at the end of the compiled program, the compiler neither adds nor removes instructions.</p></li>
+<li><p>All tokens in Freelang source code are separated by whitespace. Maximum permitted token length is 80 characters; this is also the maximum permitted length of a string literal.</p></li>
+</ul>
+<h3 id="freelang-coding-standards">Freelang coding standards</h3>
+<ul>
+<li><p>Code should not be wider than 78 ordinary characters (where reasonably possible). This ensures that the source code can be neatly edited in FreeLine with visible newline characters. The same is recommended for text files in general.</p></li>
+<li><p>Never use tabs. Use spaces instead.</p></li>
+<li><p>Because a parenthesis is a comment delimiter, square brackets rather than parentheses should be used for parenthetical English statements in the text of comments.</p></li>
+</ul>
+<h3 id="freelang-entities">Freelang entities</h3>
+<p>Freelang entities include:</p>
+<ul>
+<li><strong>words</strong> (that is, functions) use no affix</li>
+<li><strong>labels</strong> (that is, identifiers of program cell addresses) use <strong>:</strong></li>
+<li><strong>slots</strong> (that is, variables of declared size) use <strong>#</strong></li>
+<li><strong>constants</strong> (signed 32-bit two's-complement integers) use <strong>.</strong></li>
+<li><strong>strings</strong> (named and anonymous) use <strong>$</strong> if named</li>
+<li><strong>literals</strong> like <code>'A' 99 .&quot; Hello world! &quot;</code></li>
+</ul>
+<p>Freelang entities (other than literals) are declared. Declared entities can be referenced. So long as a Freelang entity is declared somewhere in the source code it can successfully be referenced anywhere in the source code (except that entities declared within a wordspace cannot be referenced from outside that wordspace). There is no requirement that a declaration occur prior to it first being referenced.</p>
+<h4 id="declarations">Declarations</h4>
+<p>The name of a word can be anything provided:</p>
+<ul>
+<li>it is no longer than 30 characters</li>
+<li>its first character is _ or in the range A-z</li>
+<li>it only contains characters in the range 0-9 ?-z</li>
+</ul>
+<p>To facilitate functional programming the Freelang compiler automatically generates a corresponding and identical label for each word declaration. For example, if you declare a word <code>myWord</code> then the Freelang compiler will automatically also declare a <code>myWord:</code> label.</p>
+<p>The names of all other entities must also accord to the above three rules except that their declarations are followed by a 1-character suffix and their references are preceded by a 1-character or 2-character prefix. The bare name must be 30 characters or less.</p>
+<p>Here is how to declare a word:</p>
+<pre class="forth"><code>: myWord ( -- ) ;</code></pre>
+<p>The intial colon indicates this is a word declaration. The final semicolon ends the implementation (that is, definition) of the declared word; at its location the compiler will automatically insert an EXIT (that is, <strong>ret</strong>, a return).</p>
+<p>The <code>( -- )</code> is a comment; it represents a stack diagram and in this case indicates that the state of the data stack before and after <code>myWord</code> executes is the same. Please read a good Forth tutorial to learn about stack diagrams. This particular word is useless; it does nothing because as you can see it contains no implementation.</p>
+<p>This is how to declare a label:</p>
+<pre class="forth"><code>myLabel:</code></pre>
+<p>This is how to declare a slot:</p>
+<pre class="forth"><code>mySlot# 4</code></pre>
+<p>The integer literal following the slot name declares the size of the slot in bytes. So <code>mySlot</code> reserves 4 bytes of contiguous RAM space in which your program can subsequently store information by referencing the slot.</p>
+<p>You will get a compile error if your program contains any slot declarations and you have not declared a <code>slotFloor</code>. By convention you should declare your <code>slotFloor</code> near the top of your program, before the first slot declaration:</p>
+<pre class="forth"><code>slotFloor 16777216</code></pre>
+<p>Here we have declared that the compiler shall allocate the RAM address 16777216 to the lowest slot. It is normal to declare <code>slotFloor</code> to be the first byte of RAM in the FVM instance you are compiling the program to be deployed upon. This is currently the only compiler directive.</p>
+<p>You must deploy your program on an <em>appropriately sized</em> FVM instance. Otherwise your program will fall over with a trap at runtime as it tries to do things like read from a memory address that does not exist or write to a memory address that is actually in ROM not RAM.</p>
+<p>This is how you declare constants:</p>
+<pre class="forth"><code>MY_INTEGER_CONSTANT. 2147483647
+MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal character constant</code></pre>
+<p>By convention, integer and character constants are declared in uppercase but this is not mandatory. Please declare integer constants in decimal as currently flc only supports decimal numeric literals; flx also supports hexadecimal and binary numeric literals but it is not good practice to use them until such time as flc has been enhanced to also support them. See 'flx.rb' for extensive comments describing such differences.</p>
+<p>It is illegal to declare a <em>decimal</em> constant outside the range of a signed two's-complement 32-bit integer. There is in effect no difference between integer constants and character constants; they are just 32-bit values. Negative integer literals begin with <code>-</code> but positive integer literals do not begin with <code>+</code> and doing so is a syntax error.</p>
+<p>There is no support for floating-point constants. This is no barrier to implementing floating-point support in software since you could just use three integer constants, one for the significand, one for the base and one for the exponent. Or some such scheme.</p>
+<p>Constants are <strong>not</strong> compiled into the program if they are not referenced. Where they are referenced they are simply substituted for the reference. That is, you cannot use constants to compile data into a program.</p>
+<p>To compile data into a program you can use the Freelang reserved word <strong>data</strong>; it corresponds to a dedicated FVM instruction called DATA. The syntax in Freelang is as follows:</p>
+<pre class="forth"><code>data 4 &#39;A&#39; &#39;B&#39; &#39;C&#39; &#39;D&#39; ===</code></pre>
+<p>As you can see:</p>
+<ul>
+<li>begin with the reserved word <strong>data</strong> (FVM instruction DATA)</li>
+<li>next state the number of words of data to follow (here 4)</li>
+<li>next provide literal values separated by whitespace (here 'A' 'B' 'C' 'D')</li>
+<li>finally end with the reserved word <strong><em>===</em></strong> (FVM instruction WALL)</li>
+</ul>
+<p>Although you rarely see <strong>data</strong> explicitly used in Freelang source code, this particular construct is very important in Freelang. It is called a &quot;block&quot;. This term has nothing to do with &quot;block devices&quot;. A block is simply a data structure that has the above form: it starts with DATA, then a word indicating the size of its &quot;strip&quot; (in this case 4 words), then the &quot;strip&quot; itself (the contigous area of data consisting of a number of whole words equal to the declared size), and finishing with WALL. This is exactly how strings are stored in Freelang. You can see this by decompiling.</p>
+<p>The compiler locates such a data block where it is located in the source.</p>
+<p>This is how you declare a named string:</p>
+<pre class="forth"><code>MY_STRING$ .&quot; ABCD &quot;</code></pre>
+<p>That string gets compiled into the program in exactly the same format as the data block shown above except that it gets associated with the name MY_STRING$ and the compiler locates all strings at the end of the program.</p>
+<h4 id="literals">Literals</h4>
+<p>You have already seen integer, character and string literals in declarations. Except in declarations, or following a reserved word that represents a complex instruction (and therefore expects to be followed by a literal or address), whenever you use a literal on its own it means that the literal should be placed on the data stack at runtime (an implied LIT instruction).</p>
+<p>Here is how to push the number 99 to the data stack:</p>
+<pre class="forth"><code>99</code></pre>
+<p>You have already learned that parentheses can enclose a comment (don't forget that all tokens in Freelang <em>must be</em> separated by whitespace, including comment delimiters). Now here is how to make a line comment. A line comment comments out the source until the end of the line. The delimiter is <strong>\</strong> and is used thus:</p>
+<pre class="forth"><code>99                    \ This puts 99 on the DS</code></pre>
+<p>Here is how to push the character 'A' to the data stack:</p>
+<pre class="forth"><code>&#39;A&#39;                   \ This puts &#39;A&#39; on the DS</code></pre>
+<p>Here is how to push a constant value to the data stack:</p>
+<pre class="forth"><code>.MY_INTEGER_CONSTANT  \ This puts the value of this constant on the DS</code></pre>
+<p>Here is how to push a string reference to the data stack:</p>
+<pre class="forth"><code>$MY_STRING            \ This puts a reference to this string on the DS</code></pre>
+<p>Which brings us finally to anonymous strings. This is how you push a reference to an anonymous string onto the data stack:</p>
+<pre class="forth"><code>.&quot; Hello world! &quot;     \ This puts a reference to &quot;Hello world!&quot; on the DS</code></pre>
+<p>The compiler always compiles anonymous strings to the end of the program, even if an equivalent anonymous string has already been compiled. This bloats the size of your program. So be sure to use a named string declaration if you intend to reference a string more than once. The Freelang compiler is intentionally <em>not</em> optimizing.</p>
+<p>Note: flx does not support more than one anonymous string per line. Therefore it is best practice to put each anonymous string on its own line.</p>
+<p>Here is how to put four different things on the data stack:</p>
+<pre class="forth"><code>99 &#39;A&#39; $MY_STRING .&quot; Hello word &quot;</code></pre>
+<p>All Freeputer stacks are last-in, first-out (<a href="https://en.wikipedia.org/wiki/Stack_%28abstract_data_type%29">LIFO</a>) so the reference to &quot;Hello world&quot; would now be the top element on the stack at program runtime.</p>
+<p>Here's how to push a label reference to the data stack:</p>
+<pre class="forth"><code>:myLabel            \ This puts a label reference on the DS</code></pre>
+<p>Here's how to put a reference to our <code>myWord</code> function on the data stack:</p>
+<pre class="forth"><code>:myWord             \ A function reference (really just a label to the function)</code></pre>
+<p>Here's how to invoke that function dynamically:</p>
+<pre class="forth"><code>:myWord invoke      \ Uses invoke to DCALL the function myWord</code></pre>
+<p>Here's how to call the same function statically:</p>
+<pre class="forth"><code>myWord              \ An implicit CALL to the function myWord</code></pre>
+<p>You can use a decompiler or <a href="#tracing">tracing</a> to understand these differences.</p>
+<p>Which brings us to references.</p>
+<h4 id="references">References</h4>
+<p>As you have just seen, when you use a word by itself this means that you want an implicit CALL to be made to that word (that is, function). Let's assume that you have defined two words somewhere in your source code, one called <code>sayHello</code> and one called <code>sayGoodbye</code>. Consider the following code:</p>
+<pre class="forth"><code>sayHello sayGoodbye</code></pre>
+<p>At runtime this will CALL the function <code>sayHello</code>. When that function returns there will be a CALL to the function <code>sayGoodbye</code>. You should already know this from reading a Forth tutorial.</p>
+<p>The important thing to note is the lack of any prefix or suffix. The Freelang compiler knows to treat <code>sayHello</code> as an implicit CALL because it has no affix.</p>
+<p>To reference an entity simply prefix it with the appropriate affix:</p>
+<pre class="forth"><code>:myLabel #mySlot .MY_INTEGER_CONSTANT $MY_STRING </code></pre>
+<p>At runtime that will put the ROM address of <code>myLabel:</code> and the RAM address of <code>mySlot#</code> and the value of <code>MY_INTEGER_CONSTANT.</code> and the ROM address of <code>MY_STRING$</code> on the stack. The latter will be on top.</p>
+<p>These unqualified single prefixes mean: &quot;reference the entity of this type and name that is declared in the immediate context.&quot; If you are in a word then the immediate context is that wordspace. If you are not in a word but are in a namespace then the immediate context is that namespace. If you are neither in a word nor in a namespace then the immediate context is the global context.</p>
+<p>You will very commonly see the prefixes doubled like this:</p>
+<pre class="forth"><code>::myLabel ##mySlot ..MY_INTEGER_CONSTANT $$MY_STRING </code></pre>
+<p>Or this:</p>
+<pre class="forth"><code>::myWord invoke     \ Uses invoke to DCALL the function myWord</code></pre>
+<p>These unqualified doubled prefixes mean: &quot;reference the entity of this type and name that is declared outside the current wordspace.&quot; If you are in a word then this means the context that encloses that wordspace: either a namespace or the global context. If you are not in a word then there is no need to use the doubled prefix but it is not harmful to do so. You can think of the doubled prefix as meaning &quot;escape out of wordspace context.&quot;</p>
+<p>Which brings us to namespaces.</p>
+<h3 id="namespaces">Namespaces</h3>
+<p>You can declare namespaces as follows:</p>
+<pre class="forth"><code>
+  (((
+    Here is how to reference words in different namespaces.
+    By the way, this is a multiple-line comment. The delimiters are
+    triple parentheses. This kind of comment overrides other comments and
+    can be used to quickly comment out large blocks of code.
+
+    Also note that we have explicitly commanded a halt below.
+    This is something you should always do in your programs as it tells
+    the FVM when to shutdown gracefully, exiting with success.
+    If you don&#39;t use halt you will get trapWall.
+
+    This program will now invoke various words in order
+    to place numbers on the stack. The stack diagrams below
+    show the expected state of the data stack after each call.
+  )))
+
+  myWord                \ ( -- 1 ) Stack diagrams show cumulative results...
+  myNamespace{myWord}   \ ( -- 1 2 3         ) 
+  fourFive              \ ( -- 1 2 3 4 5     )
+  myNamespace{sixSeven} \ ( -- 1 2 3 4 5 6 7 )
+  halt
+
+  \ This word is in the global context.
+  : myWord ( -- 1 ) 1 ; \ Puts 1 on the DS
+
+  \ This word is in the global context.
+  : three ( -- 3 ) myNamespace{..THREE} ; \ Puts 3 on the DS
+
+  \ This word is in the global context.
+  \ Calls four in myNamespace then puts 5 on the DS,
+  \   thus effectively putting 4 and 5 on the DS
+  : fourFive ( -- 4 5 ) myNamespace{four} 5 ; 
+
+  \ Constants in the global context
+  SIX. 6
+  SEVEN. 7
+
+  myNamespace{
+
+    \ This word is inside a namespace called myNamespace.
+    \ Puts 2 on the DS then calls three
+    \  thus effectively putting 2 and 3 on the DS
+    : myWord ( -- 2 3 ) ..TWO {three} ;
+
+    \ This word is inside a namespace called myNamespace.
+    : four ( -- 4 )
+      FOUR. 4    \ This constant is in the four wordspace inside myNamespace
+      .FOUR      \ Puts the value of the constant FOUR on the DS
+    ;
+
+    \ This word is inside a namespace called myNamespace.
+    \ Puts 6 on the DS then calls seven
+    \  thus effectively putting 6 and 7 on the DS
+    : sixSeven ( -- 6 ) {..SIX} seven ;
+
+    \ This word is inside a namespace called myNamespace.
+    : seven ( -- 7 ) {..SEVEN} ; \ Puts 7 on the DS
+
+    \ Constants in the myNamespace namespace
+    ONE. 1
+    TWO. 2
+    THREE. 3
+
+  }myNamespace
+</code></pre>
+<p>This example is obviously ridiculously convoluted and contrived. You would never actually code like this. It is meant only to demonstrate references in a complex yet concise manner, for your future reference.</p>
+<p>Here we have declared 3 words in the &quot;global context&quot; (or &quot;global namespace&quot;): <code>myWord</code>, <code>three</code> and <code>fourFive</code>. And we have declared 4 words in the <code>myNamespace</code> namespace: <code>myWord</code>, <code>four</code>, <code>sixSeven</code> and <code>seven</code>.</p>
+<p>We have declared 2 constants in the global context: <code>SIX.</code> and <code>SEVEN.</code> And we have declared 3 constants in the <code>myNamespace</code> namespace: <code>ONE.</code>, <code>TWO.</code> and <code>THREE.</code></p>
+<p>There is also 1 constant declared in the wordspace <code>four</code> within <code>myNamespace</code>; such a declaration, made within a wordspace, cannot be referenced from outside that wordspace. That is, wordspaces are private; everything else is public. This means that you cannot jump or branch from outside a word to a label within that word because such a label cannot be referenced.</p>
+<p><strong>An aside regarding security: </strong>It is worth pausing here to point out that the last sentence is not strictly true. That is, it is possible to get program flow to jump to some location within a word definition from outside that word definition. There is no protection built into the FVM runtime to stop that. If you wanted to hack your way into a word you could. There is no special security baked into the FVM; it is a small, simple, lightweight virtual machine intended only to have trusted code run on it. Or, to put it another way, if you are going to run untrusted code make sure you do it in a separate FVM instance, totally separate to the FVM instance that contains your trusted code. Or, to put it another way, so long as a network or computer allows any untrusted code into itself it cannot truly be secure; if your Freeputer instance is doing something truly important then run it standalone, disconnected. One of the great advantages of Freeputer as a platform is that it is trivially easy to run an FVM instance that is not only standalone but does not even have an operating system running on it. That is security by exclusion. One final word of warning: do not use an FVM implementation from an untrusted source, as an unethical FVM implementation could cause privacy or security problems for Freeputer in the same way as spyware or malware cause privacy and security problems for an operating system.</p>
+<p><strong>And now back to references:</strong> To reference an entity in another namespace, simply surround that entity with braces preceded by the namespace name: <code>myNamespace{myWord}</code>. Braces without any namespace name reference the global context.</p>
+<p>Word references never use prefixes. Other kinds of references only need to double their prefixes if they are escaping from a wordspace, such as <code>{..SIX}</code>, but not otherwise, such as <code>.FOUR</code>.</p>
+<p>It is not really worth giving more comprehensive referencing examples here. Take a look at the source code for existing Freelang programs. The referencing scheme will soon become clear to you. Experiment with it. It soon becomes second nature.</p>
+<h3 id="tracing">Tracing</h3>
+<p>It is very helpful for debugging (but <em>extremely</em> bad for performance) to use <strong>tron</strong> to turn on program tracing. A suitable FVM will then report every instruction it executes, and the state of the stacks, to stdtrc (here 'std.trc').</p>
+<p>WARNING: some programs might produce tens of thousands of lines of trace output every few seconds. So be sure to only trace that small part of your program you are most interested in. Do this by placing the word <strong>tron</strong> where you want tracing to begin and <strong>troff</strong> where you want it to end.</p>
+<p>An FVM is not required to do anything in response to <strong>tron</strong>. That is, some FVM implementations are configured to have tracing disabled. They do nothing in response to <strong>tron</strong>. This is normal in production where there is usually no need for tracing. Furthermore, the exact information an FVM implementation traces in response to <strong>tron</strong> is dependent on the implementation; some FVMs provide more or less detail.</p>
+<p>Here is a simple program including the use of <strong>tron</strong>:</p>
+<pre class="forth"><code>
+  \ You must deploy this program to an FVM whose RAM starts at 16777216
+  \ Note: use the ready-made fvm16-16MB executable
+
+  slotFloor 16777216 \ Direct the compiler to put lowest slot at 16777216
+  mySlot# 4          \ Declare a slot of size 4 bytes (1 word)
+
+
+  tron          \ (         ) Turn on tracing (note: DS is empty)
+  3 #mySlot !   \ (         ) Store the value 3 into that slot
+  oneTwoThree   \ ( 1 2 3   ) Call oneTwoThree, it will put 1 2 3 on DS
+  3             \ ( 1 2 3 3 ) Put another 3 on the DS
+  go== :noFour  \ ( 1 2     ) Branch to label noFour: if top 2 elements equal
+
+    \ We will never hit the next line because the top 2 elements were
+    \   indeed equal so go== will have branched to the label noFour: below
+    4           \ ( 1 2 4 ) Would put 4 on DS if we hit this line
+    halt        \ ( 1 2 4 ) Would halt with 1 2 4 on DS if we hit this line
+
+  noFour:       \ ( 1 2   )
+    drop2       \ (       ) Discard the top two elements of DS 
+    troff       \ (       ) Turn off tracing (note: DS is empty)
+    halt        \ (       ) Halt the FVM
+
+  \ Put 1 2 3 on the DS
+  : oneTwoThree \ ( -- 1 2 3 ) This is a word definition
+    1 2         \ ( 1 2   ) Put 1 and 2 on the DS
+    ##mySlot @  \ ( 1 2 3 ) Load the value stored in mySlot (namely 3)
+  ;             \ ( 1 2 3 ) Return (compiler inserts ret where ; is located)
+</code></pre>
+<p><br/>Here is the same program with syntax highlighting:</p>
+<div class="figure">
+<img src="doc/img/Tracing-Program.png" alt="A simple program using tracing" /><p class="caption">A simple program using tracing</p>
+</div>
+<p>And here is the tracing output. All values here are hexadecimal:</p>
+<pre><code>00000004 lit      00000003 ( ) [ ] { } 
+0000000c lit      01000000 ( 00000003 ) [ ] { } 
+00000014 !                 ( 00000003 01000000 ) [ ] { } 
+00000018 call     0000004c ( ) [ ] { } 
+0000004c lit      00000001 ( ) [ ] { 00000020 } 
+00000054 lit      00000002 ( 00000001 ) [ ] { 00000020 } 
+0000005c lit      01000000 ( 00000001 00000002 ) [ ] { 00000020 } 
+00000064 @                 ( 00000001 00000002 01000000 ) [ ] { 00000020 } 
+00000068 ret               ( 00000001 00000002 00000003 ) [ ] { 00000020 } 
+00000020 lit      00000003 ( 00000001 00000002 00000003 ) [ ] { } 
+00000028 go==     0000003c ( 00000001 00000002 00000003 00000003 ) [ ] { } 
+0000003c drop2             ( 00000001 00000002 ) [ ] { } 
+00000040 troff             ( ) [ ] { } 
+</code></pre>
+<p>The columns of the trace output are:</p>
+<ol style="list-style-type: decimal">
+<li>Program counter (program cell address of current FVM instruction)</li>
+<li>Freelang reserved word name (of current FVM instruction)</li>
+<li>Literal value or address (complex instructions only)</li>
+<li>State of stacks just <em>prior</em> to executing current FVM instruction:
+<ul>
+<li>( ) = elements on data stack (topmost element on right)</li>
+<li>[ ] = elements on software stack (topmost element on right)</li>
+<li>{ } = elements on return stack (topmost element on right)</li>
+</ul></li>
+</ol>
+<h3 id="hands-on">Hands on</h3>
+<p>Now it's your turn. Try running the unmodified 'tracing.fl' program. Examine the trace output to understand how the program is executed. Decompile the program to understand how it is compiled. Then try modifying the program.</p>
+<h4 id="run">Run</h4>
+<p>Follow these simple steps to run the unmodified program:</p>
+<ol style="list-style-type: decimal">
+<li>Open a terminal emulator (GNOME Terminal is recommended).</li>
+<li>Change directory to your unzipped Freeputer directory.</li>
+<li>Change directory as follows: <code>cd tutorial/tracing/</code></li>
+<li>Run the unmodified program by: <code>./fvm16-16MB</code></li>
+<li>To view the trace output, open 'std.trc' in your favourite text editor. Or quickly view its contents by: <code>cat std.trc</code></li>
+</ol>
+<h3 id="compile">Compile</h3>
+<p>If you would like to modify and recompile the 'tracing.fl' program, either use flx or follow the instructions below to use flc:</p>
+<ol start="6" style="list-style-type: decimal">
+<li>Ensure that the 'apps/compiler/work' directory is empty. If there are files in the 'apps/compiler/work' directory from a previous compiler session, delete them. Proceed once you are sure that directory is empty.</li>
+<li>Copy the entire contents of the 'tutorial/tracing' directory to the 'apps/compiler/work' directory. From the 'tutorial/tracing' directory do: <code>cp * ../../apps/compiler/work</code></li>
+<li>Verify that the output of <code>ls ../../apps/compiler/work/</code> is: <br/><code>fvm16-16MB  rom.fp  std.blk  std.exp  std.imp  std.trc  tracing.fl</code></li>
+<li>Open 'apps/compiler/work/tracing.fl' in your favourite text editor. Make your desired changes to the program and save your changes.</li>
+<li>Change directory as follows: <code>cd ../../apps/compiler</code></li>
+<li>Compile your newly modified source by: <code>./flc.sh work/tracing.fl work/rom.fp</code></li>
+<li>Check 'apps/compilter/std.trc' to ensure that compiling succeeded.</li>
+<li>Change directory as follows: <code>cd work</code></li>
+<li>Run your program by: <code>./fvm16-16MB</code> <br/>Note: a nice alternative showing exit status is: <code>./fvm16-16MB ; echo $? ; head std.trc</code></li>
+<li>To view the trace output, open 'apps/compiler/work/std.trc' in your favourite text editor and examine it. It may contain an error message instead of trace output if there was something wrong with your program that caused the FVM to trap.</li>
+<li>Change directory back to 'apps/compiler': <code>cd ..</code></li>
+<li>Either return to step 11. and repeat or proceed to step 18.</li>
+</ol>
+<h3 id="decompile">Decompile</h3>
+<p>If you would like to decompile the compiled 'tracing.fl' program, either use flx or follow the instructions below to use fld:</p>
+<ol start="18" style="list-style-type: decimal">
+<li>Copy the compiled 'rom.fp' (either the original 'tutorial/tracing/rom.fp' or your newly compiled 'apps/compiler/work/rom.fp') to the work directory of the fld decompiler, such as by: <code>cp work/rom.fp ../decompiler/work</code></li>
+<li>Change directory to 'apps/decompiler' such as by: <code>cd ../decompiler</code></li>
+<li>Decompile 'rom.fp' by: <code>./fld.sh work/rom.fp</code></li>
+<li>To view the decompiler output, open 'apps/decompiler/std.trc' in your favourite text editor. As you <a href="#use-fld-the-freelang-decompiler">know</a>, it should look something like this:</li>
+</ol>
+<pre><code>fld.fl decompiler
+DECOMPILED PROGRAM:
+
+0 :   : tron
+4 :   : lit
+8 :   : 3
+12 :   : lit
+16 :   : 16777216
+20 :   : !
+24 :   : call
+28 :   : 76
+32 :   : lit
+36 :   : 3
+40 :   : go==
+44 :   : 60
+48 :   : lit
+52 :   : 4
+56 :   : halt
+60 :   : drop2
+64 :   : troff
+68 :   : halt
+72 :   : ===
+76 :   : lit
+80 :   : 1
+84 :   : lit
+88 :   : 2
+92 :   : lit
+96 :   : 16777216
+100 :   : @
+104 :   : ret
+108 :   : ===</code></pre>
+<h3 id="next-steps">Next steps</h3>
+<p>You have now learned the grammar and syntax of Freelang. The next step is to learn its small <a href="#review-the-fvm-instruction-set">core vocabulary</a>. Experiment with it. See also the <a href="#a-note-on-deployment">deployment</a> notes.</p>
+<h2 id="now-over-to-you">Now over to you</h2>
+<p>What will you make with Freeputer?</p>
+<h2 id="the-future">The future</h2>
+<p>Please help to keep Freeputer ( ) [ ] { } forever free</p>
+<hr />
+<p>Copyright © Robert Gollagher 2015</p>
+<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 8 August 2015 at 00:09.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
+<p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />Robert Gollagher may be reached at</p>
+<div class="figure">
+<img src="doc/img/abc.png" />
+</div>
+<hr />
