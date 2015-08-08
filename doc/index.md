@@ -65,7 +65,7 @@ Please visit the Freeputer project on [GitHub](https://github.com/RobertGollaghe
 
 Copyright © Robert Gollagher 2015  
 This document was written by Robert Gollagher.  
-This document was first published on 8 August 2015.  
+This document was first published on 7 August 2015.  
 This document was last updated on 8 August 2015 at 13:55.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
