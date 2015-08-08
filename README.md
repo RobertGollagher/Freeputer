@@ -258,7 +258,7 @@ This Freeputer distribution is for 32-bit Linux running on x86 hardware.
 
 ### 2. Download Freeputer
 
-Download and unzip the Freeputer distribution from [GitHub](https://github.com/RobertGollagher/Freeputer) or [BitBucket](https://bitbucket.org/RobertGollagher/freeputer), then follow the instructions below. Note: these instructions were prepared on Debian 7.8.
+Download and unzip the Freeputer distribution from [GitHub](https://github.com/RobertGollagher/Freeputer) or [BitBucket](https://bitbucket.org/RobertGollagher/freeputer/src), then follow the instructions below. Note: these instructions were prepared on Debian 7.8.
 
 ### 3. Run the FreeLine text editor
 
