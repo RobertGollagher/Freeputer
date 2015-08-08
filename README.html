@@ -34,7 +34,7 @@
 <h2 id="hello-world">Hello world</h2>
 <p>Here is the output from a simple Freeputer program:</p>
 <div class="figure">
-<img src="doc/img/Hello-World.png" alt="Hello from Freeputer" /><p class="caption">Hello from Freeputer</p>
+<img src="doc/img/Hello-World.png" title="Hello from Freeputer" alt="Hello from Freeputer" /><p class="caption">Hello from Freeputer</p>
 </div>
 <p>As you can see, the program greets the user in Chinese and English.</p>
 <p>The program was written in Freelang. Freelang is a stack-oriented, concatenative, compiled language for Freeputer. It is the first language available for the FVM. It is a fairly low-level language, whose core vocabulary is essentially that of the FVM instruction set, but it is surprisingly productive and capable. It is inherently extensible. Its syntax uses reverse Polish notation (RPN).</p>
@@ -98,7 +98,7 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 </code></pre>
 <p>And here is what Freelang looks like with syntax highlighting:</p>
 <div class="figure">
-<img src="doc/img/Hello-Highlighted.png" alt="Freelang syntax highlighting" /><p class="caption">Freelang syntax highlighting</p>
+<img src="doc/img/Hello-Highlighted.png" title="Freelang syntax highlighting" alt="Freelang syntax highlighting" /><p class="caption">Freelang syntax highlighting</p>
 </div>
 <p>Freelang is not Forth but its syntax is similar enough that Forth highlighting generally works quite well for Freelang. This allows you to leverage existing tools. The above screenshot was taken in <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> 3.4.2 set to Forth highlight mode.</p>
 <h2 id="how-can-i-try-freeputer">How can I try Freeputer?</h2>
@@ -201,31 +201,31 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li>Start FreeLine: <code>./fl.sh</code></li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Editing-Mode.png" alt="FreeLine in Editing Mode" /><p class="caption">FreeLine in Editing Mode</p>
+<img src="doc/img/FreeLine-Editing-Mode.png" title="FreeLine in Editing Mode" alt="FreeLine in Editing Mode" /><p class="caption">FreeLine in Editing Mode</p>
 </div>
 <ol start="6" style="list-style-type: decimal">
 <li>FreeLine starts in Editing Mode. This is indicated by the word EDITING shown in the status row at the bottom of the terminal. In this mode you can create and edit text. To issue commands (such as to save, import or export) you must enter Escape Mode. To enter Escape Mode hit <strong>Esc</strong>. This will make a yellow menu appear.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Escape-Mode.png" alt="Freeline in Escape Mode" /><p class="caption">Freeline in Escape Mode</p>
+<img src="doc/img/FreeLine-Escape-Mode.png" title="Freeline in Escape Mode" alt="Freeline in Escape Mode" /><p class="caption">Freeline in Escape Mode</p>
 </div>
 <ol start="7" style="list-style-type: decimal">
 <li>Now press <strong>s</strong> to save your text. The message TEXT SAVED will appear. Your text has been saved to stdblk. You can now immediately continue editing your text. <br/><br>Note: Be aware that FreeLine never automatically saves your changes. It is up to you to remember to save your work. If you make changes that you do not wish to keep, simply exit FreeLine without saving.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Save.png" alt="TEXT SAVED message confirms successful save" /><p class="caption">TEXT SAVED message confirms successful save</p>
+<img src="doc/img/FreeLine-Save.png" title="TEXT SAVED message confirms successful save" alt="TEXT SAVED message confirms successful save" /><p class="caption">TEXT SAVED message confirms successful save</p>
 </div>
 <ol start="8" style="list-style-type: decimal">
 <li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>x</strong> to export your text. The message TEXT EXPORTED will appear. Your text has been exported to stdexp. You can now immediately continue editing your text. <br/><br>Note: If you now open 'std.exp' in some other text editor you will see that your text was indeed exported to that text file. WARNING: Be aware that the next time you start FreeLine the contents of 'std.exp' will automatically be erased.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Export.png" alt="TEXT EXPORTED message confirms successful export" /><p class="caption">TEXT EXPORTED message confirms successful export</p>
+<img src="doc/img/FreeLine-Export.png" title="TEXT EXPORTED message confirms successful export" alt="TEXT EXPORTED message confirms successful export" /><p class="caption">TEXT EXPORTED message confirms successful export</p>
 </div>
 <ol start="9" style="list-style-type: decimal">
 <li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>h</strong> to view help. Using this help screen as a guide you can now explore the other functions of FreeLine.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Help.png" alt="Freeline Help" /><p class="caption">Freeline Help</p>
+<img src="doc/img/FreeLine-Help.png" title="Freeline Help" alt="Freeline Help" /><p class="caption">Freeline Help</p>
 </div>
 <ol start="10" style="list-style-type: decimal">
 <li><p>Now quit FreeLine: enter Escape Mode by hitting <strong>Esc</strong> then press <strong>q</strong>.</p></li>
@@ -235,11 +235,11 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li><p>Page down through the source code by hitting <strong>PageDn</strong> repeatedly. What you are looking at is the Freelang program for the FreeLine text editor itself. This what the Freelang language looks like.</p></li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Source-Code.png" alt="The Freelang source code for FreeLine, viewed in FreeLine" /><p class="caption">The Freelang source code for FreeLine, viewed in FreeLine</p>
+<img src="doc/img/FreeLine-Source-Code.png" title="The Freelang source code for FreeLine, viewed in FreeLine" alt="The Freelang source code for FreeLine, viewed in FreeLine" /><p class="caption">The Freelang source code for FreeLine, viewed in FreeLine</p>
 </div>
 <p>You can use <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> in Forth highlight mode to view Freelang with syntax highlighting. Usually the only thing not properly highlighted are those particular multiple-line comments which in Freelang begin and end with triple parentheses.</p>
 <div class="figure">
-<img src="doc/img/gedit-FreeLine.png" alt="The Freelang source code for FreeLine, viewed in gedit" /><p class="caption">The Freelang source code for FreeLine, viewed in gedit</p>
+<img src="doc/img/gedit-FreeLine.png" title="The Freelang source code for FreeLine, viewed in gedit" alt="The Freelang source code for FreeLine, viewed in gedit" /><p class="caption">The Freelang source code for FreeLine, viewed in gedit</p>
 </div>
 <p>You have now learned how to edit, save, import and export text in FreeLine. Although FreeLine is of course not being presented here as a serious competitor to existing text editors, it is a signficant demonstration of what can be achieved on the Freeputer platform. Remember that FreeLine has no operating system dependencies and will run on a bare metal FVM implementation. It is a simple editor free of distractions.</p>
 <p>FreeLine currently has some known limitations:</p>
@@ -305,16 +305,13 @@ OK     : All tests passed</code></pre>
 <li>Change directory to your unzipped Freeputer directory.</li>
 <li>Change directory as follows: <code>cd dev/xcompiler/ruby</code></li>
 <li>Here create an empty called 'add.fl' by: <code>touch add.fl</code></li>
-<li>Open 'add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</li>
-</ol>
-<pre class="forth"><code>\ A simple Freelang program that adds 3 to 2 and leaves
+<li><p>Open 'add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</p>
+<pre><code>\ A simple Freelang program that adds 3 to 2 and leaves
 \   the result, namely 5, on the data stack.
 
-2 3 + halt
-</code></pre>
-<ol start="6" style="list-style-type: decimal">
+2 3 + halt</code></pre></li>
 <li>Compile 'add.fl' by: <code>./flx.rb add.fl rom.fp</code></li>
-<li>rom.fp now contains your compiled program as FVM bytecode.</li>
+<li><p>rom.fp now contains your compiled program as FVM bytecode.</p></li>
 </ol>
 <p>With a hex editor you would now see that rom.fp is a binary file of size 28 bytes, consisting of 7 words each 32-bits wide and having the values:</p>
 <pre><code>0x00000001
@@ -516,14 +513,11 @@ ANONYMOUS STRINGS
 <li>Change directory to your unzipped Freeputer directory.</li>
 <li>Change directory as follows: <code>cd apps/compiler</code></li>
 <li>Create an empty file called 'add.fl' in the work subdirectory by: <code>touch work/add.fl</code></li>
-<li>Open 'work/add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</li>
-</ol>
-<pre class="forth"><code>\ A simple Freelang program that adds 3 to 2 and leaves
+<li><p>Open 'work/add.fl' in your favourite text editor and copy and paste the following into it. Then save the file and exit your text editor.</p>
+<pre><code>\ A simple Freelang program that adds 3 to 2 and leaves
 \   the result, namely 5, on the data stack.
 
-2 3 + halt
-</code></pre>
-<ol start="6" style="list-style-type: decimal">
+2 3 + halt</code></pre></li>
 <li><p>Compile 'work/add.fl' by: <code>./flc.sh work/add.fl work/rom.fp</code> <br/><br/><strong>WARNING: Be very careful that you compile to 'work/rom.fp' and not accidentally to 'rom.fp' otherwise you will destroy the compiler.</strong> <br/><br/>The compiled flc compiler resides in 'apps/compiler/rom.fp' and if you accidentally overwrite it or accidentally delete it you will no longer be able to compile. To recover you can either copy 'dev/freelang/compiler/bin/rom.fp' to 'apps/compiler/rom.fp' or use the <a href="#use-flx-the-freelang-cross-compiler">flx</a> cross compiler to recompile flc from 'dev/freelang/compiler/src/flc.fl'.</p></li>
 <li><p>'work/rom.fp' now contains your compiled program as FVM bytecode unless there was an error during compilation. You <em>must</em> check 'std.trc' to see if there was an error during compilation as errors are <em>not</em> reported to the terminal.</p></li>
 </ol>
@@ -604,171 +598,503 @@ DECOMPILED PROGRAM:
 <ol style="list-style-type: decimal">
 <li>Opcode number</li>
 <li>FVM instruction name</li>
-<li>Equivalent reserved word in Freelang (in <strong>bold</strong>)</li>
+<li>Equivalent reserved word in Freelang</li>
 <li>Software stack ( -- ), data stack [ -- ] and reserve stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
 <li>Notes; 'cv' means &quot;the value in the next program cell&quot;</li>
 </ol>
 <p>The terms &quot;branch&quot; and &quot;jump&quot; can be used as synonyms. However, &quot;branch&quot; is often used to mean &quot;to conditionally branch while <em>preserving</em> at least one stack operand used to evaluate that condition,&quot; whereas &quot;jump&quot; is often used to mean &quot;to unconditionally branch, or to conditionally branch after <em>consuming</em> all stack operands used to evaluate that condition.&quot; This explains the parallel series of instructions beginning with BR and J.</p>
 <p>The constant TRUE is 1. The constant FALSE is 0.</p>
 <p>The following list is for reference. You do not need to memorize it now. You should focus on learning the Freelang names (e.g. remember the reserved word <strong>go</strong> not JMP). Learn them one at a time as you begin writing Freelang programs. After a while it is quite easy to remember most of them. It is illegal to redefine a reserved word in Freelang.</p>
-<p><u>Simple instruction (1):</u></p>
-<ol start="0" style="list-style-type: decimal">
-<li>WALL : <strong>===</strong> ( -- ) [ -- ] { -- } <br/>This instruction is used to end data blocks (see DATA) and also inserted by the Freelang compiler prior to word declarations and at the end of a program. Note: trapWall occurs if hit (protection against program overflow). Note: the FVM automatically fills system memory with WALLs (0s) upon start up.</li>
-</ol>
-<p><u>Complex instructions (37):</u></p>
-<ol style="list-style-type: decimal">
-<li><p>LIT ( -- n1 ) [ -- ] { -- } <br/><code>push cv to DS</code></p></li>
-<li><p>CALL ( -- ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to cv</code></p></li>
-<li><p>JMP : <strong>go</strong> ( -- ) [ -- ] { -- } <br/><code>jump to cv</code></p></li>
-<li><p>BRGZ : <strong>go[&gt;0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt; 0 then branch to cv</code></p></li>
-<li><p>BRGEZ : <strong>go[&gt;=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt;= 0 then branch to cv</code></p></li>
-<li><p>BRZ : <strong>go[==0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 == 0 then branch to cv</code></p></li>
-<li><p>BRNZ : <strong>go[!=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 != 0 then branch to cv</code></p></li>
-<li><p>BRLEZ : <strong>go[&lt;=0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt;= 0 then branch to cv</code></p></li>
-<li><p>BRLZ : <strong>go[&lt;0]</strong> ( n1 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt; 0 then branch to cv</code></p></li>
-<li><p>BRG : <strong>go[&gt;]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt; n2 then branch to cv</code></p></li>
-<li><p>BRGE : <strong>go[&gt;=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &gt;= n2 then branch to cv</code></p></li>
-<li><p>BRE : <strong>go[==]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 == n2 then branch to cv</code></p></li>
-<li><p>BRNE : <strong>go[!=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 != n2 then branch to cv</code></p></li>
-<li><p>BRLE : <strong>go[&lt;=]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt;= n2 then branch to cv</code></p></li>
-<li><p>BRL : <strong>go[&lt;]</strong> ( n1 n2 -- n1 ) [ -- ] { -- } <br/><code>if n1 &lt; n2 then branch to cv</code></p></li>
-<li><p>JGZ : <strong>go&gt;0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &gt; 0 then jump to cv</code></p></li>
-<li><p>JGEZ : <strong>go&gt;=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &gt;= 0 then jump to cv</code></p></li>
-<li><p>JZ : <strong>go==0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 == 0 then jump to cv</code></p></li>
-<li><p>JNZ : <strong>go!=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 != 0 then jump to cv</code></p></li>
-<li><p>JLEZ : <strong>go&lt;=0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &lt;= 0 then jump to cv</code></p></li>
-<li><p>JLZ : <strong>go&lt;0</strong> ( n1 -- ) [ -- ] { -- } <br/><code>if n1 &lt; 0 then jump to cv</code></p></li>
-<li><p>JG : <strong>go&gt;</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &gt; n2 then jump to cv</code></p></li>
-<li><p>JGE : <strong>go&gt;=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &gt;= n2 then jump to cv</code></p></li>
-<li><p>JE : <strong>go==</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 == n2 then jump to cv</code></p></li>
-<li><p>JNE : <strong>go!=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 != n2 then jump to cv</code></p></li>
-<li><p>JLE : <strong>go&lt;=</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if n1 &lt;= n2 then jump to cv</code></p></li>
-<li><p>JL : <strong>go&lt;</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>if then n1 &lt; n2 jump to cv</code></p></li>
-<li><p>READOR : <strong>reador</strong> ( -- n1 ) [ -- ] { -- } <br/><code>read from stream or branch to cv if I/O error</code></p></li>
-<li><p>WRITOR : <strong>writor</strong> ( n1 -- ) [ -- ] { -- } <br/><code>write n1 to stream or branch to cv if I/O error</code></p></li>
-<li><p>TRACOR : <strong>tracor</strong> ( n1 -- ) [ -- ] { -- } <br/><code>trace (that is, write) n1 to stdtrc or branch to cv if I/O error</code></p></li>
-<li><p>GETOR : <strong>getor</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>get from a1 of block device or branch to cv if I/O error</code></p></li>
-<li><p>PUTOR : <strong>putor</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>put n1 to a1 of block device or branch to cv if I/O error</code></p></li>
-<li><p>READORB : <strong>readorb</strong> ( -- b1 ) [ -- ] { -- } <br/><code>read byte from stream or branch to cv if I/O error</code></p></li>
-<li><p>WRITORB : <strong>writorb</strong> ( b1 -- ) [ -- ] { -- } <br/><code>write byte b1 to stream or branch to cv if I/O error</code></p></li>
-<li><p>TRACORB : <strong>tracorb</strong> ( b1 -- ) [ -- ] { -- } <br/><code>trace (that is, write) byte b1 to stdtrc or branch to cv if I/O error</code></p></li>
-<li><p>GETORB : <strong>getorb</strong> ( a1 -- b1 ) [ -- ] { -- } <br/><code>get byte b1 from a1 of block device or branch to cv if I/O error</code></p></li>
-<li><p>PUTORB : <strong>putorb</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>put byte b1 to a1 of block device or branch to cv if I/O error</code></p></li>
-</ol>
-<p><u>Simple instructions (111):</u></p>
-<ol start="145" style="list-style-type: decimal">
-<li><p>EXIT : <strong>ret</strong> ( -- ) [ -- ] { r1 -- } <br/><code>pop r1 from RS and branch to r1</code></p></li>
-<li><p>DCALL : <strong>invoke</strong> ( a1 -- ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to a1</code></p></li>
-<li><p>RDCALL : <strong>[invoke]</strong> ( a1 -- a1 ) [ -- ] { -- r1 } <br/><code>push return address to RS then jump to a1</code></p></li>
-<li><p>DJMP : <strong>fly</strong> ( a1 -- ) [ -- ] { -- } <br/><code>jump to a1</code></p></li>
-<li><p>SWAP : <strong>swap</strong> ( n1 n2 -- n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>OVER : <strong>over</strong> ( n1 n2 -- n1 n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>ROT : <strong>rot</strong> ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>TOR : <strong>tor</strong> ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>LEAP : <strong>leap</strong> ( n1 n2 n3 -- n1 n2 n3 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>NIP : <strong>nip</strong> ( n1 n2 -- n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>TUCK : <strong>tuck</strong> ( n1 n2 -- n2 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>REV : <strong>rev</strong> ( n1 n2 n3 -- n3 n2 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>RPUSH : <strong>rpush</strong> ( n1 -- ) [ -- ] { -- n1 } <br/><code>move n1 from DS to RS</code></p></li>
-<li><p>RPOP : <strong>rpop</strong> ( -- n1 ) [ -- ] { n1 -- } <br/><code>move n1 from RS to DS</code></p></li>
-<li><p>DROP : <strong>drop</strong> ( n1 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DROP2 : <strong>drop2</strong> ( n1 n2 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DROP3 : <strong>drop3</strong> ( n1 n2 n3 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DROP4 : <strong>drop4</strong> ( n1 n2 n3 n4 -- ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DUP : <strong>dup</strong> ( n1 -- n1 n1 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DUP2 : <strong>dup2</strong> ( n1 n2 -- n1 n2 n1 n2 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DUP3 : <strong>dup3</strong> ( n1 n2 n3 -- n1 n2 n3 n1 n2 n3 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>DUP4 : <strong>dup4</strong> ( n1 n2 n3 n4 -- n1 n2 n3 n4 n1 n2 n3 n4 ) [ -- ] { -- } <br/><code>stack manipulation</code></p></li>
-<li><p>HOLD : <strong>hold</strong> ( n1 -- n1 ) [ n1 -- ] { -- } <br/><code>copy top element of DS to SS</code></p></li>
-<li><p>HOLD2 : <strong>hold2</strong> ( n1 n2 -- n1 n2 ) [ n1 n2 -- ] { -- } <br/><code>copy top 2 elements of DS to SS</code></p></li>
-<li><p>HOLD3 : <strong>hold3</strong> ( n1 n2 n3 -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- } <br/><code>copy top 3 elements of DS to SS</code></p></li>
-<li><p>HOLD4 : <strong>hold4</strong> ( n1 n2 n3 n4 -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- } <br/><code>copy top 4 elements of DS to SS</code></p></li>
-<li><p>SPEEK : <strong>speek</strong> ( -- n1 ) [ n1 -- n1 ] { -- } <br/><code>copy top element of SS to DS</code></p></li>
-<li><p>SPEEK2 : <strong>speek2</strong> ( -- n1 n2 ) [ n1 n2 -- n1 n2 ] { -- } <br/><code>copy top 2 elements of SS to DS</code></p></li>
-<li><p>SPEEK3 : <strong>speek3</strong> ( -- n1 n2 n3 ) [ n1 n2 n3 -- n1 n2 n3 ] { -- } <br/><code>copy top 3 elements of SS to DS</code></p></li>
-<li><p>SPEEK4 : <strong>speek4</strong> ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- n1 n2 n3 n4 ] { -- } <br/><code>copy top 4 elements of SS to DS</code></p></li>
-<li><p>SPUSH : <strong>spush</strong> ( n1 -- ) [ -- n1 ] { -- } <br/><code>move top element from DS to SS</code></p></li>
-<li><p>SPUSH2 : <strong>spush2</strong> ( n1 n2 -- ) [ -- n1 n2 ] { -- } <br/><code>move top 2 elements from DS to SS</code></p></li>
-<li><p>SPUSH3 : <strong>spush3</strong> ( n1 n2 n3 -- ) [ -- n1 n2 n3 ] { -- } <br/><code>move top 3 elements from DS to SS</code></p></li>
-<li><p>SPUSH4 : <strong>spush4</strong> ( n1 n2 n3 n4 -- ) [ -- n1 n2 n3 n4 ] { -- } <br/><code>move top 4 elements from DS to SS</code></p></li>
-<li><p>SPOP : <strong>spop</strong> ( -- n1 ) [ n1 -- ] { -- } <br/><code>move top element from SS to DS</code></p></li>
-<li><p>SPOP2 : <strong>spop2</strong> ( -- n1 n2 ) [ n1 n2 -- ] { -- } <br/><code>move top 2 elements from SS to DS</code></p></li>
-<li><p>SPOP3 : <strong>spop3</strong> ( -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- } <br/><code>move top 3 elements from SS to DS</code></p></li>
-<li><p>SPOP4 : <strong>spop4</strong> ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- } <br/><code>move top 4 elements from SS to DS</code></p></li>
-<li><p>DEC : <strong>dec</strong> ( n1 -- n1-1 ) [ -- ] { -- } <br/><code>decrement n1 by 1</code></p></li>
-<li><p>DECW : <strong>decw</strong> ( n1 -- n1-4 ) [ -- ] { -- } <br/><code>decrement n1 by 4 (word size)</code></p></li>
-<li><p>DEC2W : <strong>dec2w</strong> ( n1 -- n1-8 ) [ -- ] { -- } <br/><code>decrement n1 by 8 (twice word size)</code></p></li>
-<li><p>INC : <strong>inc</strong> ( n1 -- n1+1 ) [ -- ] { -- } <br/><code>increment n1 by 1</code></p></li>
-<li><p>INCW : <strong>incw</strong> ( n1 -- n1+4 ) [ -- ] { -- } <br/><code>increment n1 by 4 (word size)</code></p></li>
-<li><p>INC2W : <strong>inc2w</strong> ( n1 -- n1+8 ) [ -- ] { -- } <br/><code>increment n1 by 8 (twice word size)</code></p></li>
-<li><p>LOAD : <strong>@</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>load value from a1 (memory address)</code></p></li>
-<li><p>STORE : <strong>!</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>store n1 to a1 (memory address)</code></p></li>
-<li><p>RLOAD : <strong>[@]</strong> ( a1 -- a1 n1 ) [ -- ] { -- } <br/><code>load value from a1 (memory address)</code></p></li>
-<li><p>LOADB : <strong><span class="citation">@b</span></strong> ( a1 -- b1 ) [ -- ] { -- } <br/><code>load byte value from a1 (memory address)</code></p></li>
-<li><p>STOREB : <strong>!b</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>store byte value b1 to a1 (memory address)</code></p></li>
-<li><p>RLOADB : <strong><span class="citation">[@b]</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from a1 (memory address)</code></p></li>
-<li><p>PLOAD : <strong>@@</strong> ( a1 -- n1 ) [ -- ] { -- } <br/><code>load value from address loaded from a1 (memory pointer)</code></p></li>
-<li><p>PSTORE : <strong>@!</strong> ( n1 a1 -- ) [ -- ] { -- } <br/><code>store n1 to address loaded from a1 (memory pointer)</code></p></li>
-<li><p>RPLOAD : <strong>[@@]</strong> ( a1 -- a1 n1 ) [ -- ] { -- } <br/><code>load value from address loaded from a1 (memory pointer)</code></p></li>
-<li><p>PLOADB : <strong>@<span class="citation">@b</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from address loaded from a1 (memory pointer)</code></p></li>
-<li><p>PSTOREB : <strong>@!b</strong> ( b1 a1 -- ) [ -- ] { -- } <br/><code>store byte value b1 to address loaded from a1 (memory pointer)</code></p></li>
-<li><p>RPLOADB : <strong><span class="citation">[@@b]</span></strong> ( a1 -- a1 b1 ) [ -- ] { -- } <br/><code>load byte value from address loaded from a1 (memory pointer)</code></p></li>
-<li><p>ADD : <strong>+</strong> ( n1 n2 -- n1+n2 ) [ -- ] { -- } <br/><code>addition</code></p></li>
-<li><p>SUB : <strong>-</strong> ( n1 n2 -- n1-n2 ) [ -- ] { -- } <br/><code>subtraction</code></p></li>
-<li><p>MUL : <strong>*</strong> ( n1 n2 -- n1*n2 ) [ -- ] { -- } <br/><code>multiplication</code></p></li>
-<li><p>DIV : <strong>/</strong> ( n1 n2 -- n1/n2 ) [ -- ] { -- } <br/><code>integer division</code></p></li>
-<li><p>MOD : <strong>%</strong> ( n1 n2 -- n1%n2 [ -- ] { -- } <br/><code>modulo</code></p></li>
-<li><p>DIVMOD : <strong>/%</strong> ( n1 n2 -- n1/n2 n1%n2 ) [ -- ] { -- } <br/><code>integer division and modulo</code></p></li>
-<li><p>RADD : <strong>[+]</strong> ( n1 n2 -- n1 n2+n1 ) [ -- ] { -- } <br/><code>addition</code></p></li>
-<li><p>RSUB : <strong>[-]</strong> ( n1 n2 -- n1 n2-n1 ) [ -- ] { -- } <br/><code>reversed subtraction</code></p></li>
-<li><p>RMUL : <strong>[*]</strong> ( n1 n2 -- n1 n2*n1 ) [ -- ] { -- } <br/><code>multiplication</code></p></li>
-<li><p>RDIV : <strong>[\]</strong> ( n1 n2 -- n1 n2\n1 ) [ -- ] { -- } <br/><code>reversed integer division</code></p></li>
-<li><p>RMOD : <strong>[%]</strong> ( n1 n2 -- n1 n2%n1 ) [ -- ] { -- } <br/><code>reversed modulo</code></p></li>
-<li><p>RDIVMOD : <strong>[\%]</strong> ( n1 n2 -- n1 n2\n1 n2%n1 ) [ -- ] { -- } <br/><code>reversed integer division and reversed modulo</code></p></li>
-<li><p>NEG : <strong>neg</strong> ( n1 -- n1*-1 ) [ -- ] { -- } <br/><code>negation</code></p></li>
-<li><p>ABS : <strong>abs</strong> ( n1 -- |n1| ) [ -- ] { -- } <br/><code>absolute value</code></p></li>
-<li><p>AND : <strong>&amp;</strong> ( n1 n2 -- n1&amp;n2 ) [ -- ] { -- } <br/><code>bitwise AND</code></p></li>
-<li><p>OR : <strong>|</strong> ( n1 n2 -- n1|n2 ) [ -- ] { -- } <br/><code>bitwise OR</code></p></li>
-<li><p>XOR : <strong>^</strong> ( n1 n2 -- n1^n2 ) [ -- ] { -- } <br/><code>bitwise XOR</code></p></li>
-<li><p>RAND : <strong>[&amp;]</strong> ( n1 n2 -- n1 n2 n2&amp;n1 ) [ -- ] { -- } <br/><code>bitwise AND</code></p></li>
-<li><p>ROR : <strong>[|]</strong> ( n1 n2 -- n1 n2 n2|n1 ) [ -- ] { -- } <br/><code>bitwise OR</code></p></li>
-<li><p>RXOR : <strong>[^]</strong> ( n1 n2 -- n1 n2 n2^n1) [ -- ] { -- } <br/><code>bitwise XOR</code></p></li>
-<li><p>SHL : <strong>&lt;&lt;</strong> ( n1 n2 -- n1&lt;&lt;n2 ) [ -- ] { -- } <br/><code>bitshift n1 left by n2 bits</code></p></li>
-<li><p>SHR : <strong>&gt;&gt;</strong> ( n1 n2 -- n1&gt;&gt;n2) [ -- ] { -- } <br/><code>bitshift n1 right by n2 bits</code></p></li>
-<li><p>RSHL : <strong>[&lt;&lt;]</strong> ( n1 n2 -- n1 n2 n1&lt;&lt;n2 ) [ -- ] { -- } <br/><code>bitshift n1 left by n2 bits</code></p></li>
-<li><p>RSHR : <strong>[&gt;&gt;]</strong> ( n1 n2 -- n1 n2 n1&gt;&gt;n2) [ -- ] { -- } <br/><code>bitshift n1 right by n2 bits</code></p></li>
-<li><p>MOVE : <strong>move</strong> ( numWords src dest -- ) [ -- ] { -- } <br/><code>copy memory (negative numWords = descending copy)</code></p></li>
-<li><p>FILL : <strong>fill</strong> ( numWords n1 dest -- ) [ -- ] { -- } <br/><code>fill memory with value n1</code></p></li>
-<li><p>FIND : <strong>find</strong> ( numWords n1 src -- wordIndex ) [ -- ] { -- } <br/><code>find index (-1 if not found) of 1st instance of n1 from src upwards</code> <br/><code>(downwards if negative numWords)</code></p></li>
-<li><p>MATCH : <strong>match</strong> ( numWords src dest -- TRUE/FALSE) [ -- ] { -- } <br/><code>see if word sequences ('strings') match</code></p></li>
-<li><p>MOVEB : <strong>moveb</strong> ( numBytes src dest -- ) [ -- ] { -- } <br/><code>copy memory (negative numBytes = descending copy)</code></p></li>
-<li><p>FILLB : <strong>fillb</strong> ( numBytes b1 dest -- ) [ -- ] { -- } <br/><code>fill memory with byte value b1</code></p></li>
-<li><p>FINDB : <strong>findb</strong> ( numBytes b1 src -- byteIndex ) [ -- ] { -- } <br/><code>find index (-1 if not found) of 1st instance of byte value b1 from src upwards</code> <br/><code>(downwards if negative numBytes)</code></p></li>
-<li><p>MATCHB : <strong>matchb</strong> ( numBytes src dest -- TRUE/FALSE ) [ -- ] { -- } <br/><code>see if byte sequences ('strings') match</code></p></li>
-<li><p>HOMIO : <strong>homio</strong> ( -- ) [ -- ] { -- } <br/><code>set I/O channels to default channels:</code> <br/><code>READOR and READORB will subsequently use stdin</code> <br/><code>WRITOR and WRITORB will subsequently use stdout</code> <br/><code>GETOR, GETORB, PUTOR and PUTORB will subsequently use stdblk</code></p></li>
-<li><p>RCHAN : <strong>rchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change read channel to stream having ID n1 (affects future READOR, READORB operations)</code> <br/><code>note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently trap)</code></p></li>
-<li><p>WCHAN : <strong>wchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change write channel to stream having ID n1 (affects future WRITOR, WRITORB operations)</code> <br/><code>note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently trap)</code></p></li>
-<li><p>GCHAN : <strong>gchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change get channel to block device having ID n1 (affects future GETOR, GETORB operations)</code> <br/><code>note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently trap)</code></p></li>
-<li><p>PCHAN : <strong>pchan</strong> ( n1 -- ) [ -- ] { -- } <br/><code>change put channel to block device having ID n1 (affects future PUTOR, PUTORB operations)</code> <br/><code>note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently trap)</code></p></li>
-<li><p>ECODE : <strong>ecode?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: last automated exit code (0 if none or if was success)</code> <br/><code>note: exit code reflects trap number if any (see fvm.s source)</code> <br/><code>note: will always be 0 unless FVM configured to soft reset upon a trap</code></p></li>
-<li><p>RCODE : <strong>rcode?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: last program-request restart code (0 if none)</code> <br/><code>note: 1 indicates reset (soft reset), 2 indicates reboot (hard reset)</code> <br/><code>note: will always be 0 unless reset or reboot since last manual start up</code></p></li>
-<li><p>ROM : <strong>rom?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of ROM in bytes</code> <br/><code>note: cannot be 0</code></p></li>
-<li><p>RAM : <strong>ram?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of RAM in bytes</code> <br/><code>note: will be 0 if FVM has no RAM</code></p></li>
-<li><p>MAP : <strong>map?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of MAP in bytes</code> <br/><code>note: will be 0 if FVM has no memory-mapped devices</code></p></li>
-<li><p>STDBLK : <strong>stdblk?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: size of stdblk in bytes</code> <br/><code>note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would trap on stdblk)</code></p></li>
-<li><p>DS : <strong>ds?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on data stack</code></p></li>
-<li><p>SS : <strong>ss?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on software stack</code></p></li>
-<li><p>RS : <strong>rs?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: maximum number of elements permitted on return stack</code></p></li>
-<li><p>DSN : <strong>dsn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on data stack</code></p></li>
-<li><p>SSN : <strong>ssn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on software stack</code></p></li>
-<li><p>RSN : <strong>rsn?</strong> ( -- n1 ) [ -- ] { -- } <br/><code>FVM metadata: current number of elements on return stack</code></p></li>
-<li><p>TRON : <strong>tron</strong> ( -- ) [ -- ] { -- } <br/><code>turn tracing on (trace goes to stdtrc; slow but useful for debugging programs)</code> <br/><code>note: this has no effect on an FVM configured not to support tracing</code></p></li>
-<li><p>TROFF : <strong>troff</strong> ( -- ) [ -- ] { -- } <br/><code>turn tracing off</code> <br/><code>note: this has no effect on an FVM configured not to support tracing</code></p></li>
-<li><p>RESET : <strong>reset</strong> ( -- ) [ -- ] { -- } <br/><code>reset (that is, soft reset) the FVM</code> <br/><code>note: this wipes FVM stacks and FVM variables but not system memory</code></p></li>
-<li><p>REBOOT : <strong>reboot</strong> ( -- ) [ -- ] { -- } <br/><code>reboot (that is, hard reset) the FVM</code> <br/><code>note: this wipes FVM stacks, wipes FVM variables and wipes system memory</code> <br/><code>note: this has the same effect as a normal manual start up</code> <br/><code>in every respect except that rcode? will return 2 not 0</code></p></li>
-<li><p>HALT : <strong>halt</strong> ( -- ) [ -- ] { -- } <br/><code>halt (that is, shut down indicating success) the FVM</code></p></li>
-<li><p>DATA : <strong>data</strong> ( -- ) [ -- ] { -- } <br/><code>declares the start of a block of data</code> <br/><code>note: next program cell should contain size of data strip in words</code> <br/><code>note: at end of block of data there should be a WALL instruction</code> <br/><code>note: by convention a Freeputer string is stored in such a block</code> <br/><code>note: trapData occurs if hit (protection against program overflow)</code></p></li>
-</ol>
+<pre><code>
+Simple instruction (1)
+======================
+
+0. WALL : === ( -- ) [ -- ] { -- }  
+This instruction is used to end data blocks (see DATA) and  
+also inserted by the Freelang compiler prior to word declarations  
+and at the end of a program.  
+Note: trapWall occurs if hit (protection against program overflow).  
+Note: the FVM automatically fills system memory with WALLs (0s) upon start up.
+
+
+Complex instructions (37)
+=========================
+
+1.   LIT ( -- n1 ) [ -- ] { -- }  
+push cv to DS
+
+2.   CALL ( -- ) [ -- ] { -- r1 }  
+push return address to RS then jump to cv
+
+3.   JMP : go ( -- ) [ -- ] { -- }  
+jump to cv
+
+4.   BRGZ : go[&gt;0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 &gt; 0 then branch to cv
+
+5.   BRGEZ : go[&gt;=0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 &gt;= 0 then branch to cv
+
+6.   BRZ : go[==0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 == 0 then branch to cv
+
+7.   BRNZ : go[!=0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 != 0 then branch to cv
+
+8.   BRLEZ : go[&lt;=0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 &lt;= 0 then branch to cv
+
+9.   BRLZ : go[&lt;0] ( n1 -- n1 ) [ -- ] { -- }  
+if n1 &lt; 0 then branch to cv
+
+10.  BRG : go[&gt;] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 &gt; n2 then branch to cv
+
+11.  BRGE : go[&gt;=] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 &gt;= n2 then branch to cv
+
+12.  BRE : go[==] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 == n2 then branch to cv
+
+13.  BRNE : go[!=] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 != n2 then branch to cv
+
+14.  BRLE : go[&lt;=] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 &lt;= n2 then branch to cv
+
+15.  BRL : go[&lt;] ( n1 n2 -- n1 ) [ -- ] { -- }  
+if n1 &lt; n2 then branch to cv
+
+16.  JGZ : go&gt;0 ( n1 -- ) [ -- ] { -- }  
+if n1 &gt; 0 then jump to cv
+
+17.  JGEZ : go&gt;=0 ( n1 -- ) [ -- ] { -- }  
+if n1 &gt;= 0 then jump to cv
+
+18.  JZ : go==0 ( n1 -- ) [ -- ] { -- }  
+if n1 == 0 then jump to cv
+
+19.  JNZ : go!=0 ( n1 -- ) [ -- ] { -- }  
+if n1 != 0 then jump to cv
+
+20.  JLEZ : go&lt;=0 ( n1 -- ) [ -- ] { -- }  
+if n1 &lt;= 0 then jump to cv
+
+21.  JLZ : go&lt;0 ( n1 -- ) [ -- ] { -- }  
+if n1 &lt; 0 then jump to cv
+
+22.  JG : go&gt; ( n1 n2 -- ) [ -- ] { -- }  
+if n1 &gt; n2 then jump to cv
+
+23.  JGE : go&gt;= ( n1 n2 -- ) [ -- ] { -- }  
+if n1 &gt;= n2 then jump to cv
+
+24.  JE : go== ( n1 n2 -- ) [ -- ] { -- }  
+if n1 == n2 then jump to cv
+
+25.  JNE : go!= ( n1 n2 -- ) [ -- ] { -- }  
+if n1 != n2 then jump to cv
+
+26.  JLE : go&lt;= ( n1 n2 -- ) [ -- ] { -- }  
+if n1 &lt;= n2 then jump to cv
+
+27.  JL : go&lt; ( n1 n2 -- ) [ -- ] { -- }  
+if then n1 &lt; n2 jump to cv
+
+28.  READOR : reador ( -- n1 ) [ -- ] { -- }  
+read from stream or branch to cv if I/O error
+
+29.  WRITOR : writor ( n1 -- ) [ -- ] { -- }  
+write n1 to stream or branch to cv if I/O error
+
+30.  TRACOR : tracor ( n1 -- ) [ -- ] { -- }  
+trace (that is, write) n1 to stdtrc or branch to cv if I/O error
+
+31.  GETOR : getor ( a1 -- n1 ) [ -- ] { -- }  
+get from a1 of block device or branch to cv if I/O error
+
+32.  PUTOR : putor ( n1 a1 -- ) [ -- ] { -- }  
+put n1 to a1 of block device or branch to cv if I/O error
+
+33.  READORB : readorb ( -- b1 ) [ -- ] { -- }  
+read byte from stream or branch to cv if I/O error
+
+34.  WRITORB : writorb ( b1 -- ) [ -- ] { -- }  
+write byte b1 to stream or branch to cv if I/O error
+
+35.  TRACORB : tracorb ( b1 -- ) [ -- ] { -- }  
+trace (that is, write) byte b1 to stdtrc or branch to cv if I/O error
+
+36.  GETORB : getorb ( a1 -- b1 ) [ -- ] { -- }  
+get byte b1 from a1 of block device or branch to cv if I/O error
+
+37.  PUTORB : putorb ( b1 a1 -- ) [ -- ] { -- }  
+put byte b1 to a1 of block device or branch to cv if I/O error
+
+
+Simple instructions (111)
+=========================
+
+145. EXIT : ret ( -- ) [ -- ] { r1 -- }  
+pop r1 from RS and branch to r1
+
+146. DCALL : invoke ( a1 -- ) [ -- ] { -- r1 }  
+push return address to RS then jump to a1
+
+147. RDCALL : [invoke] ( a1 -- a1 ) [ -- ] { -- r1 }  
+push return address to RS then jump to a1
+
+148. DJMP : fly ( a1 -- ) [ -- ] { -- }  
+jump to a1
+
+149. SWAP : swap ( n1 n2 -- n2 n1 ) [ -- ] { -- }  
+stack manipulation
+
+150. OVER : over ( n1 n2 -- n1 n2 n1 ) [ -- ] { -- }  
+stack manipulation
+
+151. ROT : rot ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- }  
+stack manipulation
+
+152. TOR : tor ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- }  
+stack manipulation
+
+153. LEAP : leap ( n1 n2 n3 -- n1 n2 n3 n1 ) [ -- ] { -- }  
+stack manipulation
+
+154. NIP : nip ( n1 n2 -- n2 ) [ -- ] { -- }  
+stack manipulation
+
+155. TUCK : tuck ( n1 n2 -- n2 n1 n2 ) [ -- ] { -- }  
+stack manipulation
+
+156. REV : rev ( n1 n2 n3 -- n3 n2 n1 ) [ -- ] { -- }  
+stack manipulation
+
+157. RPUSH : rpush ( n1 -- ) [ -- ] { -- n1 }  
+move n1 from DS to RS
+
+158. RPOP : rpop ( -- n1 ) [ -- ] { n1 -- }  
+move n1 from RS to DS
+
+159. DROP : drop ( n1 -- ) [ -- ] { -- }  
+stack manipulation
+
+160. DROP2 : drop2 ( n1 n2 -- ) [ -- ] { -- }  
+stack manipulation
+
+161. DROP3 : drop3 ( n1 n2 n3 -- ) [ -- ] { -- }  
+stack manipulation
+
+162. DROP4 : drop4 ( n1 n2 n3 n4 -- ) [ -- ] { -- }  
+stack manipulation
+
+163. DUP : dup ( n1 -- n1 n1 ) [ -- ] { -- }  
+stack manipulation
+
+164. DUP2 : dup2 ( n1 n2 -- n1 n2 n1 n2 ) [ -- ] { -- }  
+stack manipulation
+
+165. DUP3 : dup3 ( n1 n2 n3 -- n1 n2 n3 n1 n2 n3 ) [ -- ] { -- }  
+stack manipulation
+
+166. DUP4 : dup4 ( n1 n2 n3 n4 -- n1 n2 n3 n4 n1 n2 n3 n4 ) [ -- ] { -- }  
+stack manipulation
+
+167. HOLD : hold ( n1 -- n1 ) [ n1 -- ] { -- }  
+copy top element of DS to SS
+
+168. HOLD2 : hold2 ( n1 n2 -- n1 n2 ) [ n1 n2 -- ] { -- }  
+copy top 2 elements of DS to SS
+
+169. HOLD3 : hold3 ( n1 n2 n3 -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- }  
+copy top 3 elements of DS to SS
+
+170. HOLD4 : hold4 ( n1 n2 n3 n4 -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- }  
+copy top 4 elements of DS to SS
+
+171. SPEEK : speek ( -- n1 ) [ n1 -- n1 ] { -- }  
+copy top element of SS to DS
+
+172. SPEEK2 : speek2 ( -- n1 n2 ) [ n1 n2 -- n1 n2 ] { -- }  
+copy top 2 elements of SS to DS
+
+173. SPEEK3 : speek3 ( -- n1 n2 n3 ) [ n1 n2 n3 -- n1 n2 n3 ] { -- }  
+copy top 3 elements of SS to DS
+
+174. SPEEK4 : speek4 ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- n1 n2 n3 n4 ] { -- }  
+copy top 4 elements of SS to DS
+
+175. SPUSH : spush ( n1 -- ) [ -- n1 ] { -- }  
+move top element from DS to SS
+
+176. SPUSH2 : spush2 ( n1 n2 -- ) [ -- n1 n2 ] { -- }  
+move top 2 elements from DS to SS
+
+177. SPUSH3 : spush3 ( n1 n2 n3 -- ) [ -- n1 n2 n3 ] { -- }  
+move top 3 elements from DS to SS
+
+178. SPUSH4 : spush4 ( n1 n2 n3 n4 -- ) [ -- n1 n2 n3 n4 ] { -- }  
+move top 4 elements from DS to SS
+
+179. SPOP : spop ( -- n1 ) [ n1 -- ] { -- }  
+move top element from SS to DS
+
+180. SPOP2 : spop2 ( -- n1 n2 ) [ n1 n2 -- ] { -- }  
+move top 2 elements from SS to DS
+
+181. SPOP3 : spop3 ( -- n1 n2 n3 ) [ n1 n2 n3 -- ] { -- }  
+move top 3 elements from SS to DS
+
+182. SPOP4 : spop4 ( -- n1 n2 n3 n4 ) [ n1 n2 n3 n4 -- ] { -- }  
+move top 4 elements from SS to DS
+
+183. DEC : dec ( n1 -- n1-1 ) [ -- ] { -- }  
+decrement n1 by 1
+
+184. DECW : decw ( n1 -- n1-4 ) [ -- ] { -- }  
+decrement n1 by 4 (word size)
+
+185. DEC2W : dec2w ( n1 -- n1-8 ) [ -- ] { -- }  
+decrement n1 by 8 (twice word size)
+
+186. INC : inc ( n1 -- n1+1 ) [ -- ] { -- }  
+increment n1 by 1
+
+187. INCW : incw ( n1 -- n1+4 ) [ -- ] { -- }  
+increment n1 by 4 (word size)
+
+188. INC2W : inc2w ( n1 -- n1+8 ) [ -- ] { -- }  
+increment n1 by 8 (twice word size)
+
+189. LOAD : @ ( a1 -- n1 ) [ -- ] { -- }  
+load value from a1 (memory address)
+
+190. STORE : ! ( n1 a1 -- ) [ -- ] { -- }  
+store n1 to a1 (memory address)
+
+191. RLOAD : [@] ( a1 -- a1 n1 ) [ -- ] { -- }  
+load value from a1 (memory address)
+
+192. LOADB : @b ( a1 -- b1 ) [ -- ] { -- }  
+load byte value from a1 (memory address)
+
+193. STOREB : !b ( b1 a1 -- ) [ -- ] { -- }  
+store byte value b1 to a1 (memory address)
+
+194. RLOADB : [@b] ( a1 -- a1 b1 ) [ -- ] { -- }  
+load byte value from a1 (memory address)
+
+195. PLOAD : @@ ( a1 -- n1 ) [ -- ] { -- }  
+load value from address loaded from a1 (memory pointer)
+
+196. PSTORE : @! ( n1 a1 -- ) [ -- ] { -- }  
+store n1 to address loaded from a1 (memory pointer)
+
+197. RPLOAD : [@@] ( a1 -- a1 n1 ) [ -- ] { -- }  
+load value from address loaded from a1 (memory pointer)
+
+198. PLOADB : @@b ( a1 -- a1 b1 ) [ -- ] { -- }  
+load byte value from address loaded from a1 (memory pointer)
+
+199. PSTOREB : @!b ( b1 a1 -- ) [ -- ] { -- }  
+store byte value b1 to address loaded from a1 (memory pointer)
+
+200. RPLOADB : [@@b] ( a1 -- a1 b1 ) [ -- ] { -- }  
+load byte value from address loaded from a1 (memory pointer)
+
+201. ADD : + ( n1 n2 -- n1+n2 ) [ -- ] { -- }  
+addition
+
+202. SUB : - ( n1 n2 -- n1-n2 ) [ -- ] { -- }  
+subtraction
+
+203. MUL : * ( n1 n2 -- n1*n2 ) [ -- ] { -- }  
+multiplication
+
+204. DIV : / ( n1 n2 -- n1/n2 ) [ -- ] { -- }  
+integer division
+
+205. MOD : % ( n1 n2 -- n1%n2  [ -- ] { -- }  
+modulo
+
+206. DIVMOD : /% ( n1 n2 -- n1/n2 n1%n2 ) [ -- ] { -- }  
+integer division and modulo
+
+207. RADD : [+] ( n1 n2 -- n1 n2+n1 ) [ -- ] { -- }  
+addition
+
+208. RSUB : [-] ( n1 n2 -- n1 n2-n1 ) [ -- ] { -- }  
+reversed subtraction
+
+209. RMUL : [*] ( n1 n2 -- n1 n2*n1 ) [ -- ] { -- }  
+multiplication
+
+210. RDIV : [/] ( n1 n2 -- n1 n2/n1 ) [ -- ] { -- }  
+reversed integer division
+
+211. RMOD : [%] ( n1 n2 -- n1 n2%n1 ) [ -- ] { -- }  
+reversed modulo
+
+212. RDIVMOD : [/%] ( n1 n2 -- n1 n2/n1 n2%n1 ) [ -- ] { -- }  
+reversed integer division and reversed modulo
+
+213. NEG : neg ( n1 -- n1*-1 ) [ -- ] { -- }  
+negation
+
+214. ABS : abs ( n1 -- |n1| ) [ -- ] { -- }  
+absolute value
+
+215. AND : &amp; ( n1 n2 -- n1&amp;n2 ) [ -- ] { -- }  
+bitwise AND
+
+216. OR : | ( n1 n2 -- n1|n2 ) [ -- ] { -- }  
+bitwise OR
+
+217. XOR : ^ ( n1 n2 -- n1^n2 ) [ -- ] { -- }  
+bitwise XOR
+
+218. RAND : [&amp;] ( n1 n2 -- n1 n2 n2&amp;n1 ) [ -- ] { -- }  
+bitwise AND
+
+219. ROR : [|] ( n1 n2 -- n1 n2 n2|n1 ) [ -- ] { -- }  
+bitwise OR
+
+220. RXOR : [^] ( n1 n2 -- n1 n2 n2^n1) [ -- ] { -- }  
+bitwise XOR
+
+221. SHL : &lt;&lt; ( n1 n2 -- n1&lt;&lt;n2 ) [ -- ] { -- }  
+bitshift n1 left by n2 bits
+
+222. SHR : &gt;&gt; ( n1 n2 -- n1&gt;&gt;n2) [ -- ] { -- }  
+bitshift n1 right by n2 bits
+
+223. RSHL : [&lt;&lt;] ( n1 n2 -- n1 n2 n1&lt;&lt;n2 ) [ -- ] { -- }  
+bitshift n1 left by n2 bits
+
+224. RSHR : [&gt;&gt;] ( n1 n2 -- n1 n2 n1&gt;&gt;n2) [ -- ] { -- }  
+bitshift n1 right by n2 bits
+
+225. MOVE : move ( numWords src dest -- ) [ -- ] { -- }  
+copy memory (negative numWords = descending copy)
+
+226. FILL : fill ( numWords n1 dest -- ) [ -- ] { -- }  
+fill memory with value n1
+
+227. FIND : find ( numWords n1 src -- wordIndex ) [ -- ] { -- }  
+find index (-1 if not found) of 1st instance of n1 from src upwards
+(downwards if negative numWords)
+
+228. MATCH : match ( numWords src dest -- TRUE/FALSE) [ -- ] { -- }  
+see if word sequences (&#39;strings&#39;) match
+
+229. MOVEB : moveb ( numBytes src dest -- ) [ -- ] { -- }  
+copy memory (negative numBytes = descending copy)
+
+230. FILLB : fillb ( numBytes b1 dest -- ) [ -- ] { -- }  
+fill memory with byte value b1
+
+231. FINDB : findb ( numBytes b1 src -- byteIndex ) [ -- ] { -- }  
+find index (-1 if not found) of 1st instance of byte value b1 from src upwards
+(downwards if negative numBytes)
+
+232. MATCHB : matchb ( numBytes src dest -- TRUE/FALSE ) [ -- ] { -- }  
+see if byte sequences (&#39;strings&#39;) match
+
+233. HOMIO : homio ( -- ) [ -- ] { -- }  
+set I/O channels to default channels:
+  READOR and READORB will subsequently use stdin
+  WRITOR and WRITORB will subsequently use stdout
+  GETOR, GETORB, PUTOR and PUTORB will subsequently use stdblk
+
+234. RCHAN : rchan ( n1 -- ) [ -- ] { -- }  
+change read channel to stream having ID n1 (affects future READOR, READORB operations)
+note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently trap)
+
+235. WCHAN : wchan ( n1 -- ) [ -- ] { -- }  
+change write channel to stream having ID n1 (affects future WRITOR, WRITORB operations)
+note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently trap)
+
+236. GCHAN : gchan ( n1 -- ) [ -- ] { -- }  
+change get channel to block device having ID n1 (affects future GETOR, GETORB operations)
+note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently trap)
+
+237. PCHAN : pchan ( n1 -- ) [ -- ] { -- }  
+change put channel to block device having ID n1 (affects future PUTOR, PUTORB operations)
+note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently trap)
+
+238. ECODE : ecode? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: last automated exit code (0 if none or if was success)
+note: exit code reflects trap number if any (see fvm.s source)
+note: will always be 0 unless FVM configured to soft reset upon a trap
+
+239. RCODE : rcode? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: last program-request restart code (0 if none)
+note: 1 indicates reset (soft reset), 2 indicates reboot (hard reset)
+note: will always be 0 unless reset or reboot since last manual start up
+
+240. ROM : rom? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: size of ROM in bytes
+note: cannot be 0
+
+241. RAM : ram? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: size of RAM in bytes
+note: will be 0 if FVM has no RAM
+
+242. MAP : map? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: size of MAP in bytes
+note: will be 0 if FVM has no memory-mapped devices
+
+243. STDBLK : stdblk? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: size of stdblk in bytes
+note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would trap on stdblk)
+
+244. DS : ds? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: maximum number of elements permitted on data stack
+
+245. SS : ss? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: maximum number of elements permitted on software stack
+
+246. RS : rs? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: maximum number of elements permitted on return stack
+
+247. DSN : dsn? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: current number of elements on data stack
+
+248. SSN : ssn? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: current number of elements on software stack
+
+249. RSN : rsn? ( -- n1 ) [ -- ] { -- }  
+FVM metadata: current number of elements on return stack
+
+250. TRON : tron ( -- ) [ -- ] { -- }  
+turn tracing on (trace goes to stdtrc; slow but useful for debugging programs)
+note: this has no effect on an FVM configured not to support tracing
+
+251. TROFF : troff ( -- ) [ -- ] { -- }  
+turn tracing off
+note: this has no effect on an FVM configured not to support tracing
+
+252. RESET : reset ( -- ) [ -- ] { -- }  
+reset (that is, soft reset) the FVM
+note: this wipes FVM stacks and FVM variables but not system memory
+
+253. REBOOT : reboot ( -- ) [ -- ] { -- }  
+reboot (that is, hard reset) the FVM  
+note: this wipes FVM stacks, wipes FVM variables and wipes system memory  
+note: this has the same effect as a normal manual start up  
+in every respect except that rcode? will return 2 not 0
+
+254. HALT : halt ( -- ) [ -- ] { -- }  
+halt (that is, shut down indicating success) the FVM
+
+255. DATA : data ( -- ) [ -- ] { -- }  
+declares the start of a block of data  
+note: next program cell should contain size of data strip in words  
+note: at end of block of data there should be a WALL instruction  
+note: by convention a Freeputer string is stored in such a block  
+note: trapData occurs if hit (protection against program overflow)
+</code></pre>
 <p>The above list is a summary. For exact definitions of each instruction please read the source code of 'dev/fvm/x86/src/fvm.s'. For unit tests see the source of 'dev/freelang/fvmtest/src/fvmtest.fl'.</p>
 <h2 id="learn-freelang">10. Learn Freelang</h2>
 <p><strong>Important: This tutorial assumes you have read the entire document up to this point. You must be familiar with the tools and concepts introduced earlier.</strong></p>
@@ -904,17 +1230,17 @@ MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal char
 <p>By convention, integer and character constants are declared in uppercase but this is not mandatory. Please declare integer constants in decimal as currently flc only supports decimal numeric literals; flx also supports hexadecimal and binary numeric literals but it is not good practice to use them until such time as flc has been enhanced to also support them. See 'flx.rb' for extensive comments describing such differences.</p>
 <p>It is illegal to declare a <em>decimal</em> constant outside the range of a signed two's-complement 32-bit integer. There is in effect no difference between integer constants and character constants; they are just 32-bit values. Negative integer literals begin with <code>-</code> but positive integer literals do not begin with <code>+</code> and doing so is a syntax error.</p>
 <p>There is no support for floating-point constants. This is no barrier to implementing floating-point support in software since you could just use three integer constants, one for the significand, one for the base and one for the exponent. Or some such scheme.</p>
-<p>Constants are <strong>not</strong> compiled into the program if they are not referenced. Where they are referenced they are simply substituted for the reference. That is, you cannot use constants to compile data into a program.</p>
-<p>To compile data into a program you can use the Freelang reserved word <strong>data</strong>; it corresponds to a dedicated FVM instruction called DATA. The syntax in Freelang is as follows:</p>
+<p>Constants are <em>not</em> compiled into the program if they are not referenced. Where they are referenced they are simply substituted for the reference. That is, you cannot use constants to compile data into a program.</p>
+<p>To compile data into a program you can use the Freelang reserved word <code>data</code>; it corresponds to a dedicated FVM instruction called DATA. The syntax in Freelang is as follows:</p>
 <pre class="forth"><code>data 4 &#39;A&#39; &#39;B&#39; &#39;C&#39; &#39;D&#39; ===</code></pre>
 <p>As you can see:</p>
 <ul>
-<li>begin with the reserved word <strong>data</strong> (FVM instruction DATA)</li>
+<li>begin with the reserved word <code>data</code> (FVM instruction DATA)</li>
 <li>next state the number of words of data to follow (here 4)</li>
 <li>next provide literal values separated by whitespace (here 'A' 'B' 'C' 'D')</li>
-<li>finally end with the reserved word <strong><em>===</em></strong> (FVM instruction WALL)</li>
+<li>finally end with the reserved word <code>===</code> (FVM instruction WALL)</li>
 </ul>
-<p>Although you rarely see <strong>data</strong> explicitly used in Freelang source code, this particular construct is very important in Freelang. It is called a &quot;block&quot;. This term has nothing to do with &quot;block devices&quot;. A block is simply a data structure that has the above form: it starts with DATA, then a word indicating the size of its &quot;strip&quot; (in this case 4 words), then the &quot;strip&quot; itself (the contigous area of data consisting of a number of whole words equal to the declared size), and finishing with WALL. This is exactly how strings are stored in Freelang. You can see this by decompiling.</p>
+<p>Although you rarely see <code>data</code> explicitly used in Freelang source code, this particular construct is very important in Freelang. It is called a &quot;block&quot;. This term has nothing to do with &quot;block devices&quot;. A block is simply a data structure that has the above form: it starts with DATA, then a word indicating the size of its &quot;strip&quot; (in this case 4 words), then the &quot;strip&quot; itself (the contigous area of data consisting of a number of whole words equal to the declared size), and finishing with WALL. This is exactly how strings are stored in Freelang. You can see this by decompiling.</p>
 <p>The compiler locates such a data block where it is located in the source.</p>
 <p>This is how you declare a named string:</p>
 <pre class="forth"><code>MY_STRING$ .&quot; ABCD &quot;</code></pre>
@@ -1035,15 +1361,15 @@ MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal char
 <p>Here we have declared 3 words in the &quot;global context&quot; (or &quot;global namespace&quot;): <code>myWord</code>, <code>three</code> and <code>fourFive</code>. And we have declared 4 words in the <code>myNamespace</code> namespace: <code>myWord</code>, <code>four</code>, <code>sixSeven</code> and <code>seven</code>.</p>
 <p>We have declared 2 constants in the global context: <code>SIX.</code> and <code>SEVEN.</code> And we have declared 3 constants in the <code>myNamespace</code> namespace: <code>ONE.</code>, <code>TWO.</code> and <code>THREE.</code></p>
 <p>There is also 1 constant declared in the wordspace <code>four</code> within <code>myNamespace</code>; such a declaration, made within a wordspace, cannot be referenced from outside that wordspace. That is, wordspaces are private; everything else is public. This means that you cannot jump or branch from outside a word to a label within that word because such a label cannot be referenced.</p>
-<p><strong>An aside regarding security: </strong>It is worth pausing here to point out that the last sentence is not strictly true. That is, it is possible to get program flow to jump to some location within a word definition from outside that word definition. There is no protection built into the FVM runtime to stop that. If you wanted to hack your way into a word you could. There is no special security baked into the FVM; it is a small, simple, lightweight virtual machine intended only to have trusted code run on it. Or, to put it another way, if you are going to run untrusted code make sure you do it in a separate FVM instance, totally separate to the FVM instance that contains your trusted code. Or, to put it another way, so long as a network or computer allows any untrusted code into itself it cannot truly be secure; if your Freeputer instance is doing something truly important then run it standalone, disconnected. One of the great advantages of Freeputer as a platform is that it is trivially easy to run an FVM instance that is not only standalone but does not even have an operating system running on it. That is security by exclusion. One final word of warning: do not use an FVM implementation from an untrusted source, as an unethical FVM implementation could cause privacy or security problems for Freeputer in the same way as spyware or malware cause privacy and security problems for an operating system.</p>
+<p><strong>An aside regarding security:</strong> It is worth pausing here to point out that the last sentence is not strictly true. That is, it is possible to get program flow to jump to some location within a word definition from outside that word definition. There is no protection built into the FVM runtime to stop that. If you wanted to hack your way into a word you could. There is no special security baked into the FVM; it is a small, simple, lightweight virtual machine intended only to have trusted code run on it. Or, to put it another way, if you are going to run untrusted code make sure you do it in a separate FVM instance, totally separate to the FVM instance that contains your trusted code. Or, to put it another way, so long as a network or computer allows any untrusted code into itself it cannot truly be secure; if your Freeputer instance is doing something truly important then run it standalone, disconnected. One of the great advantages of Freeputer as a platform is that it is trivially easy to run an FVM instance that is not only standalone but does not even have an operating system running on it. That is security by exclusion. One final word of warning: do not use an FVM implementation from an untrusted source, as an unethical FVM implementation could cause privacy or security problems for Freeputer in the same way as spyware or malware cause privacy and security problems for an operating system.</p>
 <p><strong>And now back to references:</strong> To reference an entity in another namespace, simply surround that entity with braces preceded by the namespace name: <code>myNamespace{myWord}</code>. Braces without any namespace name reference the global context.</p>
 <p>Word references never use prefixes. Other kinds of references only need to double their prefixes if they are escaping from a wordspace, such as <code>{..SIX}</code>, but not otherwise, such as <code>.FOUR</code>.</p>
 <p>It is not really worth giving more comprehensive referencing examples here. Take a look at the source code for existing Freelang programs. The referencing scheme will soon become clear to you. Experiment with it. It soon becomes second nature.</p>
 <h3 id="tracing">Tracing</h3>
-<p>It is very helpful for debugging (but <em>extremely</em> bad for performance) to use <strong>tron</strong> to turn on program tracing. A suitable FVM will then report every instruction it executes, and the state of the stacks, to stdtrc (here 'std.trc').</p>
-<p>WARNING: some programs might produce tens of thousands of lines of trace output every few seconds. So be sure to only trace that small part of your program you are most interested in. Do this by placing the word <strong>tron</strong> where you want tracing to begin and <strong>troff</strong> where you want it to end.</p>
-<p>An FVM is not required to do anything in response to <strong>tron</strong>. That is, some FVM implementations are configured to have tracing disabled. They do nothing in response to <strong>tron</strong>. This is normal in production where there is usually no need for tracing. Furthermore, the exact information an FVM implementation traces in response to <strong>tron</strong> is dependent on the implementation; some FVMs provide more or less detail.</p>
-<p>Here is a simple program including the use of <strong>tron</strong>:</p>
+<p>It is very helpful for debugging (but <em>extremely</em> bad for performance) to use <code>tron</code> to turn on program tracing. A suitable FVM will then report every instruction it executes, and the state of the stacks, to stdtrc (here 'std.trc').</p>
+<p>WARNING: some programs might produce tens of thousands of lines of trace output every few seconds. So be sure to only trace that small part of your program you are most interested in. Do this by placing the word <code>tron</code> where you want tracing to begin and <code>troff</code> where you want it to end.</p>
+<p>An FVM is not required to do anything in response to <code>tron</code>. That is, some FVM implementations are configured to have tracing disabled. They do nothing in response to <code>tron</code>. This is normal in production where there is usually no need for tracing. Furthermore, the exact information an FVM implementation traces in response to <code>tron</code> is dependent on the implementation; some FVMs provide more or less detail.</p>
+<p>Here is a simple program including the use of <code>tron</code>:</p>
 <pre class="forth"><code>
   \ You must deploy this program to an FVM whose RAM starts at 16777216
   \ Note: use the ready-made fvm16-16MB executable
@@ -1076,7 +1402,7 @@ MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal char
 </code></pre>
 <p><br/>Here is the same program with syntax highlighting:</p>
 <div class="figure">
-<img src="doc/img/Tracing-Program.png" alt="A simple program using tracing" /><p class="caption">A simple program using tracing</p>
+<img src="doc/img/Tracing-Program.png" title="A simple program using tracing" alt="A simple program using tracing" /><p class="caption">A simple program using tracing</p>
 </div>
 <p>And here is the tracing output. All values here are hexadecimal:</p>
 <pre><code>00000004 lit      00000003 ( ) [ ] { } 
@@ -1100,9 +1426,9 @@ MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal char
 <li>Literal value or address (complex instructions only)</li>
 <li>State of stacks just <em>prior</em> to executing current FVM instruction:
 <ul>
-<li>( ) = elements on data stack (topmost element on right)</li>
-<li>[ ] = elements on software stack (topmost element on right)</li>
-<li>{ } = elements on return stack (topmost element on right)</li>
+<li><code>( )</code> = elements on data stack (topmost element on right)</li>
+<li><code>[ ]</code> = elements on software stack (topmost element on right)</li>
+<li><code>{ }</code> = elements on return stack (topmost element on right)</li>
 </ul></li>
 </ol>
 <h3 id="hands-on">Hands on</h3>
@@ -1172,14 +1498,14 @@ DECOMPILED PROGRAM:
 104 :   : ret
 108 :   : ===</code></pre>
 <h3 id="next-steps">Next steps</h3>
-<p>You have now learned the grammar and syntax of Freelang. The next step is to learn its small <a href="#review-the-fvm-instruction-set">core vocabulary</a>. Experiment with it. See also the <a href="#a-note-on-deployment">deployment</a> notes.</p>
+<p>You have now learned the simple grammar and syntax of Freelang. The next step is to learn its small <a href="#review-the-fvm-instruction-set">core vocabulary</a>. Experiment with it. See also the <a href="#a-note-on-deployment">deployment</a> notes.</p>
 <h2 id="now-over-to-you">Now over to you</h2>
 <p>What will you make with Freeputer?</p>
 <h2 id="the-future">The future</h2>
 <p>Please help to keep Freeputer ( ) [ ] { } forever free</p>
 <hr />
 <p>Copyright © Robert Gollagher 2015</p>
-<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 8 August 2015 at 00:09.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 8 August 2015 at 14:29.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />Robert Gollagher may be reached at</p>
 <div class="figure">
