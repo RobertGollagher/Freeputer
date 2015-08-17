@@ -220,7 +220,7 @@ Whether you are writing portable software or programming an embedded device, Fre
 
 ## Versioning
 
-In the initial release of Freeputer on 7 August 2015 each of the included [Software](#software) components were individually designated as version 1.0.0.0; nevertheless they should be considered betaware. The version numbers of these components may at times differ from each other as they are individually maintained and enhanced.
+In the initial release of Freeputer on 8 August 2015 each of the included [Software](#software) components were individually designated as version 1.0.0.0; nevertheless they should be considered betaware. The version numbers of these components may at times differ from each other as they are individually maintained and enhanced.
 
 The four levels of versioning are called:
 
@@ -329,7 +329,7 @@ FreeLine currently has some known limitations:
 
 Slow rendering is due merely to a poor algorithm in FreeLine. Nevertheless, this is an opportune time to mention that although Freeputer is an *extremely* lightweight platorm it is only a *moderately* fast platform. This is partly because the FVM enforces, in everything it does, an absolute lack of undefined internal behaviour. This trades speed for safety.
 
-Different FVM implementations greatly differ in speed. For example, a fast FVM might be optimized for speed but as a result be larger in footprint and not support tracing. Such a fast FVM can count the signed integers from 0 to 2147483647 (*with* checks to trap any undefined behaviour) in about 9 seconds on an i5 3 GHz desktop computer. This compares (*without* any checks to trap any undefined behaviour) to roughly: 1 second for C; 12 seconds for Lua; over 240 seconds for Python; over 260 seconds for Ruby. Were just-in-time compilers to become available for the FVM then the performance gap between Freeputer and C would narrow. Of course, you can use an FVM I/O device written in C or assembly language to carry out some task with great speed.
+Different FVM implementations greatly differ in speed. For example, a fast FVM might be optimized for speed but as a result be larger in footprint and not support tracing. Such a fast FVM can count the signed integers from 2147483647 down to 0 (*with* checks to trap any undefined behaviour) in about 9 seconds on an i5 3 GHz desktop computer. This compares (*without* any checks to trap any undefined behaviour) to roughly: 1 second for C; 12 seconds for Lua; over 240 seconds for Python; over 260 seconds for Ruby. Were just-in-time compilers to become available for the FVM then the performance gap between Freeputer and C would narrow. Of course, you could use an FVM I/O device written in C or assembly language to carry out some task with great speed.
 
 ### 4. Run the Freeputer unit tests
 
@@ -783,7 +783,7 @@ The complete list below shows:
 1. Opcode number
 2. FVM instruction name
 3. Equivalent reserved word in Freelang
-4. Software stack ( -- ), data stack [ -- ] and reserve stack { -- } state changes;
+4. Software stack ( -- ), data stack [ -- ] and return stack { -- } state changes;
 <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address
 5. Notes; 'cv' means "the value in the next program cell"
 
@@ -1899,7 +1899,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 8 August 2015 at 14:29.  
+This document was last updated on 17 August 2015 at 16:59.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

@@ -158,7 +158,7 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li><p><strong>Freeputer is not natively floating point.</strong> The FVM instruction set includes bitwise operations and integer arithmetic but has no floating-point instructions. The FVM is therefore easy to implement on hardware that has no native support for floating-point operations. This <em>maximises hardware freedom</em>. If you need fast floating-point operations you should either delegate them to an external system or implement devices (streams, block devices or memory-mapped devices) to support them. The Freelang compiler does not support floating-point literals but you could easily implement slow floating-point operations (including bignums) in Freelang.</p></li>
 </ol>
 <h2 id="versioning">Versioning</h2>
-<p>In the initial release of Freeputer on 7 August 2015 each of the included <a href="#software">Software</a> components were individually designated as version 1.0.0.0; nevertheless they should be considered betaware. The version numbers of these components may at times differ from each other as they are individually maintained and enhanced.</p>
+<p>In the initial release of Freeputer on 8 August 2015 each of the included <a href="#software">Software</a> components were individually designated as version 1.0.0.0; nevertheless they should be considered betaware. The version numbers of these components may at times differ from each other as they are individually maintained and enhanced.</p>
 <p>The four levels of versioning are called:</p>
 <ul>
 <li>major release (e.g. <strong>1</strong> as from <strong>1</strong>.0.0.0)</li>
@@ -251,7 +251,7 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 </ol>
 <h5 id="a-note-on-freeputer-performance">A note on Freeputer performance</h5>
 <p>Slow rendering is due merely to a poor algorithm in FreeLine. Nevertheless, this is an opportune time to mention that although Freeputer is an <em>extremely</em> lightweight platorm it is only a <em>moderately</em> fast platform. This is partly because the FVM enforces, in everything it does, an absolute lack of undefined internal behaviour. This trades speed for safety.</p>
-<p>Different FVM implementations greatly differ in speed. For example, a fast FVM might be optimized for speed but as a result be larger in footprint and not support tracing. Such a fast FVM can count the signed integers from 0 to 2147483647 (<em>with</em> checks to trap any undefined behaviour) in about 9 seconds on an i5 3 GHz desktop computer. This compares (<em>without</em> any checks to trap any undefined behaviour) to roughly: 1 second for C; 12 seconds for Lua; over 240 seconds for Python; over 260 seconds for Ruby. Were just-in-time compilers to become available for the FVM then the performance gap between Freeputer and C would narrow. Of course, you can use an FVM I/O device written in C or assembly language to carry out some task with great speed.</p>
+<p>Different FVM implementations greatly differ in speed. For example, a fast FVM might be optimized for speed but as a result be larger in footprint and not support tracing. Such a fast FVM can count the signed integers from 2147483647 down to 0 (<em>with</em> checks to trap any undefined behaviour) in about 9 seconds on an i5 3 GHz desktop computer. This compares (<em>without</em> any checks to trap any undefined behaviour) to roughly: 1 second for C; 12 seconds for Lua; over 240 seconds for Python; over 260 seconds for Ruby. Were just-in-time compilers to become available for the FVM then the performance gap between Freeputer and C would narrow. Of course, you could use an FVM I/O device written in C or assembly language to carry out some task with great speed.</p>
 <h3 id="run-the-freeputer-unit-tests">4. Run the Freeputer unit tests</h3>
 <h4 id="introduction-1">Introduction</h4>
 <p>The Freelang program fvmtest is a suite of unit tests for the FVM. Its purpose is to verify that an FVM implementation is working correctly. It does this by running on that FVM implementation and testing each instruction in the FVM instruction set. In doing so it causes the FVM to restart more than 200 times, verifying that traps occurred when they should have done. Nevertheless it only takes a few seconds to run.</p>
@@ -599,7 +599,7 @@ DECOMPILED PROGRAM:
 <li>Opcode number</li>
 <li>FVM instruction name</li>
 <li>Equivalent reserved word in Freelang</li>
-<li>Software stack ( -- ), data stack [ -- ] and reserve stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
+<li>Software stack ( -- ), data stack [ -- ] and return stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
 <li>Notes; 'cv' means &quot;the value in the next program cell&quot;</li>
 </ol>
 <p>The terms &quot;branch&quot; and &quot;jump&quot; can be used as synonyms. However, &quot;branch&quot; is often used to mean &quot;to conditionally branch while <em>preserving</em> at least one stack operand used to evaluate that condition,&quot; whereas &quot;jump&quot; is often used to mean &quot;to unconditionally branch, or to conditionally branch after <em>consuming</em> all stack operands used to evaluate that condition.&quot; This explains the parallel series of instructions beginning with BR and J.</p>
@@ -1505,7 +1505,7 @@ DECOMPILED PROGRAM:
 <p>Please help to keep Freeputer ( ) [ ] { } forever free</p>
 <hr />
 <p>Copyright © Robert Gollagher 2015</p>
-<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 8 August 2015 at 14:29.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 17 August 2015 at 16:59.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />Robert Gollagher may be reached at</p>
 <div class="figure">
