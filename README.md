@@ -1219,7 +1219,7 @@ note: exit code reflects trap number if any (see fvm.s source)
 note: will always be 0 unless FVM configured to soft reset upon a trap
 
 239. RCODE : rcode? ( -- n1 ) [ -- ] { -- }  
-FVM metadata: last program-request restart code (0 if none)
+FVM metadata: last program-requested restart code (0 if none)
 note: 1 indicates reset (soft reset), 2 indicates reboot (hard reset)
 note: will always be 0 unless reset or reboot since last manual start up
 
@@ -1899,7 +1899,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 17 August 2015 at 16:59.  
+This document was last updated on 19 August 2015 at 11:33.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
