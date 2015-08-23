@@ -174,7 +174,9 @@ Freeputer has no undefined internal behaviour. That is, there is no undefined be
 
 This is a major advantage of Freeputer as a reliable platform for running software and of Freelang as a reliable language for writing software. This safety is fundamental to the whole concept of Freeputer and is built into the FVM instruction set.
 
-For example, adding two signed integers in C can result in undefined behaviour (because in C the behaviour upon signed integer overflow is undefined). Instead of allowing undefined internal behaviour, Freeputer stops. That is, the FVM automatically traps any situation (such as integer overflow) that would otherwise result in undefined internal behaviour; the FVM never allows undefined internal behaviour. An FVM instance can be configured to do one of three things when a trap occurs: halt, reboot or reset. In contrast, traps never occur as a result of I/O errors; instead, an I/O operation branches upon whatever the I/O device deems to be an error.
+For example, adding two signed integers in C can result in undefined behaviour (because in C the behaviour upon signed integer overflow is *undefined*). Instead of allowing undefined internal behaviour, Freeputer stops. That is, the FVM automatically traps any situation (such as integer overflow) that would otherwise result in undefined internal behaviour; the FVM never allows undefined internal behaviour. An FVM instance can be configured to do one of three things when a trap occurs: halt, reboot or reset. In contrast, traps never occur as a result of I/O errors; instead, an I/O operation branches upon whatever the I/O device deems to be an error.
+
+Freeputer is also free of *unexpected* internal behaviour. That is, its behaviour is always as would intuitively be expected in ordinary mathematics, otherwise it traps. For example, adding 1 to the `int` 2147483647 in Java gives the result -2147483648; although this behaviour is *defined* it is intuitively *unexpected* and therefore is an insidious source of bugs (mainly because programmers often do not determine whether addition would cause or has caused such overflow.) Adding 1 to 2147483647 in Freeputer (by using the `+` operator, representing the `ADD` instruction) always results in trapMathOverflow at runtime and therefore causes the execution of your program to stop rather than allowing program execution to continue after such an insidious, silent error. Of course, you could write a bignum library to perform arithmetic on larger numbers.
 
 ### Freely extensible
 
@@ -258,7 +260,7 @@ This Freeputer distribution is for 32-bit Linux running on x86 hardware.
 
 ### 2. Download Freeputer
 
-Download and unzip the Freeputer distribution from [GitHub](https://github.com/RobertGollagher/Freeputer) or [BitBucket](https://bitbucket.org/RobertGollagher/freeputer/src), then follow the instructions below. Note: these instructions were prepared on Debian 7.8.
+Download and unzip the Freeputer distribution from [GitHub](https://github.com/RobertGollagher/Freeputer) or [Bitbucket](https://bitbucket.org/RobertGollagher/freeputer/src), then follow the instructions below. Note: these instructions were prepared on Debian 7.8.
 
 ### 3. Run the FreeLine text editor
 
@@ -1899,7 +1901,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 19 August 2015 at 11:33.  
+This document was last updated on 23 August 2015 at 19:00.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
