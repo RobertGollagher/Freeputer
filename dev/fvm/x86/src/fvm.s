@@ -5,7 +5,7 @@ Program:    fvm
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150329
-Updated:    20150807:1723
+Updated:    20150824:0930
 Version:    1.0.0.0 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
@@ -2889,7 +2889,7 @@ opcodeTable:
 opcodeTableEnd:
 vectorTable: # Must be in same order as opcodeTable
   .long iWALL               # WALL must be zero
-  .long iLIT                # 37 simple instructions
+  .long iLIT                # 37 complex instructions
   .long iCALL
   .long iJMP
   .long iBRGZ
@@ -2937,7 +2937,7 @@ vectorTable: # Must be in same order as opcodeTable
   .long iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE
   .long iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE
   .long iNONE, iNONE, iNONE, iNONE, iNONE, iNONE, iNONE
-  .long iEXIT               # 111 complex instructions
+  .long iEXIT               # 111 simple instructions
   .long iDCALL
   .long iRDCALL
   .long iDJMP
