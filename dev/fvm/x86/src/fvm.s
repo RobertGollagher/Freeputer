@@ -3353,7 +3353,7 @@ vectorTableEnd:
   _openStdtrc: # Open stdtrc
     movl $stdtrcFilename, %ebx
       # The next line should normally be: call _openAndTruncFile 
-      #   except that for fvm16-16MB-sr-append for fvm test it
+      #   except that for fvm16-16MB-sr-append for fvmtest it
       #   should be: call _openFileAppend
       call _openAndTruncFile
       test %eax, %eax               # Will be negative if open failed
