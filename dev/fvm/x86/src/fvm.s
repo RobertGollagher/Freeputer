@@ -5,8 +5,8 @@ Program:    fvm
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150329
-Updated:    20150824:0930
-Version:    1.0.0.0 for FVM 1.0
+Updated:    20150831:1750
+Version:    1.0.0.1 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -592,7 +592,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   # Replaces the value on top of the data stack with value in %ecx
   #   and second-top value on the data stack with value in %eax
   #   and third-top value on the data stack with value in %ebx
-  # WARNING: THIS IS INTENTIONALLY OPPOSITE ORDER TO threePeekDs.
+  # WARNING: THIS IS INTENTIONALLY DIFFERENT TO threePeekDs.
   .macro threeReplaceDs
     cmpl $DS_HAS_THREE, dsp
     jg trapDsUnderflow
@@ -795,7 +795,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   # and third into %ebx and fourth into %eax.
   # WARNING: INTENTIONALLY OPPOSITE ORDER TO threeReplaceDs.
   .macro fourPopDs
-    cmpl $DS_HAS_THREE, dsp
+    cmpl $DS_HAS_FOUR, dsp
     jg trapDsUnderflow
     movl dsp, %edi
     movl (%edi), %edx
@@ -871,12 +871,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         jg trapMemBounds
   .endm
 
-  # Temporarily save the program counter (%esi) into pcPark
+  # Temporarily save the program counter (%esi) into pcTmp
   .macro parkPc
     movl %esi, pcTmp
   .endm
 
-  # Restore the program counter (%esi) from pcPark
+  # Restore the program counter (%esi) from pcTmp
   .macro unparkPc
     movl pcTmp, %esi
   .endm
@@ -2338,13 +2338,12 @@ iJMP: # ( -- )
   branch
 
 iDJMP: # ( a -- )
-  popDs
-  movl %eax, %ebx                   # %ebx now contains jump address
+  popDs                             # %eax now contains jump address
   # Ensure dynamic jump address lies within program memory
-    movl %ebx, %edx
+    movl %eax, %edx
     andl $PROG_MEMORY_MASK, %edx
     jnz trapPcOverflow
-  movl %ebx, %esi                   # pc (%esi) now contains jump address
+  movl %eax, %esi                   # pc (%esi) now contains jump address
   next
 
 iDEC: # ( n -- n-1 )
