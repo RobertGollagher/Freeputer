@@ -5,8 +5,8 @@ Program:    fvm
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150329
-Updated:    20150831:1750
-Version:    1.0.0.1 for FVM 1.0
+Updated:    20150913:1413
+Version:    1.0.0.2 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ============================================================================
 
   # Version stamp for FVM binary
-  version: .asciz "fvm x86-asm-linux-32 version 1.0.0.0 for FVM 1.0"
+  version: .asciz "fvm x86-asm-linux-32 version 1.0.0.2 for FVM 1.0"
 
   # The following example VM sizings are arbitrary.
   # You can have a much larger or much smaller VM instance as desired.
