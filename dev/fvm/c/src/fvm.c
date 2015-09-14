@@ -6,7 +6,7 @@ Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
 Updated:    20150914:1511
-Version:    0.1.0.1 alpha for FVM 1.0
+Version:    0.1.0.2 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ void clearState();
 #define TRON_ENABLED DEFINED
 
 // Version stamp for FVM binary
-#define version "fvm c version 0.1.0.0 alpha for FVM 1.0"
+#define version "fvm c version 0.1.0.2 alpha for FVM 1.0"
 
 // ===========================================================================
 //                             CONSTANTS
