@@ -5,8 +5,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20150913:2230
-Version:    0.1.0.0 alpha for FVM 1.0
+Updated:    20150914:1511
+Version:    0.1.0.1 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -3191,15 +3191,15 @@ trapRAMBounds:
 trapCantOpenRom:
   rB = 51;
   traceExitMsg(msgTrapCantOpenRom)
-  goto systemReset;
+  goto exitFail;
 trapCantCloseRom:
   rB = 52;
   traceExitMsg(msgTrapCantCloseRom)
-  goto systemReset;
+  goto exitFail;
 trapCantReadRom:
   rB = 53;
   traceExitMsg(msgTrapCantReadRom)
-  goto systemReset;
+  goto exitFail;
 //----------------------------------------------------------------------------
 //                         TRAPS: STDBLK
 //----------------------------------------------------------------------------
@@ -3211,11 +3211,11 @@ trapCantReadRom:
 trapCantOpenStdblk:
   rB = 61;
   traceExitMsg(msgTrapCantOpenStdblk)
-  goto systemReset;
+  goto exitFail;
 trapCantCloseStdblk:
   rB = 62;
   traceExitMsg(msgTrapCantCloseStdblk)
-  goto systemReset;
+  goto exitFail;
 //----------------------------------------------------------------------------
 //                         TRAPS: STREAMS
 //----------------------------------------------------------------------------
@@ -3236,22 +3236,22 @@ trapCantWriteToStdtrc:
 trapCantOpenStdexp:
   rB = 74;
   traceExitMsg(msgTrapCantOpenStdexp)
-  goto systemReset;
+  goto exitFail;
 trapCantCloseStdexp:
   rB = 75;
   traceExitMsg(msgTrapCantCloseStdexp)
-  goto systemReset;
+  goto exitFail;
 
 //Note: to create a 'std.imp' file of 0 size on Linux simply use:
 //           touch std.imp
 trapCantOpenStdimp:
   rB = 77;
   traceExitMsg(msgTrapCantOpenStdimp)
-  goto systemReset;
+  goto exitFail;
 trapCantCloseStdimp:
   rB = 78;
   traceExitMsg(msgTrapCantCloseStdimp)
-  goto systemReset;
+  goto exitFail;
 // ===========================================================================
 
 } // end of runfvm()
