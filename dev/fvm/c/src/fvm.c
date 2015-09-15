@@ -5,8 +5,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20150914:1511
-Version:    0.1.0.2 alpha for FVM 1.0
+Updated:    20150916:0007
+Version:    0.1.0.3 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -140,8 +140,8 @@ void clearState();
 // usefully used to debug programs since it will have no effect.
 #define TRON_ENABLED DEFINED
 
-// Version stamp for FVM binary
-#define version "fvm c version 0.1.0.2 alpha for FVM 1.0"
+// Version stamp for FVM executable (TODO incorporate this in executable)
+#define version "fvm c version 0.1.0.3 alpha for FVM 1.0"
 
 // ===========================================================================
 //                             CONSTANTS
@@ -645,6 +645,9 @@ register WORD rF = 0; // Register F      (was %edi)
 
 // Increments the program counter
 #define incPc \
+  if (pc >= HIGHEST_WRITABLE_WORD) { \
+    goto trapPcOverflow; \
+  } \
   pc = pc + WORD_SIZE; \
   if ((PROG_MEMORY_MASK & pc) != 0) { \
     goto trapPcOverflow; \
