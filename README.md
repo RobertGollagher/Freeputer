@@ -24,18 +24,49 @@ Freeputer is brand new. It was released on 8 August 2015. It should be considere
 
 Freeputer and Freelang are the product of several years of independent research by Robert Gollagher (in Brisbane, Australia). Although the current implementation is brand new, the general design concept has been well proven by earlier prototypes. The Freelang language is stable and productive.
 
+<font color="#000099">**For the latest news see [Milestones](#milestones) below**</font> (at the very end of this document).
+
 ## Software
 
 This distribution contains:
 
-* **fvm** : an FVM 1.0 for x86 32-bit Linux (`fvm.s, assemble-fvm.sh`)
+* **fvm** : an FVM 1.0 for x86 32-bit Linux (`dev/fvm/x86/src/fvm.s, assemble-fvm.sh`)
+<font color="green">**`beta`**</font>
 * **FreeLine** : a text editor for Freeputer (`fl.fl`)
+<font color="green">**`beta`**</font>
 * **flc** : a Freelang compiler for Freeputer (`flc.fl, flc.sh`)
+<font color="green">**`beta`**</font>
 * **fld** : a Freelang decompiler for Freeputer (`fld.fl, fld.sh`)
+<font color="green">**`beta`**</font>
 * **fvmtest** : a suite of unit tests for Freeputer (`fvmtest.fl, fvmtest.sh`)
+<font color="green">**`beta`**</font>
 * **flx** : a Freelang cross compiler and decompiler (`flx.rb`)
+<font color="green">**`beta`**</font>
 
-All of these components are for FVM 1.0.
+All of the above components are for the FVM 1.0.
+
+The above `fvm.s` **fvm** is written in x86 assembly language for x86 32-bit Linux. It is the FVM reference implementation and the one most extensively used. It is more mature, more complete, more reliable, smaller and faster than the FVM implementations below. All other FVM implementations in this distribution are early alpha versions.
+
+Recent additions are:
+
+* A **portable C implementation** of an FVM 1.0 (`dev/fvm/c/src/fvm.c`, `Makefile`)
+<font color="red">**`alpha`**</font>
+<br/>should run on numerous platforms (even <font color="#000099">**microcontrollers**</font>) and is known to run on:
+    * 32-bit x86 Linux (<font color="#000099">**desktop**</font>)
+    * 32-bit ARM Linux (on <font color="#000099">**Raspberry Pi**</font>)
+    * 64-bit Windows 8 (on Microsoft Surface Pro 3 <font color="#000099">**tablet**</font>)
+
+* A **Java implementation** of an FVM 1.0 (`dev/fvm/java/src/com/freeputer/FVM.java`)
+<font color="red">**`alpha`**</font>
+<br/>should run on Java 6 or higher on numerous platforms and is known to run on:
+    * Java 6 on 32-bit x86 Linux (desktop)
+    * Java 8 on 32-bit x86 Linux (<font color="#000099">**desktop**</font>)
+    * Java 8 on 32-bit ARM Linux (on <font color="#000099">**Raspberry Pi**</font>)
+    * Java 8 on 64-bit Windows 8 (on Microsoft Surface Pro 3 <font color="#000099">**tablet**</font>)
+
+Components marked <font color="red">**`alpha`**</font> are early alpha versions; they have version numbers lower than 1.0.0.0 and are somewhat incomplete and relatively unreliable. They will gradually be improved as and when needed. Please bear in mind that the best way to port the FVM to a new platform is to implement it in assembly language for that platform. It is easy to do so.
+
+Components that have version numbers of 1.0.0.0 or higher have been extensively used and found to generally function well but should nevertheless be considered betaware. As a reminder of this they are marked <font color="green">**`beta`**</font> above.
 
 ## Reading this document
 
@@ -233,7 +264,9 @@ The four levels of versioning are called:
 
 The FVM platform itself, as an implied standard rather than as an implementation, can in effect also be considered to be versioned. It has only a major release number and a significant release number. Any significant changes to the FVM platform standard that might seriously affect the ability of existing FVM bytecode to run on that platform, such as a change in its instruction set, shall as a minimum be indicated by an increase in its significant release number. No such changes are currently foreseen.
 
-The major and significant version numbers of any FVM implementations provided in this distribution match those of the implied FVM platform standard they implement. This is also true of any Freelang compilers, FVM bytecode decompilers and FVM test suites provided in this distribution.
+Except for alpha versions (see below), the major and significant version numbers of any FVM implementations provided in this distribution match those of the implied FVM platform standard they implement. This is also true of any Freelang compilers, FVM bytecode decompilers and FVM test suites provided in this distribution.
+
+Alpha versions have a major version number of 0.
 
 ## Quick Start
 
@@ -254,9 +287,11 @@ Note: the Quick Start steps *must* be read in the above order.
 
 ### 1. Review the System Requirements
 
-This Freeputer distribution is for 32-bit Linux running on x86 hardware.
+This Quick Start requires 32-bit Linux running on x86 hardware.
 
-*Note: this is in no way a limitation of Freeputer. It just so happens that this particular implementation of the FVM is for x86 32-bit Linux. It is hoped that the community will make [free](http://www.gnu.org/philosophy/free-sw.html) FVM implementations available for other platforms in the future.*
+The detailed documentation in this Quick Start describes the use of the FVM 1.0 reference implementation supplied in this distribution. It is written in x86 assembly language (see 'dev/fvm/x86/src/fvm.s') for 32-bit Linux. It is a stable beta version.
+
+Although you *must* use the reference implementation for the Quick Start, after you have completed the Quick Start you will then be suitably equipped to experiment with the supplied FVM implementations for other platforms. They include: (1)&nbsp;an FVM 1.0 implemented in portable C for gcc (see 'dev/fvm/c/src/fvm.c' and 'dev/fvm/c/src/Makefile' for details); and (2)&nbsp;an FVM 1.0 implemented in Java (see 'dev/fvm/java/src/com/freeputer/FVM.java'). These are unstable alpha versions.
 
 ### 2. Download Freeputer
 
@@ -1897,11 +1932,45 @@ Please help to keep Freeputer ( ) \[ \] { } forever free
 
 ---
 
+## Milestones
+
+- **New platform added: Java**
+<br/>FVM 1.0 implementation for Java 6, Java 7, Java 8
+<br/>0.1.0.0 version of FVM.java <font color="red">**`alpha`**</font>
+<br/>See: `dev/fvm/java/src/com/freeputer/FVM.java`
+<br/>Known to run on Java 8 for x86 Linux (desktop), ARM Linux (Raspberry Pi), Windows 8 (tablet)
+<br/>Known to run on Java 6 for x86 Linux (desktop)
+<br/>Should also run on <font color="#000099">**numerous devices that support Java 6 or higher**</font>
+<br/>Should also run on OS X and other popular operating systems
+<br/>Should also run on embedded devices that support Java
+<br/>*15 September 2015*
+
+- **New platform added: C**
+<br/>FVM 1.0 implementation for gcc
+<br/>Portable 0.1.0.0 version of fvm.c <font color="red">**`alpha`**</font>
+<br/>See: `dev/fvm/c/src/fvm.c` and `Makefile`
+<br/>Known to run on <font color="#000099">**x86 Linux**</font> (desktop), <font color="#000099">**ARM Linux**</font> (Raspberry Pi) and <font color="#000099">**Windows&nbsp;8**</font> (tablet)
+<br/>Should also run on <font color="#000099">**numerous devices that gcc can target**</font>
+<br/>Should also run on OS X and other popular operating systems
+<br/>Should also run on microcontrollers
+<br/>Should also run on bare metal
+<br/>*13 September 2015*
+
+- **First public release of Freeputer 1.0.0.0**
+<br/>FVM 1.0 implementation in <font color="#000099">**x86 assembly language for 32-bit Linux**</font>
+<br/>1.0.0.0 version of fvm.s (the reference implementation of the FVM 1.0) <font color="green">**`beta`**</font>
+<br/>See: `dev/fvm/x86/src/fvm.s` and subdirectories of `dev/freelang` and `dev/xcompiler`
+<br/>1.0.0.0 versions of flc, fld, fvmtest and FreeLine (in Freelang) <font color="green">**`beta`**</font>
+<br/>1.0.0.0 versions of flx (in Ruby) <font color="green">**`beta`**</font>
+<br/>*8 August 2015*
+
+---
+
 Copyright © Robert Gollagher 2015  
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 23 August 2015 at 19:00.  
+This document was last updated on 15 September 2015 at 15:12.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

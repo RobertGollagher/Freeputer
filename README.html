@@ -16,17 +16,37 @@
 <h2 id="history">History</h2>
 <p>Freeputer is brand new. It was released on 8 August 2015. It should be considered betaware.</p>
 <p>Freeputer and Freelang are the product of several years of independent research by Robert Gollagher (in Brisbane, Australia). Although the current implementation is brand new, the general design concept has been well proven by earlier prototypes. The Freelang language is stable and productive.</p>
+<p><font color="#000099"><strong>For the latest news see <a href="#milestones">Milestones</a> below</strong></font> (at the very end of this document).</p>
 <h2 id="software">Software</h2>
 <p>This distribution contains:</p>
 <ul>
-<li><strong>fvm</strong> : an FVM 1.0 for x86 32-bit Linux (<code>fvm.s, assemble-fvm.sh</code>)</li>
-<li><strong>FreeLine</strong> : a text editor for Freeputer (<code>fl.fl</code>)</li>
-<li><strong>flc</strong> : a Freelang compiler for Freeputer (<code>flc.fl, flc.sh</code>)</li>
-<li><strong>fld</strong> : a Freelang decompiler for Freeputer (<code>fld.fl, fld.sh</code>)</li>
-<li><strong>fvmtest</strong> : a suite of unit tests for Freeputer (<code>fvmtest.fl, fvmtest.sh</code>)</li>
-<li><strong>flx</strong> : a Freelang cross compiler and decompiler (<code>flx.rb</code>)</li>
+<li><strong>fvm</strong> : an FVM 1.0 for x86 32-bit Linux (<code>dev/fvm/x86/src/fvm.s, assemble-fvm.sh</code>) <font color="green"><strong><code>beta</code></strong></font></li>
+<li><strong>FreeLine</strong> : a text editor for Freeputer (<code>fl.fl</code>) <font color="green"><strong><code>beta</code></strong></font></li>
+<li><strong>flc</strong> : a Freelang compiler for Freeputer (<code>flc.fl, flc.sh</code>) <font color="green"><strong><code>beta</code></strong></font></li>
+<li><strong>fld</strong> : a Freelang decompiler for Freeputer (<code>fld.fl, fld.sh</code>) <font color="green"><strong><code>beta</code></strong></font></li>
+<li><strong>fvmtest</strong> : a suite of unit tests for Freeputer (<code>fvmtest.fl, fvmtest.sh</code>) <font color="green"><strong><code>beta</code></strong></font></li>
+<li><strong>flx</strong> : a Freelang cross compiler and decompiler (<code>flx.rb</code>) <font color="green"><strong><code>beta</code></strong></font></li>
 </ul>
-<p>All of these components are for FVM 1.0.</p>
+<p>All of the above components are for the FVM 1.0.</p>
+<p>The above <code>fvm.s</code> <strong>fvm</strong> is written in x86 assembly language for x86 32-bit Linux. It is the FVM reference implementation and the one most extensively used. It is more mature, more complete, more reliable, smaller and faster than the FVM implementations below. All other FVM implementations in this distribution are early alpha versions.</p>
+<p>Recent additions are:</p>
+<ul>
+<li>A <strong>portable C implementation</strong> of an FVM 1.0 (<code>dev/fvm/c/src/fvm.c</code>, <code>Makefile</code>) <font color="red"><strong><code>alpha</code></strong></font> <br/>should run on numerous platforms (even <font color="#000099"><strong>microcontrollers</strong></font>) and is known to run on:
+<ul>
+<li>32-bit x86 Linux (<font color="#000099"><strong>desktop</strong></font>)</li>
+<li>32-bit ARM Linux (on <font color="#000099"><strong>Raspberry Pi</strong></font>)</li>
+<li>64-bit Windows 8 (on Microsoft Surface Pro 3 <font color="#000099"><strong>tablet</strong></font>)</li>
+</ul></li>
+<li>A <strong>Java implementation</strong> of an FVM 1.0 (<code>dev/fvm/java/src/com/freeputer/FVM.java</code>) <font color="red"><strong><code>alpha</code></strong></font> <br/>should run on Java 6 or higher on numerous platforms and is known to run on:
+<ul>
+<li>Java 6 on 32-bit x86 Linux (desktop)</li>
+<li>Java 8 on 32-bit x86 Linux (<font color="#000099"><strong>desktop</strong></font>)</li>
+<li>Java 8 on 32-bit ARM Linux (on <font color="#000099"><strong>Raspberry Pi</strong></font>)</li>
+<li>Java 8 on 64-bit Windows 8 (on Microsoft Surface Pro 3 <font color="#000099"><strong>tablet</strong></font>)</li>
+</ul></li>
+</ul>
+<p>Components marked <font color="red"><strong><code>alpha</code></strong></font> are early alpha versions; they have version numbers lower than 1.0.0.0 and are somewhat incomplete and relatively unreliable. They will gradually be improved as and when needed. Please bear in mind that the best way to port the FVM to a new platform is to implement it in assembly language for that platform. It is easy to do so.</p>
+<p>Components that have version numbers of 1.0.0.0 or higher have been extensively used and found to generally function well but should nevertheless be considered betaware. As a reminder of this they are marked <font color="green"><strong><code>beta</code></strong></font> above.</p>
 <h2 id="reading-this-document">Reading this document</h2>
 <p>This is a technical document intended for software developers.</p>
 <p>You <em>must</em> set your web browser or text editor to view UTF-8 character encoding before reading this document, otherwise it will not display properly.</p>
@@ -168,7 +188,8 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li>patch (e.g. <strong>1.0.0.0</strong> as from 1.0.0.<strong>0</strong>)</li>
 </ul>
 <p>The FVM platform itself, as an implied standard rather than as an implementation, can in effect also be considered to be versioned. It has only a major release number and a significant release number. Any significant changes to the FVM platform standard that might seriously affect the ability of existing FVM bytecode to run on that platform, such as a change in its instruction set, shall as a minimum be indicated by an increase in its significant release number. No such changes are currently foreseen.</p>
-<p>The major and significant version numbers of any FVM implementations provided in this distribution match those of the implied FVM platform standard they implement. This is also true of any Freelang compilers, FVM bytecode decompilers and FVM test suites provided in this distribution.</p>
+<p>Except for alpha versions (see below), the major and significant version numbers of any FVM implementations provided in this distribution match those of the implied FVM platform standard they implement. This is also true of any Freelang compilers, FVM bytecode decompilers and FVM test suites provided in this distribution.</p>
+<p>Alpha versions have a major version number of 0.</p>
 <h2 id="quick-start">Quick Start</h2>
 <p>The Quick Start steps are:</p>
 <ol style="list-style-type: decimal">
@@ -185,8 +206,9 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 </ol>
 <p>Note: the Quick Start steps <em>must</em> be read in the above order.</p>
 <h3 id="review-the-system-requirements">1. Review the System Requirements</h3>
-<p>This Freeputer distribution is for 32-bit Linux running on x86 hardware.</p>
-<p><em>Note: this is in no way a limitation of Freeputer. It just so happens that this particular implementation of the FVM is for x86 32-bit Linux. It is hoped that the community will make <a href="http://www.gnu.org/philosophy/free-sw.html">free</a> FVM implementations available for other platforms in the future.</em></p>
+<p>This Quick Start requires 32-bit Linux running on x86 hardware.</p>
+<p>The detailed documentation in this Quick Start describes the use of the FVM 1.0 reference implementation supplied in this distribution. It is written in x86 assembly language (see 'dev/fvm/x86/src/fvm.s') for 32-bit Linux. It is a stable beta version.</p>
+<p>Although you <em>must</em> use the reference implementation for the Quick Start, after you have completed the Quick Start you will then be suitably equipped to experiment with the supplied FVM implementations for other platforms. They include: (1) an FVM 1.0 implemented in portable C for gcc (see 'dev/fvm/c/src/fvm.c' and 'dev/fvm/c/src/Makefile' for details); and (2) an FVM 1.0 implemented in Java (see 'dev/fvm/java/src/com/freeputer/FVM.java'). These are unstable alpha versions.</p>
 <h3 id="download-freeputer">2. Download Freeputer</h3>
 <p>Download and unzip the Freeputer distribution from <a href="https://github.com/RobertGollagher/Freeputer">GitHub</a> or <a href="https://bitbucket.org/RobertGollagher/freeputer/src">Bitbucket</a>, then follow the instructions below. Note: these instructions were prepared on Debian 7.8.</p>
 <h3 id="run-the-freeline-text-editor">3. Run the FreeLine text editor</h3>
@@ -1505,8 +1527,15 @@ DECOMPILED PROGRAM:
 <h2 id="the-future">The future</h2>
 <p>Please help to keep Freeputer ( ) [ ] { } forever free</p>
 <hr />
+<h2 id="milestones">Milestones</h2>
+<ul>
+<li><p><strong>New platform added: Java</strong> <br/>FVM 1.0 implementation for Java 6, Java 7, Java 8 <br/>0.1.0.0 version of FVM.java <font color="red"><strong><code>alpha</code></strong></font> <br/>See: <code>dev/fvm/java/src/com/freeputer/FVM.java</code> <br/>Known to run on Java 8 for x86 Linux (desktop), ARM Linux (Raspberry Pi), Windows 8 (tablet) <br/>Known to run on Java 6 for x86 Linux (desktop) <br/>Should also run on <font color="#000099"><strong>numerous devices that support Java 6 or higher</strong></font> <br/>Should also run on OS X and other popular operating systems <br/>Should also run on embedded devices that support Java <br/><em>15 September 2015</em></p></li>
+<li><p><strong>New platform added: C</strong> <br/>FVM 1.0 implementation for gcc <br/>Portable 0.1.0.0 version of fvm.c <font color="red"><strong><code>alpha</code></strong></font> <br/>See: <code>dev/fvm/c/src/fvm.c</code> and <code>Makefile</code> <br/>Known to run on <font color="#000099"><strong>x86 Linux</strong></font> (desktop), <font color="#000099"><strong>ARM Linux</strong></font> (Raspberry Pi) and <font color="#000099"><strong>Windows 8</strong></font> (tablet) <br/>Should also run on <font color="#000099"><strong>numerous devices that gcc can target</strong></font> <br/>Should also run on OS X and other popular operating systems <br/>Should also run on microcontrollers <br/>Should also run on bare metal <br/><em>13 September 2015</em></p></li>
+<li><p><strong>First public release of Freeputer 1.0.0.0</strong> <br/>FVM 1.0 implementation in <font color="#000099"><strong>x86 assembly language for 32-bit Linux</strong></font> <br/>1.0.0.0 version of fvm.s (the reference implementation of the FVM 1.0) <font color="green"><strong><code>beta</code></strong></font> <br/>See: <code>dev/fvm/x86/src/fvm.s</code> and subdirectories of <code>dev/freelang</code> and <code>dev/xcompiler</code> <br/>1.0.0.0 versions of flc, fld, fvmtest and FreeLine (in Freelang) <font color="green"><strong><code>beta</code></strong></font> <br/>1.0.0.0 versions of flx (in Ruby) <font color="green"><strong><code>beta</code></strong></font> <br/><em>8 August 2015</em></p></li>
+</ul>
+<hr />
 <p>Copyright © Robert Gollagher 2015</p>
-<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 23 August 2015 at 19:00.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 15 September 2015 at 15:12.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />Robert Gollagher may be reached at</p>
 <div class="figure">
