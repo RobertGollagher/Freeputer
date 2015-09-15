@@ -6,7 +6,7 @@ Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150906
 Updated:    20150915:2335
-Version:    0.1.0.0 alpha for FVM 1.0
+Version:    0.1.0.1 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -270,19 +270,19 @@ import java.nio.channels.FileChannel;
  * For further information please see:
  * </p>
  * <ul>
- * <li>the source code of this 'FVM.java' class ('dev/fvm/java/src/FVM.java')</li>
+ * <li>the source code of this 'FVM.java' class ('dev/fvm/java/src/com/freeputer/FVM.java')</li>
  * <li>the extensive comments in the reference implementation ('dev/fvm/x86/src/fvm.s')</li>
  * <li>the extensive comments in the C implementation ('dev/fvm/c/src/com/freeputer/fvm.c')</li>
  * <li>the 'README.html' in the Freeputer project root directory</li>
  * </ul>
  * 
  * @author Robert Gollagher
- * @version 0.1.0.0 alpha for FVM 1.0
+ * @version 0.1.0.1 alpha for FVM 1.0
  *
  */
 public class FVM implements Runnable {
 
-  public static final String version = "fvm java version 0.1.0.0 alpha for FVM 1.0";
+  public static final String version = "fvm java version 0.1.0.1 alpha for FVM 1.0";
   
   // Change TRON_ENABLED to false if you do not require your FVM instance
   // to support tracing at runtime; the FVM will then be smaller and faster.
