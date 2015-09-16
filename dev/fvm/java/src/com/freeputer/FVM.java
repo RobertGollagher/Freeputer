@@ -5,8 +5,8 @@ Program:    FVM.java
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    20150915:2335
-Version:    0.1.0.1 alpha for FVM 1.0
+Updated:    20150916:1241
+Version:    0.1.0.2 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -277,12 +277,12 @@ import java.nio.channels.FileChannel;
  * </ul>
  * 
  * @author Robert Gollagher
- * @version 0.1.0.1 alpha for FVM 1.0
+ * @version 0.1.0.2 alpha for FVM 1.0
  *
  */
 public class FVM implements Runnable {
 
-  public static final String version = "fvm java version 0.1.0.1 alpha for FVM 1.0";
+  public static final String version = "fvm java version 0.1.0.2 alpha for FVM 1.0";
   
   // Change TRON_ENABLED to false if you do not require your FVM instance
   // to support tracing at runtime; the FVM will then be smaller and faster.
@@ -424,7 +424,7 @@ public class FVM implements Runnable {
     		  // Specified arbitraryMemorySize is valid so do nothing here
     	} else {
     	      throw new IllegalArgumentException(
-    	         "stdblkSize must be 0 or a multiple of 4 and a power of 2");    		
+    	         "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");    		
     	}
     } // --------------------------------------------------------------------- 
     

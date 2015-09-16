@@ -1961,7 +1961,7 @@ Please help to keep Freeputer ( ) \[ \] { } forever free
 <br/>1.0.0.0 version of fvm.s (the reference implementation of the FVM 1.0) <font color="green">**`beta`**</font>
 <br/>See: `dev/fvm/x86/src/fvm.s` and subdirectories of `dev/freelang` and `dev/xcompiler`
 <br/>1.0.0.0 versions of flc, fld, fvmtest and FreeLine (in Freelang) <font color="green">**`beta`**</font>
-<br/>1.0.0.0 versions of flx (in Ruby) <font color="green">**`beta`**</font>
+<br/>1.0.0.0 version of flx (in Ruby) <font color="green">**`beta`**</font>
 <br/>*8 August 2015*
 
 ---
@@ -1970,7 +1970,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 15 September 2015 at 15:12.  
+This document was last updated on 15 September 2016 at 12:20.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
