@@ -5,8 +5,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20150916:0007
-Version:    0.1.0.3 alpha for FVM 1.0
+Updated:    20151206:0842
+Version:    0.1.0.4 alpha for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ void clearState();
 #define TRON_ENABLED DEFINED
 
 // Version stamp for FVM executable (TODO incorporate this in executable)
-#define version "fvm c version 0.1.0.3 alpha for FVM 1.0"
+#define version "fvm c version 0.1.0.4 alpha for FVM 1.0"
 
 // ===========================================================================
 //                             CONSTANTS
@@ -2924,6 +2924,15 @@ systemInitCore:
             }
           } else {
             // rB positive, rA <=0
+            /* FIXME the following uncommented overflow check is incorrect.
+               It needs to be replaced by the commented code shown here.
+               The equivalent fix also needs to be applied to FVM.java.
+               fvmtest.fl also needs to be changed to detect this
+               as it was not catching this malfunction.
+            if ((rA != 0) && (rA - NEG_INT_MAX) < rB) {
+              goto trapMathOverflow;
+            }
+            */
             if ((rA - NEG_INT_MAX) < rB) {
               goto trapMathOverflow;
             }
