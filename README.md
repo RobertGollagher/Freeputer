@@ -1236,19 +1236,19 @@ set I/O channels to default channels:
 
 234. RCHAN : rchan ( n1 -- ) [ -- ] { -- }  
 change read channel to stream having ID n1 (affects future READOR, READORB operations)
-note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently trap)
+note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently branch)
 
 235. WCHAN : wchan ( n1 -- ) [ -- ] { -- }  
 change write channel to stream having ID n1 (affects future WRITOR, WRITORB operations)
-note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently trap)
+note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently branch)
 
 236. GCHAN : gchan ( n1 -- ) [ -- ] { -- }  
 change get channel to block device having ID n1 (affects future GETOR, GETORB operations)
-note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently trap)
+note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently branch)
 
 237. PCHAN : pchan ( n1 -- ) [ -- ] { -- }  
 change put channel to block device having ID n1 (affects future PUTOR, PUTORB operations)
-note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently trap)
+note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently branch)
 
 238. ECODE : ecode? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: last automated exit code (0 if none or if was success)
@@ -1970,7 +1970,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 16 September 2016 at 12:48.  
+This document was last updated on 15 January 2016 at 20:47.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
