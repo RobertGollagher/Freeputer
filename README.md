@@ -820,7 +820,7 @@ The complete list below shows:
 1. Opcode number
 2. FVM instruction name
 3. Equivalent reserved word in Freelang
-4. Software stack ( -- ), data stack [ -- ] and return stack { -- } state changes;
+4. Data stack ( -- ), software stack [ -- ] and return stack { -- } state changes;
 <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address
 5. Notes; 'cv' means "the value in the next program cell"
 
@@ -1274,7 +1274,7 @@ note: will be 0 if FVM has no memory-mapped devices
 
 243. STDBLK : stdblk? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: size of stdblk in bytes
-note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would trap on stdblk)
+note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would branch on stdblk)
 
 244. DS : ds? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: maximum number of elements permitted on data stack
@@ -1970,7 +1970,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 15 January 2016 at 20:47.  
+This document was last updated on 30 January 2016 at 18:58.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
