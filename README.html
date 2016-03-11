@@ -54,7 +54,8 @@
 <h2 id="hello-world">Hello world</h2>
 <p>Here is the output from a simple Freeputer program:</p>
 <div class="figure">
-<img src="doc/img/Hello-World.png" title="Hello from Freeputer" alt="Hello from Freeputer" /><p class="caption">Hello from Freeputer</p>
+<img src="doc/img/Hello-World.png" title="Hello from Freeputer" alt="Hello from Freeputer" />
+<p class="caption">Hello from Freeputer</p>
 </div>
 <p>As you can see, the program greets the user in Chinese and English.</p>
 <p>The program was written in Freelang. Freelang is a stack-oriented, concatenative, compiled language for Freeputer. It is the first language available for the FVM. It is a fairly low-level language, whose core vocabulary is essentially that of the FVM instruction set, but it is surprisingly productive and capable. It is inherently extensible. Its syntax uses reverse Polish notation (RPN).</p>
@@ -118,7 +119,8 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 </code></pre>
 <p>And here is what Freelang looks like with syntax highlighting:</p>
 <div class="figure">
-<img src="doc/img/Hello-Highlighted.png" title="Freelang syntax highlighting" alt="Freelang syntax highlighting" /><p class="caption">Freelang syntax highlighting</p>
+<img src="doc/img/Hello-Highlighted.png" title="Freelang syntax highlighting" alt="Freelang syntax highlighting" />
+<p class="caption">Freelang syntax highlighting</p>
 </div>
 <p>Freelang is not Forth but its syntax is similar enough that Forth highlighting generally works quite well for Freelang. This allows you to leverage existing tools. The above screenshot was taken in <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> 3.4.2 set to Forth highlight mode.</p>
 <h2 id="how-can-i-try-freeputer">How can I try Freeputer?</h2>
@@ -224,31 +226,36 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li>Start FreeLine: <code>./fl.sh</code></li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Editing-Mode.png" title="FreeLine in Editing Mode" alt="FreeLine in Editing Mode" /><p class="caption">FreeLine in Editing Mode</p>
+<img src="doc/img/FreeLine-Editing-Mode.png" title="FreeLine in Editing Mode" alt="FreeLine in Editing Mode" />
+<p class="caption">FreeLine in Editing Mode</p>
 </div>
 <ol start="6" style="list-style-type: decimal">
 <li>FreeLine starts in Editing Mode. This is indicated by the word EDITING shown in the status row at the bottom of the terminal. In this mode you can create and edit text. To issue commands (such as to save, import or export) you must enter Escape Mode. To enter Escape Mode hit <strong>Esc</strong>. This will make a yellow menu appear.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Escape-Mode.png" title="Freeline in Escape Mode" alt="Freeline in Escape Mode" /><p class="caption">Freeline in Escape Mode</p>
+<img src="doc/img/FreeLine-Escape-Mode.png" title="Freeline in Escape Mode" alt="Freeline in Escape Mode" />
+<p class="caption">Freeline in Escape Mode</p>
 </div>
 <ol start="7" style="list-style-type: decimal">
 <li>Now press <strong>s</strong> to save your text. The message TEXT SAVED will appear. Your text has been saved to stdblk. You can now immediately continue editing your text. <br/><br>Note: Be aware that FreeLine never automatically saves your changes. It is up to you to remember to save your work. If you make changes that you do not wish to keep, simply exit FreeLine without saving.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Save.png" title="TEXT SAVED message confirms successful save" alt="TEXT SAVED message confirms successful save" /><p class="caption">TEXT SAVED message confirms successful save</p>
+<img src="doc/img/FreeLine-Save.png" title="TEXT SAVED message confirms successful save" alt="TEXT SAVED message confirms successful save" />
+<p class="caption">TEXT SAVED message confirms successful save</p>
 </div>
 <ol start="8" style="list-style-type: decimal">
 <li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>x</strong> to export your text. The message TEXT EXPORTED will appear. Your text has been exported to stdexp. You can now immediately continue editing your text. <br/><br>Note: If you now open 'std.exp' in some other text editor you will see that your text was indeed exported to that text file. WARNING: Be aware that the next time you start FreeLine the contents of 'std.exp' will automatically be erased.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Export.png" title="TEXT EXPORTED message confirms successful export" alt="TEXT EXPORTED message confirms successful export" /><p class="caption">TEXT EXPORTED message confirms successful export</p>
+<img src="doc/img/FreeLine-Export.png" title="TEXT EXPORTED message confirms successful export" alt="TEXT EXPORTED message confirms successful export" />
+<p class="caption">TEXT EXPORTED message confirms successful export</p>
 </div>
 <ol start="9" style="list-style-type: decimal">
 <li>Enter Escape Mode by hitting <strong>Esc</strong> then press <strong>h</strong> to view help. Using this help screen as a guide you can now explore the other functions of FreeLine.</li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Help.png" title="Freeline Help" alt="Freeline Help" /><p class="caption">Freeline Help</p>
+<img src="doc/img/FreeLine-Help.png" title="Freeline Help" alt="Freeline Help" />
+<p class="caption">Freeline Help</p>
 </div>
 <ol start="10" style="list-style-type: decimal">
 <li><p>Now quit FreeLine: enter Escape Mode by hitting <strong>Esc</strong> then press <strong>q</strong>.</p></li>
@@ -258,11 +265,13 @@ HelloWorld{ \ This is the start of the HelloWorld namespace
 <li><p>Page down through the source code by hitting <strong>PageDn</strong> repeatedly. What you are looking at is the Freelang program for the FreeLine text editor itself. This what the Freelang language looks like.</p></li>
 </ol>
 <div class="figure">
-<img src="doc/img/FreeLine-Source-Code.png" title="The Freelang source code for FreeLine, viewed in FreeLine" alt="The Freelang source code for FreeLine, viewed in FreeLine" /><p class="caption">The Freelang source code for FreeLine, viewed in FreeLine</p>
+<img src="doc/img/FreeLine-Source-Code.png" title="The Freelang source code for FreeLine, viewed in FreeLine" alt="The Freelang source code for FreeLine, viewed in FreeLine" />
+<p class="caption">The Freelang source code for FreeLine, viewed in FreeLine</p>
 </div>
 <p>You can use <a href="https://en.wikipedia.org/wiki/Gedit">gedit</a> in Forth highlight mode to view Freelang with syntax highlighting. Usually the only thing not properly highlighted are those particular multiple-line comments which in Freelang begin and end with triple parentheses.</p>
 <div class="figure">
-<img src="doc/img/gedit-FreeLine.png" title="The Freelang source code for FreeLine, viewed in gedit" alt="The Freelang source code for FreeLine, viewed in gedit" /><p class="caption">The Freelang source code for FreeLine, viewed in gedit</p>
+<img src="doc/img/gedit-FreeLine.png" title="The Freelang source code for FreeLine, viewed in gedit" alt="The Freelang source code for FreeLine, viewed in gedit" />
+<p class="caption">The Freelang source code for FreeLine, viewed in gedit</p>
 </div>
 <p>You have now learned how to edit, save, import and export text in FreeLine. Although FreeLine is of course not being presented here as a serious competitor to existing text editors, it is a signficant demonstration of what can be achieved on the Freeputer platform. Remember that FreeLine has no operating system dependencies and will run on a bare metal FVM implementation. It is a simple editor free of distractions.</p>
 <p>FreeLine currently has some known limitations:</p>
@@ -622,7 +631,7 @@ DECOMPILED PROGRAM:
 <li>Opcode number</li>
 <li>FVM instruction name</li>
 <li>Equivalent reserved word in Freelang</li>
-<li>Software stack ( -- ), data stack [ -- ] and return stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
+<li>Data stack ( -- ), software stack [ -- ] and return stack { -- } state changes; <br/>in the stack diagrams 'n' means number, 'b' means byte (a word with only its least significant byte having a non-zero value), 'a' means address, 'r' means return address</li>
 <li>Notes; 'cv' means &quot;the value in the next program cell&quot;</li>
 </ol>
 <p>The terms &quot;branch&quot; and &quot;jump&quot; can be used as synonyms. However, &quot;branch&quot; is often used to mean &quot;to conditionally branch while <em>preserving</em> at least one stack operand used to evaluate that condition,&quot; whereas &quot;jump&quot; is often used to mean &quot;to unconditionally branch, or to conditionally branch after <em>consuming</em> all stack operands used to evaluate that condition.&quot; This explains the parallel series of instructions beginning with BR and J.</p>
@@ -776,10 +785,10 @@ stack manipulation
 150. OVER : over ( n1 n2 -- n1 n2 n1 ) [ -- ] { -- }  
 stack manipulation
 
-151. ROT : rot ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- }  
+151. ROT : rot ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- }  
 stack manipulation
 
-152. TOR : tor ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- }  
+152. TOR : tor ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- }  
 stack manipulation
 
 153. LEAP : leap ( n1 n2 n3 -- n1 n2 n3 n1 ) [ -- ] { -- }  
@@ -1032,19 +1041,19 @@ set I/O channels to default channels:
 
 234. RCHAN : rchan ( n1 -- ) [ -- ] { -- }  
 change read channel to stream having ID n1 (affects future READOR, READORB operations)
-note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently trap)
+note: RCHAN does not trap if ID invalid (but READOR or READORB would subsequently branch)
 
 235. WCHAN : wchan ( n1 -- ) [ -- ] { -- }  
 change write channel to stream having ID n1 (affects future WRITOR, WRITORB operations)
-note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently trap)
+note: WCHAN does not trap if ID invalid (but WRITOR or WRITORB would subsequently branch)
 
 236. GCHAN : gchan ( n1 -- ) [ -- ] { -- }  
 change get channel to block device having ID n1 (affects future GETOR, GETORB operations)
-note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently trap)
+note: GCHAN does not trap if ID invalid (but GETOR or GETORB would subsequently branch)
 
 237. PCHAN : pchan ( n1 -- ) [ -- ] { -- }  
 change put channel to block device having ID n1 (affects future PUTOR, PUTORB operations)
-note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently trap)
+note: PCHAN does not trap if ID invalid (but PUTOR or PUTORB would subsequently branch)
 
 238. ECODE : ecode? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: last automated exit code (0 if none or if was success)
@@ -1070,7 +1079,7 @@ note: will be 0 if FVM has no memory-mapped devices
 
 243. STDBLK : stdblk? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: size of stdblk in bytes
-note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would trap on stdblk)
+note: can be 0 (in which case GETOR, GETORB, PUTOR, PUTORB would branch on stdblk)
 
 244. DS : ds? ( -- n1 ) [ -- ] { -- }  
 FVM metadata: maximum number of elements permitted on data stack
@@ -1425,7 +1434,8 @@ MY_CHARACTER_CONSTANT. &#39;A&#39;        \ Note: &#39; &#39; is an illegal char
 </code></pre>
 <p><br/>Here is the same program with syntax highlighting:</p>
 <div class="figure">
-<img src="doc/img/Tracing-Program.png" title="A simple program using tracing" alt="A simple program using tracing" /><p class="caption">A simple program using tracing</p>
+<img src="doc/img/Tracing-Program.png" title="A simple program using tracing" alt="A simple program using tracing" />
+<p class="caption">A simple program using tracing</p>
 </div>
 <p>And here is the tracing output. All values here are hexadecimal:</p>
 <pre><code>00000004 lit      00000003 ( ) [ ] { } 
@@ -1535,10 +1545,15 @@ DECOMPILED PROGRAM:
 </ul>
 <hr />
 <p>Copyright © Robert Gollagher 2015</p>
-<p>This document was written by Robert Gollagher.<br />This document was first published on 8 August 2015.<br />This document was last updated on 16 September 2016 at 12:48.<br />This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
-<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
-<p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />Robert Gollagher may be reached at</p>
+<p>This document was written by Robert Gollagher.<br />
+This document was first published on 8 August 2015.<br />
+This document was last updated on 31 January 2016 at 13:09.<br />
+This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" alt="" /></a></p>
+<p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
+Robert Gollagher may be reached at</p>
 <div class="figure">
-<img src="doc/img/abc.png" />
+<img src="doc/img/abc.png" alt="" />
+
 </div>
 <hr />

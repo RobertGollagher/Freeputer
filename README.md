@@ -980,10 +980,10 @@ stack manipulation
 150. OVER : over ( n1 n2 -- n1 n2 n1 ) [ -- ] { -- }  
 stack manipulation
 
-151. ROT : rot ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- }  
+151. ROT : rot ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- }  
 stack manipulation
 
-152. TOR : tor ( n1 n2 n3 -- n2 n3 n1 ) [ -- ] { -- }  
+152. TOR : tor ( n1 n2 n3 -- n3 n1 n2 ) [ -- ] { -- }  
 stack manipulation
 
 153. LEAP : leap ( n1 n2 n3 -- n1 n2 n3 n1 ) [ -- ] { -- }  
@@ -1970,7 +1970,7 @@ Copyright © Robert Gollagher 2015
 
 This document was written by Robert Gollagher.  
 This document was first published on 8 August 2015.  
-This document was last updated on 30 January 2016 at 18:58.  
+This document was last updated on 31 January 2016 at 13:09.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
