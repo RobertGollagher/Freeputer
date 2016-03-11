@@ -50,7 +50,7 @@ The complete Freeputer 1.0 code is in the [archive/1.0](archive/1.0) folder (git
 * The official Freeputer website: [www.freeputer.net](http://www.freeputer.net)
 * The Freeputer [GitHub](https://github.com/RobertGollagher/Freeputer) and [BitBucket](https://bitbucket.org/RobertGollagher/freeputer/src) git repositories
 * [Freelang](http://www.concatenative.org/wiki/view/Freelang) at concatenative.org
-* [Freelang syntax highlighting](https://bitbucket.org/sts-q/freeputer/src) for emacs (thanks sts-q)
+* [Freelang syntax highlighting](https://bitbucket.org/sts-q/freeputer/src) for Emacs (thanks sts-q)
 
 ---
 
@@ -58,7 +58,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 12 March 2016 at 02:04.  
+This document was last updated on 12 March 2016 at 02:19.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
