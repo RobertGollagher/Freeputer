@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20150807:1707
-Version:    1.0.0.1 for FVM 1.0
+Updated:    20160311:1610
+Version:    1.0.0.2 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2264,6 +2264,9 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   ;
 
   \ Test opcode 202 SUB ( n1 n2 -- n1-n2 )
+  \ FIXME This test needs to be expanded to test for the malfunction
+  \ mentioned in the comment in the iSUB instruction in FVM.java and fvm.c
+  \ versions 0.1.0.4 alpha for FVM 1.0 with respect to overflow.
   : testSUB
      3  7 -  -4 assert{eq}
      3 -7 -  10 assert{eq}
