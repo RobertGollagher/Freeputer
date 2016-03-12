@@ -16,33 +16,13 @@ The tape is extremely portable (easily implemented on a wide variety of hardware
 
 By convention, a tape *must* as a minimum support 7-bit ASCII or similar; *optionally* it may also support the display of UTF-8 characters. At all times designers should take into account that for reasons of freedom it should be easy to implement a minimal tape on bare metal (such as on a microcontroller driving a small alphanumeric character LCD display) without requiring the support of any operating system. The tape is however also very well suited to large monitors and sophisticated displays running on powerful operating systems.
 
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
 ---
 
 Copyright © Robert Gollagher 2016  
 
 This document was written by Robert Gollagher.  
 This document was first published on 12 March 2016.  
-This document was last updated on 12 March 2016 at 19:32.  
+This document was last updated on 12 March 2016 at 22:15.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 
