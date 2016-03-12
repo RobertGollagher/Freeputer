@@ -24,7 +24,7 @@ For an introduction to Freeputer, including a Quick Start tutorial, see [README.
 
 To learn Freeputer you should use the provided [Freeputer 1.0](archive/1.0) archive (equivalent to the git tag **fpv1.0.0.2**) since that is the version for which the Quick Start tutorial was written. Using Freeputer 1.0 will teach you the basic principles of Freeputer and Freelang while avoiding unnecessary complexity.
 
-See also [Other Resources](#other-freeputer-resources) below.
+See also [Other Resources](#other-resources) below.
 
 ## What's the latest news?
 
@@ -58,7 +58,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 12 March 2016 at 02:19.  
+This document was last updated on 12 March 2016 at 16:47.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
