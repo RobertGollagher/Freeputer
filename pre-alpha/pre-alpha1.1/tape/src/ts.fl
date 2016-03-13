@@ -1,0 +1,397 @@
+(
+
+Program:    ts.fl
+Copyright © Robert Gollagher 2016
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    2016
+Updated:    20160313:2354
+Version:    pre-alpha-0.0.0.1
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+==============================================================================
+
+WARNING: This is pre-alpha software and as such may well be incomplete,
+unstable and unreliable. It is considered to be suitable only for
+experimentation and nothing more.
+
+WARNING: This is a Freelang program for Freeputer. It is mainly intended
+to be run on FVM 1.1 rather than the FVM 1.0 since the latter does not support
+multiplexing. However, FVM 1.1 is not yet publicly available.
+
+==============================================================================
+
+A DEMONSTRATION OF A TAPE SERVER
+================================
+
+This program 'ts.fl' is a 'tape server'. Once compiled, it should be run on an
+FVM instance whose stdin and stdout are connected to a serial device [either a
+pseudoterminal or an actual physical serial device] at the other end of which
+is a 'tape terminal'. A tape terminal has a keyboard for user input and
+has a simple but powerful display device known as the 'tape'.
+
+The tape is a textual user interface [TUI] as described in tape/README.md.
+
+An example of a tape implementation is given in tape/tape.c.
+
+You should read README.md and tape.c before continuing, because due to
+time constraints this 'ts.fl' program is not fully commented.
+Essentially what 'ts.fl' does is:
+
+[1] Prints a short message to the tape terminal
+[2] Listens for user input from the tape terminal
+[3] Echos that input back to the tape terminal
+[4] Quits when the user enters a backtick `
+
+In the process of doing [2] and [3], this 'ts.fl' program marshalls and
+unmarshalls escape sequences which are use to communicate requests, commands
+and reports between the tape terminal and this tape server. Bear in mind
+that these escape sequences begin with DLE not ESC, unlike most of the escape
+sequences used by ANSI terminals. It is also important to understand that a
+tape terminal is a one-dimensional display device, whose only logical
+dimension is length [regardless of the fact that it is typically
+displayed as wrapped into two dimensions]. Communication also involves the
+transmission of ordinary characters [as opposed to escape sequences].
+This implementation supports UTF-8 characters although minimal implementations
+need only support 7-bit ASCII or similar. When escape sequences are used
+they are always of the same, fixed length, as defined by the constant
+DLE_LENGTH. That is, 6 bytes long. See tape.c for further details.
+
+As you can see from perusing the source code of this 'ts.fl' program,
+controlling a tape terminal is very much easier than controlling an
+ANSI terminal. As you can see from tape terminal implementations such
+as tape.c, implementing a tape terminal is very much easier than
+implementing an ANSI terminal. The tape has been designed to
+ensure it is a very easy user interface to implement.
+
+Before compiling this 'ts.fl' Freelang program [with flc or flx as usual]
+you should change the value of slotFloor to the exact size in bytes of the
+ROM memory of the FVM instance you are going to run the compiled program on.
+That FVM instance can be very small as this program is very small
+and only uses a few dozen bytes of RAM. However, this 'ts.fl' program
+is really intended to be used on FVM 1.1, which is not yet publicly
+available, in order to take advantage of multiplexing. It is
+possible to use a tape without mutliplexing but that would mean that
+the tape will not be able to display stdtrc output.
+
+See the source code of tape/tape.c for keyboard shortcuts to use when
+operating the tape terminal and to understand more about the escape sequences.
+Better documentation will follow later; time does not permit it now.
+
+WARNING: This program takes the rather extreme approach of simply halting
+the FVM when an I/O error occurs on reading from or writing to the
+tape terminal over the serial device. That keeps things simple
+for a demonstration like this but is hardly robust.
+
+==============================================================================
+
+  For reference: FVM 1.1 SIMPLE MULTIPLEXING
+
+  FVM 1.1 may optionally use multiplexing to allow multiple virtual devices
+  to share a single physical serial communication link. The simple multiplexing
+  is that each data packet is preceded by a routing byte in which the
+  most significant bit [bit 7] is always zero, the next two
+  most significant bits [bits 6 and 5] identify the device type and
+  the next bit [bit 4] identifies the packet size [essentially byte or word] and
+  the four least significant bits [bit 3 to 0] identify the absolute value
+  of the device ID [e.g. an ID of -1 is communicated as an ID of 1].
+  Note that, by Freeputer convention, a device ID of 0 is only used for stdtrc
+  and stdblk; an input stream never has a device ID of 0; and output streams
+  have negative IDs. The crude multiplexing scheme used here only supports
+  device IDs whose absolute value is between 0 and 15 inclusive.
+
+  Most significant bits:
+
+    0b0100 = device: output stream, packet size: 1 byte [byte]
+    0b0101 = device: output stream, packet size: 4 bytes [word]
+    0b0000 = device: input stream, packet size: 1 byte [byte]
+    0b0001 = device: input stream, packet size: 4 bytes [word]
+    0b0010 = device: block device, packet size: 5 bytes [word addr then byte]
+    0b0011 = device: block device, packet size: 8 bytes [word addr then word]
+    0b0110 = reserved [not used]
+    0b0111 = reserved [not used] e.g. 0b01111111 unknown device
+    0b1--- = reserved [not used]
+
+  Thus byte communication uses:
+
+    0b01000000 = stdtrc 0
+    0b00000001 = stdin 1
+    0b00000002 = stdimp 2
+    0b00100000 = stdblk 0
+    0b01000001 = stdout -1
+    0b01000010 = stdexp -2
+    0b0110----- = reserved [not used]
+
+  Thus word communication uses:
+
+    0b01010000 = stdtrc 0
+    0b00010001 = stdin 1
+    0b00010002 = stdimp 2
+    0b00110000 = stdblk 0
+    0b01010001 = stdout -1
+    0b01010010 = stdexp -2
+    0b0111----- = reserved [not used]
+
+============================================================================== )
+
+slotFloor 32768  \ Size of FVM instance's ROM in bytes
+
+ts{
+
+  \ Initialize, then print a string to the tape terminal
+  init ." Will echo ( ` to quit):  " puts
+
+  \ The main interaction loop:
+  \   listens for and responds to input from the tape terminal
+  interact:
+    readorb :rfail '`' go[==] :end
+    handleByte
+    go :interact
+
+  \ Exit point: successful run
+  end: halt
+
+  \ Exit points: I/O failure occurred
+  rfail: 77 halt \ 77 is just an arbitrary meaningless value [debugging aid].
+                 \ See write and writeb below for other exit points.
+
+  \ Contants: see tape.c for details of most of these
+  CHAR_HT. 9
+  CHAR_NL. 10
+  CHAR_VT. 11
+  CHAR_FF. 12
+  CHAR_CR. 13
+  CHAR_XON. 17
+  CHAR_DC2. 18
+  CHAR_XOFF. 19
+  CHAR_ETB. 23
+  CHAR_EM. 25
+  CHAR_LOWEST_VISIBLE. 32
+
+  CHAR_DLE. 16
+  ARG_DLE_NONE. 0
+  DLE_LENGTH. 6
+  DLE_LAST_CELL. 5
+
+  CMD_DLE_CLEAR. 1
+  CMD_DLE_CLEAR_FROM. 2
+  CMD_DLE_NO_WRAP. 3
+  CMD_DLE_WRAP. 4
+  CMD_DLE_RIGHT. 5
+  CMD_DLE_LEFT. 6
+  CMD_DLE_UP. 7
+  CMD_DLE_DOWN. 8
+  CMD_DLE_REPORT_POS. 9
+  CMD_DLE_REPORT_MAX_POS. 10
+  CMD_DLE_SPLIT_MODE. 11
+  CMD_DLE_VISIBLE_SPC. 12
+  CMD_DLE_GOTO_POS. 128
+
+  FALSE. 0 TRUE. 1
+
+  \ Slots [that is, variables] used by the tape server:
+  FULL# 1
+  inDleSeq# 1
+  dleEscSeq# 6
+  iDleEscSeq# 1
+  pos# 4
+  maxPos# 4
+
+  \ Initialize tape server.
+  : init ( -- ) notFull notInDleSeq reportPos reportMaxPos ;
+
+  \ Echo a whole escape sequence to the tape terminal.
+  \ This is used when the tape terminal has sent an escape sequence to
+  \ this tape server, indicating that the user wishes a command to be carried
+  \ out (such as clearing the tape or entering wrap mode) and this server
+  \ has decided that it will allow that command to be carried out,
+  \ so it invokes this echoEscSeq function to simply echo that
+  \ escape sequence back to the tape terminal which will then
+  \ interpret it as a command and obey that command.
+  : echoEscSeq ( -- ) 
+    ##dleEscSeq [@b] writeb
+    inc [@b] writeb
+    inc [@b] writeb
+    inc [@b] writeb
+    inc [@b] writeb
+    inc @b writeb
+  ;
+
+  \ Set cursor position.
+  : gotoPos ( pos -- ) ..CMD_DLE_GOTO_POS complexDleCmd ;
+
+   \ Query cursor position.
+  : reportPos ( -- pos ) ..CMD_DLE_REPORT_POS simpleDleCmd ;
+
+  \ Query tape length.
+  : reportMaxPos ( -- pos ) ..CMD_DLE_REPORT_MAX_POS simpleDleCmd ;
+
+  \ Send an escape sequence.
+  : sendEscSeq ( arg cmd escChar -- ) writeb writeb write ;
+
+  \ Send a simple escape sequence with no argument.
+  : simpleDleCmd ( cmd -- ) ..ARG_DLE_NONE swap ..CHAR_DLE sendEscSeq ;
+
+  \ Send a complex escape sequence with an argument.
+  : complexDleCmd ( arg cmd -- ) ..CHAR_DLE sendEscSeq ;
+
+  \ Are we in an escape sequence?
+  : inDleSeq? ( -- TRUE/FALSE ) ##inDleSeq @b ;
+
+  \ Initiate the state of being in an escape sequence.
+  : inDleSeq ( CHAR_DLE -- )
+    ..TRUE ##inDleSeq !b 0 ##iDleEscSeq !b clearDleSeq ##dleEscSeq !b
+  ;
+
+  \ Initiate the state of no longer being in an escape sequence.
+  : notInDleSeq ( -- ) ..FALSE ##inDleSeq !b 0 ##iDleEscSeq !b clearDleSeq ;
+
+  \ Clear the current escape sequence buffer.
+  : clearDleSeq ( -- ) ..DLE_LENGTH 0 ##dleEscSeq fillb ;
+
+  \ Mark that the tape is full.
+  : full ( -- ) ..TRUE ##FULL ! ;
+
+  \ Mark that the tape is not full.
+  : notFull ( -- ) ..FALSE ##FULL ! ;
+
+  \ Inform the tape terminal that this tape server is ready to receive.
+  : xon ( -- ) ..CHAR_XON writeb ;
+
+  \ Inform the tape terminal that this tape server is not ready to receive.
+  : xoff ( -- ) ..CHAR_XOFF writeb ;
+
+  \ Respond appropriately to byte b received from client tape terminal.
+  : handleByte ( b -- )
+    tron troff \ FIXME Comment out this line for better performance!
+    inDleSeq? ..TRUE go== :continueEscSeq \ Continuing an escape sequence?
+    normal:
+      ..CHAR_DLE go[==] :startEscSeq \ Starting an escape sequence?
+      ..CHAR_EM go[==] :full \ Tape signalling that it is full?
+      go[<0] :write \ Byte of a UTF-8 char? Echo it [tape has logic for this]
+      ..CHAR_HT go[==] :write \ Tab? Echo it [displays as * or similar]
+      ..CHAR_NL go[==] :write \ Newline? Echo it [ditto]
+      ..CHAR_CR go[==] :write \ Carriage return? Echo it [ditto]
+      ..CHAR_LOWEST_VISIBLE go[>=] :write \ Visible 7-bit ASCII char? Echo it
+      \ Intentionally fall through to xonOnly
+    xonOnly:
+      drop xon ret
+    startEscSeq:
+      \ Starting to receive an escape sequence
+      inDleSeq ret
+    endEscSeq:
+      \ Reached the end of a received escape sequence
+      drop2
+      filterEscSeq
+      notInDleSeq
+      go :normal
+    continueEscSeq:
+      \ Continuing to receive an escape sequence
+      xon ##iDleEscSeq [@b] inc ..DLE_LAST_CELL go[>=] :endEscSeq
+      tuck swap !b ##dleEscSeq + !b ret
+    notFull:
+      \ The tape is no longer full, so it can display more characters
+      drop notFull ret
+    full:
+      \ The tape is full, so it cannot display any more characters unless we do
+      \ something like clear the tape or command it into wrap mode
+      drop full handleFull ret
+    wipe:
+      notFull
+    write:
+      writeb
+  ;
+
+  \ Attempt to decode an buffered escape sequence.
+  \ Note: currently this simply does nothing if the escape sequence
+  \ is unknown or illegal.
+  : filterEscSeq ( -- )
+    ##dleEscSeq
+    [@b] ..CHAR_DLE go!= :illegal inc
+    [@b] ..CMD_DLE_REPORT_POS go== :skipCheck
+    [@b] ..CMD_DLE_REPORT_MAX_POS go== :skipCheck
+      inc [@b] 0 go!= :illegal
+      inc [@b] 0 go!= :illegal
+      inc [@b] 0 go!= :illegal
+      inc [@b] 0 go!= :illegal
+    skipCheck:
+    drop
+    ##dleEscSeq
+    inc @b
+    ..CMD_DLE_CLEAR go[==] :echoEscSeq
+    ..CMD_DLE_CLEAR_FROM go[==] :echoEscSeq
+    ..CMD_DLE_NO_WRAP go[==] :echoEscSeq
+    ..CMD_DLE_WRAP go[==] :echoEscSeq
+    ..CMD_DLE_RIGHT go[==] :echoEscSeq
+    ..CMD_DLE_LEFT go[==] :echoEscSeq
+    ..CMD_DLE_UP go[==] :echoEscSeq
+    ..CMD_DLE_DOWN go[==] :echoEscSeq
+    ..CMD_DLE_REPORT_POS go[==] :decodePos
+    ..CMD_DLE_REPORT_MAX_POS go[==] :decodeMaxPos
+    ..CMD_DLE_SPLIT_MODE go[==] :echoEscSeq
+    ..CMD_DLE_VISIBLE_SPC go[==] :echoEscSeq
+    unknown:
+      drop ret
+    echoEscSeq:
+      drop echoEscSeq ret
+    decodePos:
+      drop decodeValue ##pos ! ret
+    decodeMaxPos:
+      drop decodeValue ##maxPos ! ret
+    illegal:
+      ret
+  ;
+
+  \ Give the value, as WORD n, of the argument field
+  \ of the current buffered escape sequence.
+  : decodeValue ( -- n ) 
+    ##dleEscSeq inc inc @
+  ;
+
+  \ Put here whatever you want to happen when the tape reports it is full.
+  \ For now this does nothing, which is not a very sensible approach
+  \ because it means we will keep echoing received characters
+  \ although the user cannot see them unless the cursor
+  \ is repositioned or the tape cleared or wrap mode
+  \ is entered or some other such action occurs.
+  : handleFull ( -- ) ;
+
+  \ Attempt to write byte b to tape terminal.
+  \  On failure halt with after placing the arbitrary value 99 on the data stack.
+  : writeb ( b -- ) writorb :wfail ret wfail: 99 halt ;
+
+  \ Attempt to write byte b to tape terminal.
+  \  On failure halt with after placing the arbitrary value 88 on the data stack.
+  : write ( n -- ) writor :wfail ret wfail: 88 halt ;
+
+  \ Write a single byte except if the byte is 0 in which case do nothing.
+  : putb ( c -- ) go[==0] :zero writeb ret zero: drop ;
+
+  \ Write character c [interpreted as a fixed-width 4-byte character
+  \ as is conventional in Freelang string storage].
+  : putc ( c -- )
+    dup 255 & putb ( c )
+    dup 8  >> 255 & putb ( c )
+    dup 16 >> 255 & putb ( c )
+    24 >> 255 & putb ( c )
+  ;
+
+  \ Write the string at k but do not exceed block size in words
+  \ as indicated at k and stop if a 0 is encountered.
+  : puts ( k -- )
+    [@] begin: go[<=0] :end swap incw [@] go[==0] :end
+    putc swap dec go :begin end: drop2
+  ;
+
+}ts
