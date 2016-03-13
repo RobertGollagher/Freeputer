@@ -4,7 +4,7 @@ Program:    tape.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20160313:2057
+Updated:    20160313:2115
 Version:    pre-alpha-0.0.0.1
 
 This program is free software: you can redistribute it and/or modify
@@ -1654,8 +1654,8 @@ int ttrace(tape_t *t, CHAR_TYPE c) {
   #endif
 }
 
-tape_t *currentTape;
-static void quit(int sig) { tape_shutdown(currentTape); exit(0); }
+tape_t currentTape = {0};
+static void quit(int sig) { tape_shutdown(&currentTape); exit(0); }
 
 /*
   Run the tape. You must supply one command line argument, being the
@@ -1674,13 +1674,12 @@ static void quit(int sig) { tape_shutdown(currentTape); exit(0); }
   
 */
 int main(int argc, CHAR_TYPE *argv[]) {
-  tape_t t = {0};
   if (argc < 2) {
     printf("You must specify a serial device name\n");
     return 2;
   }
   const CHAR_TYPE *deviceName = argv[1];
-  if (tape_run(&t, deviceName)) {
+  if (tape_run(&currentTape, deviceName)) {
     return 0;
   } else {
     return 1;
