@@ -1,0 +1,3710 @@
+(
+fvmtest
+=======
+
+Unit tests for the Freeputer Virtual Machine
+
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150723
+Updated:    20160314:1645
+Version:    pre-alpha-0.0.0.1 for FVM 1.1
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+============================================================================
+
+WARNING: This is pre-alpha software and as such may well be incomplete,
+unstable and unreliable. It is considered to be suitable only for
+experimentation and nothing more.
+
+WARNING: Only use this 'fvmtest.fl' test suite to test FVM 1.1 instances.
+It contains tests that an FVM 1.0 instance could not possibly pass, since
+the FVM 1.1 instruction set is a superset of the FVM 1.0 instruction set.
+Please note that FVM 1.1 has not yet been publicly released.
+
+============================================================================
+
+Instructions
+============
+
+This Freelang program 'fvmtest.fl' is a test suite for testing the
+Freeputer Virtual Machine [FVM] instance upon which the test suite is run.
+
+Please be aware that, due to time constraints in development,
+this test suite does NOT provide complete coverage of all FVM functionality.
+That is, if you run this test suite on your FVM instance and a test fails
+it indicates a malfunction in the FVM instance. However, if all tests
+pass it does not necessarily mean the FVM instance is perfect.
+For example, this test suite does not yet test for overflows and underflows
+of the return stack [because this test suite makes very sophisticated use
+of soft resets to test FVM traps and in doing so it manipulates the
+return stack in a manner not easily compatible with doing so]. On the other
+hand, the coverage provided by this test suite is very significant and
+providing that an FVM implementation has been carefully written,
+passes all tests in this test suite, and correctly runs the self-hosted
+Freelang compiler [for example to compile the compiler itself, see 'flc.fl'],
+Freelang decompiler [as compiled from 'fld.fl'] and FreeLine text editor
+[as compiled from 'fl.fl'] then your FVM instance is probably
+reasonably reliable. That is, of course, providing that you also
+extensively test your application for all expected use cases.
+
+WARNING: If you modify this 'fvmtest.fl' test suite be careful not
+to accidentally cause a trap to occur that you did not intend to occur
+as part of a test. Because of the nature of this test suite, such an
+unintended trap might even cause an infinite loop of FVM restarts;
+to prevent this, the test suite has a hardcoded limit [see MAX_RESETS] on the
+number of times it will allow the FVM to restart. Of course no such
+thing normally happens with Freeputer, it is only because this
+test script uses unusual hacks to test the FVM that such
+an infinite restart loop could occur. Normally the FVM is configured
+to simply halt when a trap occurs and there is no such problem.
+This test suite intentionally causes the FVM to undergo a soft reset,
+thus restarting itself, over 200 times to test various traps.
+
+To run this test suite on 32-bit Linux:
+
+  1. Place the FVM executable you wish to test in a suitable directory.
+     The FVM executable needs to conform to the specifications noted in the
+     CONFIGURATION section below, otherwise you would need to modify
+     this test suite to accord with the sizing and configuration
+     of the FVM instance you wish to test. A suitable FVM instance,
+     for 32-bit Linux, has been provided that can run this test suite;
+     that FVM executable is called 'fvm16-16MB-sr-append'. Its name
+     indicates that it has been configured to soft reset rather than halt
+     when a trap occurs and that it has been configured to append to
+     an existing 'std.trc' file rather than creating a new one
+     each time it starts up. It has 16 MB of RAM, 16 MB of ROM and
+     expects a 16 MB standard block device. If you choose to use that
+     executable or a similar executable then you must also do as follows.
+
+  2. Place a text file called 'std.imp' in the same directory.
+     That text file should contain only the string "EFGH". It will be used by
+     the test suite to verify the standard import device [stdimp] is working.
+     You can create this by:
+            touch std.imp && echo "EFGH" > std.imp
+
+  3. Place a text file called 'std.in.tst' in the same directory.
+     That text file should contain only the string "ABCDABCD". It will be used
+     by the test suite to verify the standard input device [stdin] is working.
+     You can create this by:
+            touch std.in.tst && echo "ABCDABCD" > std.in.tst
+
+  3. Place a zero-filled 16 MB file called 'std.blk' in the same directory.
+     You can create this by:
+            head -c 16777216 /dev/zero > std.blk
+
+  4. Compile this 'fvmtest.fl' Freelang program using a Freelang compiler.
+     For example, you could use the Ruby Freelang cross compiler 'flx.rb'
+     or you could use flc, the self-hosted Freelang compiler. Alternatively,
+     simply copy the supplied compiled version of the fvmtest suite
+     from 'dev/freelang/vmtest/bin/rom.fp' [or similar].
+     Place the compiled test suite, which must be named 'rom.fp', in the
+     same directory as the FVM executable to be tested. The directory
+     should now contain something like this:
+
+        -rwxr-xr-x 1 rob rob    29836 Jul 28 17:38 fvm16-16MB-sr-append
+        -rw-r--r-- 1 rob rob    73768 Jul 28 17:29 rom.fp
+        -rwxr--r-- 1 rob rob       91 Jul 27 12:17 fvmtest.sh
+        -rw-r--r-- 1 rob rob 16777216 Jul 28 20:24 std.blk
+        -rw-r--r-- 1 rob rob        5 Jul 28 20:24 std.imp
+        -rw-r--r-- 1 rob rob        9 Jul 28 20:24 std.in.tst
+
+     Note: the 'fvmtest.sh' script is provided with this distribution and
+     can be found at 'dev/freelang/vmtest/src/fvmtest.sh'. Its use is not
+     mandatory. If you prefer you can run the test suite as in step 5.
+
+  5. You can now run the test suite by:
+
+        ./fvm16-16MB-sr-append < std.in.tst && cat std.trc
+
+    Or simply:
+
+        ./fvmtest.sh
+
+  6. That will cause the FVM instance to start up and to load the compiled
+     test suite, contained in the 'rom.fp' file, into its ROM address space
+     from where it will be run. That is, the FVM instance will test
+     itself by running the test suite. A test report will be sent to
+     standard trace, in other words to the file 'std.trc'. However, a small
+     amount of output [currently only a single word: "Freeputer"] is sent to
+     standard output, so the best approach is to 'cat std.trc' as above.
+     Then you can conveniently see all the test output in the terminal.
+     You should then see a very lengthy test report in the terminal.
+     The test suite takes only a few seconds to run.
+
+     After running the test suite the directory will now look
+     something like this:
+
+        -rwxr-xr-x 1 rob rob    29836 Jul 28 17:38 fvm16-16MB-sr-append
+        -rw-r--r-- 1 rob rob    73768 Jul 28 17:29 rom.fp
+        -rwxr--r-- 1 rob rob       91 Jul 27 12:17 runtests.sh
+        -rw-r--r-- 1 rob rob 16777216 Jul 28 20:30 std.blk
+        -rw-r--r-- 1 rob rob        0 Jul 28 20:30 std.exp
+        -rw-r--r-- 1 rob rob        5 Jul 28 20:24 std.imp
+        -rw-r--r-- 1 rob rob        9 Jul 28 20:24 std.in.tst
+        -rw-r--r-- 1 rob rob    33653 Jul 28 20:30 std.trc
+
+    Note that the FVM has automatically created 'std.exp' and 'std.trc'
+    and 'std.trc' contains a large test report. If all tests passed the
+    test report will end with the line:
+
+        OK     : All tests passed
+
+)
+
+\ ============================================================================
+\                             CONFIGURATION
+\ ============================================================================
+\ This 'fvmtest.fl' test suite for the FVM is coded to be run on an
+\ FVM instance having 16 MB RAM, 16 MB ROM, 16 MB stdblk and no memory-mapped
+\ devices. Accordingly here we inform the Freelang compiler that the lowest
+\ slot shall be at address 16777216, which is the start of RAM.
+\ IMPORTANT: the FVM instance must be configured to do a soft reset upon
+\ trap [rather than halt or hard reset upon trap] otherwise the test suite
+\ will not be able to complete running as many of these tests deliberately
+\ cause traps to occur so as to test that traps occur as they should.
+\ Furthermore, in order to be able to meaningfully read the resulting test
+\ report that is output to 'std.trc' it is necessary that the FVM instance
+\ be configured to append to an existing 'std.trc' file rather than
+\ truncating or recreating the 'std.trc' file upon start up. Otherwise
+\ each soft reset that occurs while the test suite runs would erase the
+\ test report of the previous test cases. This is unusual; most FVM instances
+\ are normally configured to truncate and recreate an empty 'std.trc' file
+\ upon start up [so that applications do not accumulate gigantic trace logs].
+\ Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
+slotFloor 16777216
+
+fvmtest{
+
+\ Constants that inform tests of the sizing of the FVM instance
+\ upon which the tests are being run:
+ROM_SIZE.    16777216 \ FVM ROM size (bytes)
+RAM_SIZE.    16777216 \ FVM RAM size (bytes)
+MAP_SIZE.    0        \ FVM MAP size (bytes)
+STDBLK_SIZE. 16777216 \ FVM STDBLK size (bytes)
+MAX_DEPTH_DS. 32      \ FVM max depth of data stack
+MAX_DEPTH_SS. 32      \ FVM max depth of software stack
+MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+
+\ ============================================================================
+\                             TEST SUITE
+\ ============================================================================
+
+  \ Algorithm for running test suite
+  intercept init runAllTests finish quit
+
+  \ Initialize the test suite and start it running
+  : init
+    ." Running fvmtest test suite... " dbg{print} dbg{newline}
+    ##testvar ##pTestvar !          \ Initialize arbitrary pTestvar pointer
+    ..exitSUCCESS ##expectedEcode ! \ Normally we expect the success exit code
+    -1 ##numResets !                \ No soft resets done yet [see intercept]
+  ;
+
+  \ Finish running the test suite (that is, all tests have passed)
+  : finish
+    dbg{newline}
+    ##numResets @ ..EXPECTED_RESETS go== :resetNumberCorrect
+      ." WARNING: THE FVM RESTARTED  " dbg{puts}
+        ##numResets @ dbg{putd} ."  TIMES " dbg{puts}
+        ."  BUT EXPECTED  "  dbg{puts} ..EXPECTED_RESETS dbg{printd}
+      ."           (see EXPECTED_RESTARTS in the test suite) " dbg{print}
+      go :reportStacks
+    resetNumberCorrect:
+      ." OK     : The FVM restarted  " dbg{puts}
+          ##numResets @ dbg{putd} ."  times " dbg{puts}
+      ."  as expected " dbg{print}
+    reportStacks:
+    dsn? 0 assert{eq} \ The DS should be empty at end of test suite
+    ssn? 0 assert{eq} \ The SS should be empty at end of test suite
+    rsn? 1 assert{eq} \ Actually the RS has 1 element from the call to finish
+    ." OK     : ( ) [ ] { n } as expected " dbg{print}
+
+    ." OK     : All tests passed " dbg{print}
+    dbg{newline}
+  ;
+
+  \ Halt
+  : quit halt ;
+
+  \ Run all unit tests in this test suite.
+  \ WARNING: Some of these tests depend upon state established by
+  \ a preceding test. Do not change the order of these tests!
+  \ NOTE: the term 'unit test' is used loosely here since
+  \ some of these tests could rather be considered 'system tests'
+  \ or perhaps even 'integration tests' as they are actually testing
+  \ the FVM instance used to run this test suite. Furthermore,
+  \ some of these tests involve I/O.
+  : runAllTests
+    \ Tests for each instruction in the FVM instruction set:
+    ::testWALL       ." testWALL             " expectTrap
+    ::testLIT        ." testLIT              " expectTrap
+    ::testCALL       ." testCALL             " expectTraps
+    ::testJMP        ." testJMP              " expectTraps
+    ::testBRGZ       ." testBRGZ             " expectTraps
+    ::testBRGEZ      ." testBRGEZ            " expectTraps
+    ::testBRZ        ." testBRZ              " expectTraps
+    ::testBRNZ       ." testBRNZ             " expectTraps
+    ::testBRLEZ      ." testBRLEZ            " expectTraps
+    ::testBRLZ       ." testBRLZ             " expectTraps
+    ::testBRG        ." testBRG              " expectTraps
+    ::testBRGE       ." testBRGE             " expectTraps
+    ::testBRE        ." testBRE              " expectTraps
+    ::testBRNE       ." testBRNE             " expectTraps
+    ::testBRLE       ." testBRLE             " expectTraps
+    ::testBRL        ." testBRL              " expectTraps
+    ::testJGZ        ." testJGZ              " expectTraps
+    ::testJGEZ       ." testJGEZ             " expectTraps
+    ::testJZ         ." testJZ               " expectTraps
+    ::testJNZ        ." testJNZ              " expectTraps
+    ::testJLEZ       ." testJLEZ             " expectTraps
+    ::testJLZ        ." testJLZ              " expectTraps
+    ::testJG         ." testJG               " expectTraps
+    ::testJGE        ." testJGE              " expectTraps
+    ::testJE         ." testJE               " expectTraps
+    ::testJNE        ." testJNE              " expectTraps
+    ::testJLE        ." testJLE              " expectTraps
+    ::testJL         ." testJL               " expectTraps
+    ::testREADOR     ." testREADOR           " test
+    ::testWRITOR     ." testWRITOR           " test
+    ::testTRACOR     ." testTRACOR    " test \ Intentionally shorter
+    ::testGETOR      ." testGETOR            " test
+    ::testPUTOR      ." testPUTOR            " test
+    ::testREADORB    ." testREADORB          " test
+    ::testWRITORB    ." testWRITORB          " test
+    ::testTRACORB    ." testTRACORB   " test \ Intentionally shorter
+    ::testGETORB     ." testGETORB           " test
+    ::testPUTORB     ." testPUTORB           " test
+    ::testMATH       ." testMATH             " expectTraps
+    ::testTRAP       ." testTRAP             " expectTraps
+    ::testDIE        ." testDIE              " untested
+    ::testREAD       ." testREAD             " test
+    ::testWRITE      ." testWRITE            " test
+    ::testGET        ." testGET              " test
+    ::testPUT        ." testPUT              " test
+    ::testTRACE      ." testTRACE            " test
+    ::testZOOM       ." testZOOM             " expectTraps
+    ::testRCHANN     ." testRCHANN           " test
+    ::testWCHANN     ." testWCHANN           " test
+    ::testGCHANN     ." testGCHANN           " test
+    ::testPCHANN     ." testPCHANN           " test
+    ::testPC         ." testPC               " test
+    ::testRDJMP      ." testRDJMP            " expectTraps
+    ::testREV4       ." testREV4             " expectTrap
+    ::testTOR4       ." testTOR4             " expectTrap
+    ::testROT4       ." testROT4             " expectTrap
+    ::testEXIT       ." testEXIT             " test
+    ::testDCALL      ." testDCALL            " expectTraps
+    ::testRDCALL     ." testRDCALL           " expectTraps
+    ::testDJMP       ." testDJMP             " expectTraps
+    ::testSWAP       ." testSWAP             " expectTrap
+    ::testOVER       ." testOVER             " expectTraps
+    ::testROT        ." testROT              " expectTrap
+    ::testTOR        ." testTOR              " expectTrap
+    ::testLEAP       ." testLEAP             " expectTraps
+    ::testNIP        ." testNIP              " expectTrap
+    ::testTUCK       ." testTUCK             " expectTraps
+    ::testREV        ." testREV              " expectTrap
+    ::testRPUSH      ." testRPUSH            " expectTrap
+    ::testRPOP       ." testRPOP             " expectTrap
+    ::testDROP       ." testDROP             " expectTrap
+    ::testDROP2      ." testDROP2            " expectTrap
+    ::testDROP3      ." testDROP3            " expectTrap
+    ::testDROP4      ." testDROP4            " expectTrap
+    ::testDUP        ." testDUP              " expectTraps
+    ::testDUP2       ." testDUP2             " expectTraps
+    ::testDUP3       ." testDUP3             " expectTraps
+    ::testDUP4       ." testDUP4             " expectTraps
+    ::testHOLD       ." testHOLD             " expectTrap
+    ::testHOLD2      ." testHOLD2            " expectTrap
+    ::testHOLD3      ." testHOLD3            " expectTrap
+    ::testHOLD4      ." testHOLD4            " expectTrap
+    ::testSPEEK      ." testSPEEK            " expectTraps
+    ::testSPEEK2     ." testSPEEK2           " expectTraps
+    ::testSPEEK3     ." testSPEEK3           " expectTraps
+    ::testSPEEK4     ." testSPEEK4           " expectTraps
+    ::testSPUSH      ." testSPUSH            " expectTraps
+    ::testSPUSH2     ." testSPUSH2           " expectTraps
+    ::testSPUSH3     ." testSPUSH3           " expectTraps
+    ::testSPUSH4     ." testSPUSH4           " expectTraps
+    ::testSPOP       ." testSPOP             " expectTraps
+    ::testSPOP2      ." testSPOP2            " expectTraps
+    ::testSPOP3      ." testSPOP3            " expectTraps
+    ::testSPOP4      ." testSPOP4            " expectTraps
+    ::testDEC        ." testDEC              " expectTrap
+    ::testDECW       ." testDECW             " expectTrap
+    ::testDEC2W      ." testDEC2W            " expectTrap
+    ::testINC        ." testINC              " expectTrap
+    ::testINCW       ." testINCW             " expectTrap
+    ::testINC2W      ." testINC2W            " expectTrap
+    ::testLOAD       ." testLOAD             " expectTraps
+    ::testSTORE      ." testSTORE            " expectTraps
+    ::testRLOAD      ." testRLOAD            " expectTraps
+    ::testLOADB      ." testLOADB            " expectTraps
+    ::testSTOREB     ." testSTOREB           " expectTraps
+    ::testRLOADB     ." testRLOADB           " expectTraps
+    ::testPLOAD      ." testPLOAD            " expectTraps
+    ::testPSTORE     ." testPSTORE           " expectTraps
+    ::testRPLOAD     ." testRPLOAD           " expectTraps
+    ::testPLOADB     ." testPLOADB           " expectTraps
+    ::testPSTOREB    ." testPSTOREB          " expectTraps
+    ::testRPLOADB    ." testRPLOADB          " expectTraps
+    ::testADD        ." testADD              " expectTraps
+    ::testSUB        ." testSUB              " expectTraps
+    ::testMUL        ." testMUL              " expectTraps
+    ::testDIV        ." testDIV              " expectTraps
+    ::testMOD        ." testMOD              " expectTraps
+    ::testDIVMOD     ." testDIVMOD           " expectTraps
+    ::testRADD       ." testRADD             " expectTraps
+    ::testRSUB       ." testRSUB             " expectTraps
+    ::testRMUL       ." testRMUL             " expectTraps
+    ::testRDIV       ." testRDIV             " expectTraps
+    ::testRMOD       ." testRMOD             " expectTraps
+    ::testRDIVMOD    ." testRDIVMOD          " expectTraps
+    ::testNEG        ." testNEG              " expectTrap
+    ::testABS        ." testABS              " expectTrap
+    ::testAND        ." testAND              " expectTrap
+    ::testOR         ." testOR               " expectTrap
+    ::testXOR        ." testXOR              " expectTrap
+    ::testRAND       ." testRAND             " expectTrap
+    ::testROR        ." testROR              " expectTrap
+    ::testRXOR       ." testRXOR             " expectTrap
+    ::testSHL        ." testSHL              " expectTrap
+    ::testSHR        ." testSHR              " expectTrap
+    ::testRSHL       ." testRSHL             " expectTrap
+    ::testRSHR       ." testRSHR             " expectTrap
+    ::testMOVE       ." testMOVE             " expectTraps
+    ::testFILL       ." testFILL             " expectTraps
+    ::testFIND       ." testFIND             " expectTraps
+    ::testMATCH      ." testMATCH            " expectTraps
+    ::testMOVEB      ." testMOVEB            " expectTraps
+    ::testFILLB      ." testFILLB            " expectTraps
+    ::testFINDB      ." testFINDB            " expectTraps
+    ::testMATCHB     ." testMATCHB           " expectTraps
+    ::testHOMIO      ." testHOMIO            " test
+    ::testRCHAN      ." testRCHAN            " test
+    ::testWCHAN      ." testWCHAN            " test
+    ::testGCHAN      ." testGCHAN            " test
+    ::testPCHAN      ." testPCHAN            " test
+    ::testECODE      ." testECODE            " test
+    ::testRCODE      ." testRCODE            " test
+    ::testROM        ." testROM              " test
+    ::testRAM        ." testRAM              " test
+    ::testMAP        ." testMAP              " test
+    ::testSTDBLK     ." testSTDBLK           " test
+    ::testDS         ." testDS               " test
+    ::testSS         ." testSS               " test
+    ::testRS         ." testRS               " test
+    ::testDSN        ." testDSN              " test
+    ::testSSN        ." testSSN              " test
+    ::testRSN        ." testRSN              " test
+    ::doTRON         ." doTRON  " done \ Intentionally shorter
+    ::doTROFF        ." doTROFF " done \ Intentionally shorter
+    ::testRESET      ." testRESET            " expectReset
+    ::testREBOOT     ." testREBOOT           " untested
+    ::testHALT       ." testHALT             " untested
+    ::testDATA       ." testDATA             " expectTrap
+    \ Other tests:
+    ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap
+  ;
+
+  \ Trace the supplied string msg, then invoke unit test function f,
+  \ then trace a success message indicating that the test passed.
+  \ IMPORTANT: The supplied unit test function f should trace
+  \ a failure message and halt if it does not pass.
+  : test ( f msg -- )
+    dbg{puts} ."  :  " dbg{puts} invoke $$PASS dbg{print}
+  ;
+
+  \ Same as test but used when a test is expected to intentionally
+  \ cause a trap and therefore a soft reset of the [suitably configured] FVM.
+  \ The test suite will then resume execution where it left off unless the
+  \ trap did not occur, in which case the test function f should trace
+  \ a failure message and halt indicating a failure to trap.
+  : expectTrap ( f msg -- )
+    dbg{puts} ."  : expecting trap... " dbg{puts} dbg{newline} dbg{newline}
+    invoke
+    dbg{newline} $$SPACER dbg{puts} ."  :  " dbg{puts} $$PASS dbg{print}
+  ;
+
+  \ Same as expectTrap but expecting 2 or more traps to occur,
+  \ each one in turn causing a soft reset of the [suitably configured] FVM.
+  : expectTraps ( f msg -- )
+    dbg{puts} ."  : expecting traps... " dbg{puts} dbg{newline} dbg{newline}
+    invoke
+    dbg{newline} $$SPACER dbg{puts} ."  :  " dbg{puts} $$PASS dbg{print}
+  ;
+
+  \ Similar to expectTrap except that the test function f is expected to
+  \ cause a RESET of the [suitably configured] FVM without any trap occurring.
+  \ The RESET instruction is used by programs to trigger a soft reset.
+  \ It is not to be confused with REBOOT, which is an instruction used by
+  \ programs to trigger a hard rest, or HALT, which is an instruction
+  \ used by programs to cause the FVM to halt completely.
+  : expectReset ( f msg -- )
+    dbg{puts} ."  : expecting reset... " dbg{puts} dbg{newline} dbg{newline}
+    invoke
+    dbg{newline} $$SPACER dbg{puts} ."  :  " dbg{puts} $$PASS dbg{print}
+  ;
+
+  \ Same as test but does not print any message.
+  \ Use when a test is not so much a test as a mere invocation.
+  : done ( f msg -- ) dbg{puts} ."  :  " dbg{puts} invoke ;
+
+  \ Same as done but prints an "untested" message.
+  \ Use when not even invoking the relevant functionality,
+  \ usually because the test as yet does nothing.
+  : untested ( f msg -- )
+    dbg{puts} ."  :  " dbg{puts} invoke $$UNTESTED dbg{print}
+  ;
+
+  \ Indicate failure, trace the supplied string msg,
+  \ then cause the test suite to halt
+  : fail ( msg -- )
+    $$FAIL dbg{puts} ."  :  " dbg{puts} dbg{print} dbg{newline} quit
+  ;
+
+  \ Fail with a message that should have branched
+  : bfail ( msg -- ) ." Should have branched " fail ;
+
+  \ Fail with a message that should have jumped
+  : jfail ( msg -- ) ." Should have jumped " fail ;
+
+  \ Fail with a message that should have trapped
+  : tfail ( msg -- ) ." Should have trapped " fail ;
+
+\ ============================================================================
+\                               TESTS
+\ ============================================================================
+
+  \ Test opcode 0 WALL
+  : testWALL
+    \ Verify trapWall occurs as it should:
+    :testWALLdone rpush \ A hack: push label address onto RS
+    saveRS              \ A hack: persist state of RS
+    go ::hitTheWall     \ A hack: redirect program flow to cause trapWall
+    ." Should have jumped " fail
+    testWALLdone:       \ A hack: intercept will jump here after soft reset
+    ecode? ..trapWALL  assert{eq} \ Verify correct exit code occurred
+  ;
+
+  \ The following label, hitTheWall, must occur directly before the emptyWord
+  \ word declaration without anything else in between. Thus the hitTheWall
+  \ label marks the location of the WALL opcode (namely 0) that the compiler
+  \ automatically inserts at the start of a word declaration. This label
+  \ is used by testWALL to cause a trapWall.
+  hitTheWall:
+  : emptyWord ; \ An intentionally empty function only here for its WALL
+  ." trapWall did not occur " fail
+
+  \ Test opcode 1 LIT
+  : testLIT
+    \ Verify literals are placed on DS correctly
+    1 2 3 4
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :overLIT  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overLIT:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 tfail \ trapDsOverflow
+  ;
+
+  \ Some example functions for use by testCALL and testJMP below
+  : lit88 88 ; \ Puts 88 on DS
+  : lit99 99 ; \ Puts 99 on DS
+  : willReturnTo rpop dup rpush ; \ Copies current return address to top of DS
+
+  \ Test opcode 2 CALL
+  : testCALL
+    \ Verify functions are called correctly
+    lit88 lit99
+    99 assert{eq}
+    88 assert{eq}
+    \ Verify return address is populated correctly.
+    \ The call to willReturnTo should place the address of the label 'to:'
+    \ on top of the return stack as that is the point to which program
+    \ flow should return when we return from willReturnTo. To allow
+    \ us to verify this, willReturnTo places the return address
+    \ on top of the data stack where we can check it.
+    from:
+      willReturnTo
+    to:
+      :to assert{eq} \ Verify address of label 'to:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1CALL inc2w verifyTrapPcOverflow \ Should trap
+    :toBustCALL inc2w verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap. Since Freelang has no explicit CALL
+    \ we here use data sections to make two CALLs that will cause
+    \ trapPcOverflow, the first due to a negative address and
+    \ the second due to an address too high.
+    toNeg1CALL:
+    \ DATA      CALL -1  HALT  WALL
+      data  3   2    -1  254   ===
+    toBustCALL:
+    \ DATA      CALL 2147483644  HALT  WALL
+      data  3   2    2147483644  254   ===
+
+  ;
+
+  \ Test opcode 3 JMP
+  : testJMP
+    \ Verify that JMP jumps correctly to the specified destination.
+    \ We do this by effectively converting the jump into a call by first
+    \ placing a suitable return address (the address of the label 'to:') on
+    \ the return stack and then jumping to the function willReturnTo which
+    \ will then return to the address of the label 'to:' at which time
+    \ we can then verify that willReturnTo was indeed jumped to
+    \ just as we did above in testCALL.
+    from:
+      :to rpush \ This makes "go" behave like a CALL rather than a JMP
+      go ::willReturnTo \ In effect, calls willReturnTo using JMP
+    to:
+      :to assert{eq} \ Verify address of label 'to:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1JMP verifyTrapPcOverflow \ Should trap
+    :toBustJMP verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    toBustJMP: go 2147483644 jfail         \ trapPcOverflow, addr too high
+    toNeg1JMP: go -1 jfail                 \ trapPcOverflow, addr negative
+  ;
+
+  \ Test opcode 4 BRGZ
+  : testBRGZ
+    1 go[>0] :pass1
+      drop ." 1 should have branched " fail
+    pass1:
+      drop 0 go[>0] :fail1
+      drop -1 go[>0] :fail2
+      \ Verify traps occur as they should:
+      :toNeg1BRGZ verifyTrapPcOverflow \ Should trap
+      :toBustBRGZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 should not have branched " fail
+    fail2: drop ." -1 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRGZ: 1 go[>0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRGZ: 1 go[>0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 5 BRGEZ
+  : testBRGEZ
+    1 go[>=0] :pass1
+      drop ." 1 should have branched " fail
+    pass1:
+      drop 0 go[>=0] :pass2
+        drop ." 0 should have branched " fail
+    pass2:
+      drop -1 go[>=0] :fail1
+      \ Verify traps occur as they should:
+      :toNeg1BRGEZ verifyTrapPcOverflow \ Should trap
+      :toBustBRGEZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." -1 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRGEZ: 1 go[>=0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRGEZ: 1 go[>=0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 6 BRZ
+  : testBRZ
+    1 go[==0] :fail1
+      drop 0 go[==0] :pass1
+        drop ." 0 should have branched " fail
+      pass1:
+        drop -1 go[==0] :fail2
+        \ Verify traps occur as they should:
+        :toNeg1BRZ verifyTrapPcOverflow \ Should trap
+        :toBustBRZ verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: drop ." 1 should not have branched " fail
+    fail2: drop ." -1 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRZ: 0 go[==0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRZ: 0 go[==0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 7 BRNZ
+  : testBRNZ
+    1 go[!=0] :pass1
+      drop ." 1 should have branched " fail
+      pass1:
+        drop 0 go[!=0] :fail1
+        drop -1 go[!=0] :pass2
+          drop ." -1 should have branched " fail
+      pass2:
+        \ Verify traps occur as they should:
+        :toNeg1BRNZ verifyTrapPcOverflow \ Should trap
+        :toBustBRNZ verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: drop ." 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRNZ: 1 go[!=0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRNZ: 1 go[!=0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 8 BRLEZ
+  : testBRLEZ
+    -1 go[<=0] :pass1
+      drop ." -1 should have branched " fail
+    pass1:
+      drop 0 go[<=0] :pass2
+        drop ." 0 should have branched " fail
+    pass2:
+      drop 1 go[<=0] :fail1
+      \ Verify traps occur as they should:
+      :toNeg1BRLEZ verifyTrapPcOverflow \ Should trap
+      :toBustBRLEZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 1 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRLEZ: -1 go[<=0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRLEZ: -1 go[<=0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 9 BRLZ
+  : testBRLZ
+    -1 go[<0] :pass1
+      drop ." -1 should have branched " fail
+    pass1:
+      drop 0 go[<0] :fail1
+      drop 1 go[<0] :fail2
+      \ Verify traps occur as they should:
+      :toNeg1BRLZ verifyTrapPcOverflow \ Should trap
+      :toBustBRLZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 should not have branched " fail
+    fail2: drop ." 1 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRLZ: -1 go[<0] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRLZ: -1 go[<0] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 10 BRG
+  : testBRG
+    1 0 go[>] :pass1
+      drop ." 1 0 should have branched " fail
+    pass1:
+      drop 0 0 go[>] :fail1
+      drop -1 0 go[>] :fail2
+      \ Verify traps occur as they should:
+      :toNeg1BRG verifyTrapPcOverflow \ Should trap
+      :toBustBRG verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 0 should not have branched " fail
+    fail2: drop ." -1 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRG: 1 0 go[>] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRG: 1 0 go[>] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 11 BRGE
+  : testBRGE
+    1 0 go[>=] :pass1
+      drop ." 1 0 should have branched " fail
+    pass1:
+      drop 0 0 go[>=] :pass2
+        drop ." 0 0 should have branched " fail
+    pass2:
+      drop -1 0 go[>=] :fail1
+      \ Verify traps occur as they should:
+      :toNeg1BRGE verifyTrapPcOverflow \ Should trap
+      :toBustBRGE verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." -1 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRGE: 1 0 go[>=] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRGE: 1 0 go[>=] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 12 BRE
+  : testBRE
+    1 0 go[==] :fail1
+      drop 0 0 go[==] :pass1
+        drop ." 0 0 should have branched " fail
+      pass1:
+        drop -1 0 go[==] :fail2
+        \ Verify traps occur as they should:
+        :toNeg1BRE verifyTrapPcOverflow \ Should trap
+        :toBustBRE verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: drop ." 1 0 should not have branched " fail
+    fail2: drop ." -1 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRE: 0 0 go[==] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRE: 0 0 go[==] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 13 BRNE
+  : testBRNE
+    1 0 go[!=] :pass1
+      drop ." 1 0 should have branched " fail
+      pass1:
+        drop 0 0 go[!=] :fail1
+        drop -1 0 go[!=] :pass2
+          drop ." -1 0 should have branched " fail
+      pass2:
+      \ Verify traps occur as they should:
+      :toNeg1BRNE verifyTrapPcOverflow \ Should trap
+      :toBustBRNE verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRNE: 1 0 go[!=] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRNE: 1 0 go[!=] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 14 BRLE
+  : testBRLE
+    -1 0 go[<=] :pass1
+      drop ." -1 0 should have branched " fail
+    pass1:
+      drop 0 0 go[<=] :pass2
+        drop ." 0 0 should have branched " fail
+    pass2:
+      drop 1 0 go[<=] :fail1
+      \ Verify traps occur as they should:
+      :toNeg1BRLE verifyTrapPcOverflow \ Should trap
+      :toBustBRLE verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 1 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRLE: 0 1 go[<=] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRLE: 0 1 go[<=] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 15 BRL
+  : testBRL
+    -1 0 go[<] :pass1
+      drop ." -1 0 should have branched " fail
+    pass1:
+      drop 0 0 go[<] :fail1
+      drop 1 0 go[<] :fail2
+      \ Verify traps occur as they should:
+      :toNeg1BRL verifyTrapPcOverflow \ Should trap
+      :toBustBRL verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 0 should not have branched " fail
+    fail2: drop ." 1 0 should not have branched " fail
+    \ Labels for use by verifyTrap
+    toNeg1BRL: 0 1 go[<] -1 bfail         \ trapPcOverflow, addr negative
+    toBustBRL: 0 1 go[<] 2147483644 bfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 16 JGZ
+  : testJGZ
+    1 go>0 :pass1
+      ." 1 should have jumped " fail
+    pass1:
+      0 go>0 :fail1
+      -1 go>0 :fail2
+      \ Verify traps occur as they should:
+      :toNeg1JGZ verifyTrapPcOverflow \ Should trap
+      :toBustJGZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: drop ." 0 should not have jumped " fail
+    fail2: drop ." -1 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JGZ: 1 go>0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJGZ: 1 go>0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 17 JGEZ
+  : testJGEZ
+    1 go>=0 :pass1
+      ." 1 should have jumped " fail
+    pass1:
+      0 go>=0 :pass2
+        ." 0 should have jumped " fail
+    pass2:
+      -1 go>=0 :fail1
+      \ Verify traps occur as they should:
+      :toNeg1JGEZ verifyTrapPcOverflow \ Should trap
+      :toBustJGEZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." -1 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JGEZ: 1 go>=0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJGEZ: 1 go>=0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 18: JZ
+  : testJZ
+    1 go==0 :fail1
+      0 go==0 :pass1
+        ." 0 should have jumped " fail
+      pass1:
+        -1 go==0 :fail2
+        \ Verify traps occur as they should:
+        :toNeg1JZ verifyTrapPcOverflow \ Should trap
+        :toBustJZ verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: ." 1 should not have jumped " fail
+    fail2: ." -1 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JZ: 0 go==0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJZ: 0 go==0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 19 JNZ
+  : testJNZ
+    1 go!=0 :pass1
+      ." 1 should have jumped " fail
+      pass1:
+        0 go!=0 :fail1
+        -1 go!=0 :pass2
+          ." -1 should have jumped " fail
+      pass2:
+        \ Verify traps occur as they should:
+        :toNeg1JNZ verifyTrapPcOverflow \ Should trap
+        :toBustJNZ verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: ." 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JNZ: 1 go!=0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJNZ: 1 go!=0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 20 JLEZ
+  : testJLEZ
+    -1 go<=0 :pass1
+      ." -1 should have jumped " fail
+    pass1:
+      0 go<=0 :pass2
+        ." 0 should have jumped " fail
+    pass2:
+      1 go<=0 :fail1
+      \ Verify traps occur as they should:
+      :toNeg1JLEZ verifyTrapPcOverflow \ Should trap
+      :toBustJLEZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." 1 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JLEZ: -1 go<=0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJLEZ: -1 go<=0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 21 JLZ
+  : testJLZ
+    -1 go<0 :pass1
+      ." -1 should have jumped " fail
+    pass1:
+      0 go<0 :fail1
+      1 go<0 :fail2
+      \ Verify traps occur as they should:
+      :toNeg1JLZ verifyTrapPcOverflow \ Should trap
+      :toBustJLZ verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." 0 should not have jumped " fail
+    fail2: ." 1 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JLZ: -1 go<0 -1 jfail         \ trapPcOverflow, addr negative
+    toBustJLZ: -1 go<0 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 22 JG
+  : testJG
+    1 0 go> :pass1
+      ." 1 0 should have jumped " fail
+    pass1:
+      0 0 go> :fail1
+      -1 0 go> :fail2
+      \ Verify traps occur as they should:
+      :toNeg1JG verifyTrapPcOverflow \ Should trap
+      :toBustJG verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." 0 0 should not have jumped " fail
+    fail2: ." -1 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JG: 1 0 go> -1 jfail         \ trapPcOverflow, addr negative
+    toBustJG: 1 0 go> 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 23 JGE
+  : testJGE
+    1 0 go>= :pass1
+      ." 1 0 should have jumped " fail
+    pass1:
+      0 0 go>= :pass2
+        ." 0 0 should have jumped " fail
+    pass2:
+      -1 0 go>= :fail1
+      \ Verify traps occur as they should:
+      :toNeg1JGE verifyTrapPcOverflow \ Should trap
+      :toBustJGE verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." -1 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JGE: 1 0 go> -1 jfail         \ trapPcOverflow, addr negative
+    toBustJGE: 1 0 go> 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 24 JE
+  : testJE
+    1 0 go== :fail1
+      0 0 go== :pass1
+        ." 0 0 should have jumped " fail
+      pass1:
+        -1 0 go== :fail2
+        \ Verify traps occur as they should:
+        :toNeg1JE verifyTrapPcOverflow \ Should trap
+        :toBustJE verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: ." 1 0 should not have jumped " fail
+    fail2: ." -1 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JE: 1 1 go== -1 jfail         \ trapPcOverflow, addr negative
+    toBustJE: 1 1 go== 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 25 JNE
+  : testJNE
+    1 0 go!= :pass1
+      ." 1 0 should have jumped " fail
+      pass1:
+        0 0 go!= :fail1
+        -1 0 go!= :pass2
+          ." -1 0 should have jumped " fail
+      pass2:
+        \ Verify traps occur as they should:
+        :toNeg1JNE verifyTrapPcOverflow \ Should trap
+        :toBustJNE verifyTrapPcOverflow \ Should trap
+        ret
+    fail1: ." 0 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JNE: 1 0 go!= -1 jfail         \ trapPcOverflow, addr negative
+    toBustJNE: 1 0 go!= 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 26 JLE
+  : testJLE
+    -1 0 go<= :pass1
+      ." -1 0 should have jumped " fail
+    pass1:
+      0 0 go<= :pass2
+        ." 0 0 should have jumped " fail
+    pass2:
+      1 0 go<= :fail1
+        \ Verify traps occur as they should:
+        :toNeg1JLE verifyTrapPcOverflow \ Should trap
+        :toBustJLE verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." 1 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JLE: 0 1 go<= -1 jfail         \ trapPcOverflow, addr negative
+    toBustJLE: 0 1 go<= 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 27 JL
+  : testJL
+    -1 0 go< :pass1
+      ." -1 0 should have jumped " fail
+    pass1:
+      0 0 go< :fail1
+      1 0 go< :fail2
+      \ Verify traps occur as they should:
+      :toNeg1JL verifyTrapPcOverflow \ Should trap
+      :toBustJL verifyTrapPcOverflow \ Should trap
+      ret
+    fail1: ." 0 0 should not have jumped " fail
+    fail2: ." 1 0 should not have jumped " fail
+    \ Labels for use by verifyTrap
+    toNeg1JL: 0 1 go< -1 jfail         \ trapPcOverflow, addr negative
+    toBustJL: 0 1 go< 2147483644 jfail \ trapPcOverflow, addr too high
+  ;
+
+  \ Test opcode 28 READOR
+  : testREADOR
+    \ These tests depend on stdin feeding the following 4 characters
+    \ in order: 'A' 'B' 'C' 'D' but merged as one single four-byte word.
+    \ A suitable file 'std.in.tst' has been supplied and should be piped
+    \ into stdin accordingly. Note: those four UTF-8 characters,
+    \ each one byte, when read as one word make 1145258561.
+    \ So that testREADORB can also work correctly, the 'std.in.tst' file
+    \ actually contains the UTF-8 encoded string "ABCDABCD".
+    reador :fail ..ABCD assert{eq}
+      ret
+    fail: ." READOR attempt failed " fail
+  ;
+
+  \ Test opcode 29 WRITOR
+  : testWRITOR
+    \ Write "Free" to stdout
+    10 writorb :fail \ newline
+    ..Free writor :fail
+      ret
+    fail: ." WRITOR attempt failed " fail
+  ;
+
+  \ Test opcode 30 TRACOR
+  : testTRACOR
+    \ Write "ABCD : " to stdtrc as UTF-8
+    ..ABCD tracor :fail
+     32 tracorb :fail \ space
+    ':' tracorb :fail
+     32 tracorb :fail \ space
+      ret
+    fail: ." TRACOR attempt failed " fail
+  ;
+
+  \ Test opcode 31 GETOR
+  : testGETOR
+    \ Verify that address 0 in stdblk contains word value 0
+    \ (this is not mandatory, it is merely the state of our test stdblk)
+    0 getor :fail 0 assert{eq}
+      ret
+    fail: ." GETOR attempt failed " fail
+  ;
+
+  \ Test opcode 32 PUTOR
+  : testPUTOR
+    77 0 putor :failput            \ Put word value 77 at addr 0 in stdblk
+    0 getor :failget 77 assert{eq} \ Ensure it worked
+    0 0 putor :failput             \ Put word value  0 at addr 0 in stdblk
+    0 getor :failget 0 assert{eq}  \ Ensure it worked
+      ret
+    failput: ." PUTOR attempt failed " fail
+    failget: ." GETOR attempt failed in testPUTOR " fail
+  ;
+
+  \ Test opcode 33 READOR
+  : testREADORB
+    \ See comment in testREADOR above
+    readorb :fail 'A' assert{eq}
+    readorb :fail 'B' assert{eq}
+    readorb :fail 'C' assert{eq}
+    readorb :fail 'D' assert{eq}
+      ret
+    fail: ." READORB attempt failed " fail
+  ;
+
+  \ Test opcode 34 WRITORB
+  : testWRITORB
+    \ Write "pu" to stdout
+    'p' writorb :fail
+    'u' writorb :fail
+      ret
+    fail: ." WRITORB attempt failed " fail
+  ;
+
+  \ Test opcode 35 TRACORB
+  : testTRACORB
+    \ Write "ABCD : " to stdtrc
+    'A' tracorb :fail
+    'B' tracorb :fail
+    'C' tracorb :fail
+    'D' tracorb :fail
+     32 tracorb :fail \ space
+    ':' tracorb :fail
+     32 tracorb :fail \ space
+      ret
+    fail: ." TRACORB attempt failed " fail
+  ;
+
+  \ Test opcode 36 GETORB
+  : testGETORB
+    \ Verify that addresses 0 to 3 in stdblk all contain byte value 0
+    \ (this is not mandatory, it is merely the state of our test stdblk)
+    0 getorb :fail 0 assert{eq}
+    1 getorb :fail 0 assert{eq}
+    2 getorb :fail 0 assert{eq}
+    3 getorb :fail 0 assert{eq}
+      ret
+    fail: ." GETORB attempt failed " fail
+  ;
+
+  \ Test opcode 37 GETORB
+  : testPUTORB
+    44 0 putorb :failput            \ Put byte value 44 at addr 0 in stdblk
+    0 getorb :failget 44 assert{eq} \ Ensure it worked
+    0 0 putorb :failput             \ Put byte value  0 at addr 0 in stdblk
+    0 getorb :failget 0 assert{eq}  \ Ensure it worked
+
+    55 1 putorb :failput            \ Put byte value 55 at addr 1 in stdblk
+    1 getorb :failget 55 assert{eq} \ Ensure it worked
+    0 1 putorb :failput             \ Put byte value  0 at addr 1 in stdblk
+    1 getorb :failget 0 assert{eq}  \ Ensure it worked
+
+    66 2 putorb :failput            \ Put byte value 66 at addr 2 in stdblk
+    2 getorb :failget 66 assert{eq} \ Ensure it worked
+    0 2 putorb :failput             \ Put byte value  0 at addr 2 in stdblk
+    2 getorb :failget 0 assert{eq}  \ Ensure it worked
+
+    77 3 putorb :failput            \ Put byte value 77 at addr 3 in stdblk
+    3 getorb :failget 77 assert{eq} \ Ensure it worked
+    0 3 putorb :failput             \ Put byte value  0 at addr 3 in stdblk
+    3 getorb :failget 0 assert{eq}  \ Ensure it worked
+
+      ret
+
+    failput: ." PUTORB attempt failed " fail
+    failget: ." GETORB attempt failed in testPUTORB " fail
+  ;
+
+  \ Test opcode 38 MATH
+  : testMATH
+    \ Verify math ensures branch rather than trap on failure
+    \   but ONLY for the instruction immediately following math
+    1 0 math :pass1 / pass1:
+    ..INT_MAX 1 math :pass2 + pass2:
+    1 32 math :pass3 >> pass3:
+
+    \ Verify traps occur as they should:
+    :zeroDIV  verifyTrapDivideByZero       \ Should trap
+    :zeroDIV2 verifyTrapDivideByZero       \ Should trap
+    :overADDhigh  verifyTrapMathOverflow   \ Should trap
+    :overADDhigh2 verifyTrapMathOverflow   \ Should trap
+    :xsSHR  verifyTrapXsBitshift           \ Should trap
+    :xsSHR2 verifyTrapXsBitshift           \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroDIV:  1 0 / tfail                  \ trapDivideByZero
+    zeroDIV2: math :fail1 99 drop 1 0 / tfail
+        fail1: ." math should not have prevented trap at zeroDIV2: " fail
+    overADDhigh:  ..INT_MAX 1 + tfail      \ trapMathOverflow
+    overADDhigh2: math :fail2 99 drop ..INT_MAX 1 + tfail
+        fail2: ." math should not have prevented trap at overADDhigh2 " fail
+    xsSHR:  1 32 >> tfail                  \ trapXsBitshift
+    xsSHR2: math :fail3 99 drop 1 32 >> tfail
+        fail3: ." math should not have prevented trap at xsSHR2 " fail        
+  ;
+
+  \ Test opcode 39 TRAP
+  : testTRAP
+    \ Verify traps occur as they should when trap instruction used:
+    :trapA verifyTrapPcOverflow    \ Should trap
+    :trapB verifyTrapMathOverflow  \ Should trap
+    :trapC verifyTrapIllegalOpcode \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    trapA: trap ..trapPC_OVERFLOW tfail
+    trapB: trap ..trapMATH_OVERFLOW tfail
+    trapC: trap ..trapILLEGAL_OPCODE tfail
+  ;
+
+  \ Test opcode 40 DIE
+  \ The die instruction is like halt except that it requires an exit code
+  \ to be specified in the next program cell. That is, die is typically used
+  \ for abnormal FVM termination (unsuccessful program run) whereas halt is
+  \ typically used for normal FVM termination (successful program run)
+  \ since halt uses an exit code of exitSUCCESS.
+  \ This test is not yet implemented.
+  : testDIE ;
+
+  \ Test opcode 41 READ
+  : testREAD
+    read? {..STDIN} {..TRUE} assert{eq}
+    read? {..STDBLK} {..FALSE} assert{eq}
+    read? {..STDOUT} {..FALSE} assert{eq}
+  ;
+
+  \ Test opcode 42 WRITE
+  : testWRITE
+    write? {..STDOUT} {..TRUE} assert{eq}
+    write? {..STDBLK} {..FALSE} assert{eq}
+    write? {..STDIN} {..FALSE} assert{eq}
+  ;
+
+  \ Test opcode 43 GET
+  : testGET
+    get? {..STDBLK} {..TRUE} assert{eq}
+    get? {..STDOUT} {..FALSE} assert{eq} \ blkdev IDs must be >= 0
+  ;
+
+  \ Test opcode 44 PUT
+  : testPUT
+    put? {..STDBLK} {..TRUE} assert{eq}
+    put? {..STDOUT} {..FALSE} assert{eq} \ blkdev IDs must be >= 0
+  ;
+
+  \ Test opcode 133 TRACE
+  : testTRACE
+    {..TRUE} trace? go== :pass
+      {..FALSE} trace? go== :pass
+        fail \ Must be either TRUE or FALSE
+    pass:
+  ;
+
+  \ Test opcode 134 ZOOM
+  : testZOOM
+    1 2 3 4 5       ( 1 2 3 4 5   )
+    zoom            ( 1 2 3 4 5 2 )
+    2 assert{eq}
+    5 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underZOOM verifyTrapDsUnderflow \ Should trap
+    :overZOOM  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underZOOM: 1 2 3 zoom tfail \ trapDsUnderflow
+    overZOOM:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               zoom tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 135 RCHANN
+  : testRCHANN
+    {..STDIMP} rchan                     \ Change to stdimp read channel
+    {..STDIMP} rchan? assert{eq}
+    {..STDIN}  rchan                     \ Change to stdin read channel
+    {..STDIN}  rchan? assert{eq}
+  ;
+
+  \ Test opcode 136 WCHANN
+  : testWCHANN
+    {..STDEXP} wchan                     \ Change to stdexp channel
+    {..STDEXP} wchan? assert{eq}
+    {..STDOUT} wchan                     \ Change to stdout channel
+    {..STDOUT} wchan? assert{eq}
+  ;
+
+  \ Test opcode 137 GCHANN
+  : testGCHANN
+    1234567890 gchan                     \ Specify huge ID as get channel
+    1234567890 gchan? assert{eq}
+    {..STDBLK} gchan                     \ Specify stdblk as get channel
+    {..STDBLK} gchan? assert{eq}
+  ;
+
+  \ Test opcode 138 PCHANN
+  : testPCHANN
+    1234567890 pchan                     \ Specify huge ID as put channel
+    1234567890 pchan? assert{eq}
+    {..STDBLK} pchan                     \ Specify stdblk as put channel
+    {..STDBLK} pchan? assert{eq}
+  ;
+
+  \ Test opcode 139 PC
+  : testPC
+    here: pc?
+    :here assert{eq}
+  ;
+
+  \ Test opcode 140 RDJMP
+  : testRDJMP
+    \ Verify dynamic jumps occur correctly. In a dynamic jump
+    \ the address of the label to be jumped to is specified by the top
+    \ element of the DS rather than by the next program cell.
+    \ In Freelang "[fly]" causes a RDJMP.
+    from:
+      :to rpush \ This makes "[fly]" behave like a RDCALL rather than a RDJMP
+      ::willReturnTo [fly] \ In effect, RDCALLs willReturnTo using RDJMP
+    to:
+      :to assert{eq}      \ Verify address of label 'to:' is on top of DS
+      ::willReturnTo assert{eq} \ " " " " 'willReturnTo:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1DJMP verifyTrapPcOverflow \ Should trap
+    :toBustDJMP verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    toBustDJMP: 2147483644 [fly] jfail  \ trapPcOverflow, addr too high
+    toNeg1DJMP: -1 [fly] jfail          \ trapPcOverflow, addr negative
+  ;
+
+  \ Test opcode 141 SWAP2
+  : testSWAP2
+    1 2 3 4 5 6      ( 1 2 3 4 5 6 )
+    swap2            ( 1 2 5 6 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    6 assert{eq}
+    5 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSWAP verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSWAP: 1 2 3 swap2 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 142 REV4
+  : testREV4
+    1 2 3 4 5       ( 1 2 3 4 5 )
+    rev4            ( 1 5 4 3 2 )
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    5 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underREV verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underREV: 1 2 3 rev4 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 143 TOR4
+  : testTOR4
+    1 2 3 4 5       ( 1 2 3 4 5 )
+    tor4            ( 1 5 2 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    5 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underTOR verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underTOR: 1 2 3 tor4 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 144 ROT4
+  : testROT4
+    1 2 3 4 5       ( 1 2 3 4 5 )
+    rot4            ( 1 3 4 5 2 )
+    2 assert{eq}
+    5 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underROT verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underROT: 1 2 3 rot4 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 145 EXIT
+  : testEXIT
+    22                \ Place 22 on DS
+    :to rpush         \ Place address of label 'to:' on RS
+    ret               \ EXIT, effectively causing a jump to 'to:' below
+      11              \ Place 11 on top of DS [above 22] if we did not jump
+    to:
+  ( verify: )
+      22 assert{eq}   \ Verify EXIT caused a jump to here as expected
+      ret
+  ;
+
+  \ Test opcode 146 DCALL
+  : testDCALL
+    \ Verify functions are dynamically called correctly. In a dynamic call
+    \ the address of the function to be called is specified by the top
+    \ element of the DS rather than by the next program cell.
+    \ In Freelang "invoke" causes a DCALL.
+    ::lit88 invoke ::lit99 invoke
+    99 assert{eq}
+    88 assert{eq}
+    \ See comments in testCALL
+    from:
+      ::willReturnTo invoke
+    to:
+      :to assert{eq} \ Verify address of label 'to:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1DCALL verifyTrapPcOverflow \ Should trap
+    :toBustDCALL verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    toBustDCALL: 2147483644 invoke bfail  \ trapPcOverflow, addr too high
+    toNeg1DCALL: -1 invoke bfail          \ trapPcOverflow, addr negative
+  ;
+
+  \ Test opcode 147 RDCALL
+  : testRDCALL
+    \ See comments in DCALL. The difference between RDCALL and DCALL is
+    \ that the former leaves the address of the function to be called
+    \ on top of the data stack rather than consuming it before
+    \ the function is called. Therefore RDCALL is only safe to use with
+    \ functions that themselves do not consume from the DS.
+    \ In Freelang "[invoke]" causes an RDCALL.
+    ::lit88 [invoke]
+    swap ::lit88 assert{eq}
+    88 assert{eq}
+    ::lit99 [invoke]
+    swap ::lit99 assert{eq}
+    99 assert{eq}
+    \ See comments in testCALL
+    from:
+      ::willReturnTo [invoke]
+    to:
+      swap ::willReturnTo assert{eq}
+      :to assert{eq} \ Verify address of label 'to:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1RDCALL verifyTrapPcOverflow \ Should trap
+    :toBustRDCALL verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    toBustRDCALL: 2147483644 invoke bfail  \ trapPcOverflow, addr too high
+    toNeg1RDCALL: -1 invoke bfail          \ trapPcOverflow, addr negative
+  ;
+
+  \ Test opcode 148 DJMP
+  : testDJMP
+    \ Verify dynamic jumps occur correctly. In a dynamic jump
+    \ the address of the label to be jumped to is specified by the top
+    \ element of the DS rather than by the next program cell.
+    \ In Freelang "fly" causes a DJMP.
+    from:
+      :to rpush \ This makes "fly" behave like a DCALL rather than a DJMP
+      ::willReturnTo fly \ In effect, DCALLs willReturnTo using DJMP
+    to:
+      :to assert{eq} \ Verify address of label 'to:' is on top of DS
+    \ Verify traps occur as they should:
+    :toNeg1DJMP verifyTrapPcOverflow \ Should trap
+    :toBustDJMP verifyTrapPcOverflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    toBustDJMP: 2147483644 fly jfail  \ trapPcOverflow, addr too high
+    toNeg1DJMP: -1 fly jfail          \ trapPcOverflow, addr negative
+  ;
+
+  \ Test opcode 149 SWAP
+  : testSWAP
+    1 2 3 4         ( 1 2 3 4 )
+    swap            ( 1 2 4 3 )
+    3 assert{eq}
+    4 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSWAP verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSWAP: 1 swap tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 150 OVER
+  : testOVER
+    1 2 3 4         ( 1 2 3 4   )
+    over            ( 1 2 3 4 3 )
+    3 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underOVER verifyTrapDsUnderflow \ Should trap
+    :overOVER  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underOVER: 1 over tfail \ trapDsUnderflow
+    overOVER:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               over tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 151 ROT
+  : testROT
+    1 2 3 4         ( 1 2 3 4 )
+    rot             ( 1 3 4 2 )
+    2 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underROT verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underROT: 1 2 rot tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 152 TOR
+  : testTOR
+    1 2 3 4         ( 1 2 3 4 )
+    tor             ( 1 4 2 3 )
+    3 assert{eq}
+    2 assert{eq}
+    4 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underTOR verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underTOR: 1 2 tor tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 153 LEAP
+  : testLEAP
+    1 2 3 4         ( 1 2 3 4   )
+    leap            ( 1 2 3 4 2 )
+    2 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underLEAP verifyTrapDsUnderflow \ Should trap
+    :overLEAP  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underLEAP: 1 2 leap tfail \ trapDsUnderflow
+    overLEAP:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               leap tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 154 NIP
+  : testNIP
+    1 2 3 4         ( 1 2 3 4 )
+    nip             ( 1 2 4   )
+    4 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underNIP verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underNIP: 1 nip tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 155 TUCK
+  : testTUCK
+    1 2 3 4         ( 1 2 3 4   )
+    tuck            ( 1 2 4 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underTUCK verifyTrapDsUnderflow \ Should trap
+    :overTUCK  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underTUCK: 1 tuck tfail \ trapDsUnderflow
+    overTUCK:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               tuck tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 156 REV
+  : testREV
+    1 2 3 4         ( 1 2 3 4 )
+    rev             ( 1 4 3 2 )
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underREV verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underREV: 1 2 rev tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 157 RPUSH
+  \ Note: RS underflow and overflow is not yet tested for
+  : testRPUSH
+    1 2 3 4       \ ( 1 2 3 4 ) {   }
+    rpush         \ ( 1 2 3   ) { 4 }
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    rpop
+    4 assert{eq}
+    \ Verify traps occur as they should:
+    :underRPUSH verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underRPUSH: rpush tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 158 RPOP
+  \ Note: RS underflow and overflow is not yet tested for
+  : testRPOP
+    1 2 3 4                   \ ( 1 2 3 4 ) {         }
+    rpush rpush rpush rpush   \ (         ) { 4 3 2 1 }
+    rpop 1 assert{eq}
+    rpop 2 assert{eq}
+    rpop 3 assert{eq}
+    rpop 4 assert{eq}
+    \ Verify traps occur as they should:
+    :overRPOP  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRPOP:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 rpush rpop tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 159 DROP
+  : testDROP
+    1 2 3 4 5 6           ( 1 2 3 4 5 6 )
+    drop 5 assert{eq}
+    drop 3 assert{eq}
+    drop 1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDROP verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDROP: drop tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 160 DROP2
+  : testDROP2
+    1 2 3 4 5 6           ( 1 2 3 4 5 6 )
+    drop2 4 assert{eq}
+    drop2 1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDROP2 verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDROP2: 1 drop2 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 161 DROP3
+  : testDROP3
+    1 2 3 4 5 6 7 8       ( 1 2 3 4 5 6 7 8 )
+    drop3 5 assert{eq}
+    drop3 1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDROP3 verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDROP3: 1 2 drop3 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 162 DROP4
+  : testDROP4
+    1 2 3 4 5 6 7 8 9 10  ( 1 2 3 4 5 6 7 8 9 10 )
+    drop4 6 assert{eq}
+    drop4 1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDROP4 verifyTrapDsUnderflow \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDROP4: 1 2 3 drop4 tfail \ trapDsUnderflow
+  ;
+
+  \ Test opcode 163 DUP
+  : testDUP
+    1 2 3 4               ( 1 2 3 4   )
+    dup                   ( 1 2 3 4 4 )
+    4 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDUP verifyTrapDsUnderflow \ Should trap
+    :overDUP  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDUP: dup tfail \ trapDsUnderflow
+    overDUP:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               dup tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 164 DUP2
+  : testDUP2
+    1 2 3 4               ( 1 2 3 4     )
+    dup2                  ( 1 2 3 4 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDUP2 verifyTrapDsUnderflow \ Should trap
+    :overDUP2  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDUP2: 1 dup2 tfail \ trapDsUnderflow
+    overDUP2:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31
+               dup2 tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 165 DUP3
+  : testDUP3
+    1 2 3 4               ( 1 2 3 4       )
+    dup3                  ( 1 2 3 4 2 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDUP3 verifyTrapDsUnderflow \ Should trap
+    :overDUP3  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDUP3: 1 2 dup3 tfail \ trapDsUnderflow
+    overDUP3:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30
+               dup3 tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 166 DUP4
+  : testDUP4
+    1 2 3 4               ( 1 2 3 4         )
+    dup4                  ( 1 2 3 4 1 2 3 4 )
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underDUP4 verifyTrapDsUnderflow \ Should trap
+    :overDUP4  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underDUP4: 1 2 3 dup4 tfail \ trapDsUnderflow
+    overDUP4:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29
+               dup4 tfail \ trapDsOverflow
+  ;
+
+  \ Test opcode 167 HOLD
+  : testHOLD
+    1 2 3 4             \ ( 1 2 3 4 )
+    hold                \ ( 1 2 3 4 ) [ 4 ]
+    spop 4 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underHOLD verifyTrapDsUnderflow \ Should trap
+    :overHOLD  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underHOLD: hold tfail \ trapDsUnderflow
+    overHOLD:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush4
+               1 hold tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 168 HOLD2
+  : testHOLD2
+    1 2 3 4             \ ( 1 2 3 4 )
+    hold2               \ ( 1 2 3 4 ) [ 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underHOLD2 verifyTrapDsUnderflow \ Should trap
+    :overHOLD2  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underHOLD2: 1 hold2 tfail \ trapDsUnderflow
+    overHOLD2: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush3
+               1 2 hold2 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 169 HOLD3
+  : testHOLD3
+    1 2 3 4             \ ( 1 2 3 4 )
+    hold3               \ ( 1 2 3 4 ) [ 2 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    spop 2 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underHOLD3 verifyTrapDsUnderflow \ Should trap
+    :overHOLD3  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underHOLD3: 1 2 hold3 tfail \ trapDsUnderflow
+
+    overHOLD3: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush2
+               1 2 3 hold3 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 170 HOLD4
+  : testHOLD4
+    1 2 3 4             \ ( 1 2 3 4 )
+    hold4               \ ( 1 2 3 4 ) [ 1 2 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    spop 2 assert{eq}
+    spop 1 assert{eq}
+    4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underHOLD4 verifyTrapDsUnderflow \ Should trap
+    :overHOLD4  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underHOLD4: 1 2 3 hold4 tfail \ trapDsUnderflow
+    overHOLD4: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush
+               1 2 3 4 hold4 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 171 SPEEK
+  : testSPEEK
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush               \ ( 1 2 3 ) [ 4 ]
+    speek 4 assert{eq}
+    spop 4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPEEK verifyTrapSsUnderflow \ Should trap
+    :overSPEEK  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPEEK: speek tfail \ trapDsUnderflow
+    overSPEEK: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 spush speek tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 172 SPEEK2
+  : testSPEEK2
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush spush         \ ( 1 2     ) [ 4 3 ]
+    speek2              \ ( 1 2 4 3 ) [ 4 3 ]
+    3 assert{eq}
+    4 assert{eq}
+    spop 3 assert{eq}
+    spop 4 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPEEK2 verifyTrapSsUnderflow \ Should trap
+    :overSPEEK2  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPEEK2: 1 spush speek2 tfail \ trapDsUnderflow
+    overSPEEK2: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31
+               1 2 spush2 speek2 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 173 SPEEK3
+  : testSPEEK3
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush spush spush   \ ( 1       ) [ 4 3 2 ]
+    speek3              \ ( 1 4 3 2 ) [ 4 3 2 ]
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    spop 2 assert{eq}
+    spop 3 assert{eq}
+    spop 4 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPEEK3 verifyTrapSsUnderflow \ Should trap
+    :overSPEEK3  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPEEK3: 1 2 spush2 speek3 tfail \ trapDsUnderflow
+    overSPEEK3: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30
+               1 2 3 spush3 speek3 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 174 SPEEK4
+  : testSPEEK4
+    1 2 3 4                   \ ( 1 2 3 4 )
+    spush spush spush spush   \ (         ) [ 4 3 2 1 ]
+    speek4                    \ ( 4 3 2 1 ) [ 4 3 2 1 ]
+    1 assert{eq}
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    spop 1 assert{eq}
+    spop 2 assert{eq}
+    spop 3 assert{eq}
+    spop 4 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPEEK4 verifyTrapSsUnderflow \ Should trap
+    :overSPEEK4  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPEEK4: 1 2 3 spush3 speek4 tfail \ trapDsUnderflow
+    overSPEEK4: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29
+               1 2 3 4 spush4 speek4 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 175 SPUSH
+  : testSPUSH
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush               \ ( 1 2 3   ) [ 4 ]
+    spop 4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPUSH verifyTrapDsUnderflow \ Should trap
+    :overSPUSH  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPUSH: spush tfail \ trapDsUnderflow
+    overSPUSH: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush4
+               1 spush tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 176 SPUSH2
+  : testSPUSH2
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush2              \ ( 1 2     ) [ 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPUSH2 verifyTrapDsUnderflow \ Should trap
+    :overSPUSH2  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPUSH2: 1 spush2 tfail \ trapDsUnderflow
+    overSPUSH2: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush3
+               1 2 spush2 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 177 SPUSH3
+  : testSPUSH3
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush3              \ ( 1       ) [ 2 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    spop 2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPUSH3 verifyTrapDsUnderflow \ Should trap
+    :overSPUSH3  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPUSH3: 1 2 spush3 tfail \ trapDsUnderflow
+    overSPUSH3: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush2
+               1 2 3 spush3 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 178 SPUSH4
+  : testSPUSH4
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush4              \ (         ) [ 1 2 3 4 ]
+    spop 4 assert{eq}
+    spop 3 assert{eq}
+    spop 2 assert{eq}
+    spop 1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPUSH4 verifyTrapDsUnderflow \ Should trap
+    :overSPUSH4  verifyTrapSsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPUSH4: 1 2 3 spush4 tfail \ trapDsUnderflow
+    overSPUSH4: 1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29
+               spush4 spush4 spush4 spush4
+               spush4 spush4 spush4 spush
+               1 2 3 4 spush4 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 179 SPOP
+  : testSPOP
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush               \ ( 1 2 3 ) [ 4 ]
+    spop 4 assert{eq}
+    3 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPOP verifyTrapSsUnderflow \ Should trap
+    :overSPOP  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPOP: spop tfail \ trapDsUnderflow
+    overSPOP:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 spush spop tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 180 SPOP2
+  : testSPOP2
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush spush         \ ( 1 2     ) [ 4 3 ]
+    spop2               \ ( 1 2 4 3 ) [     ]
+    3 assert{eq}
+    4 assert{eq}
+    2 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPOP2 verifyTrapSsUnderflow \ Should trap
+    :overSPOP2  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPOP2: 1 spop2 tfail \ trapDsUnderflow
+    overSPOP2:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 2 spush2 spop2 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 181 SPOP3
+  : testSPOP3
+    1 2 3 4             \ ( 1 2 3 4 )
+    spush spush spush   \ ( 1       ) [ 4 3 2 ]
+    spop3               \ ( 1 4 3 2 ) [       ]
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    1 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPOP3 verifyTrapSsUnderflow \ Should trap
+    :overSPOP3  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPOP3: 1 2 spop3 tfail \ trapDsUnderflow
+    overSPOP3:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 2 3 spush3 spop3 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 182 SPOP4
+  : testSPOP4
+    1 2 3 4                   \ ( 1 2 3 4 )
+    spush spush spush spush   \ (         ) [ 4 3 2 1 ]
+    spop4                     \ ( 4 3 2 1 ) [         ]
+    1 assert{eq}
+    2 assert{eq}
+    3 assert{eq}
+    4 assert{eq}
+    \ Verify traps occur as they should:
+    :underSPOP4 verifyTrapSsUnderflow \ Should trap
+    :overSPOP4  verifyTrapDsOverflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSPOP4: 1 2 3 spop4 tfail \ trapDsUnderflow
+    overSPOP4:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               1 2 3 4 spush4 spop4 tfail \ trapSsOverflow
+  ;
+
+  \ Test opcode 183 DEC
+  : testDEC
+     8 dec  7 assert{eq}
+    -8 dec -9 assert{eq}
+    \ Verify traps occur as they should:
+    :overDEC verifyTrapMathOverflow         \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overDEC: ..NEG_INT_MAX dec tfail        \ trapMathOverflow
+  ;
+
+  \ Test opcode 184 DECW
+  : testDECW
+     8 decw   4 assert{eq}
+    -8 decw -12 assert{eq}
+    \ Verify traps occur as they should:
+    :overDECW verifyTrapMathOverflow        \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overDECW: ..NEG_INT_MAX 3 + decw tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 185 DEC2W
+  : testDEC2W
+     8 dec2w   0 assert{eq}
+    -8 dec2w -16 assert{eq}
+    \ Verify traps occur as they should:
+    :overDEC2W verifyTrapMathOverflow         \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overDEC2W: ..NEG_INT_MAX 7 + dec2w tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 186 INC
+  : testINC
+     8 inc  9 assert{eq}
+    -8 inc -7 assert{eq}
+    \ Verify traps occur as they should:
+    :overINC verifyTrapMathOverflow     \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overINC: ..INT_MAX inc tfail        \ trapMathOverflow
+  ;
+
+  \ Test opcode 187 INCW
+  : testINCW
+     8 incw  12 assert{eq}
+    -8 incw  -4 assert{eq}
+    \ Verify traps occur as they should:
+    :overINCW verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overINCW: ..INT_MAX 3 - incw tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 188 INC2W
+  : testINC2W
+     8 inc2w 16 assert{eq}
+    -8 inc2w  0 assert{eq}
+    \ Verify traps occur as they should:
+    :overINC2W verifyTrapMathOverflow     \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overINC2W: ..INT_MAX 7 - inc2w tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 189 LOAD
+  : testLOAD                       \ Freelang "@" means LOAD
+    ##testvar @ 0 assert{eq}       \ Note: FVM zero-fills RAM on start up
+    111 ##testvar !                \ STORE 111 to testvar slot
+    ##testvar @ 111 assert{eq}     \ Verify STORE and LOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overLOAD verifyTrapDsOverflow   \ Should trap
+    :memlowLOAD verifyTrapMemBounds  \ Should trap
+    :memhighLOAD verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##testvar @ tfail     \ trapDsOverflow
+    memlowLOAD:  -1 @ tfail          \ trapMemBounds
+    memhighLOAD: ..ADDR_BUST @ tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 190 STORE
+  : testSTORE                      \ Freelang "!" means STORE
+    -111 ##testvar !               \ STORE -111 to testvar slot
+    ##testvar @ -111 assert{eq}    \ Verify STORE and LOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :underSTORE verifyTrapDsUnderflow \ Should trap
+    :memlowSTORE verifyTrapRAMBounds  \ Should trap
+    :memhighSTORE verifyTrapRAMBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSTORE:       1 ! tfail           \ trapDsUnderflow
+    memlowSTORE:   1 -1 ! tfail           \ trapMemBounds
+    memhighSTORE:  1 ..ADDR_BUST ! tfail  \ trapMemBounds
+  ;
+
+  \ Test opcode 191 RLOAD
+  : testRLOAD                      \ Freelang "[@]" means RLOAD
+    ##testvar [@]                  \ ( addr=testvar wordValue=@testvar )
+    swap ##testvar assert{eq}      \ Verify address was not consumed
+    0 assert{eq}                   \ Note: value is 0 from testSTORE above
+    111 ##testvar !                \ STORE 111 to testvar slot
+    ##testvar [@] nip              \ ( wordValue=@testvar )
+    111 assert{eq}                 \ Verify STORE and RLOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overRLOAD verifyTrapDsOverflow   \ Should trap
+    :memlowRLOAD verifyTrapMemBounds  \ Should trap
+    :memhighRLOAD verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRLOAD:  1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##testvar [@] tfail      \ trapDsOverflow
+    memlowRLOAD:  -1 [@] tfail          \ trapMemBounds
+    memhighRLOAD: ..ADDR_BUST [@] tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 192 LOADB
+  \ Note: for now this test is actually identical to testSTOREB
+  : testLOADB                      \ Freelang "@b" means LOADB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testRLOAD above
+    11 ##testvar !b                \ STOREB 11 to 1st byte of testvar slot
+    22 ##testvar inc !b            \ STOREB 22 to 2nd byte of testvar slot
+    33 ##testvar 2 + !b            \ STOREB 33 to 3rd byte of testvar slot
+    44 ##testvar 3 + !b            \ STOREB 44 to 4th byte of testvar slot
+    ##testvar @b 11 assert{eq}     \ Verify STOREB and LOADB worked, 1st byte
+    ##testvar inc @b 22 assert{eq} \ Verify STOREB and LOADB worked, 2nd byte
+    ##testvar 2 + @b 33 assert{eq} \ Verify STOREB and LOADB worked, 3rd byte
+    ##testvar 3 + @b 44 assert{eq} \ Verify STOREB and LOADB worked, 4th byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overLOADB verifyTrapDsOverflow   \ Should trap
+    :memlowLOADB verifyTrapMemBounds  \ Should trap
+    :memhighLOADB verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##testvar @b tfail      \ trapDsOverflow
+    memlowLOADB:  -1 @b tfail          \ trapMemBounds
+    memhighLOADB: ..ADDR_BUST @b tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 193 STOREB
+  \ Note: byte values (unlike word values) should always be stored
+  \ as positive since the concept of a negative number in Freeputer is
+  \ fundamentally a word-based concept (a 32-bit two's complement integer)
+  : testSTOREB                     \ Freelang "!b" means STOREB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testRLOADB above
+    11 ##testvar !b                \ STOREB 11 to 1st byte of testvar slot
+    22 ##testvar inc !b            \ STOREB 22 to 2nd byte of testvar slot
+    33 ##testvar 2 + !b            \ STOREB 33 to 3rd byte of testvar slot
+    44 ##testvar 3 + !b            \ STOREB 44 to 4th byte of testvar slot
+    ##testvar @b 11 assert{eq}     \ Verify STOREB and LOADB worked, 1st byte
+    ##testvar inc @b 22 assert{eq} \ Verify STOREB and LOADB worked, 2nd byte
+    ##testvar 2 + @b 33 assert{eq} \ Verify STOREB and LOADB worked, 3rd byte
+    ##testvar 3 + @b 44 assert{eq} \ Verify STOREB and LOADB worked, 4th byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :underSTOREB verifyTrapDsUnderflow \ Should trap
+    :memlowSTOREB verifyTrapRAMBounds  \ Should trap
+    :memhighSTOREB verifyTrapRAMBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underSTOREB:       1 !b tfail          \ trapDsUnderflow
+    memlowSTOREB:   1 -1 !b tfail          \ trapMemBounds
+    memhighSTOREB:  1 ..ADDR_BUST !b tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 194 RLOADB
+  : testRLOADB                     \ Freelang "[@b]" means RLOADB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testSTOREB above
+    11 ##testvar !b                \ STOREB 11 to 1st byte of testvar slot
+    22 ##testvar inc !b            \ STOREB 22 to 2nd byte of testvar slot
+    33 ##testvar 2 + !b            \ STOREB 33 to 3rd byte of testvar slot
+    44 ##testvar 3 + !b            \ STOREB 44 to 4th byte of testvar slot
+    ##testvar [@b]                 \ ( addr=testvar byteValue=@testvar )
+    swap ##testvar assert{eq}      \ Verify address was not consumed
+    11 assert{eq}                  \ Verify STOREB and RLOADB worked, 1st byte
+    ##testvar inc [@b] nip 22 assert{eq} \ Ditto 2nd byte
+    ##testvar 2 + [@b] nip 33 assert{eq} \ Ditto 3rd byte
+    ##testvar 3 + [@b] nip 44 assert{eq} \ Ditto 4th byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overRLOADB verifyTrapDsOverflow   \ Should trap
+    :memlowRLOADB verifyTrapMemBounds  \ Should trap
+    :memhighRLOADB verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##testvar [@b] tfail       \ trapDsOverflow
+    memlowRLOADB:  -1 [@b] tfail          \ trapMemBounds
+    memhighRLOADB: ..ADDR_BUST [@b] tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 195 PLOAD
+  : testPLOAD                      \ Freelang "@@" means PLOAD
+    ##pTestvar @@ 0 assert{eq}     \ Note: value is 0 from testRLOADB above
+    111 ##testvar !                \ STORE 111 to testvar slot
+    ##pTestvar @@ 111 assert{eq}   \ Verify STORE and PLOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overPLOAD verifyTrapDsOverflow     \ Should trap
+    :pMemlowPLOAD verifyTrapMemBounds   \ Should trap
+    :pMemhighPLOAD verifyTrapMemBounds  \ Should trap
+    :memlowPLOAD verifyTrapMemBounds    \ Should trap
+    :memhighPLOAD verifyTrapMemBounds   \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    overPLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##pTestvar @@ tfail                            \ trapDsOverflow
+    pMemlowPLOAD:  -1 @@ tfail                                 \ trapMemBounds
+    pMemhighPLOAD: ..ADDR_BUST @@ tfail                        \ trapMemBounds
+    memlowPLOAD:   -1 ##pTestvar ! ##pTestvar @@ tfail         \ trapMemBounds
+    memhighPLOAD: ..ADDR_BUST ##pTestvar ! ##pTestvar @@ tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 196 PSTORE
+  : testPSTORE                     \ Freelang "@!" means PSTORE
+    -111 ##pTestvar @!             \ PSTORE -111 to testvar slot via pointer
+    ##testvar @ -111 assert{eq}    \ Verify PSTORE and LOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :underPSTORE verifyTrapDsUnderflow  \ Should trap
+    :pMemlowPSTORE verifyTrapMemBounds  \ Should trap
+    :pMemhighPSTORE verifyTrapMemBounds \ Should trap
+    :memlowPSTORE verifyTrapRAMBounds   \ Should trap
+    :memhighPSTORE verifyTrapRAMBounds  \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    underPSTORE:        1 @! tfail                    \ trapDsUnderflow
+    pMemlowPSTORE:   1 -1 @! tfail                    \ trapMemBounds
+    pMemhighPSTORE:  1 ..ADDR_BUST @! tfail           \ trapMemBounds
+    memlowPSTORE:
+      -1 ##pTestvar ! 1 ##pTestvar @! tfail           \ trapMemBounds
+    memhighPSTORE:
+      ..ADDR_BUST ##pTestvar ! 1 ##pTestvar @! tfail  \ trapMemBounds
+  ;
+
+  \ Test opcode 197 RPLOAD
+  : testRPLOAD                     \ Freelang "[@@]" means RPLOAD
+    ##pTestvar [@@]                \ ( ptr=pTestvar wordValue=@testvar )
+    swap ##pTestvar assert{eq}     \ Verify pointer was not consumed
+    0 assert{eq}                   \ Note: value is 0 from testPSTORE above
+    111 ##testvar !                \ STORE 111 to testvar slot
+    ##pTestvar [@@] nip            \ ( wordValue=@testvar )
+    111 assert{eq}                 \ Verify STORE and RPLOAD worked
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overRPLOAD verifyTrapDsOverflow    \ Should trap
+    :pMemlowRPLOAD verifyTrapMemBounds  \ Should trap
+    :pMemhighRPLOAD verifyTrapMemBounds \ Should trap
+    :memlowRPLOAD verifyTrapMemBounds   \ Should trap
+    :memhighRPLOAD verifyTrapMemBounds  \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    overRPLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##pTestvar [@@] tfail                      \ trapDsOverflow
+    pMemlowRPLOAD:  -1 [@@] tfail                         \ trapMemBounds
+    pMemhighRPLOAD: ..ADDR_BUST [@@] tfail                \ trapMemBounds
+    memlowRPLOAD:   -1 ##pTestvar ! ##pTestvar [@@] tfail \ trapMemBounds
+    memhighRPLOAD:
+      ..ADDR_BUST ##pTestvar ! ##pTestvar [@@] tfail      \ trapMemBounds
+  ;
+
+  \ Test opcode 198 PLOADB
+  : testPLOADB                     \ Freelang "@@b" means PLOADB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testRPLOAD above
+    11 ##testvar !b                \ STOREB 11 to 1st byte of testvar slot
+    ##pTestvar @@b 11 assert{eq}   \ Verify STOREB and PLOADB worked, 1st byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overPLOADB verifyTrapDsOverflow    \ Should trap
+    :pMemlowPLOADB verifyTrapMemBounds  \ Should trap
+    :pMemhighPLOADB verifyTrapMemBounds \ Should trap
+    :memlowPLOADB verifyTrapMemBounds   \ Should trap
+    :memhighPLOADB verifyTrapMemBounds  \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    overPLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##pTestvar @@b tfail                      \ trapDsOverflow
+    pMemlowPLOADB:  -1 @@b tfail                         \ trapMemBounds
+    pMemhighPLOADB: ..ADDR_BUST @@b tfail                \ trapMemBounds
+    memlowPLOADB:   -1 ##pTestvar ! ##pTestvar @@b tfail \ trapMemBounds
+    memhighPLOADB:
+      ..ADDR_BUST ##pTestvar ! ##pTestvar @@b tfail      \ trapMemBounds
+  ;
+
+  \ Test opcode 199 PSTOREB
+  : testPSTOREB                    \ Freelang "@!b" means PSTOREB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testRLOADB above
+    11 ##pTestvar @!b              \ PSTOREB 11 to 1st byte of testvar slot
+    ##testvar @b 11 assert{eq}     \ Verify STOREB and LOADB worked, 1st byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :underPSTOREB verifyTrapDsUnderflow   \ Should trap
+    :pMemlowPSTOREB verifyTrapMemBounds   \ Should trap
+    :pMemhighPSTOREB verifyTrapMemBounds  \ Should trap
+    :memlowPSTOREB verifyTrapRAMBounds    \ Should trap
+    :memhighPSTOREB verifyTrapRAMBounds   \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    underPSTOREB:        1 @!b tfail                   \ trapDsUnderflow
+    pMemlowPSTOREB:   1 -1 @!b tfail                   \ trapMemBounds
+    pMemhighPSTOREB:  1 ..ADDR_BUST @!b tfail          \ trapMemBounds
+    memlowPSTOREB:
+      -1 ##pTestvar ! 1 ##pTestvar @!b tfail           \ trapMemBounds
+    memhighPSTOREB:
+      ..ADDR_BUST ##pTestvar ! 1 ##pTestvar @!b tfail  \ trapMemBounds
+  ;
+
+  \ Test opcode 200 RPLOADB
+  : testRPLOADB                    \ Freelang "[@@b]" means RPLOADB
+    ##testvar @ 0 assert{eq}       \ Note: value is 0 from testPSTOREB above
+    11 ##testvar !b                \ STOREB 11 to 1st byte of testvar slot
+    ##pTestvar [@@b]               \ ( ptr=pTestvar byteValue=@testvar )
+    swap ##pTestvar assert{eq}     \ Verify pointer was not consumed
+    11 assert{eq}                  \ Verify RPLOADB worked, 1st byte
+    0 ##testvar !                  \ STORE 0 to testvar slot
+    \ Verify traps occur as they should:
+    :overRPLOADB verifyTrapDsOverflow     \ Should trap
+    :pMemlowRPLOADB verifyTrapMemBounds   \ Should trap
+    :pMemhighRPLOADB verifyTrapMemBounds  \ Should trap
+    :memlowRPLOADB verifyTrapMemBounds    \ Should trap
+    :memhighRPLOADB verifyTrapMemBounds   \ Should trap
+    ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
+    ret
+    \ Labels for use by verifyTrap
+    overRPLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
+               13 14 15 16 17 18 19 20 21 22 23 24
+               25 26 27 28 29 30 31 32
+               ##pTestvar [@@b] tfail                       \ trapDsOverflow
+    pMemlowRPLOADB:  -1 [@@b] tfail                         \ trapMemBounds
+    pMemhighRPLOADB: ..ADDR_BUST [@@b] tfail                \ trapMemBounds
+    memlowRPLOADB:   -1 ##pTestvar ! ##pTestvar [@@b] tfail \ trapMemBounds
+    memhighRPLOADB:
+      ..ADDR_BUST ##pTestvar ! ##pTestvar [@@b] tfail       \ trapMemBounds
+  ;
+
+  \ Test opcode 201 ADD ( n1 n2 -- n1+n2 )
+  : testADD
+     3  7 +  10 assert{eq}
+     3 -7 +  -4 assert{eq}
+    -3 -7 + -10 assert{eq}
+    \ Verify traps occur as they should:
+    :overADDlow verifyTrapMathOverflow    \ Should trap
+    :overADDhigh verifyTrapMathOverflow   \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overADDlow: ..NEG_INT_MAX -1 + tfail  \ trapMathOverflow
+    overADDhigh: ..INT_MAX 1 + tfail      \ trapMathOverflow
+  ;
+
+  \ Test opcode 202 SUB ( n1 n2 -- n1-n2 )
+  \ FIXME This test needs to be expanded to test for the malfunction
+  \ mentioned in the comment in the iSUB instruction in FVM.java and fvm.c
+  \ versions 0.1.0.4 alpha for FVM 1.0 with respect to overflow.
+  : testSUB
+     3  7 -  -4 assert{eq}
+     3 -7 -  10 assert{eq}
+    -3 -7 -   4 assert{eq}
+    \ Verify traps occur as they should:
+    :overSUBlow verifyTrapMathOverflow    \ Should trap
+    :overSUBhigh verifyTrapMathOverflow   \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overSUBlow: ..NEG_INT_MAX 1 - tfail   \ trapMathOverflow
+    overSUBhigh: ..INT_MAX -1 - tfail     \ trapMathOverflow
+  ;
+
+  \ Test opcode 203 MUL ( n1 n2 -- n1*n2 )
+  : testMUL
+     3  7 *  21 assert{eq}
+     3 -7 * -21 assert{eq}
+    -3 -7 *  21 assert{eq}
+    \ Verify traps occur as they should:
+    :overMULpos verifyTrapMathOverflow    \ Should trap
+    :overMULneg verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overMULpos: ..INT_MAX 2 * tfail       \ trapMathOverflow
+    overMULneg: ..NEG_INT_MAX -1 * tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 204 DIV ( n1 n2 -- n1/n2 )
+  : testDIV
+     3  7 /   0 assert{eq}
+     3 -7 /   0 assert{eq}
+    -3 -7 /   0 assert{eq}
+     7  3 /   2 assert{eq}
+     7 -3 /  -2 assert{eq}
+    -7 -3 /   2 assert{eq}
+    -7  3 /  -2 assert{eq}
+    21 -3 /  -7 assert{eq}
+    21  7 /   3 assert{eq}
+   -21  7 /  -3 assert{eq}
+    \ Verify traps occur as they should:
+    :zeroDIV verifyTrapDivideByZero       \ Should trap
+    :overDIVneg verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroDIV: 1 0 / tfail                  \ verifyTrapDivideByZero
+    overDIVneg: ..NEG_INT_MAX -1 / tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 205 MOD ( n1 n2 -- n1%n2 )
+  : testMOD
+     3  7 %   3 assert{eq}
+     3 -7 %   3 assert{eq}
+    -3 -7 %  -3 assert{eq}
+     7  3 %   1 assert{eq}
+     7 -3 %   1 assert{eq}
+    -7 -3 %  -1 assert{eq}
+    -7  3 %  -1 assert{eq}
+    21 -3 %   0 assert{eq}
+    21  7 %   0 assert{eq}
+   -21  7 %   0 assert{eq}
+    \ Verify traps occur as they should:
+    :zeroMOD verifyTrapDivideByZero       \ Should trap
+    :overMODneg verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroMOD: 1 0 % tfail                  \ verifyTrapDivideByZero
+    overMODneg: ..NEG_INT_MAX -1 % tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 206 DIVMOD ( n1 n2 -- n1/n2 n1%n2 )
+  : testDIVMOD
+     3  7 /% swap   0 assert{eq}    3 assert{eq}
+     3 -7 /% swap   0 assert{eq}    3 assert{eq}
+    -3 -7 /% swap   0 assert{eq}   -3 assert{eq}
+     7  3 /% swap   2 assert{eq}    1 assert{eq}
+     7 -3 /% swap  -2 assert{eq}    1 assert{eq}
+    -7 -3 /% swap   2 assert{eq}   -1 assert{eq}
+    -7  3 /% swap  -2 assert{eq}   -1 assert{eq}
+    21 -3 /% swap  -7 assert{eq}    0 assert{eq}
+    21  7 /% swap   3 assert{eq}    0 assert{eq}
+   -21  7 /% swap  -3 assert{eq}    0 assert{eq}
+    \ Verify traps occur as they should:
+    :zeroDIVMOD verifyTrapDivideByZero       \ Should trap
+    :overDIVMODneg verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroDIVMOD: 1 0 /% tfail                 \ verifyTrapDivideByZero
+    overDIVMODneg: ..NEG_INT_MAX -1 /% tfail \ trapMathOverflow
+  ;
+
+  \ Test opcode 207 RADD ( n1 n2 -- n1 n2+n1 )
+  : testRADD
+     3  7 [+]  10 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [+]  -4 assert{eq} drop
+    -3 -7 [+] -10 assert{eq} drop
+    \ Verify traps occur as they should:
+    :overRADDlow verifyTrapMathOverflow     \ Should trap
+    :overRADDhigh verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRADDlow: ..NEG_INT_MAX -1 [+] tfail  \ trapMathOverflow
+    overRADDhigh: ..INT_MAX 1 [+] tfail      \ trapMathOverflow
+  ;
+
+  \ Test opcode 208 RSUB ( n1 n2 -- n1 n2-n1 )
+  \ Note: RSUB subtraction is the reverse of SUB
+  : testRSUB
+     3  7 [-]   4 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [-] -10 assert{eq} drop
+    -3 -7 [-]  -4 assert{eq} drop
+    \ Verify traps occur as they should:
+    :overRSUBlow verifyTrapMathOverflow     \ Should trap
+    :overRSUBhigh verifyTrapMathOverflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRSUBlow: 1 ..NEG_INT_MAX [-] tfail   \ trapMathOverflow
+    overRSUBhigh: -1 ..INT_MAX [-] tfail     \ trapMathOverflow
+  ;
+
+  \ Test opcode 209 RMUL ( n1 n2 -- n1 n2*n1 )
+  : testRMUL
+     3  7 [*]  21 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [*] -21 assert{eq} drop
+    -3 -7 [*]  21 assert{eq} drop
+    \ Verify traps occur as they should:
+    :overRMULpos verifyTrapMathOverflow      \ Should trap
+    :overRMULneg verifyTrapMathOverflow      \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overRMULpos: ..INT_MAX 2 [*] tfail       \ trapMathOverflow
+    overRMULneg: ..NEG_INT_MAX -1 [*] tfail  \ trapMathOverflow
+  ;
+
+  \ Test opcode 210 RDIV ( n1 n2 -- n1 n2/n1 )
+  \ Note: RDIV division is the reverse of DIV
+  : testRDIV
+     3  7 [/]   2 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [/]  -2 assert{eq} drop
+    -3 -7 [/]   2 assert{eq} drop
+     7  3 [/]   0 assert{eq} drop
+     7 -3 [/]   0 assert{eq} drop
+    -7 -3 [/]   0 assert{eq} drop
+    -7  3 [/]   0 assert{eq} drop
+    21 -3 [/]   0 assert{eq} drop
+    21  7 [/]   0 assert{eq} drop
+   -21  7 [/]   0 assert{eq} drop
+    \ Verify traps occur as they should:
+    :zeroRDIV verifyTrapDivideByZero         \ Should trap
+    :overRDIVneg verifyTrapMathOverflow      \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroRDIV: 0 1 [/] tfail                  \ verifyTrapDivideByZero
+    overRDIVneg: -1 ..NEG_INT_MAX  [/] tfail \ trapMathOverflow
+  ;
+
+  \ Test opcode 211 RMOD ( n1 n2 -- n1 n2%n1 )
+  \ Note: RMOD modulo is the reverse of MOD
+  : testRMOD
+     3  7 [%]   1 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [%]  -1 assert{eq} drop
+    -3 -7 [%]  -1 assert{eq} drop
+     7  3 [%]   3 assert{eq} drop
+     7 -3 [%]  -3 assert{eq} drop
+    -7 -3 [%]  -3 assert{eq} drop
+    -7  3 [%]   3 assert{eq} drop
+    21 -3 [%]  -3 assert{eq} drop
+    21  7 [%]   7 assert{eq} drop
+   -21  7 [%]   7 assert{eq} drop
+    \ Verify traps occur as they should:
+    :zeroRMOD verifyTrapDivideByZero        \ Should trap
+    :overRMODneg verifyTrapMathOverflow     \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroRMOD: 0 1 [%] tfail                 \ verifyTrapDivideByZero
+    overRMODneg: -1 ..NEG_INT_MAX [%] tfail \ trapMathOverflow
+  ;
+
+  \ Test opcode 212 RDIVMOD ( n1 n2 -- n1 n2/n1 n2%n1 )
+  \ Note: RDIVMOD division and modulo are both the reverse of DIVMOD
+  : testRDIVMOD
+     3  7 [/%] swap   2 assert{eq}    1 assert{eq}
+     3 assert{eq} \ Verify first operand not consumed
+     3 -7 [/%] swap  -2 assert{eq}   -1 assert{eq} drop
+    -3 -7 [/%] swap   2 assert{eq}   -1 assert{eq} drop
+     7  3 [/%] swap   0 assert{eq}    3 assert{eq} drop
+     7 -3 [/%] swap   0 assert{eq}   -3 assert{eq} drop
+    -7 -3 [/%] swap   0 assert{eq}   -3 assert{eq} drop
+    -7  3 [/%] swap   0 assert{eq}    3 assert{eq} drop
+    21 -3 [/%] swap   0 assert{eq}   -3 assert{eq} drop
+    21  7 [/%] swap   0 assert{eq}    7 assert{eq} drop
+   -21  7 [/%] swap   0 assert{eq}    7 assert{eq} drop
+    \ Verify traps occur as they should:
+    :zeroRDIVMOD verifyTrapDivideByZero         \ Should trap
+    :overRDIVMODneg verifyTrapMathOverflow      \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    zeroRDIVMOD: 0 1 [/%] tfail                 \ verifyTrapDivideByZero
+    overRDIVMODneg: -1 ..NEG_INT_MAX [/%] tfail \ trapMathOverflow
+  ;
+
+  \ Test opcode 213 NEG
+  : testNEG
+    ..INT_MAX neg ..INT_MAX -1 * assert{eq}
+     1 neg  -1 assert{eq}
+     0 neg   0 assert{eq}
+    -1 neg   1 assert{eq}
+    \ Verify traps occur as they should:
+    :overNEG verifyTrapMathOverflow     \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overNEG: ..NEG_INT_MAX neg tfail    \ trapMathOverflow
+  ;
+
+  \ Test opcode 214 ABS
+  : testABS
+    ..INT_MAX neg abs ..INT_MAX assert{eq}
+     1 abs   1 assert{eq}
+     0 abs   0 assert{eq}
+    -1 abs   1 assert{eq}
+    \ Verify traps occur as they should:
+    :overABS verifyTrapMathOverflow     \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    overABS: ..NEG_INT_MAX abs tfail    \ trapMathOverflow
+  ;
+
+  \ Test opcode 215 and
+  : testAND
+    255   0 &   0 assert{eq}
+    0   255 &   0 assert{eq}
+    0     0 &   0 assert{eq}
+    255 255 & 255 assert{eq}
+    \ Verify traps occur as they should:
+    :underAND verifyTrapDsUnderflow   \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underAND: 1 & tfail               \ trapDsUnderflow
+  ;
+
+  \ Test opcode 216 OR
+  : testOR
+    255   0 | 255 assert{eq}
+    0   255 | 255 assert{eq}
+    0     0 |   0 assert{eq}
+    255 255 | 255 assert{eq}
+    \ Verify traps occur as they should:
+    :underOR verifyTrapDsUnderflow    \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underOR: 1 | tfail                \ trapDsUnderflow
+  ;
+
+  \ Test opcode 217 XOR
+  : testXOR
+    255   0 ^ 255 assert{eq}
+    0   255 ^ 255 assert{eq}
+    0     0 ^   0 assert{eq}
+    255 255 ^   0 assert{eq}
+    \ Verify traps occur as they should:
+    :underXOR verifyTrapDsUnderflow   \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underXOR: 1 ^ tfail               \ trapDsUnderflow
+  ;
+
+  \ Test opcode 218 RAND
+  \ Note: RAND preserves both operands not just the first
+  : testRAND ( n1 n2 -- n1 n2 n2&n1 )
+    255   0 [&]   0 assert{eq}
+      0 assert{eq} \ Verify 2nd operand not consumed
+    255 assert{eq} \ Verify 1st operand not consumed
+    0   255 [&]   0 assert{eq} drop2
+    0     0 [&]   0 assert{eq} drop2
+    255 255 [&] 255 assert{eq} drop2
+    \ Verify traps occur as they should:
+    :underRAND verifyTrapDsUnderflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underRAND: 1 [&] tfail            \ trapDsUnderflow
+  ;
+
+  \ Test opcode 219 ROR
+  \ Note: ROR preserves both operands not just the first
+  : testROR ( n1 n2 -- n1 n2 n2|n1 )
+    255   0 [|] 255 assert{eq}
+      0 assert{eq} \ Verify 2nd operand not consumed
+    255 assert{eq} \ Verify 1st operand not consumed
+    0   255 [|] 255 assert{eq} drop2
+    0     0 [|]   0 assert{eq} drop2
+    255 255 [|] 255 assert{eq} drop2
+    \ Verify traps occur as they should:
+    :underROR verifyTrapDsUnderflow   \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underROR: 1 [|] tfail             \ trapDsUnderflow
+  ;
+
+  \ Test opcode 220 RXOR
+  \ Note: RXOR preserves both operands not just the first
+  : testRXOR ( n1 n2 -- n1 n2 n2^n1 )
+    255   0 [^] 255 assert{eq}
+      0 assert{eq} \ Verify 2nd operand not consumed
+    255 assert{eq} \ Verify 1st operand not consumed
+    0   255 [^] 255 assert{eq} drop2
+    0     0 [^]   0 assert{eq} drop2
+    255 255 [^]   0 assert{eq} drop2
+    \ Verify traps occur as they should:
+    :underRXOR verifyTrapDsUnderflow  \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    underRXOR: 1 [^] tfail            \ trapDsUnderflow
+  ;
+
+  \ Test opcode 221 SHL
+  : testSHL
+    1 8 << 256 assert{eq}
+    1 31 << -2147483648 assert{eq} \ Two's complement
+    \ Verify traps occur as they should:
+    :xsSHL verifyTrapXsBitshift        \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    xsSHL: 1 32 << tfail               \ trapXsBitshift
+  ;
+
+  \ Test opcode 222 SHR
+  : testSHR
+    256 8 >> 1 assert{eq}
+    -2147483648 31 >> 1 assert{eq} \ Two's complement
+    \ Verify traps occur as they should:
+    :xsSHR verifyTrapXsBitshift        \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    xsSHR: 1 32 >> tfail               \ trapXsBitshift
+
+  ;
+
+  \ Test opcode 223 RSHL
+  \ Note: RSHL preserves both operands not just the first
+  : testRSHL
+    1 8 [<<] 256 assert{eq}
+      8 assert{eq} \ Verify 2nd operand not consumed
+      1 assert{eq} \ Verify 1st operand not consumed
+    1 31 [<<] -2147483648 assert{eq} drop2 \ Two's complement
+    \ Verify traps occur as they should:
+    :xsRSHL verifyTrapXsBitshift        \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    xsRSHL: 1 32 [<<] tfail             \ trapXsBitshift
+  ;
+
+  \ Test opcode 224 RSHR
+  \ Note: RSHR preserves both operands not just the first
+  : testRSHR
+    256 8 [>>] 1 assert{eq}
+      8 assert{eq} \ Verify 2nd operand not consumed
+    256 assert{eq} \ Verify 1st operand not consumed
+    -2147483648 31 [>>] 1 assert{eq} drop2 \ Two's complement
+    \ Verify traps occur as they should:
+    :xsRSHR verifyTrapXsBitshift        \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    xsRSHR: 1 32 [>>] tfail             \ trapXsBitshift
+  ;
+
+  \ Test opcode 225 MOVE ( numWords src dest -- )
+  \ Note: numWords can meaningfully be negative but not tested here
+  : testMOVE
+    100000 -1 ##slotA fill \ Make all 100000 words of slotA hold value -1
+    100000 -2 ##slotB fill \ Make all 100000 words of slotB hold value -2
+    100000 -3 ##slotC fill \ Make all 100000 words of slotC hold value -3
+    100000 ##slotA ##slotB move \ Move whole of slotA to slotB
+    0 ##slotC ##slotB move \ Specifying 0 as numWords should cause no move
+    \ Verify every word of slotB now holds value -1 after the MOVE
+    ##slotB 100000
+      verifying:
+        swap [@] dup -1 go!= :fail
+          drop incw swap dec
+          go[>0] :verifying
+      \ Verify traps occur as they should:
+      :memlowMOVE verifyTrapMemBounds  \ Should trap
+      :memhighMOVE verifyTrapRAMBounds \ Should trap
+      ret
+    fail:
+       drop2 ." not -1 " fail
+    \ Labels for use by verifyTrap
+    memlowMOVE:  100000 -4 ##slotB move tfail   \ trapMemBounds
+    memhighMOVE: 100000 0 4 move tfail          \ trapRAMBounds
+  ;
+
+  \ Test opcode 226 FILL ( numWords n dest -- )
+  : testFILL
+    100000 -3 ##slotB fill \ Make all 100000 words of slotB hold value -3
+    0 -4 ##slotB fill \ Specifying 0 as numWords should cause no fill
+    -100 -4 ##slotB fill \ Specifying -100 as numWords should cause no fill
+    \ Verify every word of slotB now holds value -3 after the FILL
+    ##slotB 100000
+      verifying:
+        swap [@] dup -3 go!= :fail
+          drop incw swap dec
+          go[>0] :verifying
+      :memlowFILL verifyTrapRAMBounds  \ Should trap
+      :memhighFILL verifyTrapRAMBounds \ Should trap
+      ret
+    fail:
+       drop2 ." not -3 " fail
+    \ Labels for use by verifyTrap
+    memlowFILL:  100000 99 ..ADDR_NOT_RAM fill tfail \ trapRAMBounds
+    memhighFILL: 100000 99 ..ADDR_BUST fill tfail    \ trapRAMBounds
+  ;
+
+  \ Test opcode 227 FIND ( numWords n src -- wordIndex )
+  \ Note: numWords can meaningfully be negative but not tested here
+  \ Note: returned index starts at 0
+  : testFIND                   \ Note: slotB filled with -3s by testFILL
+    -1234 ##slotB !            \ Store value -1234 to 0th word of slotB
+    100000 -1234 ##slotB find  \ Find first occurrence of -1234
+    0 assert{eq}               \ Verify found at expected 0th wordIndex
+    -3 ##slotB !               \ Store value -3 to 0th word of slotB
+
+    -1234 ##slotB 90000 + !    \ Store value -1234 to 22500th word of slotB
+    100000 -1234 ##slotB find  \ Find first occurrence of -1234
+    22500 assert{eq}           \ Verify found at expected 22500th wordIndex
+    -3 ##slotB !               \ Store value -3 to 0th word of slotB
+
+    100000 -9999 ##slotB find  \ Find first occurrence of word -9999 in slotB
+    {..NO_VALUE} assert{eq}    \ Verify, as expected, that -9999 was not found
+
+    \ Verify traps occur as they should:
+    :memlowFIND verifyTrapMemBounds  \ Should trap
+    :memhighFIND verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    memlowFIND:  100000 99 -1 find tfail            \ trapMemBounds
+    memhighFIND: 100000 99 ..ADDR_BUST find tfail   \ trapMemBounds
+  ;
+
+  \ Test opcode 228 MATCH ( numWords src dest -- TRUE/FALSE )
+  : testMATCH
+    \ Note: slotA still filled with -1s
+    \ Note: slotB still filled with -3s
+    100000 -1 ##slotC fill \ Make all 100000 words of slotC hold value -1
+    \ Verify 0 numWords is always treated as a match regardless of content
+    0 ##slotA ##slotB match {..TRUE} assert{eq}
+    \ Verify whole of slotA matches whole of slotC
+    100000 ##slotA ##slotC match {..TRUE} assert{eq}
+    \ Verify the same is not true of 1 word longer
+    100001 ##slotA ##slotC match {..FALSE} assert{eq}
+    \ Verify whole of slotA does not match whole of slotB
+    100000 ##slotA ##slotB match {..FALSE} assert{eq}
+    \ Verify traps occur as they should:
+    :memlowMATCH verifyTrapMemBounds  \ Should trap
+    :memhighMATCH verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    memlowMATCH:  100000 ##slotA -1 match tfail          \ trapMemBounds
+    memhighMATCH: 100000 ##slotA ..ADDR_BUST match tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 229 MOVEB ( numBytes src dest -- )
+  \ Note: numBytes can meaningfully be negative but not tested here
+  \ Note: byte values (unlike word values) should always be stored
+  \ as positive since the concept of a negative number in Freeputer is
+  \ fundamentally a word-based concept (a 32-bit two's complement integer)
+  : testMOVEB
+    \ Make last 100000 bytes of slotA hold value 1
+    100000 1 ##slotA 300000 + fillb
+    \ Make 1st 100000 bytes of slotB hold value 2
+    100000 2 ##slotB fillb
+    \ Make 1st 100000 bytes of slotC hold value 3
+    100000 3 ##slotC fillb
+    \ Move last 100000 bytes of slotA to start of slotB
+    100000 ##slotA 300000 + ##slotB moveb
+    \ Specifying 0 as numBytes should cause no moveb
+    0 ##slotC ##slotB moveb
+    \ Verify 1st 100000 bytes of slotB now hold value 1 after the MOVEB
+    ##slotB 100000
+      verifying:
+        swap [@b] dup 1 go!= :fail
+          drop inc swap dec
+          go[>0] :verifying
+      \ Verify traps occur as they should:
+      :memlowMOVEB verifyTrapMemBounds  \ Should trap
+      :memhighMOVEB verifyTrapRAMBounds \ Should trap
+      ret
+    fail:
+       drop2 ." not 1 " fail
+    \ Labels for use by verifyTrap
+    memlowMOVEB:  100000 -4 ##slotB moveb tfail  \ trapMemBounds
+    memhighMOVEB: 100000 0 4 moveb tfail         \ trapRAMBounds
+  ;
+
+  \ Test opcode 230 FILLB ( numBytes b dest -- )
+  \ Note: byte values (unlike word values) should always be stored
+  \ as positive since the concept of a negative number in Freeputer is
+  \ fundamentally a word-based concept (a 32-bit two's complement integer)
+  : testFILLB
+    100000 3 ##slotB fillb \ Make 1st 100000 bytes of slotB hold value 3
+    0 -4 ##slotB fillb \ Specifying 0 as numBytes should cause no fillb
+    -100 -4 ##slotB fillb \ Specifying -100 as numBytes should cause no fillb
+    \ Verify 1st 100000 bytes of slotB now holds value 3 after the FILLB
+    ##slotB 100000
+      verifying:
+        swap [@b] dup 3 go!= :fail
+          drop inc swap dec
+          go[>0] :verifying
+      :memlowFILLB verifyTrapRAMBounds  \ Should trap
+      :memhighFILLB verifyTrapRAMBounds \ Should trap
+      ret
+    fail:
+       drop2 ." not 3 " fail
+    \ Labels for use by verifyTrap
+    memlowFILLB:  100000 99 ..ADDR_NOT_RAM fillb tfail \ trapRAMBounds
+    memhighFILLB: 100000 99 ..ADDR_BUST fillb tfail    \ trapRAMBounds
+  ;
+
+  \ Test opcode 231 FINDB ( numBytes b src -- byteIndex )
+  \ Note: numBytes can meaningfully be negative but not tested here
+  \ Note: byte values (unlike word values) should always be stored
+  \ as positive since the concept of a negative number in Freeputer is
+  \ fundamentally a word-based concept (a 32-bit two's complement integer).
+  \ Note: returned index starts at 0.
+  : testFINDB \ Note: 1st 100000 bytes of slotB filled with 3s by testFILLB
+    123 ##slotB !b             \ Store value 123 to 0th byte of slotB
+    100000 123 ##slotB findb   \ Find first occurrence of 123
+    0 assert{eq}               \ Verify found at expected 0th byteIndex
+    3 ##slotB !b               \ Store value 3 to 0th byte of slotB
+
+    123 ##slotB 90000 + !b     \ Store value 123 to 90000th byte of slotB
+    100000 123 ##slotB findb   \ Find first occurrence of 123
+    90000 assert{eq}           \ Verify found at expected 90000th byteIndex
+    3 ##slotB !b               \ Store value 3 to 0th byte of slotB
+
+    100000 99 ##slotB findb    \ Find first occurrence of byte 99 in slotB
+    {..NO_VALUE} assert{eq}    \ Verify, as expected, that 99 was not found
+
+    \ Verify traps occur as they should:
+    :memlowFINDB verifyTrapMemBounds  \ Should trap
+    :memhighFINDB verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    memlowFINDB:  100000 99 -1 findb tfail          \ trapMemBounds
+    memhighFINDB: 100000 99 ..ADDR_BUST findb tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 232 MATCHB ( numBytes src dest -- TRUE/FALSE )
+  : testMATCHB
+    \ Note: last 100000 bytes of slotA filled with 1s by testMOVEB
+    \ Note: 1st 100000 bytes of slotB filled with 3s by testFILLB
+    100000 1 ##slotC fillb \ Make 1st 100000 bytes of slotC hold value 1
+    \ Verify 0 numBytes is always treated as a match regardless of content
+    0 ##slotA ##slotB matchb {..TRUE} assert{eq}
+    \ Verify last 100000 bytes of slotA match 1st 100000 bytes of slotC
+    100000 ##slotA 300000 + ##slotC matchb {..TRUE} assert{eq}
+    \ Verify the same is not true of 1 word longer
+    100001 ##slotA 300000 + ##slotC matchb {..FALSE} assert{eq}
+    \ Verify the last 100000 bytes of slotA do not match those of slotB
+    100000 ##slotA 300000 + ##slotB matchb {..FALSE} assert{eq}
+    \ Verify traps occur as they should:
+    :memlowMATCHB verifyTrapMemBounds  \ Should trap
+    :memhighMATCHB verifyTrapMemBounds \ Should trap
+    ret
+    \ Labels for use by verifyTrap
+    memlowMATCHB:  100000 ##slotA -1 matchb tfail          \ trapMemBounds
+    memhighMATCHB: 100000 ##slotA ..ADDR_BUST matchb tfail \ trapMemBounds
+  ;
+
+  \ Test opcode 233 HOMIO
+  : testHOMIO
+    {..STDEXP} wchan                     \ Change to stdexp write channel
+    homio                                \ Change to default I/O channels
+    't' writorb :fail                    \ Write 't' to stdout
+    'e' writorb :fail                    \ Write 'e' to stdout
+      ret
+    fail: ." WRITORB attempt failed " fail
+  ;
+
+  \ Test opcode 234 RCHAN
+  : testRCHAN
+    {..STDIMP} rchan                     \ Change to stdimp read channel
+    reador :fail                         \ Read word from stdimp
+    ..EFGH assert{eq}                    \ Verify we read "EFGH" from stdimp
+    {..STDIN} rchan                      \ Change to stdin read channel
+      ret
+    fail: ." READOR attempt failed " fail
+  ;
+
+  \ Test opcode 235 WCHAN
+  : testWCHAN
+    {..STDEXP} wchan                     \ Change to stdexp channel
+    {..STDOUT} wchan                     \ Change to stdout channel
+    'r' writorb :fail                    \ Write 'r' to stdout
+    10 10 writorb :fail writorb :fail    \ Write newlines to stdout
+      ret
+    fail: ." WRITORB attempt failed " fail
+  ;
+
+  \ Test opcode 236 GCHAN
+  : testGCHAN
+    {..STDBLK} gchan                     \ Specify stdblk as get channel
+    0 getor :fail 0 assert{eq}           \ Verify value 0 as expected
+      ret
+    fail: ." WRITORB attempt failed " fail
+  ;
+
+  \ Test opcode 237 PCHAN
+  : testPCHAN
+    {..STDBLK} gchan                     \ Specify stdblk as get channel
+    {..STDBLK} pchan                     \ Specify stdblk as put channel
+    0 getor :fail 0 assert{eq}           \ Verify value 0 as expected
+    1234567890 0 putor :fail             \ Put 1234567890 to stdblk at addr 0
+    0 getor :fail 1234567890 assert{eq}  \ Verify PUTOR and GETOR worked
+    0 0 putor :fail                      \ Put 0 to stdblk at addr 0
+    0 getor :fail 0 assert{eq}           \ Verify PUTOR and GETOR worked
+      ret
+    fail: ." WRITORB attempt failed " fail
+  ;
+
+  \ Test opcode 238 ECODE
+  : testECODE
+    ecode? ##expectedEcode @ assert{eq}
+  ;
+
+  \ Test opcode 239 RCODE
+  : testRCODE
+    rcode? 0 assert{eq}                  \ Default RCODE is 0
+  ;
+
+  \ Test opcode 240 ROM
+  : testROM
+    rom? ..ROM_SIZE assert{eq}
+  ;
+
+  \ Test opcode 241 RAM
+  : testRAM
+    ram? ..RAM_SIZE assert{eq}
+  ;
+
+  \ Test opcode 242 MAP
+  : testMAP
+    map? ..MAP_SIZE assert{eq}
+  ;
+
+  \ Test opcode 243 STDBLK
+  : testSTDBLK
+    stdblk? ..STDBLK_SIZE assert{eq}
+  ;
+
+  \ Test opcode 244 DS
+  : testDS
+    ds? ..MAX_DEPTH_DS assert{eq}
+  ;
+
+  \ Test opcode 245 SS
+  : testSS
+    ss? ..MAX_DEPTH_SS assert{eq}
+  ;
+
+  \ Test opcode 246 RS
+  : testRS
+    rs? ..MAX_DEPTH_RS assert{eq}
+  ;
+
+  \ Test opcode 247 DSN
+  \ Note: this test will only work correctly if when it executes there are
+  \ exactly 0 elements on the data stack
+  : testDSN
+    dsn? 0 assert{eq}                    \ Verify nothing on DS
+    1 2 3 4 5 6 7 8 9 10 11 12           \ Place 12 elements on DS
+    dsn? 12 assert{eq}                   \ Verify 12 elements on DS
+    drop4 dsn? 8 assert{eq}              \   and so on...
+    drop4 dsn? 4 assert{eq}
+    drop4 dsn? 0 assert{eq}
+  ;
+
+  \ Test opcode 248 SSN
+  \ Note: this test will only work correctly if when it executes there are
+  \ exactly 0 elements on the software stack and 0 on the data stack
+  : testSSN
+    dsn? 0 assert{eq}                    \ Verify nothing on DS
+    ssn? 0 assert{eq}                    \ Verify nothing on SS
+    1 2 3 4 5 6 7 8 9 10 11 12
+    spush4 spush4 spush4                 \ We now have 12 elements on SS
+    ssn? 12 assert{eq}                   \ Verify 12 elements on SS
+    spop4 drop4 ssn? 8 assert{eq}        \   and so on...
+    spop4 drop4 ssn? 4 assert{eq}
+    spop4 drop4 ssn? 0 assert{eq}
+  ;
+
+  \ Test opcode 249 RSN
+  \ Note: this test will only work correctly if when it executes there are
+  \ exactly 3 elements on the return stack and 0 on the data stack
+  : testRSN
+    dsn? 0 assert{eq}                    \ Verify nothing on DS
+    rsn? 3 assert{eq}                    \ Verify 3 elements on RS
+    1 2 3 4 5 6 7 8 9 10 11 12
+    rpush rpush rpush rpush
+    rpush rpush rpush rpush
+    rpush rpush rpush rpush              \ We now have 15 elements on RS
+    rsn? 15 assert{eq}                   \ Verify 15 elements on RS
+    rpop rpop rpop rpop                  \   and so on...
+      drop4 rsn? 11 assert{eq}
+    rpop rpop rpop rpop
+      drop4 rsn? 7 assert{eq}
+    rpop rpop rpop rpop
+      drop4 rsn? 3 assert{eq}           \ Must preserve these!
+  ;
+
+  \ Test opcode 250 TRON
+  : doTRON
+    tron troff
+  ;
+
+  \ Test opcode 251 TROFF
+  : doTROFF
+    tron troff
+  ;
+
+  \ Test opcode 252 RESET
+  \ Note: this test is not yet implemented
+  : testRESET
+    :testRESETdone rpush \ A hack: push label address onto RS
+    saveRS               \ A hack: persist state of RS
+    reset                \ RESET = commands the FVM to do a soft reset
+    ." Should have RESET " fail
+    testRESETdone:       \ A hack: intercept will jump here after soft reset
+      rcode? ..lastRestartCodeRESET assert{eq} \ Verify expected restart code
+  ;
+
+  \ Test opcode 253 REBOOT
+  \ Note: REBOOT causes a hard reset and wipes memory.
+  \       rcode? would then return 2 indicating a REBOOT occurred.
+  \ Note: this test is not yet implemented
+  : testREBOOT ;
+
+  \ Test opcode 254 HALT
+  \ Note: HALT causes the FVM to halt, not merely to reset.
+  \       The FVM will not start running again by itself after a halt.
+  \ Note: this test is not yet implemented
+  : testHALT ;
+
+  \ Test opcode 255 DATA
+  : testDATA
+    \ Verify trapData occurs as it should:
+    :testDATAdone rpush \ A hack: push label address onto RS
+    saveRS              \ A hack: persist state of RS
+    go ::hitData        \ A hack: redirect program flow to cause trapData
+    ." Should have jumped " fail
+    testDATAdone:       \ A hack: intercept will jump here after soft reset
+  ;
+
+  \ A label immediately preceding data, for use by testDATA which will
+  \ intentionally cause a trapData by causing program flow to jump to the
+  \ DATA instruction that begins this empty data block
+  hitData:
+    data 0 === \ Equivalent to DATA WALL WALL so...
+    ." trapData did not occur " fail \ ...very unlikely to ever hit this line!
+
+  \ Verify trapIllegalOpcode occurs as it should when
+  \ the program counter lands upon a program cell containing an
+  \ illegal instruction [that is, a value not representing a legal opcode]
+  : testIllegalOpcode
+    ::hitIllegalOpcode {..TWO_WORDS} + verifyTrapIllegalOpcode ret
+  ;
+
+  \ A label immediately preceding data, for use by testIllegalOpcode which
+  \ will intentionally cause a trapIllegalOpcode by causing program flow to
+  \ jump to the word having the value 256 within this data block
+  hitIllegalOpcode:
+    data 1 256 ===
+    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line!
+
+\ ============================================================================
+\                             DECLARATIONS
+\ ============================================================================
+
+  \ Strings used to report test results
+  FAIL$     ." FAIL "
+  PASS$     ." pass "
+  UNTESTED$ ." untested "
+  SPACER$   ."                      "
+
+  \ Constants used by tests
+  ABCD. 1145258561 \ A word equivalent to 'A' 'B' 'C' 'D' in UTF-8 bytes
+  EFGH. 1212630597 \ A word equivalent to 'E' 'F' 'G' 'H' in UTF-8 bytes
+  Free. 1701147206 \ A word equivalent to 'F' 'r' 'e' 'e' in UTF-8 bytes
+  INT_MAX. 2147483647
+  NEG_INT_MAX. -2147483648
+  ADDR_BUST. 2147483644 \ An address higher than highest of our FVM instance
+  ADDR_NOT_RAM. 0       \ An address that is not a ROM not RAM address
+
+  \ Arbitrary slots used by tests
+  pTestvar# 4      \ A pointer to the testvar slot
+  testvar# 4       \ A slot called testvar to hold 1 word [4 bytes]
+  slotA# 400000    \ A slot of size 100000 words [400000 bytes]
+  slotB# 400000    \ A slot of size 100000 words [400000 bytes]
+  slotC# 400000    \ A slot of size 100000 words [400000 bytes]
+
+  \ Slots and constants used by the test suite to monitor soft resets
+  numResets# 4     \ A counter of the number of soft resets that have occurred
+  EXPECTED_RESETS. 241  \ Exact number of soft resets expected by test suite
+  MAX_RESETS. 400       \ Limit to guard against infinite loop of resets!
+  expectedEcode# 4      \ The currently expected FVM exit code
+
+  \ Some slots used during verification [see verifyTrap]
+  verificationEcode# 4          \ Value of exit code expected
+  pVerificationFailMsg# 4       \ Pointer to failure message
+
+  \ A slot to persist the state of the return stack across soft resets.
+  \ Note: this style of programming is NOT recommended for Freeputer
+  \ but is necessary here for the test suite to test traps.
+  rsState# 132     \ 4 + [4 * MAX_DEPTH_RS] = 4 + [4 * rs?]
+
+  \ FVM last restart codes
+  lastRestartCodeRESET. 1       \ FVM restart code for RESET  = soft reset
+  lastRestartCodeREBOOT. 2      \ FVM restart code for REBOOT = hard reset
+  \ Note: the values for these restart codes are a mandatory standard,
+  \ unlike the values for the exit codes below. That is, your FVM
+  \ implementation MUST supply restart code 1 after a RESET and
+  \ restart code 2 after a REBOOT when interrogated by rcode?
+
+  \ Some error messages relating to exit code verification
+  trapWALL$ ." trapWALL did not occur "
+  trapDATA$ ." trapDATA did not occur "
+  trapPC_OVERFLOW$ ." trapPC_OVERFLOW did not occur "
+  trapILLEGAL_OPCODE$ ." trapILLEGAL_OPCODE did not occur "
+  trapMATH_OVERFLOW$ ." trapMATH_OVERFLOW did not occur "
+  trapDIVIDE_BY_ZERO$ ." trapDIVIDE_BY_ZERO did not occur "
+  trapXS_BITSHIFT$ ." trapXS_BITSHIFT did not occur "
+  trapDS_UNDERFLOW$ ." trapDS_UNDERFLOW did not occur "
+  trapDS_OVERFLOW$ ." trapDS_OVERFLOW did not occur "
+  trapRS_UNDERFLOW$ ." rapRS_UNDERFLOW did not occur "
+  trapRS_OVERFLOW$ ." trapRS_OVERFLOW did not occur "
+  trapSS_UNDERFLOW$ ." trapSS_UNDERFLOW did not occur "
+  trapSS_OVERFLOW$ ." trapSS_OVERFLOW did not occur "
+  trapMEM_BOUNDS$ ." trapMEM_BOUNDS did not occur "
+  trapRAM_BOUNDS$ ." trapRAM_BOUNDS did not occur "
+
+  \ FVM exit codes: This first group is partly tested by this test suite...
+  exitSUCCESS. 0                \ FVM exit code for success
+  trapWALL. 2                   \ FVM exit code for trapWall
+  trapDATA. 3                   \ FVM exit code for trapWall
+  trapPC_OVERFLOW. 4            \ FVM exit code for trapPcOverflow
+  trapILLEGAL_OPCODE. 11        \ FVM exit code for trapIllegalOpcode
+  trapMATH_OVERFLOW. 21         \ FVM exit code for trapMathOverflow
+  trapDIVIDE_BY_ZERO. 22        \ FVM exit code for trapDivideByZero
+  trapXS_BITSHIFT. 23           \ FVM exit code for trapXsBitshift
+  trapDS_UNDERFLOW. 31          \ FVM exit code for trapDsUnderflow
+  trapDS_OVERFLOW. 32           \ FVM exit code for trapDsOverflow
+  trapRS_UNDERFLOW. 33          \ FVM exit code for trapRsUnderflow (untested)
+  trapRS_OVERFLOW. 34           \ FVM exit code for trapRsOverflow (untested)
+  trapSS_UNDERFLOW. 35          \ FVM exit code for trapSsUnderflow
+  trapSS_OVERFLOW. 36           \ FVM exit code for trapSsOverflow
+  trapMEM_BOUNDS. 41            \ FVM exit code for trapMemBounds
+  trapRAM_BOUNDS. 42            \ FVM exit code for trapRAMBounds
+  \                 ... and this second group is NOT tested by this test suite
+  trapCANT_OPEN_ROM. 51         \ FVM exit code for trapCantOpenRom
+  trapCANT_CLOSE_ROM. 52        \ FVM exit code for trapCantCloseRom
+  trapCANT_READ_ROM. 53         \ FVM exit code for trapCantReadRom
+  trapCANT_OPEN_STDBLK. 61      \ FVM exit code for trapCantOpenStdblk
+  trapCANT_CLOSE_STDBLK. 62     \ FVM exit code for trapCantCloseStdblk
+  trapCANT_OPEN_STDTRC. 71      \ FVM exit code for trapCantOpenStdtrc
+  trapCANT_CLOSE_STDTRC. 72     \ FVM exit code for trapCantCloseStdtrc
+  trapCANT_WRITE_TO_STDTRC. 73  \ FVM exit code for trapCantWriteToStdtrc
+  trapCANT_OPEN_STDEXP. 74      \ FVM exit code for trapCantOpenStdexp
+  trapCANT_CLOSE_STDEXP. 75     \ FVM exit code for trapCantCloseStdexp
+  trapCANT_OPEN_STDIMP. 77      \ FVM exit code for trapCantOpenStdimp
+  trapCANT_CLOSE_STDIMP. 78     \ FVM exit code for trapCantCloseStdimp
+  \ Note: The values for the FVM exit codes are not a mandatory standard,
+  \ unlike the values for the restart codes above. The reason for this is that
+  \ depending on the environment in which an FVM instance runs it might be
+  \ necessary to use different exit codes, for example due to host
+  \ operating system requirements or hardware limitations. However, it is
+  \ generally recommended that these exit codes be used where possible.
+  \ Note: Freeputer is generally designed to stop upon an error rather than
+  \ continue. This is in accordance with the Freeputer design philosophy of
+  \ never allowing undefined behaviour [except in I/O operations, since
+  \ I/O operations interact with the outside world and so are unpredictable].
+  \ Freeputer traps are designed to stop the FVM so no further malfunction
+  \ can occur. Freeputer traps are not exceptions, they are not intended
+  \ to be continued from; as such the exit codes that correspond to them
+  \ do not need to accord to any mandatory standard since those exit
+  \ codes are intended to be meaningful to the environment in which
+  \ the FVM is running rather than meaningful within the FVM.
+
+\ ============================================================================
+\         TEST SUITE: VALIDATING TRAPS AND HANDLING SOFT RESETS
+\ ============================================================================
+
+  \ Persist the state of the return stack to the rsState slot,
+  \ so as to allow it to be recreated after a soft reset.
+  \ WARNING: this function empties the return stack!
+  : saveRS ( -- )
+    rsn?                \ ( n ) number of elements currently on RS
+    go[==0] :doNothing  \ ( n ) Nothing to do if RS empty
+      rpop spush        \ ( n ) Merely to allow saveRS to return to caller
+      dec               \ ( n ) n adjusted down by 1 for the above
+      dup sys{bytes}    \ ( n 4n )
+      ##rsState +       \ ( n a ) Address to store a 0 to as end marker
+      0 over !          \ ( n a ) Store a 0 to rsState to mark end of elements
+      decw              \ ( n a ) Address to save top RS element to
+      swap              \ ( a n )
+    saving:             \ ( a n ) We save in reverse order intentionally,
+      go[<=0] :done     \ ( a n )   so restoreRS will restore correct order.
+      swap rpop over !  \ ( n a ) Stored top element of RS to rsState slot
+      decw              \ ( n a- ) Decrement addr to previous word of rsState
+      swap dec          \ ( a- n- )
+      go :saving        \ ( a- n- )
+    done:               \ ( a n )
+      drop2             \ ( )
+      spop rpush        \ ( ) Merely to allow saveRS to return to caller now
+      ret               \ ( )
+    doNothing:          \ ( n )
+      drop ret          \ ( )
+  ;
+
+  \ Recreate the state of the return stack, as it was before the last
+  \ soft reset, by restoring the state previously saved by saveRS.
+  \ WARNING: this function modifies the return stack!
+  : restoreRS ( -- )
+    rpop spush          \ ( ) merely to allow restoreRS to return to caller
+    ##rsState           \ ( a ) address to retrieve next RS element from
+    restoring:          \ ( a )
+      [@]               \ ( a r ) return address to restore to RS
+      go[==0] :done     \ ( a r ) 0 here indicates no more return addresses
+      rpush             \ ( a ) restore return address to top of RS
+      incw              \ ( a+ )
+      go :restoring     \ ( a+ ) increment address to next word of rsState
+    done:               \ ( a r )
+      drop2             \ ( )
+      spop rpush  \ ( ) merely to allow restoreRS to return to caller now
+      ret         \ ( )
+  ;
+
+  \ Determine if the test suite is running for the first time in the
+  \ current run or whether we are re-entering here after the FVM instance
+  \ on which the test suite is running has just done a soft reset.
+  \ Direct test flow accordingly. Specifically, if a soft reset [due to a trap
+  \ or RESET] has occurred then intercept here so as to bypass the normal
+  \ program flow of the test suite and instead jump directly
+  \ to the point from which testing should resume, after manipulating
+  \ the return stack to ensure such flow can continue normally.
+  \ Note: all this can only work if our FVM instance is configured
+  \ to do a soft reset upon a trap [rather than a hard reset or halt];
+  \ it is far more normal for an FVM instance to be configured to
+  \ halt [or maybe hard reset] upon a trap for most applications.
+  : intercept ( -- )
+    ##numResets sys{vInc} \ Increment counter of number of soft resets
+    ##numResets @ ..MAX_RESETS go<= :continue
+      dbg{newline} \ This is protection against an infinite restart loop!
+        ." Too many FVM resets occurred (see MAX_RESETS in test suite) " fail
+    continue:
+      ecode? ..exitSUCCESS go[==] :firstTime
+    fromSoftReset:
+    \ We got here due to a soft reset of our FVM instance.
+    \ In this context this soft reset would be due to:
+    \ (1) a trap intentionally caused by a test [such as testWALL]; or
+    \ (2) a RESET intentionally caused by a test [see testRESET]; or
+    \ (3) a bug in a test
+      dup ##expectedEcode ! \ ( ecode ) Used by testECODE
+      drop                \ ( )
+      rpop drop \ Drop return addr from current call to this word itself
+      restoreRS           \ ( ) Restored RS as was prior to soft reset
+                          \ ( ) Note: continuation address is on top of RS
+      ret                 \ ( ) A hack: jumps so as to continue tests
+      halt                \ ( ) Should never hit this line
+    firstTime:
+    \ We got here simply by the test suite being run for the first time
+    \ in the current run. No soft reset has occurred since our FVM
+    \ instance was last halted.
+      drop ret
+  ;
+
+  \ Some functions that cause and verify traps by delegating to verifyTrap:
+  : verifyTrapPcOverflow ( label )
+    ..trapPC_OVERFLOW $$trapPC_OVERFLOW verifyTrap ;
+  : verifyTrapDsUnderflow ( label )
+    ..trapDS_UNDERFLOW $$trapDS_UNDERFLOW verifyTrap ;
+  : verifyTrapDsOverflow ( label )
+    ..trapDS_OVERFLOW $$trapDS_OVERFLOW verifyTrap ;
+  : verifyTrapSsUnderflow ( label )
+    ..trapSS_UNDERFLOW $$trapSS_UNDERFLOW verifyTrap ;
+  : verifyTrapSsOverflow ( label )
+    ..trapSS_OVERFLOW $$trapSS_OVERFLOW verifyTrap ;
+  : verifyTrapMathOverflow ( label )
+    ..trapMATH_OVERFLOW $$trapMATH_OVERFLOW verifyTrap ;
+  : verifyTrapMemBounds ( label )
+    ..trapMEM_BOUNDS $$trapMEM_BOUNDS verifyTrap ;
+  : verifyTrapRAMBounds ( label )
+    ..trapRAM_BOUNDS $$trapRAM_BOUNDS verifyTrap ;
+  : verifyTrapDivideByZero ( label )
+    ..trapDIVIDE_BY_ZERO $$trapDIVIDE_BY_ZERO verifyTrap ;
+  : verifyTrapXsBitshift ( label )
+    ..trapXS_BITSHIFT $$trapXS_BITSHIFT verifyTrap ;
+  : verifyTrapIllegalOpcode ( label )
+    ..trapILLEGAL_OPCODE $$trapILLEGAL_OPCODE verifyTrap ;
+
+  \ Jump to the supplied label l which must soon cause a trap to occur,
+  \ then verify that the supplied exit code eCode was indeed the exit code
+  \ generated by that trap. If no trap occurs then fail showing failMsg.
+  : verifyTrap ( l eCode failMsg )
+    ##pVerificationFailMsg !  \ Remember pointer to failure message
+    ##verificationEcode !     \ Remember expected eCode for use here only
+    :testTrap rpush     \ A hack: push label address onto RS
+    saveRS              \ A hack: persist state of RS
+    fly
+    ##pVerificationFailMsg @ fail \ Fail because trap did not occur
+    testTrap:           \ A hack: intercept will jump here after soft reset
+      ecode? ##verificationEcode @ assert{eq} \ Verify exit code correct
+  ;
+
+}fvmtest
+
+\ ============================================================================
+\                               ASSERTIONS
+\ ============================================================================
+
+assert{
+
+  EXPECTED$ ."  expected:  "
+  ACTUAL$   ."  actual  :  "
+
+  \ If actual == expected do nothing, otherwise report failure and halt.
+  \ Actual and expected are treated as words [that is, as integers].
+  : eq ( actual expected -- )
+    dup2 go!= :fail
+      drop2 ret
+    fail:
+      fvmtest{$$FAIL} dbg{print}
+        dbg{newline}
+        $$EXPECTED dbg{puts} dbg{printd}
+        $$ACTUAL dbg{puts} dbg{printd}
+        dbg{newline}
+      halt
+  ;
+
+}assert
+
+\ ============================================================================
+\                                DEBUGGING
+\                 Here used to output test results to stdtrc
+\ ============================================================================
+
+dbg{
+
+  cNEWLINE. 10 cSPACE. 32 \ Some common character codes
+  cMAXCHAR. 126           \ Maximum char code treated as printable by putc
+
+  \ Write newline to stdtrc
+  : newline ( -- ) ..cNEWLINE putc ;
+
+  \ Same as puts but followed by a newline
+  : print ( k -- ) puts newline ;
+
+  \ Same as putd but followed by a newline
+  : printd ( k -- ) putd newline ;
+
+  \ Same as putv but followed by a newline
+  : printv ( k -- ) putv newline ;
+
+  \ Write character to stdtrc (or a dot if character not printable).
+  \ This word only supports basic ASCII characters.
+  : putc ( c -- )
+      ..cNEWLINE go[==] :ok
+      ..cMAXCHAR go[>] :putdot
+      ..cSPACE go[<] :putdot
+      go :ok
+        putdot: drop '.'
+      ok: tracorb ::tfail
+  ;
+
+  \ Write decimal integer to stdtrc
+  : putd ( n -- )
+    sys{deci} put: go[<=0] :end dec spush putc spop go :put
+    end: drop
+  ;
+
+  \ Write the string at k to stdtrc but:
+  \   (a) do not exceed block size in words as indicated at k
+  : puts ( k -- ) [@] swap incw swap sys{bytes} tracs ;
+
+  \ Trace the value of the variable v
+  : putv ( v -- ) @ putd ;
+
+  \ Write a space to stdtrc
+  : space ( -- ) ..cSPACE putc ;
+
+  \ Trace z BYTES of a string starting at address a in memory,
+  \   but do not trace (that is, skip) any byte having a value of 0.
+  \   This means whatever character encoding happened to have been used
+  \   during the storage of that text is crudely preserved to some extent.
+  : tracs ( a z -- )
+    tracing:                  \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            tracorb ::tfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :tracing         \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+  ;
+
+  \ Trace details of memory in decimal format as z bytes from addr a
+  : BYTEDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @b putd space inc swap dec
+        go ::BYTEDUMP
+    end: drop2
+  ;
+
+  \ Trace details of memory in decimal format as z words from addr a
+  : MEMDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @ putd space incw swap dec
+        go ::MEMDUMP
+    end: drop2
+  ;
+
+  \ Traps
+  tfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}dbg
+
+\ ============================================================================
+\                                 SYSTEM
+\                      Some very commonly used words
+\ ============================================================================
+
+sys{
+
+  \ Return number of bytes contained within n words
+  : bytes ( n -- numBytes ) {..WORD} * ;
+
+  \ Convert n to z decimal chars placed on the data stack in reverse order
+  : deci ( n -- c1..* z )
+      -2147483648 go[==] :negIntMax
+      0 ( n z=0 ) swap go[>=0] :positive
+      ( negative: ) '-' spush swap inc spush -1 * go :digits
+        positive:   '+' spush swap spush
+      digits: 10 /% '0' + swap spop inc spush go[>0] :digits drop
+      ( handleSign: ) spop spop '+' go[==] :ignoreSign
+        ( showSign: ) swap ret ( c1..* '-' z )
+        ignoreSign:   drop     ( c1..*  z    )
+        ret
+      negIntMax:              \ ( n ) [ ]
+        drop '8'              \ ( '8' ) [ ]
+        214748364 deci drop   \ Recurse ( '8' '4' ... '2' ) [ ]
+        '-' 11                \ ( '8' '4' ... '2' '-' 11 ) [ ]
+  ;
+
+  \ Increment the value of a variable by 1
+  : vInc ( v -- ) [@] inc swap ! ;
+
+}sys
+
+\ ============================================================================
+\                             FREELANG GLOBALS
+\ ============================================================================
+FALSE. 0 TRUE. 1 NO_VALUE. -1 SUCCESS. 0 FAILURE. 1
+WORD. 4           \ The size of a word in bytes [always 32 bits wide]
+TWO_WORDS. 8      \ The size of two adjacent words in bytes
+THREE_WORDS. 12   \ The size of three adjacent words in bytes
+STDIMP. 2         \ Stream device number of stdimp
+STDIN. 1          \ Stream device number of stdin
+STDOUT. -1        \ Stream device number of stdout
+STDEXP. -2        \ Stream device number of stdexp
+STDBLK. 0         \ Block device number of stdblk
+
