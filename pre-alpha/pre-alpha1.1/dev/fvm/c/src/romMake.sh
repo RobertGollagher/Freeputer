@@ -4,8 +4,8 @@
 # Copyright © Robert Gollagher 2016
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20160314
-# Updated:    20160314:2323
-# Version:    pre-alpha-0.0.0.1 for FVM 1.1
+# Updated:    20160315:2317
+# Version:    pre-alpha-0.0.0.2 for FVM 1.1
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 # source file into binary 'rom.fp' and creates a C header file 'rom.h'
 # which represents that binary program as a char array. The purpose of doing
 # so is so that subequently you can include the compiled program
-# into an FVM executable as described in 'fvm.m4'.
+# into an FVM executable as described in 'fvm.c'.
 #
 # Example:
 #
