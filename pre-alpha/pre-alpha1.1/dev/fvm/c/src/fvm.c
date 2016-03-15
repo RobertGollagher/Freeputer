@@ -2,12 +2,12 @@
 
                         FREEPUTER VIRTUAL MACHINE
 
-Program:    fvm.m4
+Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
 Updated:    20160315:2252
-Version:    pre-alpha-0.0.0.1 for FVM 1.1
+Version:    pre-alpha-0.0.0.2 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
