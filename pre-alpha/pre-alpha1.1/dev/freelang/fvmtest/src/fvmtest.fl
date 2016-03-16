@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160314:1645
-Version:    pre-alpha-0.0.0.1 for FVM 1.1
+Updated:    20160316:1506
+Version:    pre-alpha-0.0.0.2 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2528,6 +2528,13 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ FIXME This test needs to be expanded to test for the malfunction
   \ mentioned in the comment in the iSUB instruction in FVM.java and fvm.c
   \ versions 0.1.0.4 alpha for FVM 1.0 with respect to overflow.
+  \
+  \ Other unrelated FIXMEs or TODOs for fvmtest are:
+  \   * Add a test to check if FVMO_SAFE_ALIGNMENT is working
+  \   * Provide a means of running fvmtest on small microcontrollers
+  \     with little ROM and RAM, possibly by splitting it up into a series
+  \     of smaller tests to be deployed and run one at a time.
+  \
   : testSUB
      3  7 -  -4 assert{eq}
      3 -7 -  10 assert{eq}
