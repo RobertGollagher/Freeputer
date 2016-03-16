@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160315:2252
-Version:    pre-alpha-0.0.0.2 for FVM 1.1
+Updated:    20160315:2346
+Version:    pre-alpha-0.0.0.3 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -135,7 +135,7 @@ Alternatively, use appropriate symbolic links for convenience.
 
   SUPPORTED PLATFORMS
   ===================
-  #define FVMP FVMP_STDIO // gcc using <stdio> for FILEs (eg Linux targets)
+  #define FVMP FVMP_STDIO // gcc using <stdio.h> for FILEs (eg Linux targets)
   #define FVMP FVMP_ARDUINO_IDE // Arduino IDE (eg Arduino or chipKIT targets)
 
   CONFIGURATION OPTIONS
@@ -195,7 +195,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                            SUPPORTED PLATFORMS:
 // ===========================================================================
-  #define FVMP_STDIO 0 // gcc using <stdio> for FILEs (eg Linux targets)
+  #define FVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
   #define FVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
 
 // ===========================================================================
