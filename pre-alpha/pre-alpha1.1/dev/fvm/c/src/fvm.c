@@ -6,7 +6,7 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160315:2346
+Updated:    20160321:1051
 Version:    pre-alpha-0.0.0.3 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
@@ -146,6 +146,7 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
   #define FVMO_SAFE_ALIGNMENT // Target requires safely aligned memory access
   #define FVMO_NO_PROGMEM // Target does not understand the PROGMEM keyword
+  #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
   #define FVMO_SD // Target has SD card and uses Arduino SD library
 
@@ -163,20 +164,26 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_LINUX_MINI_MUX
+#define FVMC_LINUX_MINI
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
 // ===========================================================================
 
-/* A mini Linux FVM to use with the tape */
+/* A mini Linux FVM without multiplexing */
+#ifdef FVMC_LINUX_MINI
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_MINI
+#endif
+
+/* A mini Linux FVM with multiplexing */
 #ifdef FVMC_LINUX_MINI_MUX
   #define FVMOS_LINUX
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
 #endif
 
-/* A mini Arduino FVM to use with the tape.
+/* A mini Arduino FVM with multiplexing.
    Suitable for Arduino Mega 2560 */
 #ifdef FVMC_ARDUINO_MINI_MUX
   #define FVMOS_ARDUINO
@@ -184,11 +191,29 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_MULTIPLEX
 #endif
 
-/* A mini Arduino FVM to use with the tape.
+/* A mini Arduino FVM with multiplexing.
    Suitable for chipKIT Max32 */
 #ifdef FVMC_CHIPKIT_MINI_MUX
   #define FVMOS_CHIPKIT
   #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+#endif
+
+/* A mini Arduino FVM without multiplexing.
+   Suitable for Arduino Mega 2560 */
+#ifdef FVMC_ARDUINO_MINI
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI
+#endif
+
+/* A tiny Arduino FVM with multiplexing.
+   Suitable for Arduino Uno */
+// FIXME too big for Uno. And why is phys ROM and RAM usage so big in general?
+// It never was before. Previously could run fine on an Arduino Uno.
+#ifdef FVMC_ARDUINO_TINY_MUX
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_TINY
+  #define FVMO_SMALL_ROM
   #define FVMO_MULTIPLEX
 #endif
 
@@ -210,13 +235,14 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_NO_PROGMEM
 #endif
 
-/* Generic option set: typical Arduino options */
+/* Generic option set: typical Arduino options.
+   Note: Arduino Uno additionally requires FVMO_SMALL_ROM */
 #ifdef FVMOS_ARDUINO
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FVMO_SAFE_ALIGNMENT
+  //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
 #endif
 
 /* Generic option set: typical chipKIT options */
@@ -229,11 +255,24 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_NO_PROGMEM
 #endif
 
+/* Sizing: tiny */
+#ifdef FVMOS_SIZE_TINY
+  #define ROM_SIZE 4096 
+  #define RAM_SIZE 512
+  #define STDBLK_SIZE 0
+#endif
+
 /* Sizing: mini */
 #ifdef FVMOS_SIZE_MINI
-  #define ROM_SIZE 32768 
-  #define RAM_SIZE 4096
+  #define ROM_SIZE 32768
+  #define RAM_SIZE 2048
   #define STDBLK_SIZE 0
+#endif
+
+// ===========================================================================
+#ifdef FVMO_SMALL_ROM
+  #define pgm_read_byte_far pgm_read_byte_near
+  #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
 // ===========================================================================
@@ -299,6 +338,9 @@ Alternatively, use appropriate symbolic links for convenience.
   #define STDIN_BYTE 0b00000001
   #define STDOUT_BYTE 0b01000001
   #define STDTRC_BYTE 0b01000000
+  #define BAUD_RATE 9600 // 2400 // FIXME
+#else
+  #define BAUD_RATE 115200
 #endif
 
 #ifdef FVMO_NO_PROGMEM
@@ -578,14 +620,14 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #endif
     }
 
-  #define fvmSeek(file,val) fseek(file,val,SEEK_SET) != 0
-  #define fvmWrite(buf,unitSize,numUnits,file) fwrite(buf,unitSize,numUnits,file)
-  #define fvmReadByte(buf,file) fread(buf,1,1,file)
-  #define fvmReadWord(buf,file) fread(buf,WORD_SIZE,1,file)
-  #define fvmReadByteStdin(buf) fread(buf,1,1,stdin)
-  #define fvmReadWordStdin(buf) fread(buf,WORD_SIZE,1,stdin)
-  #define fvmWriteByteStdout(buf) fwrite(buf,1,1,stdout)
-  #define fvmWriteWordStdout(buf) fwrite(buf,WORD_SIZE,1,stdout)
+    #define fvmSeek(file,val) fseek(file,val,SEEK_SET) != 0
+    #define fvmWrite(buf,unitSize,numUnits,file) fwrite(buf,unitSize,numUnits,file)
+    #define fvmReadByte(buf,file) fread(buf,1,1,file)
+    #define fvmReadWord(buf,file) fread(buf,WORD_SIZE,1,file)
+    #define fvmReadByteStdin(buf) fread(buf,1,1,stdin)
+    #define fvmReadWordStdin(buf) fread(buf,WORD_SIZE,1,stdin)
+    #define fvmWriteByteStdout(buf) fwrite(buf,1,1,stdout)
+    #define fvmWriteWordStdout(buf) fwrite(buf,WORD_SIZE,1,stdout)
 
 #endif // #if FVMP == FVMP_STDIO
 
@@ -832,8 +874,9 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   void fvmTraceChar(const char c) {
     #ifdef FVMO_MULTIPLEX
       Serial.print((char)STDTRC_BYTE);
+      Serial.print(c);
     #endif
-    Serial.print(c); // FIXME should never go to stdtrc?
+    // FIXME Consider here smart Arduinos with SD for stdtrc or similar
     Serial.flush();
   }
 
@@ -884,21 +927,22 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
     return 4;
   }
-  int ardReadByteStdin(WORD buf) {
+  int ardReadByteStdin(WORD buf) { // FIXME is this a dupe function (see above)?
     while (Serial.available() < 1) {};
     buf = Serial.read();
     return 1;
   }
   int ardWriteStdout(char *buf, int numBytes) {
-     const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
-     int numBytesWritten = Serial.write(bbuf,numBytes);
-     // file.flush(); FIXME
-     return numBytesWritten;
+    const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
+    int numBytesWritten = Serial.write(bbuf,numBytes);
+    // file.flush(); FIXME
+    return numBytesWritten;
   }
   #define fvmWrite(buf,unitSize,numUnits,file) ardWriteStdout((char *)buf,numUnits) // FIXME NEXT
   #define fvmReadByteStdin(buf) ardReadByteStdin(buf)
   #define fvmReadWordStdin(buf) ardReadWordStdin(buf)
   #define fvmWriteByteStdout(buf) ardWriteStdout((char *)buf,1)
+  #define fvmWriteWordStdout(buf) ardWriteStdout((char *)buf,4) // FIXME untested
 
 #endif // #if FVMP == FVMP_ARDUINO_IDE  // ------------------------------------
 
@@ -4201,7 +4245,7 @@ void clearState() {
   // End of Fubarino only section
   */
 
-    Serial.begin(115200);
+    Serial.begin(BAUD_RATE);
     while (!Serial) {;}
 
     fvmTraceNewline();
