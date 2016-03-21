@@ -4,8 +4,8 @@ Program:    tape.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20160313:2115
-Version:    pre-alpha-0.0.0.1
+Updated:    20160321:2008
+Version:    pre-alpha-0.0.0.2
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -224,6 +224,8 @@ Only send 7-bit ASCII characters to stdtrc.
 #include <termios.h>
 #include <unistd.h>
 
+
+//FIXME rationalize option names
 #define CHAR_TYPE unsigned char // Don't change this (other types unsupported)
 #define TAPE_SPLIT_TRC // Uncomment to support split-tape mode (stdtrc display)
 #define SUPPORT_UTF8 // Uncomment to support UTF-8 characters
@@ -232,7 +234,7 @@ Only send 7-bit ASCII characters to stdtrc.
   FILE *trc; // File for debugging output from the tape itself
   FILE *fvmtrc; // File for stdtrc output from the connected FVM instance
 #endif
-#define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
+// #define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
 #ifdef MULTIPLEX  //   (note: an FVM 1.1 may or may not support mutliplexing)
   #define STDIN_BYTE  0b00000001
   #define STDOUT_BYTE 0b01000001
@@ -302,6 +304,8 @@ void notOver(tape_t *t);
 #define CMD_DLE_VISIBLE_SPC 12
 #define CMD_DLE_GOTO_POS 128
 
+// FIXME add naming convention for parts of tape eg A,B, M or similar
+// FIXME use these everywhere but via functional mapping
 #define CHAR_HT 9 // Horizontal tab (an invisible character)
 #define CHAR_NL 10 // Newline (an invisible character)
 #define CHAR_VT 11 // Ctrl-k : Clear from cursor to end of tape
@@ -309,6 +313,7 @@ void notOver(tape_t *t);
 #define CHAR_CR 13 // Return (an invisible character)
 #define CHAR_DC2 18 // Ctrl-r : Turn off wrap mode
 #define CHAR_DC4 20 // Ctrl-t : Toggle split-tape mode (stdtrc display)
+#define CHAR_NAK 21 // Ctrl-u : Toggle visible spaces FIXME move to other than NAK
 #define CHAR_ETB 23 // Ctrl-w : Turn on wrap mode
 #define CHAR_EM 25 // End of medium (indicates tape full when not in wrap mode)
 #define CHAR_ESC 27 // Escape (not used by the tape, it uses DLE instead)
@@ -1258,10 +1263,10 @@ void writeServer(tape_t *t, CHAR_TYPE c) {
     if (!strcmp(seq,"\033\022")) { // Ctrl-R
       simpleDle(t, CMD_DLE_NO_WRAP); clearKeyseq(t); return;
     }
-    if (!strcmp(seq,"\033\024")) { // Ctrl-T
+    if (!strcmp(seq,"\033\025")) { // Ctrl-U
       simpleDle(t, CMD_DLE_VISIBLE_SPC); clearKeyseq(t); return;
     }
-    if (!strcmp(seq,"\033\025")) { // Ctrl-U
+    if (!strcmp(seq,"\033\024")) { // Ctrl-T
       simpleDle(t, CMD_DLE_SPLIT_MODE); clearKeyseq(t); return;
     }
     if (!strcmp(seq,"\033\027")) { // Ctrl-W
@@ -1685,5 +1690,3 @@ int main(int argc, CHAR_TYPE *argv[]) {
     return 1;
   }
 }
-
-
