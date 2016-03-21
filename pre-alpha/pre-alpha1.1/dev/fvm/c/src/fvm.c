@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160321:1051
-Version:    pre-alpha-0.0.0.3 for FVM 1.1
+Updated:    20160321:2244+
+Version:    pre-alpha-0.0.0.4 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -142,6 +142,7 @@ Alternatively, use appropriate symbolic links for convenience.
   =====================
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
+  #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
   #define FVMO_SAFE_ALIGNMENT // Target requires safely aligned memory access
@@ -164,7 +165,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_LINUX_MINI
+#define FVMC_ARDUINO_MINI_MUX_SLOW
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -189,6 +190,15 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
+#endif
+
+/* A mini Arduino FVM with multiplexing and a slow baud rate.
+   Suitable for Arduino Mega 2560 connected to an Arduino tape terminal. */
+#ifdef FVMC_ARDUINO_MINI_MUX_SLOW
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_SLOW_BAUD
 #endif
 
 /* A mini Arduino FVM with multiplexing.
@@ -338,7 +348,11 @@ Alternatively, use appropriate symbolic links for convenience.
   #define STDIN_BYTE 0b00000001
   #define STDOUT_BYTE 0b01000001
   #define STDTRC_BYTE 0b01000000
-  #define BAUD_RATE 9600 // 2400 // FIXME
+  #ifdef FVMO_SLOW_BAUD
+    #define BAUD_RATE 4800
+  #else
+    #define BAUD_RATE 115200
+  #endif
 #else
   #define BAUD_RATE 115200
 #endif
