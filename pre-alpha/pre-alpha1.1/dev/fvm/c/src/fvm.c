@@ -6,7 +6,7 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160321:2244+
+Updated:    20160321:2344+
 Version:    pre-alpha-0.0.0.4 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
@@ -142,6 +142,7 @@ Alternatively, use appropriate symbolic links for convenience.
   =====================
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
+  #define FVMO_STDTRC_PHYS // Use second serial connection for stdtrc (Arduino)
   #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
@@ -165,7 +166,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MINI_MUX_SLOW
+#define FVMC_ARDUINO_MINI_TRC
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -192,8 +193,18 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_MULTIPLEX
 #endif
 
+/* A mini Arduino FVM, not multiplexed, and using a second serial connection
+   for stdtrc. Suitable for Arduino Due or Mega 2560 connected to an Arduino
+   tape terminal (and producing good terminal performance). */
+#ifdef FVMC_ARDUINO_MINI_TRC
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI
+  #define FVMO_STDTRC_PHYS
+#endif
+
 /* A mini Arduino FVM with multiplexing and a slow baud rate.
-   Suitable for Arduino Mega 2560 connected to an Arduino tape terminal. */
+   Suitable for Arduino Due or Mega 2560 connected to an Arduino tape
+   terminal (and producing poor terminal performance).  */
 #ifdef FVMC_ARDUINO_MINI_MUX_SLOW
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
@@ -343,6 +354,10 @@ Alternatively, use appropriate symbolic links for convenience.
 #define msgTrap                           "APPLICATION TRAP  "
 #define msgDied                           "APPLICATION DIED  "
 #define msgBefore                         " just before:     "
+
+#ifdef FVMO_STDTRC_PHYS
+  #define BAUD_RATE_STDTRC 38400
+#endif
 
 #ifdef FVMO_MULTIPLEX
   #define STDIN_BYTE 0b00000001
@@ -885,13 +900,21 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // ===========================================================================
   //        UTILITIES
   // ===========================================================================
+  // FIXME Consider here smart Arduinos with SD for stdtrc or similar
   void fvmTraceChar(const char c) {
-    #ifdef FVMO_MULTIPLEX
-      Serial.print((char)STDTRC_BYTE);
-      Serial.print(c);
+    #ifdef FVMO_STDTRC_PHYS
+        Serial1.print(c);
+    #else
+      #ifdef FVMO_MULTIPLEX
+        Serial.print((char)STDTRC_BYTE);
+        Serial.print(c);
+      #endif
     #endif
-    // FIXME Consider here smart Arduinos with SD for stdtrc or similar
-    Serial.flush();
+    #ifdef FVMO_STDTRC_PHYS
+      Serial1.flush();
+    #else
+      Serial.flush();
+    #endif
   }
 
   #ifdef FVMO_SD // FIXME
@@ -4260,7 +4283,12 @@ void clearState() {
   */
 
     Serial.begin(BAUD_RATE);
-    while (!Serial) {;}
+    while (!Serial) {}
+  
+    #ifdef FVMO_STDTRC_PHYS
+      Serial1.begin(BAUD_RATE_STDTRC);
+      while (!Serial1) {}
+    #endif
 
     fvmTraceNewline();
 
