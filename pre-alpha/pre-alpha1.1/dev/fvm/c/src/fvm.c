@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160322:2222
-Version:    pre-alpha-0.0.0.6 for FVM 1.1
+Updated:    20160322:2256
+Version:    pre-alpha-0.0.0.7 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -168,7 +168,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_LINUX_MINI_MUX_VERY_SLOW
+#define FVMC_ARDUINO_MINI_TRC
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -188,10 +188,21 @@ Alternatively, use appropriate symbolic links for convenience.
 #endif
 
 /* A mini Linux FVM with multiplexing and a very slow baud rate.
-   Suitable for connecting to a very slow Arduino CLCD tape terminal
+   Suitable when connected to a very slow Arduino CLCD tape terminal
    such as a 40x4 CLCD running on an Arduino Mega 2560. */
 #ifdef FVMC_LINUX_MINI_MUX_VERY_SLOW
   #define FVMOS_LINUX
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_VERY_SLOW_BAUD
+#endif
+
+/* A mini Arduino FVM with multiplexing.
+   Suitable for an Arduino Mega 2560 when connected
+   to a very slow Arduino CLCD tape terminal such as
+   a 40x4 CLCD running on an Arduino Mega 2560. */
+#ifdef FVMC_ARDUINO_MINI_MUX_VERY_SLOW
+  #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
   #define FVMO_VERY_SLOW_BAUD
