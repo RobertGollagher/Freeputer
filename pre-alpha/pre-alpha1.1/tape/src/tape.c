@@ -4,8 +4,8 @@ Program:    tape.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20160321:2008
-Version:    pre-alpha-0.0.0.2
+Updated:    20160322:1129
+Version:    pre-alpha-0.0.0.3
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ multiplexing scheme each data byte is preceded by a byte identifying
 the stream to which that data byte belongs. This 'tape.c' supports that
 multiplexing and indeed you must have it enabled if you wish to see
 stdtrc output in the second half of the tape when running in
-split-tape mode (entered by pressing Ctrl-U). Since such multiplexing is
+split-tape mode (entered by pressing Ctrl-T). Since such multiplexing is
 a new feature coming in FVM 1.1, you should ensrue MULTIPLEX is undefined
 here in 'tape.c' for now; unfortunately this means you will never see
 any stdtrc output in split-tape mode. Note that the purpose of the new
@@ -234,7 +234,7 @@ Only send 7-bit ASCII characters to stdtrc.
   FILE *trc; // File for debugging output from the tape itself
   FILE *fvmtrc; // File for stdtrc output from the connected FVM instance
 #endif
-// #define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
+#define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
 #ifdef MULTIPLEX  //   (note: an FVM 1.1 may or may not support mutliplexing)
   #define STDIN_BYTE  0b00000001
   #define STDOUT_BYTE 0b01000001
@@ -397,8 +397,8 @@ void filterKeyseq(tape_t *t, CHAR_TYPE c) {
         case(013): // Ctrl-K : clear to end of tape
         case(014): // Ctrl-L : clear whole tape
         case(022): // Ctrl-R : turn off wrap mode
-        case(024): // Ctrl-T : toggle visible spaces
-        case(025): // Ctrl-U : toggle split-tape mode (for stdtrc output)
+        case(024): // Ctrl-T : toggle split-tape mode (for stdtrc output)
+        case(025): // Ctrl-U : toggle visible spaces
         case(027): // Ctrl-W : turn on wrap mode
           t->keyseq.seq[t->keyseq.index++] = c;
         break;
