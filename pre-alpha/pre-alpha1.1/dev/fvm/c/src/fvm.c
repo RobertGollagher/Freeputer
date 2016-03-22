@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160322:1230
-Version:    pre-alpha-0.0.0.5 for FVM 1.1
+Updated:    20160322:2222
+Version:    pre-alpha-0.0.0.6 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -142,8 +142,10 @@ Alternatively, use appropriate symbolic links for convenience.
   =====================
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
+  #define FVMO_STDTRC_FILE_ALSO // When multiplexing, also output to std.trc
   #define FVMO_STDTRC_PHYS // Use second serial connection for stdtrc (Arduino)
   #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
+  #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
   #define FVMO_SAFE_ALIGNMENT // Target requires safely aligned memory access
@@ -166,7 +168,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MINI_TRC
+#define FVMC_LINUX_MINI_MUX_VERY_SLOW
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -183,6 +185,16 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMOS_LINUX
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
+#endif
+
+/* A mini Linux FVM with multiplexing and a very slow baud rate.
+   Suitable for connecting to a very slow Arduino CLCD tape terminal
+   such as a 40x4 CLCD running on an Arduino Mega 2560. */
+#ifdef FVMC_LINUX_MINI_MUX_VERY_SLOW
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_VERY_SLOW_BAUD
 #endif
 
 /* A mini Arduino FVM with multiplexing.
@@ -254,6 +266,7 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
   #define FVMO_NO_PROGMEM
+  #define FVMO_STDTRC_FILE_ALSO
 #endif
 
 /* Generic option set: typical Arduino options.
@@ -296,6 +309,31 @@ Alternatively, use appropriate symbolic links for convenience.
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
+#ifdef FVMO_STDTRC_PHYS
+  #define BAUD_RATE_STDTRC 38400
+#endif
+
+#ifdef FVMO_MULTIPLEX
+  #define STDIN_BYTE 0b00000001
+  #define STDOUT_BYTE 0b01000001
+  #define STDTRC_BYTE 0b01000000
+  #ifdef FVMO_SLOW_BAUD
+    #define BAUD_RATE 4800
+  #endif
+  #ifndef BAUD_RATE
+    #ifdef FVMO_VERY_SLOW_BAUD
+      #define BAUD_RATE 2400
+    #else
+      #define BAUD_RATE 115200
+    #endif
+  #endif
+#else
+  #define BAUD_RATE 115200
+#endif
+
+#ifdef FVMO_NO_PROGMEM
+   #define PROGMEM
+#endif
 // ===========================================================================
 //                             CONSTANTS
 // ===========================================================================
@@ -354,27 +392,6 @@ Alternatively, use appropriate symbolic links for convenience.
 #define msgTrap                           "APPLICATION TRAP  "
 #define msgDied                           "APPLICATION DIED  "
 #define msgBefore                         " just before:     "
-
-#ifdef FVMO_STDTRC_PHYS
-  #define BAUD_RATE_STDTRC 38400
-#endif
-
-#ifdef FVMO_MULTIPLEX
-  #define STDIN_BYTE 0b00000001
-  #define STDOUT_BYTE 0b01000001
-  #define STDTRC_BYTE 0b01000000
-  #ifdef FVMO_SLOW_BAUD
-    #define BAUD_RATE 4800
-  #else
-    #define BAUD_RATE 115200
-  #endif
-#else
-  #define BAUD_RATE 115200
-#endif
-
-#ifdef FVMO_NO_PROGMEM
-   #define PROGMEM
-#endif
 
 void clearState();
 
@@ -643,6 +660,10 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         putchar((char)STDTRC_BYTE);
         putchar(c);
         fflush(stdout);
+        #ifdef FVMO_STDTRC_FILE_ALSO
+          putc(c,stdtrcHandle);
+          fflush(stdtrcHandle);
+        #endif
       #else
         putc(c,stdtrcHandle);
         fflush(stdtrcHandle);

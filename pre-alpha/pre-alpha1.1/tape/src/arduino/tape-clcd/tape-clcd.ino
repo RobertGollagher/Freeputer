@@ -1,11 +1,11 @@
 /*
 
-Program:    tape-ra8875.ino
+Program:    tape-clcd.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130322:2049
-Version:    pre-alpha-0.0.0.2
+Updated:    20130322:2216
+Version:    pre-alpha-0.0.0.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,19 +32,26 @@ The tape is a textual user interface (TUI) as described in tape/README.md.
 
 This implementation:
 
-  * is for Arduino (e.g. Arduino Uno or Arduino Due),
+  * is for 5-Volt Arduino boards (e.g. Arduino Mega 2560),
     used as a physical tape terminal with keyboard and display,
     using serial communication to connect to a tape server (such as
     an FVM running 'ts.fl' on another Arduino or on a Linux computer)
   * uses a PS/2 keyboard via the PS2KeyAdvanced and PS2KeyMap libraries
-    (via a logic level converter if this tape terminal is a 3.3 Volt board)
-  * uses an 800x480 pixel TFT display (7" screen size) driven over SPI by an
-    RA8875 Driver Board from Adafruit Industries (see www.adafruit.com)
-    to achieve a colour text display of either 40x12 or 80x24 colums x rows
-    using the 'Adafruit RA8875' library and this sketch
+  * uses a character LCD display (abbreviated here as CLCD hence 'tape-clcd.ino')
+    which has 40x4 columns x rows with a HD44780-compatible interface with
+    two enable lines (Winstar WH4004A-YYH-JT LCD display module) and therefore
+    requires the LiquidCrystalFast library (from www.pjrc.com) rather
+    than the ordinary Arduino LiquidCrystal library
   * supports 7-bit ASCII display only (not proper UTF-8 display)
   * supports multiplexing (an optional feature of FVM 1.1)
   * supports split-tape tracing (stdtrc display in second half of tape)
+
+WARNING: When running a 40x4 CLCD on an Arduino Mega 2560 and it is
+in MULTIPLEX mode, it is necessary to use FVMO_VERY_SLOW_BAUD otherwise
+unfortunately such a slow tape terminal cannot handle multiplexing at all.
+It is better to simply not use MULTIPLEX and not use TAPE_SPLIT_TRC
+when running this sketch on such slow hardware, since even such
+slow hardware works very well when not in MULTIPLEX mode.
 
 To build use the Arduino IDE 1.6.7 or higher.
 
@@ -90,7 +97,7 @@ via the aforementioned device does not necessary have to be a Freeputer
 application; it could be any kind of application that appropriately
 handles its stdin and stdout streams so as to control a tape.
 
-This 'tape-ra8875.ino' implementation of the tape happens to communicate via
+This 'tape-clcd.ino' implementation of the tape happens to communicate via
 serial connection and accepts keyboard input; therefore it can be properly
 described as a 'tape terminal'. A tape does not necessarily have to use
 serial communication and does not necessarily have to accept input
@@ -116,29 +123,41 @@ the Freeputer stdin and stdout streams but also stdtrc (the Freeputer
 output stream on which tracing output can be sent from an FVM instance
 as an aid to debugging a Freeputer application). In this simple
 multiplexing scheme each data byte is preceded by a byte identifying
-the stream to which that data byte belongs. This 'tape-ra8875.ino' supports
+the stream to which that data byte belongs. This 'tape-clcd.ino' supports
 that multiplexing and indeed you must have it enabled if you wish to see
 stdtrc output in the second half of the tape when running in
 split-tape mode (entered by pressing Ctrl-T) unless you wish instead to
 use a second physical serial connection for stdtrc (see FVMO_STDTRC_PHYS).
 
-If the tape appears to be unresponsive and displays a red exclamation mark
+If the tape appears to be unresponsive and displays an exclamation mark
 this means an error has occurred; this will occur if you leave MULTIPLEX
 defined yet the FVM you are connected to is not using multiplexing,
 or if for any other reason the tape is sent garbage input that
 cannot be meaningfully decoded.
 
 If implementing your own tape on some other platform, it is important
-to understand that the fields of the tape struct in this 'tape-ra8875.ino'
+to understand that the fields of the tape struct in this 'tape-clcd.ino'
 are particular to this implementation. The only fields of that
 struct that belong to the logical nature of a tape are pos
 (the current cell), maxPos (the length of the tape),
 and arguably maybe some of the mode information.
 
 Important: stdtrc output generally does not support UTF-8.
-Only send 7-bit ASCII characters to stdtrc. Furthermore, this 'tape-ra8875.ino'
+Only send 7-bit ASCII characters to stdtrc. Furthermore, this 'tape-clcd.ino'
 does not support the proper display of UTF-8 characters anywhere on the
 tape; at best they will be displayed as unknown-character symbols.
+
+==============================================================================
+
+CHARACTER DISPLAY: since this tape uses a monochrome display device, it is
+sometimes impossible to tell the difference between certain special characters
+(e.g. CR, LF, HT) which are all displayed as the same character (e.g. '*')
+but which would, on a colour device, be differentiated by colour.
+This means, for example, that you cannot tell the difference between
+a real exclamation mark and one that indicates the approximate location
+of corrupt data in the stream being displayed. This problem may be
+solved in future by the use of custom characters but for now
+this is a known issue with this monochrome tape.
 
 ==============================================================================
 
@@ -196,29 +215,22 @@ tape; at best they will be displayed as unknown-character symbols.
 #include <PS2KeyAdvanced.h>
 #include <PS2KeyMap.h>
 #define DATAPIN 7
-#define IRQPIN  2
+#define IRQPIN  3
 PS2KeyAdvanced keyboard;
 PS2KeyMap keymap;
 uint16_t keycode;
 
-/* Uncomment the next 3 lines for 80x24 display *//*
-int enlarge = 0;
-#define COLS 80
-#define ROWS 24
-*/
-
-/* Uncomment the next 3 lines for 40x12 display */
-int enlarge = 1;
 #define COLS 40
-#define ROWS 12
+#define ROWS 4
 
 /* GENERAL CONFIGURATION FOR THE TAPE TERMINAL: */
 #define CHAR_TYPE unsigned char // Don't change this (other types unsupported)
 //#define SUPPORT_UTF8 // Don't uncomment this (UTF-8 display not implemented)
 #define TAPE_SPLIT_TRC // Uncomment to support split-tape mode (stdtrc display)
-//#define MULTIPLEX // Uncomment this to support FVM 1.1 multiplexing
+#define MULTIPLEX // Uncomment this to support FVM 1.1 multiplexing
 //#define FVMO_SLOW_BAUD // Uncomment to use slow baud rate when multiplexing
-#define FVMO_STDTRC_PHYS // Uncomment to use second serial connection for stdtrc
+#define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
+//#define FVMO_STDTRC_PHYS // Uncomment to use second serial connection for stdtrc
 
 // ============================================================================
 
@@ -228,8 +240,13 @@ int enlarge = 1;
 #ifdef MULTIPLEX  //   (note: an FVM 1.1 may or may not support mutliplexing)
   #ifdef FVMO_SLOW_BAUD
     #define BAUD_RATE 4800
-  #else
-    #define BAUD_RATE 115200
+  #endif
+  #ifndef BAUD_RATE
+    #ifdef FVMO_VERY_SLOW_BAUD
+      #define BAUD_RATE 2400
+    #else
+      #define BAUD_RATE 115200
+    #endif
   #endif
   #define STDIN_BYTE  0b00000001
   #define STDOUT_BYTE 0b01000001
@@ -332,43 +349,21 @@ void addchar(char c, tape_t *t, int atPos);
 
 // ============================================================================
 
-#include <SPI.h>
-#include "Adafruit_GFX.h"
-#include "Adafruit_RA8875.h"
-
-/* RA8875 Driver Board configuration:
-
-    HARDWARE WARNING: Since the RA8875 does not tri-state the MISO pin
-    it cannot share the MISO pin with any other SPI device (such as
-    an SD card) without a tristate buffer (e.g. a 74HC125 chip). 
-    
-    Connect:
-
-      RA8875 SCLK to tape terminal board's Hardware SPI clock (e.g. Uno D13)
-      RA8875 MISO to tape terminal board's Hardware SPI MISO  (e.g. Uno D12)
-      RA8875 MOSI to tape terminal board's Hardware SPI MOSI  (e.g. Uno D11)
-
-    And (or suitable pins for your board):
-*/
-#define RA8875_INT 3
-#define RA8875_CS 10
-#define RA8875_RESET 9
-
-Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS, RA8875_RESET);
-
-int baseline = 32;
-int left_margin = 80;
-int font_width = 8;
-int font_height = 16;
-int char_width = font_width + font_width*enlarge;
-int char_height = font_height + font_height*enlarge;
-int line_height = char_height + 2;
+#include <LiquidCrystalFast.h>
+LiquidCrystalFast lcd(12, 10, 11, 9,  5,  4,  6,  2);
+//          LCD pins: RS  RW  E1  E2  D4  D5  D6  D7
 
 // Default colors
-#define BG_COLOR RA8875_BLACK
-#define FG_COLOR RA8875_WHITE
+#define MONOCHROME 0
+#define BG_COLOR MONOCHROME
+#define FG_COLOR MONOCHROME
 
-#define DISPLAY_COLOR true // Set this to true for colour output
+// This 'tape-clcd.ino' implementation does NOT support colour but the code
+// relating to colour support has not been removed because it is useful for the
+// purpose of understanding where alternative means of highlighting
+// (such as the use of custom characters) could be used to
+// substitute for the use of colour (not yet done)
+#define DISPLAY_COLOR false
 #if DISPLAY_COLOR == true
   typedef struct {
     int id;
@@ -378,24 +373,24 @@ int line_height = char_height + 2;
 
   // Set up convenient color pairs for subsequent use
   //   (not all of these are actually used, and more combinations
-  //      are possible than those defined here)
-  colorPair COLOR_BLACK = {0,RA8875_BLACK,BG_COLOR};
-  colorPair COLOR_GREEN = {1,RA8875_GREEN,BG_COLOR};
-  colorPair COLOR_RED = {2,RA8875_RED,BG_COLOR};
-  colorPair COLOR_CYAN = {3,RA8875_CYAN,BG_COLOR};
-  colorPair COLOR_WHITE = {4,RA8875_WHITE,BG_COLOR};
-  colorPair COLOR_MAGENTA = {5,RA8875_MAGENTA,BG_COLOR};
-  colorPair COLOR_BLUE = {6,RA8875_BLUE,BG_COLOR};
-  colorPair COLOR_YELLOW = {7,RA8875_YELLOW,BG_COLOR};
-  colorPair COLOR_BG_BLACK = {8,FG_COLOR,RA8875_BLACK};
-  colorPair COLOR_BG_GREEN = {9,FG_COLOR,RA8875_GREEN};
-  colorPair COLOR_BG_RED = {10,FG_COLOR,RA8875_RED};
-  colorPair COLOR_BG_CYAN = {11,FG_COLOR,RA8875_CYAN};
-  colorPair COLOR_BG_WHITE = {12,FG_COLOR,RA8875_WHITE};
-  colorPair COLOR_BG_MAGENTA = {13,FG_COLOR,RA8875_MAGENTA};
-  colorPair COLOR_BG_BLUE = {14,FG_COLOR,RA8875_BLUE};
-  colorPair COLOR_BG_YELLOW = {15,FG_COLOR,RA8875_YELLOW};
-  colorPair COLORS_DEFAULT = {16,RA8875_WHITE,RA8875_BLACK};
+  //      are possible than those defined here).
+  colorPair COLOR_BLACK = {0,FG_COLOR,BG_COLOR};
+  colorPair COLOR_GREEN = {1,FG_COLOR,BG_COLOR};
+  colorPair COLOR_RED = {2,FG_COLOR,BG_COLOR};
+  colorPair COLOR_CYAN = {3,FG_COLOR,BG_COLOR};
+  colorPair COLOR_WHITE = {4,FG_COLOR,BG_COLOR};
+  colorPair COLOR_MAGENTA = {5,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BLUE = {6,FG_COLOR,BG_COLOR};
+  colorPair COLOR_YELLOW = {7,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_BLACK = {8,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_GREEN = {9,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_RED = {10,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_CYAN = {11,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_WHITE = {12,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_MAGENTA = {13,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_BLUE = {14,FG_COLOR,BG_COLOR};
+  colorPair COLOR_BG_YELLOW = {15,FG_COLOR,BG_COLOR};
+  colorPair COLORS_DEFAULT = {16,FG_COLOR,BG_COLOR};
 
   #define COLOR_OK COLOR_GREEN
   #define COLOR_OVER COLOR_YELLOW
@@ -410,64 +405,35 @@ int line_height = char_height + 2;
   #define COLOR_CORRUPT_DATA COLOR_BG_RED
   #define COLOR_VIS_SPACE COLOR_MAGENTA
 
-void setColors(colorPair cp) {
-  tft.textColor(cp.fgColor,cp.bgColor);
-}
+  void setColors(colorPair cp) {
+    tft.textColor(cp.fgColor,cp.bgColor);
+  }
 #endif
 
 void hideCursor()
 {
-  tft.writeCommand(RA8875_MWCR0);
-  uint8_t valReg0 = tft.readData();
-  valReg0 &= 0b10111111;
-  tft.writeData(valReg0);
+  lcd.noCursor();
 }
 
 void showCursor()
 {
-  tft.writeCommand(RA8875_MWCR0);
-  uint8_t valReg0 = tft.readData();
-  valReg0 |= 0b01000000;
-  tft.writeData(valReg0);
+  lcd.cursor();
 }
 
 void defaultColors() {
-  tft.textColor(FG_COLOR,BG_COLOR);
+  // do nothing (sine this is a monochrome implementation)
 }
 
 /* Move to stipulated row and column. */
 void move(int row, int col) {
-  tft.textSetCursor(left_margin+col*char_width, baseline+row*line_height);
-}
-
-// ============================================================================
-
-void addchar(char c, tape_t *t, int atPos) {
-  int col = atPos % t->maxX;
-  int row = atPos / t->maxX;
-  char buf[2] = {c,0};
-  char spc[2] = {' ',0};
-  move(row,col);
-  tft.textWrite(spc,1);
-  // move back to row,col
-  move(row,col);
-  tft.textWrite(buf,1);
-  // move right
-  if (col == t->maxX-1) {
-    col = 0;
-    row = row % t->maxY;
-  } else {
-    ++col;
-  }
+  lcd.setCursor(col, row);
 }
 
 void clear(tape_t *t) {
-  tft.fillScreen(RA8875_BLACK);
-  tft.textMode();
-  tft.textTransparent(FG_COLOR);
+  lcd.clear(); // FIXME this positions cursor to home (not necessarily wanted)
 }
 
-void clrtobot(tape_t *t, int posAfter) {
+void clrtobot(tape_t *t, int posAfter) { // FIXME slow
   hideCursor();
   int clearTo;
   #ifdef TAPE_SPLIT_TRC
@@ -475,19 +441,40 @@ void clrtobot(tape_t *t, int posAfter) {
   #else
     clearTo = t->maxPos;
   #endif
-  char buf[2] = {' ',0};
+  char spc = ' ';
   for (int i=t->pos; i < clearTo; i++) {
     int col = i % t->maxX;
     int row = i / t->maxX;
     move(row,col); // relocate cursor
-    tft.textWrite(buf,1);
+    lcd.write(spc);
     move(row,col);
   }
   // FIXME refactor this position logic into a function of its own
   int col = posAfter % t->maxX;
   int row = posAfter / t->maxX;
   move(row,col); // relocate cursor
-  showCursor(); // FIXME
+  showCursor();
+}
+
+// ============================================================================
+
+void addchar(char c, tape_t *t, int atPos) {
+  int col = atPos % t->maxX;
+  int row = atPos / t->maxX;
+  char buf = c;
+  char spc = ' ';
+  move(row,col);
+  lcd.write(spc);
+  // move back to row,col
+  move(row,col);
+  lcd.write(buf);
+  // move right
+  if (col == t->maxX-1) {
+    col = 0;
+    row = row % t->maxY;
+  } else {
+    ++col;
+  }
 }
 
 /*
@@ -552,6 +539,8 @@ void setServerReady(tape_t* t, bool boolValue) {
   so we know where the character came from.
 */
 ochar input(tape_t *t) {
+
+  showCursor(); // FIXME appears necessary for CLCDs here
 
   CHAR_TYPE c;
   uint16_t rawKeycode;
@@ -858,21 +847,7 @@ bool tape_init(tape_t *t) {
     while (!Serial1) {}
   #endif
 
-  // FIXME move screen resolution to a #define since smaller screens
-  // will use smaller values here. This 800x480 is correct for the 7" TFT screen.
-  if (!tft.begin(RA8875_800x480)) {
-    Serial.println("Could not initialize RA8875!");
-    return false;
-  }
-  tft.displayOn(true);
-  tft.GPIOX(true);
-  tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // Backlight
-  tft.PWM1out(164);
-  tft.fillScreen(BG_COLOR);
-  tft.textMode();
-  tft.textTransparent(FG_COLOR);
-  tft.textEnlarge(enlarge);
-  tft.textSetCursor(left_margin, baseline);
+  lcd.begin(COLS,ROWS);
 
   keyboard.begin( DATAPIN, IRQPIN ); // see 'PS2KeyAdvanced.h'
   keyboard.setNoBreak( 1 ); // no break codes on key release
@@ -902,7 +877,7 @@ bool tape_init(tape_t *t) {
     t->pos = 0;
   #endif
   msgOK(t);
-  showCursor(); // FIXME
+  showCursor();
   return true;
 }
 
@@ -1030,7 +1005,7 @@ void handleServerChar(tape_t *t, CHAR_TYPE c) {
         // corruption. If you find it intolerable then:
         //   * use very little stdtrc output in your programs
         //   * type very slowly (reduces frequency of corruption)
-        //   * or use a very slow BAUD RATE (use FVMO_SLOW_BAUD mode)
+        //   * or use a very slow BAUD RATE (use FVMO_VERY_SLOW_BAUD mode)
         //   * or do not enable MULTIPLEX mode (best solution)
         //     and also do not enable TAPE_SPLIT_TRC mode
         //   * or simply do not use split-tape mode
@@ -1038,8 +1013,6 @@ void handleServerChar(tape_t *t, CHAR_TYPE c) {
         //     specify a slow BAUD_RATE_STDTRC (a good compromise)
         //   * or hack the Arduino Serial library so that it uses a larger
         //     buffer size (in theory should work but difficult in practice)
-        //   * or run in 80x24 rather than 40x12 mode as a major timing problem
-        //     is the poor performance of tape_clearFrom (FIXME improve this)
         //   * or use a Linux tape terminal instead (see 'tape.c')
         //     as Linux uses buffering which eliminates the problem and
         //     allows a 115200 baud rate quite happily when connected to an
