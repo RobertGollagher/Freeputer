@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160321:2344+
-Version:    pre-alpha-0.0.0.4 for FVM 1.1
+Updated:    20160322:1230
+Version:    pre-alpha-0.0.0.5 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
