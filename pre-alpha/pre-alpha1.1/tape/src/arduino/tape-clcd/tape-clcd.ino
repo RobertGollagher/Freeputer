@@ -4,8 +4,8 @@ Program:    tape-clcd.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130322:2216
-Version:    pre-alpha-0.0.0.1
+Updated:    20130323:0246
+Version:    pre-alpha-0.0.0.2
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ The tape is a textual user interface (TUI) as described in tape/README.md.
 
 This implementation:
 
-  * is for 5-Volt Arduino boards (e.g. Arduino Mega 2560),
+  * is for 5-Volt Arduino boards (e.g. Uno or Mega 2560),
     used as a physical tape terminal with keyboard and display,
     using serial communication to connect to a tape server (such as
     an FVM running 'ts.fl' on another Arduino or on a Linux computer)
@@ -42,6 +42,8 @@ This implementation:
     two enable lines (Winstar WH4004A-YYH-JT LCD display module) and therefore
     requires the LiquidCrystalFast library (from www.pjrc.com) rather
     than the ordinary Arduino LiquidCrystal library
+  * or can use smaller CLCDs (such as 16x2 or 20x4) in SINGLE_ENABLE_PIN mode
+    and this uses the ordinary Arduino LiquidCrystal library
   * supports 7-bit ASCII display only (not proper UTF-8 display)
   * supports multiplexing (an optional feature of FVM 1.1)
   * supports split-tape tracing (stdtrc display in second half of tape)
@@ -211,26 +213,14 @@ this is a known issue with this monochrome tape.
 ============================================================================== */
 #include <stdbool.h>
 
-/* Configuration for PS/2 keyboard: */
-#include <PS2KeyAdvanced.h>
-#include <PS2KeyMap.h>
-#define DATAPIN 7
-#define IRQPIN  3
-PS2KeyAdvanced keyboard;
-PS2KeyMap keymap;
-uint16_t keycode;
-
-#define COLS 40
-#define ROWS 4
-
-/* GENERAL CONFIGURATION FOR THE TAPE TERMINAL: */
+/* GENERAL CONFIGURATION OPTIONS FOR THE TAPE TERMINAL: */
 #define CHAR_TYPE unsigned char // Don't change this (other types unsupported)
 //#define SUPPORT_UTF8 // Don't uncomment this (UTF-8 display not implemented)
-#define TAPE_SPLIT_TRC // Uncomment to support split-tape mode (stdtrc display)
-#define MULTIPLEX // Uncomment this to support FVM 1.1 multiplexing
-//#define FVMO_SLOW_BAUD // Uncomment to use slow baud rate when multiplexing
-#define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
-//#define FVMO_STDTRC_PHYS // Uncomment to use second serial connection for stdtrc
+#define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
+//#define MULTIPLEX // Use FVM 1.1 multiplexing
+//#define FVMO_SLOW_BAUD // Use slow baud rate when multiplexing
+//#define FVMO_VERY_SLOW_BAUD // Use very slow baud rate when multiplexing
+#define FVMO_STDTRC_PHYS // Use second serial connection for stdtrc
 
 // ============================================================================
 
@@ -348,11 +338,58 @@ tape_t currentTape = {0};
 void addchar(char c, tape_t *t, int atPos);
 
 // ============================================================================
+/* Important pin configuration: */
+//#define SINGLE_ENABLE_PIN // Using a small CLCD with only 1 enable pin
 
-#include <LiquidCrystalFast.h>
-LiquidCrystalFast lcd(12, 10, 11, 9,  5,  4,  6,  2);
-//          LCD pins: RS  RW  E1  E2  D4  D5  D6  D7
+// ============================================================================
+/* Configuration for PS/2 keyboard: */
+#include <PS2KeyAdvanced.h>
+#include <PS2KeyMap.h>
+#ifndef SINGLE_ENABLE_PIN
+  #define DATAPIN 7
+  #define IRQPIN  3
+#else
+  #define DATAPIN 11
+  #define IRQPIN  2
+#endif
 
+PS2KeyAdvanced keyboard;
+PS2KeyMap keymap;
+uint16_t keycode;
+
+// ============================================================================
+/* Configuration for CLCD: */
+
+#ifndef SINGLE_ENABLE_PIN
+  /* Must be used for displays larger than 80 characters total;
+     that is, which require more than 1 enable line. */
+  #include <LiquidCrystalFast.h>
+
+  /* 40x4 display (Winstar WH4004A-YYH-JT LCD display module)
+              LCD pins: RS  RW  E1  E2  D4  D5  D6  D7  */
+  LiquidCrystalFast lcd(12, 10, 11, 9,  5,  4,  6,  2);
+  #define COLS 40
+  #define ROWS 4
+
+#else
+  /* Cannot be used for displays larger than 80 characters total;
+     that is, which require more than 1 enable line. */
+  #include <LiquidCrystal.h>
+
+  /* 16x2 display (Freetronics LCD Shield)
+              LCD pins: RS, EN, D4, D5, D6, D7  */
+  LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
+  #define COLS 16
+  #define ROWS 2
+
+  /* 20x4 display
+              LCD pins: RS, EN, D4, D5, D6, D7  *//*
+  LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
+  #define COLS 20
+  #define ROWS 4 */
+#endif
+
+// ============================================================================
 // Default colors
 #define MONOCHROME 0
 #define BG_COLOR MONOCHROME
