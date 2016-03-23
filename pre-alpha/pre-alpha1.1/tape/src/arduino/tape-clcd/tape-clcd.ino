@@ -408,6 +408,17 @@ uint16_t keycode;
           * 1.5 kOkm resistor from GND pin of Arduino to 'X'
           * connect 'X' to Vo pin (typically pin 3) of LCD
 
+          If your voltage divider (or potentiometer) controlling the
+          voltage to the Vo pin of your LCD is supplying an appropriate
+          voltage for good contrast for good readability, prior to
+          programming your Arduino you should see solid block characters
+          filling the first and third rows of your 20x4 LCD and these
+          should only moderately contrast with the empty second and
+          fourth rows; if you see no solid block characters at all, or you
+          see extremely obvious solid block characters that contrast very
+          greatly with the empty rows, you will not be able to read
+          the tape as ordinary characters will not be visible.
+
               LCD pins: RS, EN, D4, D5, D6, D7 */
   LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
   #define COLS 20
