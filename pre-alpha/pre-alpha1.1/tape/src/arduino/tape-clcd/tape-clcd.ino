@@ -4,8 +4,8 @@ Program:    tape-clcd.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130323:0246
-Version:    pre-alpha-0.0.0.2
+Updated:    20130323:1553
+Version:    pre-alpha-0.0.0.3
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -339,7 +339,7 @@ void addchar(char c, tape_t *t, int atPos);
 
 // ============================================================================
 /* Important pin configuration: */
-//#define SINGLE_ENABLE_PIN // Using a small CLCD with only 1 enable pin
+#define SINGLE_ENABLE_PIN // Using a small CLCD with only 1 enable pin
 
 // ============================================================================
 /* Configuration for PS/2 keyboard: */
@@ -366,7 +366,10 @@ uint16_t keycode;
   #include <LiquidCrystalFast.h>
 
   /* 40x4 display (Winstar WH4004A-YYH-JT LCD display module)
-              LCD pins: RS  RW  E1  E2  D4  D5  D6  D7  */
+     WARNING: follow data sheet instructions for circuit,
+     at least 1 resistor is needed (but not on the pins listed below).
+
+              LCD pins: RS  RW  E1  E2  D4  D5  D6  D7 */
   LiquidCrystalFast lcd(12, 10, 11, 9,  5,  4,  6,  2);
   #define COLS 40
   #define ROWS 4
@@ -377,16 +380,38 @@ uint16_t keycode;
   #include <LiquidCrystal.h>
 
   /* 16x2 display (Freetronics LCD Shield)
-              LCD pins: RS, EN, D4, D5, D6, D7  */
+     WARNING: check data sheet for your display as you may need
+     a different circuit to the one noted below!
+     Note: no resistors are needed when using the Freetronics LCD Shield.
+     However, rather than affixing the shield to your Arduino,
+     you must connect the pins using jumper wires,
+     so that you still have access to the pins needed to
+     also connect to the PS/2 keyboard adaptor.
+
+              LCD pins: RS, EN, D4, D5, D6, D7 *//* 
   LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
+
   #define COLS 16
-  #define ROWS 2
+  #define ROWS 2*/
 
   /* 20x4 display
-              LCD pins: RS, EN, D4, D5, D6, D7  *//*
+     WARNING: check data sheet for your display as you may need
+     a different circuit to the one noted below!
+     Notes:
+      * connect GND of Arduino to RW pin of LCD
+      * connect 5V pin of Arduino via a 100 Ohm resistor to A pin of LCD
+        (so as to limit backlight current and brightness)
+      * if you do not have a 10 kOhm potentiometer available to adjust
+        contrast, create a voltage divider using 2 resistors as follows
+        (where 'X' represents an unused location on a breadboard):
+          * 10 kOhm resistor from 5V pin of Arduino to 'X'
+          * 1.5 kOkm resistor from GND pin of Arduino to 'X'
+          * connect 'X' to Vo pin (typically pin 3) of LCD
+
+              LCD pins: RS, EN, D4, D5, D6, D7 */
   LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
   #define COLS 20
-  #define ROWS 4 */
+  #define ROWS 4
 #endif
 
 // ============================================================================
