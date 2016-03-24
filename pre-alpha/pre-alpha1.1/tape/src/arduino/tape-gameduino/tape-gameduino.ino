@@ -1,11 +1,11 @@
 /*
 
-Program:    tape-clcd.ino
+Program:    tape-gameduino.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130324:2249
-Version:    pre-alpha-0.0.0.5
+Updated:    20130325:0344
+Version:    pre-alpha-0.0.0.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,34 +26,30 @@ WARNING: This is pre-alpha software and as such may well be incomplete,
 unstable and unreliable. It is considered to be suitable only for
 experimentation and nothing more.
 
+KNOWN ISSUES TO BE FIXED:
+  * cursor location and behaviour malfunctions:
+      (1) in split-tape mode FIXME
+      (2) after Ctrl-K (partial clear screen) FIXME
+
 ==============================================================================
 
 The tape is a textual user interface (TUI) as described in tape/README.md.
 
 This implementation:
 
-  * is for 5-Volt Arduino boards (e.g. Uno or Mega 2560),
+  * is for 5-Volt Arduino boards (e.g. Arduino Uno),
     used as a physical tape terminal with keyboard and display,
     using serial communication to connect to a tape server (such as
     an FVM running 'ts.fl' on another Arduino or on a Linux computer)
   * uses a PS/2 keyboard via the PS2KeyAdvanced and PS2KeyMap libraries
-  * uses a character LCD display (abbreviated here as CLCD hence 'tape-clcd.ino')
-    which has 40x4 columns x rows with a HD44780-compatible interface with
-    two enable lines (Winstar WH4004A-YYH-JT LCD display module) and therefore
-    requires the LiquidCrystalFast library (from www.pjrc.com) rather
-    than the ordinary Arduino LiquidCrystal library
-  * or can use smaller CLCDs (such as 16x2 or 20x4) in SINGLE_ENABLE_PIN mode
-    and this uses the ordinary Arduino LiquidCrystal library
+  * uses a Gameduino 1 (see excamera.com) clone called MOD-VGA-32MB
+    (see www.olimex.com) to drive a VGA monitor at 300x400 pixels
+    (preferably a CRT monitor but also works with LCD monitors)
+    displaying monochrome text at 40x16 columns x rows  
+    using the Gameduino 1 library for Arduino (see github.com/jamesbowman/gd1)
   * supports 7-bit ASCII display only (not proper UTF-8 display)
   * supports multiplexing (an optional feature of FVM 1.1)
   * supports split-tape tracing (stdtrc display in second half of tape)
-
-WARNING: When running a 40x4 CLCD on an Arduino Mega 2560 and it is
-in MULTIPLEX mode, it is necessary to use TAPE_VERY_SLOW_BAUD otherwise
-unfortunately such a slow tape terminal cannot handle multiplexing at all.
-It is better to simply not use MULTIPLEX and not use TAPE_SPLIT_TRC
-when running this sketch on such slow hardware, since even such
-slow hardware works very well when not in MULTIPLEX mode.
 
 To build use the Arduino IDE 1.6.7 or higher.
 
@@ -99,7 +95,7 @@ via the aforementioned device does not necessary have to be a Freeputer
 application; it could be any kind of application that appropriately
 handles its stdin and stdout streams so as to control a tape.
 
-This 'tape-clcd.ino' implementation of the tape happens to communicate via
+This 'tape-gameduino.ino' implementation of the tape happens to communicate via
 serial connection and accepts keyboard input; therefore it can be properly
 described as a 'tape terminal'. A tape does not necessarily have to use
 serial communication and does not necessarily have to accept input
@@ -125,7 +121,7 @@ the Freeputer stdin and stdout streams but also stdtrc (the Freeputer
 output stream on which tracing output can be sent from an FVM instance
 as an aid to debugging a Freeputer application). In this simple
 multiplexing scheme each data byte is preceded by a byte identifying
-the stream to which that data byte belongs. This 'tape-clcd.ino' supports
+the stream to which that data byte belongs. This 'tape-gameduino.ino' supports
 that multiplexing and indeed you must have it enabled if you wish to see
 stdtrc output in the second half of the tape when running in
 split-tape mode (entered by pressing Ctrl-T) unless you wish instead to
@@ -138,27 +134,32 @@ or if for any other reason the tape is sent garbage input that
 cannot be meaningfully decoded.
 
 If implementing your own tape on some other platform, it is important
-to understand that the fields of the tape struct in this 'tape-clcd.ino'
+to understand that the fields of the tape struct in this 'tape-gameduino.ino'
 are particular to this implementation. The only fields of that
 struct that belong to the logical nature of a tape are pos
 (the current cell), maxPos (the length of the tape),
 and arguably maybe some of the mode information.
 
-Important: stdtrc output generally does not support UTF-8.
-Only send 7-bit ASCII characters to stdtrc. Furthermore, this 'tape-clcd.ino'
+Important: stdtrc output generally does not support UTF-8. Only send
+7-bit ASCII characters to stdtrc. Furthermore, this 'tape-gameduino.ino'
 does not support the proper display of UTF-8 characters anywhere on the
 tape; at best they will be displayed as unknown-character symbols.
 
 ==============================================================================
 
-CHARACTER DISPLAY: since this tape uses a monochrome display device, it is
+CURSOR DISPLAY: in this 'tape-gameduino.ino' implementation of the tape,
+the cursor causes whatever character it is positioned at to become temporarily
+hidden; the hidden character will reappear when you move the cursor
+to another location using the arrow keys.
+
+CHARACTER DISPLAY: since this tape implementation is monochrome, it is
 sometimes impossible to tell the difference between certain special characters
 (e.g. CR, LF, HT) which are all displayed as the same character (e.g. '*')
 but which would, on a colour device, be differentiated by colour.
 This means, for example, that you cannot tell the difference between
 a real exclamation mark and one that indicates the approximate location
 of corrupt data in the stream being displayed. This problem may be
-solved in future by the use of custom characters but for now
+solved in future by the use of colour or custom characters but for now
 this is a known issue with this monochrome tape.
 
 ==============================================================================
@@ -216,11 +217,11 @@ this is a known issue with this monochrome tape.
 /* GENERAL CONFIGURATION OPTIONS FOR THE TAPE TERMINAL: */
 #define CHAR_TYPE unsigned char // Don't change this (other types unsupported)
 //#define SUPPORT_UTF8 // Don't uncomment this (UTF-8 display not implemented)
-#define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
+//#define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
 //#define MULTIPLEX // Use FVM 1.1 multiplexing
 //#define TAPE_SLOW_BAUD // Use slow baud rate when multiplexing
 //#define TAPE_VERY_SLOW_BAUD // Use very slow baud rate when multiplexing
-#define TAPE_STDTRC_SEP // Use second serial connection for stdtrc
+//#define TAPE_STDTRC_SEP // Use second serial connection for stdtrc
 
 // Experimental (see FVMO_LOCAL_TAPE in 'fvm.c')
 #ifdef FVMO_LOCAL_TAPE
@@ -346,92 +347,129 @@ tape_t currentTape = {0};
 void addchar(char c, tape_t *t, int atPos);
 
 // ============================================================================
-/* Important pin configuration: */
-#define SINGLE_ENABLE_PIN // Using a small CLCD with only 1 enable pin
+/* Configuration for PS/2 keyboard: 
 
-// ============================================================================
-/* Configuration for PS/2 keyboard: */
+   This sketch is written for the MOD-VGA-32MB board from Olimex.
+   It is a Gameduino 1 clone similar to, but not identical to, Gameduino 1.
+   WARNING: These instructions are specifically for the MOD-VGA-32MB board
+   and are not for the genuine Gameduino 1. This sketch and these
+   instructions have not been tested with a genuine Gameduino 1.
+
+   For the keyboard to work, a jumper wire is required to connect D2 to D7
+   on the MOD-VGA-32MB board after it has been stacked on top of an Arduino Uno.
+   The MOD-VGA-32MB board has an inbuilt PS/2 keyboard connector.
+
+*/
 #include <PS2KeyAdvanced.h>
 #include <PS2KeyMap.h>
-#ifndef SINGLE_ENABLE_PIN
-  #define DATAPIN 7
-  #define IRQPIN  3
-#else
-  #define DATAPIN 11
+  #define DATAPIN 6
   #define IRQPIN  2
-#endif
 
 PS2KeyAdvanced keyboard;
 PS2KeyMap keymap;
 uint16_t keycode;
 
 // ============================================================================
-/* Configuration for CLCD: */
+/* Configuration for MOD-VGA-32MB: 
 
-#ifndef SINGLE_ENABLE_PIN
-  /* Must be used for displays larger than 80 characters total;
-     that is, which require more than 1 enable line. */
-  #include <LiquidCrystalFast.h>
+  1. Download the Gameduino library as gd1-master.zip
+     from github.com/jamesbowman/gd1
+  2. unzip gd1-master.zip
+  3. cd gd1-master
+  4. python publish.py
+  5. In the Arduino IDE, do: Sketch--Include Library--Add .ZIP library
+     and navigate to and select the Gameduino.zip which was created by step 4
 
-  /* 40x4 display (Winstar WH4004A-YYH-JT LCD display module)
-     WARNING: follow data sheet instructions for circuit,
-     at least 1 resistor is needed (but not on the pins listed below).
+  Note: if you prefer, manually copy the cp437.h file to the directory
+  in which this 'tape-gameduino.h' resides rather than including it
+  from its default location of "4.Demo/cp437/cp437.h"
 
-              LCD pins: RS  RW  E1  E2  D4  D5  D6  D7 */
-  LiquidCrystalFast lcd(12, 10, 11, 9,  5,  4,  6,  2);
-  #define COLS 40
-  #define ROWS 4
+*/
 
-#else
-  /* Cannot be used for displays larger than 80 characters total;
-     that is, which require more than 1 enable line. */
-  #include <LiquidCrystal.h>
+#include <SPI.h>
+#include <GD.h> // From Gameduino 1 library
+#include "4.Demo/cp437/cp437.h" // From Gameduino 1 library
 
-  /* 16x2 display (Freetronics LCD Shield)
-     WARNING: check data sheet for your display as you may need
-     a different circuit to the one noted below!
-     Note: no resistors are needed when using the Freetronics LCD Shield.
-     However, rather than affixing the shield to your Arduino,
-     you must connect the pins using jumper wires,
-     so that you still have access to the pins needed to
-     also connect to the PS/2 keyboard adaptor.
+#define COLS 40
+#define ROWS 16
+#define COLS_LEFT_MARGIN 3
+#define ROWS_TOP_MARGIN 1
+#define CURSOR '_'
 
-              LCD pins: RS, EN, D4, D5, D6, D7 *//* 
-  LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
+typedef struct gdChar {
+  int row;
+  int col;
+  uint16_t val;
+} gdchar_t;
 
-  #define COLS 16
-  #define ROWS 2*/
+typedef struct gameduino1 {
+  int row;
+  int col;
+  bool showCursor; // Cursor should be visible?
+  gdchar_t hiddenByCursor; // Char last hidden by cursor
+} gameduino1_t;
+gameduino1_t gd1 = {0};
 
-  /* 20x4 display
-     WARNING: check data sheet for your display as you may need
-     a different circuit to the one noted below!
-     Notes:
-      * connect GND of Arduino to RW pin of LCD
-      * connect 5V pin of Arduino via a 100 Ohm resistor to A pin of LCD
-        (so as to limit backlight current and brightness)
-      * if you do not have a 10 kOhm potentiometer available to adjust
-        contrast, create a voltage divider using 2 resistors as follows
-        (where 'X' represents an unused location on a breadboard):
-          * 10 kOhm resistor from 5V pin of Arduino to 'X'
-          * 1.5 kOkm resistor from GND pin of Arduino to 'X'
-          * connect 'X' to Vo pin (typically pin 3) of LCD
+uint16_t convertToAddr(int row, int col) {
+  if (   row < 0
+      || row > (ROWS+ROWS_TOP_MARGIN-1)
+      || col < 0
+      || col > (COLS+COLS_LEFT_MARGIN-1)) {
+    return 0; // out of range
+  }
+  uint16_t addr = (row << 7) + col;
+  return addr;
+}
 
-          If your voltage divider (or potentiometer) controlling the
-          voltage to the Vo pin of your LCD is supplying an appropriate
-          voltage for good contrast for good readability, prior to
-          programming your Arduino you should see solid block characters
-          filling the first and third rows of your 20x4 LCD and these
-          should only moderately contrast with the empty second and
-          fourth rows; if you see no solid block characters at all, or you
-          see extremely obvious solid block characters that contrast very
-          greatly with the empty rows, you will not be able to read
-          the tape as ordinary characters will not be visible.
+uint16_t get16At(int row, int col) {
+  if (   row < 0
+      || row > (ROWS+ROWS_TOP_MARGIN-1)
+      || col < 0
+      || col > (COLS+COLS_LEFT_MARGIN-1)) {
+    return 0; // out of range
+  }
+  uint16_t addr = (row << 7) + col;
+  byte lowbyte = GD.rd(addr);
+  byte highbyte = GD.rd(addr + 64);
+  uint16_t result = word(highbyte,lowbyte);
+  return result;
+}
 
-              LCD pins: RS, EN, D4, D5, D6, D7 */
-  LiquidCrystal     lcd(8,  9,  4,  5,  6,  7 );
-  #define COLS 20
-  #define ROWS 4
-#endif
+void put16At(int row, int col, uint16_t u16) {
+  if (   row < 0
+      || row > (ROWS+ROWS_TOP_MARGIN-1)
+      || col < 0
+      || col > (COLS+COLS_LEFT_MARGIN-1)) {
+    return; // out of range
+  }
+  uint16_t addr = (row << 7) + col;
+  GD.wr(addr, lowByte(u16));
+  GD.wr(addr + 64, highByte(u16));
+}
+
+/* Diplay a character (in large CP437 font) at the specified row and column */
+void placeCharAt(int row, int col, char c)
+{
+  // Reject extreme values of row and col
+  if (row < 0) { row = 0; }
+  if (row >= ROWS) { row = ROWS-1; }
+  if (col < 0) { col = 0; }
+  if (col >= COLS) { col = COLS-1; }
+
+  row = row + ROWS_TOP_MARGIN;
+  col = col + COLS_LEFT_MARGIN;
+
+  // Convert to device RAM address and write character
+  // (each character comprises 2 tiles)
+  uint16_t addr = (row << 7) + col;
+  uint16_t w = pgm_read_word(cp437_pic + 2*c);
+  GD.wr(addr, lowByte(w));
+  GD.wr(addr + 64, highByte(w));
+}
+
+void placeChar(char c) {
+  placeCharAt(gd1.row, gd1.col, c);
+}
 
 // ============================================================================
 // Default colors
@@ -439,11 +477,9 @@ uint16_t keycode;
 #define BG_COLOR MONOCHROME
 #define FG_COLOR MONOCHROME
 
-// This 'tape-clcd.ino' implementation does NOT support colour but the code
-// relating to colour support has not been removed because it is useful for the
-// purpose of understanding where alternative means of highlighting
-// (such as the use of custom characters) could be used to
-// substitute for the use of colour (not yet done)
+// This 'tape-gameduino.ino' implementation does NOT yet support colour;
+// it might be enhanced in future to support colour text. So, for now,
+// you should leave DISPLAY_COLOR defined as false.
 #define DISPLAY_COLOR false
 #if DISPLAY_COLOR == true
   typedef struct {
@@ -491,14 +527,35 @@ uint16_t keycode;
   }
 #endif
 
-void hideCursor()
-{
-  lcd.noCursor();
+void eraseCursor(tape_t *t) {
+  put16At(
+    gd1.hiddenByCursor.row + ROWS_TOP_MARGIN,
+    gd1.hiddenByCursor.col + COLS_LEFT_MARGIN,
+    gd1.hiddenByCursor.val
+  );
 }
 
-void showCursor()
+void willHideByCursor(tape_t *t) {
+  gd1.hiddenByCursor.row = t->row;
+  gd1.hiddenByCursor.col = t->col;
+  gd1.hiddenByCursor.val = get16At(
+    t->row + ROWS_TOP_MARGIN,
+    t->col + COLS_LEFT_MARGIN);
+}
+
+void cursor(tape_t *t) {
+  willHideByCursor(t);
+  placeCharAt(t->row,t->col,CURSOR);
+}
+
+void hideCursor(tape_t *t)
 {
-  lcd.cursor();
+  gd1.showCursor = false;
+}
+
+void showCursor(tape_t *t)
+{
+  gd1.showCursor = true;
 }
 
 void defaultColors() {
@@ -507,15 +564,17 @@ void defaultColors() {
 
 /* Move to stipulated row and column. */
 void move(int row, int col) {
-  lcd.setCursor(col, row);
+  gd1.row = row;
+  gd1.col = col;
 }
 
 void clear(tape_t *t) {
-  lcd.clear(); // FIXME this positions cursor to home (not necessarily wanted)
+  uint16_t addr = convertToAddr(0,0);
+  GD.fill(addr, 0, 4096);
 }
 
 void clrtobot(tape_t *t, int posAfter) { // FIXME slow
-  hideCursor();
+  hideCursor(t);
   int clearTo;
   #ifdef TAPE_SPLIT_TRC
     clearTo = t->maxPos2;
@@ -527,18 +586,18 @@ void clrtobot(tape_t *t, int posAfter) { // FIXME slow
     int col = i % t->maxX;
     int row = i / t->maxX;
     move(row,col); // relocate cursor
-    lcd.write(spc);
+    placeChar(spc);
     move(row,col);
   }
   // FIXME refactor this position logic into a function of its own
   int col = posAfter % t->maxX;
   int row = posAfter / t->maxX;
   move(row,col); // relocate cursor
-  showCursor();
+  showCursor(t);
 }
 // ============================================================================
 // ============================================================================
-/* Experimental for FVMO_LOCAL_TAPE */
+/* Experimental for FVMO_LOCAL_TAPE */  // FIXME untested on this implementation
 #ifdef TAPE_LOCAL_TAPE
 
 void writeServer(tape_t *t, ochar oc);
@@ -593,7 +652,7 @@ int memcom_available(memcom_t *lt, int n) {
     return lt->iReadBuf;
   }
 
-  showCursor();
+  // showCursor(&currentTape); FIXME
 
   CHAR_TYPE c;
   uint16_t rawKeycode;
@@ -696,16 +755,19 @@ void addchar(char c, tape_t *t, int atPos) {
   char buf = c;
   char spc = ' ';
   move(row,col);
-  lcd.write(spc);
+  placeChar(spc);
   // move back to row,col
   move(row,col);
-  lcd.write(buf);
+  placeChar(buf);
   // move right
-  if (col == t->maxX-1) {
-    col = 0;
-    row = row % t->maxY;
+  if (t->col >= (t->maxX)-1) {
+    t->col = 0;
+    t->row = ++(t->row) % t->maxY; // FIXME
   } else {
-    ++col;
+    ++(t->col);
+  }
+  if (gd1.showCursor) {
+    cursor(t);
   }
 }
 
@@ -775,14 +837,12 @@ void setServerReady(tape_t* t, bool boolValue) {
   */
   ochar input(tape_t *t) {
 
-    showCursor(); // FIXME appears necessary for CLCDs here
-
     CHAR_TYPE c;
     uint16_t rawKeycode;
     uint16_t mappedKeycode;
     ochar oc;
 
-    // showCursor();
+    // showCursor(t); FIXME
     bool received = false;
     while(!received) {
       if (keyboard.available()) {
@@ -1094,7 +1154,9 @@ bool tape_init(tape_t *t) {
     #endif
   #endif
 
-  lcd.begin(COLS,ROWS);
+  GD.begin(); // see 'GD.h' from Gameduino 1 library
+  GD.uncompress(RAM_CHR, cp437_chr);
+  GD.uncompress(RAM_PAL, cp437_pal);
 
   keyboard.begin( DATAPIN, IRQPIN ); // see 'PS2KeyAdvanced.h'
   keyboard.setNoBreak( 1 ); // no break codes on key release
@@ -1124,7 +1186,7 @@ bool tape_init(tape_t *t) {
     t->pos = 0;
   #endif
   msgOK(t);
-  showCursor();
+  showCursor(t);
   return true;
 }
 
@@ -1174,32 +1236,40 @@ void handleServerEscseq(tape_t *t) {
       t->wrap = true;
       break;
     case(CMD_DLE_RIGHT):
+      eraseCursor(t); // FIXME
       if (t->pos+1 > t->maxPos) {
         tape_goto(t,0);
       } else {
         tape_goto(t,t->pos+1);
       }
+      cursor(t); // FIXME
       break;
     case(CMD_DLE_LEFT):
+      eraseCursor(t); // FIXME
       if (t->pos-1 < 0) {
         tape_goto(t,t->maxPos);
       } else {
         tape_goto(t,t->pos-1);
       }
+      cursor(t); // FIXME
       break;
     case(CMD_DLE_UP):
+      eraseCursor(t); // FIXME
       if (t->pos - t->maxX < 0) { 
         tape_goto(t,0);
       } else {
         tape_goto(t,t->pos - t->maxX);
       }
+      cursor(t); // FIXME
       break;
     case(CMD_DLE_DOWN):
+      eraseCursor(t); // FIXME
       if (t->pos + t->maxX > t->maxPos) { 
         tape_goto(t,t->maxPos);
       } else {
         tape_goto(t,t->pos + t->maxX);
       }
+      cursor(t); // FIXME
       break;
     case(CMD_DLE_REPORT_POS):
       complexDle(t, t->dleseq.seq[1], t->pos);
@@ -1208,7 +1278,9 @@ void handleServerEscseq(tape_t *t) {
       complexDle(t, t->dleseq.seq[1], t->maxPos);
       break;
     case(CMD_DLE_GOTO_POS):
+      eraseCursor(t); // FIXME
       tape_goto(t,*(int *)&(t->dleseq.seq[2]));
+      cursor(t); // FIXME
       break;
     default:
       // bad command in dle esc seq
@@ -1552,7 +1624,7 @@ bool tape_putc(tape_t *t, CHAR_TYPE c) {
   }
   t->lastPos = t-> pos;
   addchar(c,t,t->pos);
-  ++(t->pos); // FIXME possibly wrong? see addchar(
+  ++(t->pos);
   return true;
 }
 
@@ -1593,7 +1665,7 @@ bool tape_putc2(tape_t *t, CHAR_TYPE c) {
     tape_goto2(t,t->pos2);
   }
   addchar(c,t,t->pos2); // show character
-  ++(t->pos2); // FIXME probably wrong? (see addchar)
+  ++(t->pos2);
   return true;
 }
 #endif
@@ -1782,10 +1854,11 @@ void show2(tape_t *t, CHAR_TYPE c) {
 int ttrace(tape_t *t, CHAR_TYPE c) {
   #ifdef TAPE_SPLIT_TRC
     if (t->splitMode == true) {
-      hideCursor();
+      hideCursor(t);
       show2(t,c);
       tape_goto(t,t->pos);
-      showCursor();
+      showCursor(t);
+      cursor(t);
     }
   #endif
 }

@@ -6,7 +6,7 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160324:1706
+Updated:    20160325:0344
 Version:    pre-alpha-0.0.0.8 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
@@ -200,7 +200,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MINI_CLCD
+#define FVMC_LINUX_MINI
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -230,6 +230,12 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_MULTIPLEX
 #endif
 
+/* A mini Linux FVM without multiplexing */
+#ifdef FVMC_LINUX_MINI
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_MINI
+#endif
+
 /* A mini Linux FVM with multiplexing and a very slow baud rate.
    Suitable when connected to a very slow Arduino CLCD tape terminal
    such as a 40x4 CLCD running on an Arduino Mega 2560. */
@@ -238,6 +244,14 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
   #define FVMO_VERY_SLOW_BAUD
+#endif
+
+/* A mini Linux FVM with multiplexing and a slow baud rate. */
+#ifdef FVMC_LINUX_MINI_MUX_SLOW
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_SLOW_BAUD
 #endif
 
 /* A mini Arduino FVM with multiplexing.
