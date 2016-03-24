@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160322:2256
-Version:    pre-alpha-0.0.0.7 for FVM 1.1
+Updated:    20160324:1706
+Version:    pre-alpha-0.0.0.8 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -143,7 +143,7 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
   #define FVMO_STDTRC_FILE_ALSO // When multiplexing, also output to std.trc
-  #define FVMO_STDTRC_PHYS // Use second serial connection for stdtrc (Arduino)
+  #define FVMO_STDTRC_SEP // Use second serial connection for stdtrc (Arduino)
   #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
   #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
@@ -153,6 +153,38 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
   #define FVMO_SD // Target has SD card and uses Arduino SD library
+
+  New feature: Incorporate a tape device into the FVM executable
+  and use it as stdin and stdout (monolithic but fast and sometimes convenient)
+  rather than connecting to a tape terminal over a serial connection.
+  Currently this can only be used on the platform FVMP_ARDUINO_IDE
+  and is only supported by the 'tape-clcd.ino' implementation. Of course
+  the Arduino board running your FVM must then have a keyboard and CLCD display.
+  Note that you can still lose characters if your type faster than the system
+  can keep up (presumably due to the behaviour of the keyboard buffering).
+  For reasons of quirks of the Arduino IDE, the source code of the
+  tape (such as 'tape-clcd.ino') must be soft-linked to, or renamed as,
+  a local header file of the same name (such as 'tape-clcd.h') to accompany
+  this 'fvm.c' (used as 'fvm.ino') and the #define is done thus:
+  #define FVMO_LOCAL_TAPE "tape-clcd.h" // Tape definition to include
+
+  If in addition to using FVMO_LOCAL_TAPE you may wish also to, as an aid to
+  debugging, send stdtrc output (which you can already see in split mode
+  of your local tape display device anyway) to the ordinary Serial port
+  to view or log on a device or computer over a serial connection.
+  To do so, in addition to defining FVMO_LOCAL_TAPE also do:
+  #define FVMO_STDTRC_ALSO_SERIAL // Send stdtrc both to local tape and serial
+
+  Note that FVMO_STDTRC_SEP is still a valid alternative to multiplexing
+  even when using FVMO_LOCAL_TAPE mode, since FVMO_LOCAL_TAPE mode will
+  in that case use a separate memcom for stdtrc.
+
+  GENERAL NOTE
+  ============
+
+  Don't forget to set the corresponding #defines in your tape source code
+  to the ones found in this FVM source code, or things won't work.
+  This will probably be automated in future.
 
   SIZING OPTIONS
   ==============
@@ -168,7 +200,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MINI_TRC
+#define FVMC_ARDUINO_MINI_CLCD
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -178,6 +210,17 @@ Alternatively, use appropriate symbolic links for convenience.
 #ifdef FVMC_LINUX_MINI
   #define FVMOS_LINUX
   #define FVMOS_SIZE_MINI
+#endif
+
+/* A mini Arduino FVM with a built-in CLCD tape user interface.
+   Requires a CLCD display and PS/2 keyboard directly
+   driven by the Arduino running the FVM. */
+#ifdef FVMC_ARDUINO_MINI_CLCD
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI
+  #define FVMO_LOCAL_TAPE "tape-clcd.h"
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_ALSO_SERIAL
 #endif
 
 /* A mini Linux FVM with multiplexing */
@@ -222,7 +265,7 @@ Alternatively, use appropriate symbolic links for convenience.
 #ifdef FVMC_ARDUINO_MINI_TRC
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
-  #define FVMO_STDTRC_PHYS
+  #define FVMO_STDTRC_SEP
 #endif
 
 /* A mini Arduino FVM with multiplexing and a slow baud rate.
@@ -320,7 +363,7 @@ Alternatively, use appropriate symbolic links for convenience.
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
-#ifdef FVMO_STDTRC_PHYS
+#ifdef FVMO_STDTRC_SEP
   #define BAUD_RATE_STDTRC 38400
 #endif
 
@@ -345,6 +388,15 @@ Alternatively, use appropriate symbolic links for convenience.
 #ifdef FVMO_NO_PROGMEM
    #define PROGMEM
 #endif
+// ============================================================================
+//                             EXPERIMENTAL!
+// ============================================================================
+#ifdef FVMO_LOCAL_TAPE
+   #include FVMO_LOCAL_TAPE
+#endif
+// ============================================================================
+// ============================================================================
+
 // ===========================================================================
 //                             CONSTANTS
 // ===========================================================================
@@ -934,19 +986,34 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // ===========================================================================
   // FIXME Consider here smart Arduinos with SD for stdtrc or similar
   void fvmTraceChar(const char c) {
-    #ifdef FVMO_STDTRC_PHYS
-        Serial1.print(c);
+    #ifdef FVMO_LOCAL_TAPE
+        #ifdef FVMO_STDTRC_ALSO_SERIAL
+        Serial.write(c);
+        Serial.flush();
+        #endif
+        #ifdef FVMO_STDTRC_SEP
+            memcom_write(&memcom1, c);
+        #else
+          #ifdef FVMO_MULTIPLEX
+            memcom_write(&memcom, (char)STDTRC_BYTE);
+            memcom_write(&memcom, c);
+          #endif
+        #endif
     #else
-      #ifdef FVMO_MULTIPLEX
-        Serial.print((char)STDTRC_BYTE);
-        Serial.print(c);
-      #endif
-    #endif
-    #ifdef FVMO_STDTRC_PHYS
-      Serial1.flush();
-    #else
-      Serial.flush();
-    #endif
+        #ifdef FVMO_STDTRC_SEP
+            Serial1.write(c);
+        #else
+          #ifdef FVMO_MULTIPLEX
+            Serial.write((char)STDTRC_BYTE);
+            Serial.write(c);
+          #endif
+        #endif
+        #ifdef FVMO_STDTRC_SEP
+          Serial1.flush();
+        #else
+          Serial.flush();
+        #endif
+    #endif // #ifdef FVMO_LOCAL_TAPE
   }
 
   #ifdef FVMO_SD // FIXME
@@ -983,35 +1050,61 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #endif
 
   int ardReadByteStdin(WORD *buf) {
-    while (Serial.available() < 1) {};
-    *buf = Serial.read();
+    #ifdef FVMO_LOCAL_TAPE
+      while (memcom_available(&memcom, 1) < 1) {};
+      *buf = memcom_read(&memcom);
+    #else    
+      while (Serial.available() < 1) {};
+      *buf = Serial.read();
+    #endif
     return 1;
   }
   int ardReadWordStdin(WORD *buf) {
-    while (Serial.available() < 4) {};
-    WORD b1 = Serial.read();
-    WORD b2 = Serial.read();
-    WORD b3 = Serial.read();
-    WORD b4 = Serial.read();
+    #ifdef FVMO_LOCAL_TAPE
+      while (memcom_available(&memcom, 4) < 4) {};
+      WORD b1 = memcom_read(&memcom);
+      WORD b2 = memcom_read(&memcom);
+      WORD b3 = memcom_read(&memcom);
+      WORD b4 = memcom_read(&memcom);
+    #else    
+      while (Serial.available() < 4) {};
+      WORD b1 = Serial.read();
+      WORD b2 = Serial.read();
+      WORD b3 = Serial.read();
+      WORD b4 = Serial.read();
+    #endif
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
     return 4;
   }
-  int ardReadByteStdin(WORD buf) { // FIXME is this a dupe function (see above)?
-    while (Serial.available() < 1) {};
-    buf = Serial.read();
+/*
+  // FIXME is this a dupe function (see above)?
+  // Commented out in preparation for permanent removal.
+  int ardReadByteStdin(WORD buf) {
+    #ifdef FVMO_LOCAL_TAPE
+      while (memcom_available(&memcom, 1) < 1) {};
+      buf = memcom_read(&memcom);
+    #else    
+      while (Serial.available() < 1) {};
+      buf = Serial.read();
+    #endif
     return 1;
   }
+*/
   int ardWriteStdout(char *buf, int numBytes) {
     const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
-    int numBytesWritten = Serial.write(bbuf,numBytes);
-    // file.flush(); FIXME
+    #ifdef FVMO_LOCAL_TAPE
+      int numBytesWritten = memcom_write(&memcom, bbuf,numBytes);
+    #else
+      int numBytesWritten = Serial.write(&memcom, bbuf,numBytes);
+    #endif
     return numBytesWritten;
   }
-  #define fvmWrite(buf,unitSize,numUnits,file) ardWriteStdout((char *)buf,numUnits) // FIXME NEXT
+
+  #define fvmWrite(buf,unitSize,numUnits,file) ardWriteStdout((char *)buf,numUnits)
   #define fvmReadByteStdin(buf) ardReadByteStdin(buf)
   #define fvmReadWordStdin(buf) ardReadWordStdin(buf)
   #define fvmWriteByteStdout(buf) ardWriteStdout((char *)buf,1)
-  #define fvmWriteWordStdout(buf) ardWriteStdout((char *)buf,4) // FIXME untested
+  #define fvmWriteWordStdout(buf) ardWriteStdout((char *)buf,4)
 
 #endif // #if FVMP == FVMP_ARDUINO_IDE  // ------------------------------------
 
@@ -4314,13 +4407,23 @@ void clearState() {
   // End of Fubarino only section
   */
 
-    Serial.begin(BAUD_RATE);
-    while (!Serial) {}
-  
-    #ifdef FVMO_STDTRC_PHYS
-      Serial1.begin(BAUD_RATE_STDTRC);
-      while (!Serial1) {}
-    #endif
+    #ifdef FVMO_LOCAL_TAPE
+      #ifdef FVMO_STDTRC_ALSO_SERIAL
+        Serial.begin(BAUD_RATE);
+        while (!Serial) {}
+      #endif
+      #ifdef FVMO_STDTRC_SEP
+        memcom_begin(&memcom1, BAUD_RATE);
+      #endif
+        memcom_begin(&memcom, BAUD_RATE);
+    #else
+        Serial.begin(BAUD_RATE);
+        while (!Serial) {}    
+      #ifdef FVMO_STDTRC_SEP
+        Serial1.begin(BAUD_RATE_STDTRC);
+        while (!Serial1) {}
+      #endif
+    #endif // #ifdef FVMO_LOCAL_TAPE
 
     fvmTraceNewline();
 
@@ -4332,6 +4435,21 @@ void clearState() {
     }
   */
 
+#ifdef FVMO_LOCAL_TAPE
+    fvmTrace("About to initialize local tape");
+    fvmTraceNewline();
+    bool initialized = tape_local_init();
+    if (initialized) {
+      fvmTrace("Initialized tape");
+      fvmTraceNewline();
+    } else {
+      tape_local_shutdown();
+      fvmTrace("FAILED TO initialize tape");
+      fvmTraceNewline();
+      // FIXME probably should bail out here so we do not start FVM
+    }
+#endif
+
     fvmTrace("About to run FVM...");
     fvmTraceNewline();
 
@@ -4341,6 +4459,7 @@ void clearState() {
     fvmTrace("FVM exit code was: ");
     fvmTraceWordHex(theExitCode);
     fvmTraceNewline();
+    // FIXME is there any shutdown we need to do? eg tape, Serial, etc
     while(true);
   }
 #endif // #if FVMP == FVMP_ARDUINO_IDE // -------------------------------------

@@ -4,8 +4,8 @@ Program:    tape-clcd.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130323:1553
-Version:    pre-alpha-0.0.0.3
+Updated:    20130324:1706
+Version:    pre-alpha-0.0.0.4
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ This implementation:
   * supports split-tape tracing (stdtrc display in second half of tape)
 
 WARNING: When running a 40x4 CLCD on an Arduino Mega 2560 and it is
-in MULTIPLEX mode, it is necessary to use FVMO_VERY_SLOW_BAUD otherwise
+in MULTIPLEX mode, it is necessary to use TAPE_VERY_SLOW_BAUD otherwise
 unfortunately such a slow tape terminal cannot handle multiplexing at all.
 It is better to simply not use MULTIPLEX and not use TAPE_SPLIT_TRC
 when running this sketch on such slow hardware, since even such
@@ -129,7 +129,7 @@ the stream to which that data byte belongs. This 'tape-clcd.ino' supports
 that multiplexing and indeed you must have it enabled if you wish to see
 stdtrc output in the second half of the tape when running in
 split-tape mode (entered by pressing Ctrl-T) unless you wish instead to
-use a second physical serial connection for stdtrc (see FVMO_STDTRC_PHYS).
+use a second physical serial connection for stdtrc (see TAPE_STDTRC_SEP).
 
 If the tape appears to be unresponsive and displays an exclamation mark
 this means an error has occurred; this will occur if you leave MULTIPLEX
@@ -218,21 +218,25 @@ this is a known issue with this monochrome tape.
 //#define SUPPORT_UTF8 // Don't uncomment this (UTF-8 display not implemented)
 #define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
 //#define MULTIPLEX // Use FVM 1.1 multiplexing
-//#define FVMO_SLOW_BAUD // Use slow baud rate when multiplexing
-//#define FVMO_VERY_SLOW_BAUD // Use very slow baud rate when multiplexing
-#define FVMO_STDTRC_PHYS // Use second serial connection for stdtrc
+//#define TAPE_SLOW_BAUD // Use slow baud rate when multiplexing
+//#define TAPE_VERY_SLOW_BAUD // Use very slow baud rate when multiplexing
+#define TAPE_STDTRC_SEP // Use second serial connection for stdtrc
 
+// Experimental (see FVMO_LOCAL_TAPE in 'fvm.c')
+#ifdef FVMO_LOCAL_TAPE
+  #define TAPE_LOCAL_TAPE
+#endif
 // ============================================================================
 
-#ifdef FVMO_STDTRC_PHYS 
+#ifdef TAPE_STDTRC_SEP 
   #define BAUD_RATE_STDTRC 38400 // Baud rate for stdtrc serial connection
 #endif
 #ifdef MULTIPLEX  //   (note: an FVM 1.1 may or may not support mutliplexing)
-  #ifdef FVMO_SLOW_BAUD
+  #ifdef TAPE_SLOW_BAUD
     #define BAUD_RATE 4800
   #endif
   #ifndef BAUD_RATE
-    #ifdef FVMO_VERY_SLOW_BAUD
+    #ifdef TAPE_VERY_SLOW_BAUD
       #define BAUD_RATE 2400
     #else
       #define BAUD_RATE 115200
@@ -275,12 +279,16 @@ typedef struct tape {
   bool visibleSpc; // Show spaces as visible characters?
 } tape_t;
 
-bool tape_run(tape_t *t);
+#ifndef TAPE_LOCAL_TAPE
+  bool tape_run(tape_t *t);
+#endif
+bool tape_local_init();
 bool tape_init(tape_t *t);
 bool tape_putc(tape_t *t, CHAR_TYPE c);
 bool tape_goto(tape_t *t, int pos);
 bool tape_clear(tape_t *t);
 bool tape_clearFrom(tape_t *t, int posAfter);
+bool tape_local_shutdown();
 bool tape_shutdown(tape_t *t);
 static void quit(int sig);
 int ttrace(tape_t *t, CHAR_TYPE c);
@@ -528,7 +536,158 @@ void clrtobot(tape_t *t, int posAfter) { // FIXME slow
   move(row,col); // relocate cursor
   showCursor();
 }
+// ============================================================================
+// ============================================================================
+/* Experimental for FVMO_LOCAL_TAPE */
+#ifdef TAPE_LOCAL_TAPE
 
+void writeServer(tape_t *t, ochar oc);
+void handleServerChar(tape_t *t, CHAR_TYPE c);
+/*
+  This memcom feature is only to be used by embedding within tape source code.
+  It is meant to allow this tape source code to be easily dropped in to
+  form part of an FVM executable and act as a local tape (one that uses shared
+  memory instead of a serial connection to communicate; that is, a standalone
+  computing device with inbuilt local keyboard and inbuilt local display
+  rather than being split into separate tape server and tape terminal).
+  Currently works for FVMP_ARDUINO_IDE platform only.
+
+  Note: this is done in such a way that Freeputer remains modular, since
+  the same application will run either using a local tape or using a remote
+  tape terminal (the application, such as 'ts.fl', running inside the FVM,
+  simply reads from stdin and writes to stdout and stdtrc as usual).
+*/
+#define READBUF_SIZE 64 // FIXME make smaller, this large size is not needed
+typedef struct memcom {
+  int iReadBuf;
+  uint8_t readBuf[READBUF_SIZE];
+} memcom_t;
+
+memcom_t memcom = {0};
+memcom_t memcom1 = {0};
+
+// Baud rate is ignored here
+void memcom_begin(memcom_t *lt, unsigned long baud) {
+  memset(lt->readBuf,0,READBUF_SIZE);
+  lt->iReadBuf = 0;
+}
+
+// You MUST call memcom_available before calling memcom_read.
+// It is the trigger for readBuf to be populated with data to be read.
+// Note: this function, along with functionality in the memcom_write
+// functions below, completely replaces input(tape_t *t); the latter is
+// never used when in TAPE_LOCAL_TAPE mode.
+//
+// The number of available characters is returned.
+// If there are not already at least n characters available,
+// then we will block until a key has been pressed, so that at least
+// one more character is available (although this does NOT necessarily
+// imply that at least n characters will thereafter be available).
+int memcom_available(memcom_t *lt, int n) {
+
+  if (n < 1) { n == 1; } // Refuse nonsense values of n
+
+  // It is possible that readBuf might already contain one or more
+  // characters due to previous calls to writeByteServer
+  if (lt->iReadBuf >= n) {
+    return lt->iReadBuf;
+  }
+
+  showCursor();
+
+  CHAR_TYPE c;
+  uint16_t rawKeycode;
+  uint16_t mappedKeycode;
+  ochar oc;
+
+  // Wait for a keypress
+  bool received = false;
+  while(!received) {
+    if (keyboard.available()) {
+      rawKeycode = keyboard.read();
+      if (rawKeycode > 0) {
+        mappedKeycode = keymap.remapKey(rawKeycode);
+        c = mappedKeycode & 0x00ff;
+        if (c != 0xfa) { // two 0xfa bytes often follow CapsLock, NumLock...
+          received = true;
+          oc.o = ORIGIN_LOCAL;
+          oc.c = c;
+          oc.rawKeycode = rawKeycode;
+        }
+      }
+    }
+  }
+
+  // Process that keypress character (this will cause one or more characters
+  // to be added to readBuf since writeServer intelligently calls
+  // memcom_putForRead as appropriate)
+  writeServer(&currentTape, oc);
+ 
+  return lt->iReadBuf;
+}
+
+// This puts a character into the read buffer.
+size_t memcom_putForRead(memcom_t *lt, uint8_t n) {
+  if (lt->iReadBuf >= 0 && lt->iReadBuf < READBUF_SIZE) {
+    lt->readBuf[(lt->iReadBuf++)] = n;
+  } else {
+    // First clear buffer and rewind cursor:
+    memset(lt->readBuf,0,READBUF_SIZE);
+    lt->iReadBuf = 0;
+    lt->readBuf[(lt->iReadBuf)++] = n;
+  }
+  return 1;
+}
+
+// You MUST call memcom_available to populate the readBuf before calling
+// memcom_read otherwise the behaviour of memcom_read may effectively be
+// meaningless since the readBuf might be empty!
+uint8_t memcom_read(memcom_t *lt) {
+  uint8_t result;
+  if (lt->iReadBuf > 0 && lt->iReadBuf < READBUF_SIZE) {
+    result = lt->readBuf[0];
+    for (int i=0; i < lt->iReadBuf; i++) {
+      lt->readBuf[i] = lt->readBuf[i+1];
+    }
+    lt->readBuf[lt->iReadBuf] = 0;
+    --(lt->iReadBuf);
+    return result;
+  } else {
+    return 0;
+  }
+}
+
+size_t memcom_write(memcom_t *lt, uint8_t n) {
+  CHAR_TYPE c = n;
+  ochar oc;
+  #ifdef TAPE_STDTRC_SEP
+    if (lt == &memcom1) {
+      oc.o = ORIGIN_SERVER_STDTRC;
+      oc.c = c;
+      ttrace(&currentTape, oc.c);
+    } else {
+      oc.o = ORIGIN_SERVER;
+      oc.c = c;
+      handleServerChar(&currentTape, oc.c);
+    }
+  #else
+    oc.o = ORIGIN_SERVER;
+    oc.c = c;
+    handleServerChar(&currentTape, oc.c);
+  #endif
+  return 1;
+}
+
+size_t memcom_write(memcom_t *lt, const uint8_t *buffer, size_t size) {
+  int i = 0;
+  for (; i<size; i++) {
+    memcom_write(lt, buffer[i]);
+  }
+  return i;
+}
+
+#endif
+// ============================================================================
 // ============================================================================
 
 void addchar(char c, tape_t *t, int atPos) {
@@ -604,54 +763,58 @@ void setServerReady(tape_t* t, bool boolValue) {
     t->serverReady = boolValue;
 }
 
-/*
-  This input function waits for input coming from
-  either the local keyboard or the server.
-  Each received character is put in an ochar struct which is
-  tagged with either ORIGIN_LOCAL or ORIGIN_SERVER or ORIGIN_SERVER_STDTRC
-  so we know where the character came from.
-*/
-ochar input(tape_t *t) {
+#ifndef TAPE_LOCAL_TAPE
+  /*
+    This input function waits for input coming from
+    either the local keyboard or the server.
+    Each received character is put in an ochar struct which is
+    tagged with either ORIGIN_LOCAL or ORIGIN_SERVER or ORIGIN_SERVER_STDTRC
+    so we know where the character came from.
 
-  showCursor(); // FIXME appears necessary for CLCDs here
+    Note: this is never called in TAPE_LOCAL_TAPE mode.
+  */
+  ochar input(tape_t *t) {
 
-  CHAR_TYPE c;
-  uint16_t rawKeycode;
-  uint16_t mappedKeycode;
-  ochar oc;
+    showCursor(); // FIXME appears necessary for CLCDs here
 
-  // showCursor();
-  bool received = false;
-  while(!received) {
-    if (keyboard.available()) {
-      rawKeycode = keyboard.read();
-      if (rawKeycode > 0) {
-        mappedKeycode = keymap.remapKey(rawKeycode);
-        c = mappedKeycode & 0x00ff;
-        if (c != 0xfa) { // two 0xfa bytes often follow CapsLock, NumLock...
-          received = true;
-          oc.o = ORIGIN_LOCAL;
-          oc.c = c;
-          oc.rawKeycode = rawKeycode;
+    CHAR_TYPE c;
+    uint16_t rawKeycode;
+    uint16_t mappedKeycode;
+    ochar oc;
+
+    // showCursor();
+    bool received = false;
+    while(!received) {
+      if (keyboard.available()) {
+        rawKeycode = keyboard.read();
+        if (rawKeycode > 0) {
+          mappedKeycode = keymap.remapKey(rawKeycode);
+          c = mappedKeycode & 0x00ff;
+          if (c != 0xfa) { // two 0xfa bytes often follow CapsLock, NumLock...
+            received = true;
+            oc.o = ORIGIN_LOCAL;
+            oc.c = c;
+            oc.rawKeycode = rawKeycode;
+          }
         }
+      } else if (Serial.available() > 0) {
+        c = Serial.read();
+        received = true;
+        oc.o = ORIGIN_SERVER;
+        oc.c = c;
       }
-    } else if (Serial.available() > 0) {
-      c = Serial.read();
-      received = true;
-      oc.o = ORIGIN_SERVER;
-      oc.c = c;
+      #ifdef TAPE_STDTRC_SEP
+        else if (Serial1.available() > 0) {
+        c = Serial1.read();
+        received = true;
+        oc.o = ORIGIN_SERVER_STDTRC;
+        oc.c = c;
+      }
+      #endif
     }
-    #ifdef FVMO_STDTRC_PHYS
-      else if (Serial1.available() > 0) {
-      c = Serial1.read();
-      received = true;
-      oc.o = ORIGIN_SERVER_STDTRC;
-      oc.c = c;
-    }
-    #endif
+    return oc;
   }
-  return oc;
-}
+#endif // #ifndef TAPE_LOCAL_TAPE
 
 /*
   Display a message on the tape. By convention (since some tapes may be
@@ -913,11 +1076,22 @@ void visSpcOff(tape_t *t) {
 */
 bool tape_init(tape_t *t) {
 
-  Serial.begin(BAUD_RATE);
-  while (!Serial) {}
-  #ifdef FVMO_STDTRC_PHYS
-    Serial1.begin(BAUD_RATE_STDTRC);
-    while (!Serial1) {}
+  #ifdef TAPE_LOCAL_TAPE
+  // Note: initialization of memcom is done in 'fvm.c' not here
+  // (see FVMO_LOCAL_TAPE therein)
+  #else
+    Serial.begin(BAUD_RATE);
+    while (!Serial) {}
+  #endif
+
+  #ifdef TAPE_STDTRC_SEP
+    #ifdef TAPE_LOCAL_TAPE
+    // Note: initialization of memcom1 is done in 'fvm.c' not here
+    // (see FVMO_LOCAL_TAPE therein)
+    #else
+      Serial1.begin(BAUD_RATE_STDTRC);
+      while (!Serial1) {}
+    #endif
   #endif
 
   lcd.begin(COLS,ROWS);
@@ -1078,14 +1252,17 @@ void handleServerChar(tape_t *t, CHAR_TYPE c) {
         // corruption. If you find it intolerable then:
         //   * use very little stdtrc output in your programs
         //   * type very slowly (reduces frequency of corruption)
-        //   * or use a very slow BAUD RATE (use FVMO_VERY_SLOW_BAUD mode)
+        //   * or use a very slow BAUD RATE (use TAPE_VERY_SLOW_BAUD mode)
         //   * or do not enable MULTIPLEX mode (best solution)
         //     and also do not enable TAPE_SPLIT_TRC mode
         //   * or simply do not use split-tape mode
-        //   * or use FVMO_STDTRC_PHYS instead of MULTIPLEX mode and
+        //   * or use TAPE_STDTRC_SEP instead of MULTIPLEX mode and
         //     specify a slow BAUD_RATE_STDTRC (a good compromise)
         //   * or hack the Arduino Serial library so that it uses a larger
         //     buffer size (in theory should work but difficult in practice)
+        //   * or use TAPE_LOCAL_MODE (see FVMO_LOCAL_TAPE in 'fvm.c')
+        //     to use a keyboard and display directly connected to your
+        //     FVM Arduino board without any intervening serial connection
         //   * or use a Linux tape terminal instead (see 'tape.c')
         //     as Linux uses buffering which eliminates the problem and
         //     allows a 115200 baud rate quite happily when connected to an
@@ -1158,14 +1335,23 @@ void writeByteServer(tape_t *t, CHAR_TYPE c) {
   int countWritten;
 #ifdef MULTIPLEX
     buf[0] = STDIN_BYTE;
+  #ifdef TAPE_LOCAL_TAPE
+    countWritten = memcom_putForRead(&memcom, buf[0]);
+  #else
     countWritten = Serial.write(buf[0]);
+  #endif
+
     if (countWritten < 1) {
       msgErr(t);
       return;
     }
 #endif
   buf[0] = c;
-  countWritten = Serial.write(buf[0]);
+  #ifdef TAPE_LOCAL_TAPE
+    countWritten = memcom_putForRead(&memcom, buf[0]);
+  #else
+    countWritten = Serial.write(buf[0]);
+  #endif
   if (countWritten < 1) {
     msgErr(t);
   }
@@ -1289,49 +1475,62 @@ void handleOver(tape_t *t) {
   writeByteServer(t,CHAR_EM);
 }
 
-/*
-  This function could equally well have been called interact.
-  It causes the tape to listen for bytes and respond appropriately
-  to them, taking into account whether they originate locally from
-  the keyboard or from the server (via the serial device). This is
-  the main loop for the tape user interface interaction.
-*/
-void slave(tape_t *t) {
-  for (;;)
-  {
-      ochar oc = input(t);
-      switch(oc.o) {
-        case(ORIGIN_SERVER):
-          handleServerChar(t, oc.c);
-        break;
-        case(ORIGIN_LOCAL):
-          writeServer(t, oc);
-        break;
-        case(ORIGIN_SERVER_STDTRC):
-          ttrace(t, oc.c);
-        break;
-        default:
-          msgErr(t);
-        break;
-      }
-  }
-}
+#ifndef TAPE_LOCAL_TAPE
+  /*
+    This function could equally well have been called interact.
+    It causes the tape to listen for bytes and respond appropriately
+    to them, taking into account whether they originate locally from
+    the keyboard or from the server (via the serial device). This is
+    the main loop for the tape user interface interaction.
 
-/* 
-  This is the entry point for starting and running a tape.
-  It initializes the tape by calling tape_init and then enters interactive
-  mode by calling slave. The user can then happily use the tape
-  as the user interface to the application controlling it
-  via the serial connection.
-*/
-bool tape_run(tape_t *t) {
-  bool initialized = tape_init(t);
-  if (initialized) {
-    slave(t);
-  } else {
-    tape_shutdown(t);
+    Note: this is never called in TAPE_LOCAL_TAPE mode.
+  */
+  void slave(tape_t *t) {
+    for (;;)
+    {
+        ochar oc = input(t);
+        switch(oc.o) {
+          case(ORIGIN_SERVER):
+            handleServerChar(t, oc.c);
+          break;
+          case(ORIGIN_LOCAL):
+            writeServer(t, oc);
+          break;
+          case(ORIGIN_SERVER_STDTRC):
+            ttrace(t, oc.c);
+          break;
+          default:
+            msgErr(t);
+          break;
+        }
+    }
   }
-  return initialized;
+#endif
+
+#ifndef TAPE_LOCAL_TAPE
+  /* 
+    This is the entry point for starting and running a tape.
+    It initializes the tape by calling tape_init and then enters interactive
+    mode by calling slave. The user can then happily use the tape
+    as the user interface to the application controlling it
+    via the serial connection.
+
+    Note: this is never called in TAPE_LOCAL_TAPE mode.
+  */
+  bool tape_run(tape_t *t) {
+    bool initialized = tape_init(t);
+    if (initialized) {
+      slave(t);
+    } else {
+      tape_shutdown(t);
+    }
+    return initialized;
+  }
+#endif
+
+// FIXME experimental
+bool tape_local_init() {
+  return tape_init(&currentTape);
 }
 
 /*
@@ -1486,6 +1685,11 @@ bool tape_shutdown(tape_t *t) {
   return true;
 }
 
+// FIXME experimental
+bool tape_local_shutdown() {
+  tape_shutdown(&currentTape);
+}
+
 /*
   The following functions (vis2, invis2, show2) serve the same
   purpose for displaying characters on the second half of the tape
@@ -1559,7 +1763,7 @@ void show2(tape_t *t, CHAR_TYPE c) {
   Character c is assumed to be from stdtrc of the FVM instance the tape
   is communicating with over the physical serial connection. This ttrace
   function (in split-tape mode only) displays that character if TAPE_SPLIT_TRC
-  is defined. None of this will work, however, unless either FVMO_STDTRC_PHYS
+  is defined. None of this will work, however, unless either TAPE_STDTRC_SEP
   is defined and a second physical serial connection is used (see 'fvm.c')
   or MULTIPLEX is defined and the connected FVM instance properly supports
   multiplexing; these are optional features new in FVM 1.1. So this will
@@ -1571,7 +1775,7 @@ void show2(tape_t *t, CHAR_TYPE c) {
   and so you do not have direct access to the std.trc output file
   of the FVM instance running on that device. Therefore you would arrange
   for that remote FVM instance to be started up in MULTIPLEX mode
-  (or in FVMO_STDTRC_PHYS mode with a second physical serial connection)
+  (or in TAPE_STDTRC_SEP mode with a second physical serial connection)
   and then use split-tape mode (which uses this ttrace function)
   to happily view tracing output from the remote FVM.
 */
@@ -1587,13 +1791,14 @@ int ttrace(tape_t *t, CHAR_TYPE c) {
 }
 
 // ============================================================================
+#ifndef TAPE_LOCAL_TAPE
+  void setup() {
+    // Do nothing here
+  }
 
-void setup() {
-  // Do nothing here
-}
-
-void loop() 
-{
-  tape_run(&currentTape); // FIXME evaluate bool returned
-  while(true);
-}
+  void loop() 
+  {
+    tape_run(&currentTape); // FIXME evaluate bool returned
+    while(true);
+  }
+#endif
