@@ -4,8 +4,8 @@ Program:    tape-gameduino.ino
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20130325:0344
-Version:    pre-alpha-0.0.0.1
+Updated:    20160325:1741
+Version:    pre-alpha-0.0.0.2
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,11 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 WARNING: This is pre-alpha software and as such may well be incomplete,
 unstable and unreliable. It is considered to be suitable only for
 experimentation and nothing more.
-
-KNOWN ISSUES TO BE FIXED:
-  * cursor location and behaviour malfunctions:
-      (1) in split-tape mode FIXME
-      (2) after Ctrl-K (partial clear screen) FIXME
 
 ==============================================================================
 
@@ -217,9 +212,9 @@ this is a known issue with this monochrome tape.
 /* GENERAL CONFIGURATION OPTIONS FOR THE TAPE TERMINAL: */
 #define CHAR_TYPE unsigned char // Don't change this (other types unsupported)
 //#define SUPPORT_UTF8 // Don't uncomment this (UTF-8 display not implemented)
-//#define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
-//#define MULTIPLEX // Use FVM 1.1 multiplexing
-//#define TAPE_SLOW_BAUD // Use slow baud rate when multiplexing
+#define TAPE_SPLIT_TRC // Use split-tape mode (stdtrc display)
+#define MULTIPLEX // Use FVM 1.1 multiplexing
+#define TAPE_SLOW_BAUD // Use slow baud rate when multiplexing
 //#define TAPE_VERY_SLOW_BAUD // Use very slow baud rate when multiplexing
 //#define TAPE_STDTRC_SEP // Use second serial connection for stdtrc
 
@@ -344,7 +339,7 @@ typedef struct {
 } ochar;
 
 tape_t currentTape = {0};
-void addchar(char c, tape_t *t, int atPos);
+void addchar(char c, tape_t *t, int atPos, bool showCursor);
 
 // ============================================================================
 /* Configuration for PS/2 keyboard: 
@@ -544,6 +539,9 @@ void willHideByCursor(tape_t *t) {
 }
 
 void cursor(tape_t *t) {
+  if (t->pos == t->maxPos) {
+    return; // Refuse to show cursor in message cell
+  }
   willHideByCursor(t);
   placeCharAt(t->row,t->col,CURSOR);
 }
@@ -571,6 +569,8 @@ void move(int row, int col) {
 void clear(tape_t *t) {
   uint16_t addr = convertToAddr(0,0);
   GD.fill(addr, 0, 4096);
+  tape_goto(t,0);
+  cursor(t);
 }
 
 void clrtobot(tape_t *t, int posAfter) { // FIXME slow
@@ -594,6 +594,7 @@ void clrtobot(tape_t *t, int posAfter) { // FIXME slow
   int row = posAfter / t->maxX;
   move(row,col); // relocate cursor
   showCursor(t);
+  cursor(t);
 }
 // ============================================================================
 // ============================================================================
@@ -749,7 +750,7 @@ size_t memcom_write(memcom_t *lt, const uint8_t *buffer, size_t size) {
 // ============================================================================
 // ============================================================================
 
-void addchar(char c, tape_t *t, int atPos) {
+void addchar(char c, tape_t *t, int atPos, bool showCursor) {
   int col = atPos % t->maxX;
   int row = atPos / t->maxX;
   char buf = c;
@@ -766,7 +767,10 @@ void addchar(char c, tape_t *t, int atPos) {
   } else {
     ++(t->col);
   }
-  if (gd1.showCursor) {
+  // Note: because (unlike a CLCD, an RA8875, or ncurses) the Gameduino 1
+  // has no inbuilt logic for a text cursor, therefore the tape terminal
+  // code is more convoluted as it has to compensate for that.
+  if (gd1.showCursor && showCursor) {
     cursor(t);
   }
 }
@@ -893,7 +897,7 @@ void setServerReady(tape_t* t, bool boolValue) {
 */
 void msg(tape_t *t, CHAR_TYPE c) {
   tape_goto(t, t->maxPos);
-  addchar(c,t,t->maxPos);
+  addchar(c,t,t->maxPos, false);
   tape_goto(t, t->lastPos);
 }
 
@@ -1187,6 +1191,7 @@ bool tape_init(tape_t *t) {
   #endif
   msgOK(t);
   showCursor(t);
+  cursor(t);
   return true;
 }
 
@@ -1236,40 +1241,40 @@ void handleServerEscseq(tape_t *t) {
       t->wrap = true;
       break;
     case(CMD_DLE_RIGHT):
-      eraseCursor(t); // FIXME
-      if (t->pos+1 > t->maxPos) {
+      eraseCursor(t);
+      if (t->pos+1 > t->maxPos-1) { // the -1 for non-cursor display devices
         tape_goto(t,0);
       } else {
         tape_goto(t,t->pos+1);
       }
-      cursor(t); // FIXME
+      cursor(t);
       break;
     case(CMD_DLE_LEFT):
-      eraseCursor(t); // FIXME
+      eraseCursor(t);
       if (t->pos-1 < 0) {
-        tape_goto(t,t->maxPos);
+        tape_goto(t,t->maxPos-1); // the -1 for non-cursor display devices
       } else {
         tape_goto(t,t->pos-1);
       }
-      cursor(t); // FIXME
+      cursor(t);
       break;
     case(CMD_DLE_UP):
-      eraseCursor(t); // FIXME
+      eraseCursor(t);
       if (t->pos - t->maxX < 0) { 
         tape_goto(t,0);
       } else {
         tape_goto(t,t->pos - t->maxX);
       }
-      cursor(t); // FIXME
+      cursor(t);
       break;
     case(CMD_DLE_DOWN):
-      eraseCursor(t); // FIXME
+      eraseCursor(t);
       if (t->pos + t->maxX > t->maxPos) { 
-        tape_goto(t,t->maxPos);
+        tape_goto(t,t->maxPos-1); // the -1 for non-cursor display devices
       } else {
         tape_goto(t,t->pos + t->maxX);
       }
-      cursor(t); // FIXME
+      cursor(t);
       break;
     case(CMD_DLE_REPORT_POS):
       complexDle(t, t->dleseq.seq[1], t->pos);
@@ -1278,9 +1283,9 @@ void handleServerEscseq(tape_t *t) {
       complexDle(t, t->dleseq.seq[1], t->maxPos);
       break;
     case(CMD_DLE_GOTO_POS):
-      eraseCursor(t); // FIXME
+      eraseCursor(t);
       tape_goto(t,*(int *)&(t->dleseq.seq[2]));
-      cursor(t); // FIXME
+      cursor(t);
       break;
     default:
       // bad command in dle esc seq
@@ -1623,7 +1628,7 @@ bool tape_putc(tape_t *t, CHAR_TYPE c) {
     }
   }
   t->lastPos = t-> pos;
-  addchar(c,t,t->pos);
+  addchar(c,t,t->pos,true);
   ++(t->pos);
   return true;
 }
@@ -1664,7 +1669,7 @@ bool tape_putc2(tape_t *t, CHAR_TYPE c) {
   } else {
     tape_goto2(t,t->pos2);
   }
-  addchar(c,t,t->pos2); // show character
+  addchar(c,t,t->pos2,false); // show character
   ++(t->pos2);
   return true;
 }
@@ -1728,7 +1733,6 @@ bool tape_clear(tape_t *t) {
       t->pos2 = t->maxPos+1;
     }
   #endif
-  tape_goto(t,0);
   return true;
 }
 
@@ -1738,8 +1742,6 @@ bool tape_clear(tape_t *t) {
   The OK message (a single character at maxPos) will be displayed
   to indicate all is well.
 */
-// FIXME hide cursor and/or speed this up
-// FIXME does not correspond to func sig of tape.c
 bool tape_clearFrom(tape_t *t, int posAfter) { 
   clrtobot(t,posAfter);
   msgOK(t);
@@ -1854,11 +1856,8 @@ void show2(tape_t *t, CHAR_TYPE c) {
 int ttrace(tape_t *t, CHAR_TYPE c) {
   #ifdef TAPE_SPLIT_TRC
     if (t->splitMode == true) {
-      hideCursor(t);
       show2(t,c);
       tape_goto(t,t->pos);
-      showCursor(t);
-      cursor(t);
     }
   #endif
 }
