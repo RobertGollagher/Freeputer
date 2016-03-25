@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160325:1741
-Version:    pre-alpha-0.0.0.9 for FVM 1.1
+Updated:    20160326:0239
+Version:    pre-alpha-0.0.0.10 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,6 +49,10 @@ concepts necessary to correctly build and use this FVM implementation.
 
 ==============================================================================
 
+All instructions assume your workstation is Debian Linux.
+
+==============================================================================
+
 When using the FVMO_INCORPORATE_ROM option to incorporate a compiled
 Freeputer program via 'rom.h' into the FVM executable, the preparation is
 either to use the provided 'romMake.sh' script or the following 3 steps:
@@ -75,10 +79,48 @@ Which is equivalent to:
 
   gcc -o fvm fvm.c
 
+Target platforms known to work well:
+  * x86 Debian Linux
+
 If your target is Arduino or chipKIT then of course you will need to use
 the Arduino IDE to build the FVM executable rather than running make. To do
 so, rename this 'fvm.c' file to 'fvm.ino' and open it with the Arduino IDE.
+Assuming that you are using the FVMO_INCORPORATE_ROM option you must of
+course also ensure 'rom.h' is in the same directory as your 'fvm.ino'.
 Alternatively, use appropriate symbolic links for convenience.
+Use Arduino IDE 1.6.7 or higher.
+
+Boards currently working well:
+  * Arduino Mega 2560
+  * Arduino Due
+  * chipKIT Max32
+
+Boards currently not working:
+  * Arduino Uno
+  * Fubarino SD 1.5
+
+If your target is a Texas Instruments Launchpad (also treated as
+platform FVMP_ARDUINO_IDE) do the same but use the Energia IDE (see energia.nu).
+For Tiva C Series Launchpads you will first need to install lm4flash by:
+
+  aptitude install lm4flash
+
+Use Energia to build this sketch, then select "Show Compilation Folder" to
+identify the folder in which the resulting 'fvm.cpp.bin' was produced.
+In a terminal, navigate to that directory and do:
+
+  lm4flash fvm.cpp.bin
+
+That will upload this compiled sketch to your Tiva C Series Launchpad board
+(and you may find later, after a restart, that the Upload button starts working).
+For some other kinds of Launchpads you can simply use the Upload button
+in the Energia IDE in the normal manner. Use Energia 17 or higher.
+
+Launchpads currently working well:
+  * EK-TM4C123GXL
+
+Launchpads currently not working:
+  * All MSP430 boards
 
 ==============================================================================
 
@@ -137,6 +179,7 @@ Alternatively, use appropriate symbolic links for convenience.
   ===================
   #define FVMP FVMP_STDIO // gcc using <stdio.h> for FILEs (eg Linux targets)
   #define FVMP FVMP_ARDUINO_IDE // Arduino IDE (eg Arduino or chipKIT targets)
+                                or Energia IDE (Texas Instruments Launchpads)
 
   CONFIGURATION OPTIONS
   =====================
@@ -200,7 +243,7 @@ Alternatively, use appropriate symbolic links for convenience.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_LINUX_MINI_MUX_SLOW
+#define FVMC_ENERGIA_ARM_MINI_MUX
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -210,6 +253,16 @@ Alternatively, use appropriate symbolic links for convenience.
 #ifdef FVMC_LINUX_MINI
   #define FVMOS_LINUX
   #define FVMOS_SIZE_MINI
+#endif
+
+/* A mini Energia FVM with multiplexing.
+   Suitable for Texas Instruments ARM Launchpads including: 
+    Tiva C Series EK-TM4C123GXL
+*/
+#ifdef FVMC_ENERGIA_ARM_MINI_MUX
+  #define FVMOS_ENERGIA_ARM
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
 #endif
 
 /* A mini Arduino FVM with a built-in CLCD tape user interface.
@@ -345,6 +398,14 @@ Alternatively, use appropriate symbolic links for convenience.
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
   //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
+#endif
+
+/* Generic option set: ARM Launchpad options. */
+#ifdef FVMOS_ENERGIA_ARM
+  #define FVMP FVMP_ARDUINO_IDE
+  #define FVMO_TRON
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_INCORPORATE_ROM
 #endif
 
 /* Generic option set: typical chipKIT options */
@@ -1109,7 +1170,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #ifdef FVMO_LOCAL_TAPE
       int numBytesWritten = memcom_write(&memcom, bbuf,numBytes);
     #else
-      int numBytesWritten = Serial.write(&memcom, bbuf,numBytes);
+      int numBytesWritten = Serial.write(bbuf,numBytes);
     #endif
     return numBytesWritten;
   }
