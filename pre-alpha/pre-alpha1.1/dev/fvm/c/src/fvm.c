@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160326:0239
-Version:    pre-alpha-0.0.0.10 for FVM 1.1
+Updated:    20160326:2022
+Version:    pre-alpha-0.0.0.11 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -243,7 +243,7 @@ Launchpads currently not working:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ENERGIA_ARM_MINI_MUX
+#define FVMC_ARDUINO_UNO_TINY_MUX
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -360,14 +360,19 @@ Launchpads currently not working:
   #define FVMOS_SIZE_MINI
 #endif
 
-/* A tiny Arduino FVM with multiplexing.
-   Suitable for Arduino Uno */
-// FIXME too big for Uno. And why is phys ROM and RAM usage so big in general?
-// It never was before. Previously could run fine on an Arduino Uno.
+/* A tiny Arduino FVM with multiplexing. */
 #ifdef FVMC_ARDUINO_TINY_MUX
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_TINY
   #define FVMO_SMALL_ROM
+  #define FVMO_MULTIPLEX
+#endif
+
+/* A tiny Arduino FVM with multiplexing.
+   Suitable for Arduino Uno */
+#ifdef FVMC_ARDUINO_UNO_TINY_MUX
+  #define FVMOS_ARDUINO_UNO
+  #define FVMOS_SIZE_TINY
   #define FVMO_MULTIPLEX
 #endif
 
@@ -390,11 +395,20 @@ Launchpads currently not working:
   #define FVMO_STDTRC_FILE_ALSO
 #endif
 
-/* Generic option set: typical Arduino options.
-   Note: Arduino Uno additionally requires FVMO_SMALL_ROM */
+/* Generic option set: typical options for Arduinos larger than Uno. */
 #ifdef FVMOS_ARDUINO
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_INCORPORATE_ROM
+  //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
+#endif
+
+/* Generic option set: typical options for Arduino Uno */
+#ifdef FVMOS_ARDUINO_UNO
+  #define FVMP FVMP_ARDUINO_IDE
+  // #define FVMO_TRON
+  #define FVMO_SMALL_ROM
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
   //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
@@ -4223,12 +4237,12 @@ systemExit:                   // Exit using exitCode in rB
     fvmTrace(msg); \
     fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline();
 #else
-  #define traceExit(msg) \
+  #define traceExit(msg) /* \
     fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline();
-  #define traceExitMsg(msg) \
+    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline(); */
+  #define traceExitMsg(msg) /*\
     fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline();
+    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline(); */
 #endif // .ifdef FVMO_TRON
 
 // ===========================================================================
@@ -4500,8 +4514,9 @@ void clearState() {
       #endif
     #endif // #ifdef FVMO_LOCAL_TAPE
 
-    fvmTraceNewline();
-
+    #ifdef FVMO_TRON
+      fvmTraceNewline();
+    #endif
   /*
     // FIXME the below is unnecessary if no SD-card-based stdblk
     if (!SD.begin(chipSelect_SD)) {
@@ -4511,29 +4526,37 @@ void clearState() {
   */
 
 #ifdef FVMO_LOCAL_TAPE
+  #ifdef FVMO_TRON
     fvmTrace("About to initialize local tape");
     fvmTraceNewline();
+  #endif
     bool initialized = tape_local_init();
     if (initialized) {
+    #ifdef FVMO_TRON
       fvmTrace("Initialized tape");
       fvmTraceNewline();
+    #endif
     } else {
       tape_local_shutdown();
+    #ifdef FVMO_TRON
       fvmTrace("FAILED TO initialize tape");
       fvmTraceNewline();
+    #endif
       // FIXME probably should bail out here so we do not start FVM
     }
 #endif
-
+  #ifdef FVMO_TRON
     fvmTrace("About to run FVM...");
     fvmTraceNewline();
-
+  #endif
   }
   void loop() {
     int theExitCode = runfvm();
+  #ifdef FVMO_TRON
     fvmTrace("FVM exit code was: ");
     fvmTraceWordHex(theExitCode);
     fvmTraceNewline();
+  #endif
     // FIXME is there any shutdown we need to do? eg tape, Serial, etc
     while(true);
   }
