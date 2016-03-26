@@ -6,7 +6,7 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160326:2137
+Updated:    20160326:2224
 Version:    pre-alpha-0.0.0.12 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
@@ -1197,295 +1197,360 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 
 #endif // #if FVMP == FVMP_ARDUINO_IDE  // ------------------------------------
 
+// ===========================================================================
+//                           INSTRUCTION SET
+// ===========================================================================
+// opcodeTable
+  // haltOpcode (1)
+    #define iWALL 0 // WALL must be zero
+  // complexOpcodes (44)
+    #define iLIT 1
+    #define iCALL 2
+    #define iJMP 3
+    #define iBRGZ 4
+    #define iBRGEZ 5
+    #define iBRZ 6
+    #define iBRNZ 7
+    #define iBRLEZ 8
+    #define iBRLZ 9
+    #define iBRG 10
+    #define iBRGE 11
+    #define iBRE 12
+    #define iBRNE 13
+    #define iBRLE 14
+    #define iBRL 15
+    #define iJGZ 16
+    #define iJGEZ 17
+    #define iJZ 18
+    #define iJNZ 19
+    #define iJLEZ 20
+    #define iJLZ 21
+    #define iJG 22
+    #define iJGE 23
+    #define iJE 24
+    #define iJNE 25
+    #define iJLE 26
+    #define iJL 27
+    #define iREADOR 28
+    #define iWRITOR 29
+    #define iTRACOR 30
+    #define iGETOR 31
+    #define iPUTOR 32
+    #define iREADORB 33
+    #define iWRITORB 34
+    #define iTRACORB 35
+    #define iGETORB 36
+    #define iPUTORB 37
+    #define iMATH 38
+    #define iTRAP 39
+    #define iDIE 40
+    #define iREAD 41
+    #define iWRITE 42
+    #define iGET 43
+    #define iPUT 44
+  // complexOpcodesEnd
+  // simpleOpcodes (123)
+    #define iTRACE 133
+    #define iZOOM 134
+    #define iRCHANN 135
+    #define iWCHANN 136
+    #define iGCHANN 137
+    #define iPCHANN 138
+    #define iPC 139
+    #define iRDJMP 140
+    #define iSWAP2 141
+    #define iREV4 142
+    #define iTOR4 143
+    #define iROT4 144
+    #define iEXIT 145
+    #define iDCALL 146
+    #define iRDCALL 147
+    #define iDJMP 148
+    #define iSWAP 149
+    #define iOVER 150
+    #define iROT 151
+    #define iTOR 152
+    #define iLEAP 153
+    #define iNIP 154
+    #define iTUCK 155
+    #define iREV 156
+    #define iRPUSH 157
+    #define iRPOP 158
+    #define iDROP 159
+    #define iDROP2 160
+    #define iDROP3 161
+    #define iDROP4 162
+    #define iDUP 163
+    #define iDUP2 164
+    #define iDUP3 165
+    #define iDUP4 166
+    #define iHOLD 167
+    #define iHOLD2 168
+    #define iHOLD3 169
+    #define iHOLD4 170
+    #define iSPEEK 171
+    #define iSPEEK2 172
+    #define iSPEEK3 173
+    #define iSPEEK4 174
+    #define iSPUSH 175
+    #define iSPUSH2 176
+    #define iSPUSH3 177
+    #define iSPUSH4 178
+    #define iSPOP 179
+    #define iSPOP2 180
+    #define iSPOP3 181
+    #define iSPOP4 182
+    #define iDEC 183
+    #define iDECW 184
+    #define iDEC2W 185
+    #define iINC 186
+    #define iINCW 187
+    #define iINC2W 188
+    #define iLOAD 189
+    #define iSTORE 190
+    #define iRLOAD 191
+    #define iLOADB 192
+    #define iSTOREB 193
+    #define iRLOADB 194
+    #define iPLOAD 195
+    #define iPSTORE 196
+    #define iRPLOAD 197
+    #define iPLOADB 198
+    #define iPSTOREB 199
+    #define iRPLOADB 200
+    #define iADD 201
+    #define iSUB 202
+    #define iMUL 203
+    #define iDIV 204
+    #define iMOD 205
+    #define iDIVMOD 206
+    #define iRADD 207
+    #define iRSUB 208
+    #define iRMUL 209
+    #define iRDIV 210
+    #define iRMOD 211
+    #define iRDIVMOD 212
+    #define iNEG 213
+    #define iABS 214
+    #define iAND 215
+    #define iOR 216
+    #define iXOR 217
+    #define iRAND 218
+    #define iROR 219
+    #define iRXOR 220
+    #define iSHL 221
+    #define iSHR 222
+    #define iRSHL 223
+    #define iRSHR 224
+    #define iMOVE 225
+    #define iFILL 226
+    #define iFIND 227
+    #define iMATCH 228
+    #define iMOVEB 229
+    #define iFILLB 230
+    #define iFINDB 231
+    #define iMATCHB 232
+    #define iHOMIO 233
+    #define iRCHAN 234
+    #define iWCHAN 235
+    #define iGCHAN 236
+    #define iPCHAN 237
+    #define iECODE 238
+    #define iRCODE 239
+    #define iROM 240
+    #define iRAM 241
+    #define iMAP 242
+    #define iSTDBLK 243
+    #define iDS 244
+    #define iSS 245
+    #define iRS 246
+    #define iDSN 247
+    #define iSSN 248
+    #define iRSN 249
+    #define iTRON 250
+    #define iTROFF 251
+    #define iRESET 252
+    #define iREBOOT 253
+    #define iHALT 254
+    #define iDATA 255
+  // simpleOpcodesEnd
+// opcodeTableEnd
+
 /*=============================================================================
   TRACING
 =============================================================================*/
 #ifdef FVMO_TRON
-  const char hex[0x10] = {'0','1','2','3','4','5','6','7','8','9',
-                      'a','b','c','d','e','f'};
 
-  void fvmTraceNewline() {
-    fvmTraceChar('\r');
-    fvmTraceChar('\n');
-  }
-
-  /* For tracing: print a message up to 256 characters long */
-  void fvmTrace(const char *msg) {
-    BYTE i = 0;    
-    while ((i <= BYTE_MAX) && (msg[i] != 0)) {
-      fvmTraceChar(msg[i]);
-      i++;
-    }
-  }
-
-  /* For tracing: print a byte in hexadecimal */
-  void fvmTraceByteHex(BYTE b) {
-    BYTE h = (b >> 4) & 0x0f;
-    fvmTraceChar(hex[h]);
-    h = b & 0x0f;
-    fvmTraceChar(hex[h]);
-  }
-
-  /* For tracing: print a byte in hexadecimal */
-  void fvmTraceWordHex(WORD n) { /* TODO make generic */
-    if (n == NONE) {
-      const static char str[] PROGMEM = "  NONE  ";
-      fvmTrace(str);
-      return;
-    }
-    BYTE b = (n >> 24) & 0x000000ff;
-    fvmTraceByteHex(b);
-    b = (n >> 16) & 0x000000ff;
-    fvmTraceByteHex(b);
-    b = (n >> 8) & 0x000000ff;
-    fvmTraceByteHex(b);
-    b = n & 0x000000ff;
-    fvmTraceByteHex(b);
-  }
-
-  /* For tracing: pretty print a mnemonic up to 8 characters long */
-  void fvmTraceMnemonic(const char *msg) {
-    int i = 0;
-    int spaces = 8;      
-    while ((i < 8) && (msg[i] != 0)) {
-      fvmTraceChar(msg[i]);
-      i++;
-      spaces--;
-    }
-    while (spaces > 0) {
-      fvmTraceChar(' ');
-      spaces--;
-    }
-  }
-
-  // =========================================================================
-  //                 TRACING (optional for production VM)
-  // =========================================================================
-  #define traceInfo \
-    { \
-      WORD opcode = wordAtPc \
-      if (opcode >= 0 && opcode <=256) {\
-        fvmTraceWordHex(pc); \
-        fvmTraceChar(' '); \
-        fvmTraceMnemonic(traceTable[opcode]); \
-      } else { \
-        fvmTraceWordHex(pc); \
-        fvmTrace("  "); \
-      } \
-      if (opcode < LOWEST_SIMPLE_OPCODE && pc \
-          < (HIGHEST_WRITABLE_WORD - WORD_SIZE)) { \
-        WORD cellValue = wordAtAddr(pc+WORD_SIZE); \
-        fvmTraceWordHex(cellValue); \
-        fvmTraceChar(' '); \
-      } else { \
-        fvmTrace("         "); \
-      } \
-    } 
-  #define traceStacks \
-    { \
-    fvmTrace("( "); \
-    int i = 1; \
-    int numElems = (DS_EMPTY-dsp); \
-    for (; i<=numElems; i++) { \
-      fvmTraceWordHex(ds[dsStop-i]); \
-      fvmTraceChar(' ');  \
-    }  \
-    fvmTrace(") "); \
-    fvmTrace("[ "); \
-    i = 1; \
-    numElems = (SS_EMPTY-ssp); \
-    for (; i<=numElems; i++) { \
-      fvmTraceWordHex(ss[ssStop-i]); \
-      fvmTraceChar(' ');  \
-    }  \
-    fvmTrace("] "); \
-    fvmTrace("{ "); \
-    i = 1; \
-    numElems = (RS_EMPTY-rsp); \
-    for (; i<=numElems; i++) { \
-      fvmTraceWordHex(rs[rsStop-i]); \
-      fvmTraceChar(' ');  \
-    }  \
-    fvmTraceChar('}'); \
-    fvmTraceNewline(); \
-    }
-
-#endif
-
-// ===========================================================================
-//   EXPERIMENTAL RELOCATION OF CONSTANTS TO SAVE ARDUINO RAM MEMORY
-// ===========================================================================
-#ifdef FVMO_TRON // traceTable:
-const char mn0[] PROGMEM = "===     ";
-const char mn1[] PROGMEM = "lit     ";
-const char mn2[] PROGMEM = "call    ";
-const char mn3[] PROGMEM = "go      ";
-const char mn4[] PROGMEM = "go[>0]  ";
-const char mn5[] PROGMEM = "go[>=0] ";
-const char mn6[] PROGMEM = "go[==0] ";
-const char mn7[] PROGMEM = "go[!=0] ";
-const char mn8[] PROGMEM = "go[<=0] ";
-const char mn9[] PROGMEM = "go[<0]  ";
-const char mn10[] PROGMEM = "go[>]   ";
-const char mn11[] PROGMEM = "go[>=]  ";
-const char mn12[] PROGMEM = "go[==]  ";
-const char mn13[] PROGMEM = "go[!=]  ";
-const char mn14[] PROGMEM = "go[<=]  ";
-const char mn15[] PROGMEM = "go[<]   ";
-const char mn16[] PROGMEM = "go>0    ";
-const char mn17[] PROGMEM = "go>=0   ";
-const char mn18[] PROGMEM = "go==0   ";
-const char mn19[] PROGMEM = "go!=0   ";
-const char mn20[] PROGMEM = "go<=0   ";
-const char mn21[] PROGMEM = "go<0    ";
-const char mn22[] PROGMEM = "go>     ";
-const char mn23[] PROGMEM = "go>=    ";
-const char mn24[] PROGMEM = "go==    ";
-const char mn25[] PROGMEM = "go!=    ";
-const char mn26[] PROGMEM = "go<=    ";
-const char mn27[] PROGMEM = "go<     ";
-const char mn28[] PROGMEM = "reador  ";
-const char mn29[] PROGMEM = "writor  ";
-const char mn30[] PROGMEM = "tracor  ";
-const char mn31[] PROGMEM = "getor   ";
-const char mn32[] PROGMEM = "putor   ";
-const char mn33[] PROGMEM = "readorb ";
-const char mn34[] PROGMEM = "writorb ";
-const char mn35[] PROGMEM = "tracorb ";
-const char mn36[] PROGMEM = "getorb  ";
-const char mn37[] PROGMEM = "putorb  ";
-const char mn38[] PROGMEM = "math    ";
-const char mn39[] PROGMEM = "trap    ";
-const char mn40[] PROGMEM = "die     ";
-const char mn41[] PROGMEM = "read?   ";
-const char mn42[] PROGMEM = "write?  ";
-const char mn43[] PROGMEM = "get?    ";
-const char mn44[] PROGMEM = "put?    "; // FIXME reconsider order of new instructions
-const char mnBk[] PROGMEM = "        ";
-const char mn133[] PROGMEM = "trace?  "; // FIXME reconsider order of new instructions
-const char mn134[] PROGMEM = "zoom    ";
-const char mn135[] PROGMEM = "rchan?  ";
-const char mn136[] PROGMEM = "wchan?  ";
-const char mn137[] PROGMEM = "gchan?  ";
-const char mn138[] PROGMEM = "pchan?  ";
-const char mn139[] PROGMEM = "pc?     ";
-const char mn140[] PROGMEM = "[fly]   ";
-const char mn141[] PROGMEM = "swap2   ";
-const char mn142[] PROGMEM = "rev4    ";
-const char mn143[] PROGMEM = "tor4    ";
-const char mn144[] PROGMEM = "rot4    ";
-const char mn145[] PROGMEM = "ret     ";
-const char mn146[] PROGMEM = "invoke  ";
-const char mn147[] PROGMEM = "[invoke]";
-const char mn148[] PROGMEM = "fly     ";
-const char mn149[] PROGMEM = "swap    ";
-const char mn150[] PROGMEM = "over    ";
-const char mn151[] PROGMEM = "rot     ";
-const char mn152[] PROGMEM = "tor     ";
-const char mn153[] PROGMEM = "leap    ";
-const char mn154[] PROGMEM = "nip     ";
-const char mn155[] PROGMEM = "tuck    ";
-const char mn156[] PROGMEM = "rev     ";
-const char mn157[] PROGMEM = "rpush   ";
-const char mn158[] PROGMEM = "rpop    ";
-const char mn159[] PROGMEM = "drop    ";
-const char mn160[] PROGMEM = "drop2   ";
-const char mn161[] PROGMEM = "drop3   ";
-const char mn162[] PROGMEM = "drop4   ";
-const char mn163[] PROGMEM = "dup     ";
-const char mn164[] PROGMEM = "dup2    ";
-const char mn165[] PROGMEM = "dup3    ";
-const char mn166[] PROGMEM = "dup4    ";
-const char mn167[] PROGMEM = "hold    ";
-const char mn168[] PROGMEM = "hold2   ";
-const char mn169[] PROGMEM = "hold3   ";
-const char mn170[] PROGMEM = "hold4   ";
-const char mn171[] PROGMEM = "speek   ";
-const char mn172[] PROGMEM = "speek2  ";
-const char mn173[] PROGMEM = "speek3  ";
-const char mn174[] PROGMEM = "speek4  ";
-const char mn175[] PROGMEM = "spush   ";
-const char mn176[] PROGMEM = "spush2  ";
-const char mn177[] PROGMEM = "spush3  ";
-const char mn178[] PROGMEM = "spush4  ";
-const char mn179[] PROGMEM = "spop    ";
-const char mn180[] PROGMEM = "spop2   ";
-const char mn181[] PROGMEM = "spop3   ";
-const char mn182[] PROGMEM = "spop4   ";
-const char mn183[] PROGMEM = "dec     ";
-const char mn184[] PROGMEM = "decw    ";
-const char mn185[] PROGMEM = "dec2w   ";
-const char mn186[] PROGMEM = "inc     ";
-const char mn187[] PROGMEM = "incw    ";
-const char mn188[] PROGMEM = "inc2w   ";
-const char mn189[] PROGMEM = "@       ";
-const char mn190[] PROGMEM = "!       ";
-const char mn191[] PROGMEM = "[@]     ";
-const char mn192[] PROGMEM = "@b      ";
-const char mn193[] PROGMEM = "!b      ";
-const char mn194[] PROGMEM = "[@b]    ";
-const char mn195[] PROGMEM = "@@      ";
-const char mn196[] PROGMEM = "@!      ";
-const char mn197[] PROGMEM = "[@@]    ";
-const char mn198[] PROGMEM = "@@b     ";
-const char mn199[] PROGMEM = "@!b     ";
-const char mn200[] PROGMEM = "[@@b]   ";
-const char mn201[] PROGMEM = "+       ";
-const char mn202[] PROGMEM = "-       ";
-const char mn203[] PROGMEM = "*       ";
-const char mn204[] PROGMEM = "/       ";
-const char mn205[] PROGMEM = "%       ";
-const char mn206[] PROGMEM = "/%      ";
-const char mn207[] PROGMEM = "[+]     ";
-const char mn208[] PROGMEM = "[-]     ";
-const char mn209[] PROGMEM = "[*]     ";
-const char mn210[] PROGMEM = "[/]     ";
-const char mn211[] PROGMEM = "[%]     ";
-const char mn212[] PROGMEM = "[/%]    ";
-const char mn213[] PROGMEM = "neg     ";
-const char mn214[] PROGMEM = "abs     ";
-const char mn215[] PROGMEM = "&       ";
-const char mn216[] PROGMEM = "|       ";
-const char mn217[] PROGMEM = "^       ";
-const char mn218[] PROGMEM = "[&]     ";
-const char mn219[] PROGMEM = "[|]     ";
-const char mn220[] PROGMEM = "[^]     ";
-const char mn221[] PROGMEM = "<<      ";
-const char mn222[] PROGMEM = ">>      ";
-const char mn223[] PROGMEM = "[<<]    ";
-const char mn224[] PROGMEM = "[>>]    ";
-const char mn225[] PROGMEM = "move    ";
-const char mn226[] PROGMEM = "fill    ";
-const char mn227[] PROGMEM = "find    ";
-const char mn228[] PROGMEM = "match   ";
-const char mn229[] PROGMEM = "moveb   ";
-const char mn230[] PROGMEM = "fillb   ";
-const char mn231[] PROGMEM = "findb   ";
-const char mn232[] PROGMEM = "matchb  ";
-const char mn233[] PROGMEM = "homio   ";
-const char mn234[] PROGMEM = "rchan   ";
-const char mn235[] PROGMEM = "wchan   ";
-const char mn236[] PROGMEM = "gchan   ";
-const char mn237[] PROGMEM = "pchan   ";
-const char mn238[] PROGMEM = "ecode?  ";
-const char mn239[] PROGMEM = "rcode?  ";
-const char mn240[] PROGMEM = "rom?    ";
-const char mn241[] PROGMEM = "ram?    ";
-const char mn242[] PROGMEM = "map?    ";
-const char mn243[] PROGMEM = "stdblk? ";
-const char mn244[] PROGMEM = "ds?     ";
-const char mn245[] PROGMEM = "ss?     ";
-const char mn246[] PROGMEM = "rs?     ";
-const char mn247[] PROGMEM = "dsn?    ";
-const char mn248[] PROGMEM = "ssn?    ";
-const char mn249[] PROGMEM = "rsn?    ";
-const char mn250[] PROGMEM = "tron    ";
-const char mn251[] PROGMEM = "troff   ";
-const char mn252[] PROGMEM = "reset   ";
-const char mn253[] PROGMEM = "reboot  ";
-const char mn254[] PROGMEM = "halt    ";
-const char mn255[] PROGMEM = "data    " ;
-const char* const traceTable[] PROGMEM = {
+const static char mn0[] PROGMEM = "===     ";
+const static char mn1[] PROGMEM = "lit     ";
+const static char mn2[] PROGMEM = "call    ";
+const static char mn3[] PROGMEM = "go      ";
+const static char mn4[] PROGMEM = "go[>0]  ";
+const static char mn5[] PROGMEM = "go[>=0] ";
+const static char mn6[] PROGMEM = "go[==0] ";
+const static char mn7[] PROGMEM = "go[!=0] ";
+const static char mn8[] PROGMEM = "go[<=0] ";
+const static char mn9[] PROGMEM = "go[<0]  ";
+const static char mn10[] PROGMEM = "go[>]   ";
+const static char mn11[] PROGMEM = "go[>=]  ";
+const static char mn12[] PROGMEM = "go[==]  ";
+const static char mn13[] PROGMEM = "go[!=]  ";
+const static char mn14[] PROGMEM = "go[<=]  ";
+const static char mn15[] PROGMEM = "go[<]   ";
+const static char mn16[] PROGMEM = "go>0    ";
+const static char mn17[] PROGMEM = "go>=0   ";
+const static char mn18[] PROGMEM = "go==0   ";
+const static char mn19[] PROGMEM = "go!=0   ";
+const static char mn20[] PROGMEM = "go<=0   ";
+const static char mn21[] PROGMEM = "go<0    ";
+const static char mn22[] PROGMEM = "go>     ";
+const static char mn23[] PROGMEM = "go>=    ";
+const static char mn24[] PROGMEM = "go==    ";
+const static char mn25[] PROGMEM = "go!=    ";
+const static char mn26[] PROGMEM = "go<=    ";
+const static char mn27[] PROGMEM = "go<     ";
+const static char mn28[] PROGMEM = "reador  ";
+const static char mn29[] PROGMEM = "writor  ";
+const static char mn30[] PROGMEM = "tracor  ";
+const static char mn31[] PROGMEM = "getor   ";
+const static char mn32[] PROGMEM = "putor   ";
+const static char mn33[] PROGMEM = "readorb ";
+const static char mn34[] PROGMEM = "writorb ";
+const static char mn35[] PROGMEM = "tracorb ";
+const static char mn36[] PROGMEM = "getorb  ";
+const static char mn37[] PROGMEM = "putorb  ";
+const static char mn38[] PROGMEM = "math    ";
+const static char mn39[] PROGMEM = "trap    ";
+const static char mn40[] PROGMEM = "die     ";
+const static char mn41[] PROGMEM = "read?   ";
+const static char mn42[] PROGMEM = "write?  ";
+const static char mn43[] PROGMEM = "get?    ";
+const static char mn44[] PROGMEM = "put?    "; // FIXME reconsider order of new instructions
+const static char mnBk[] PROGMEM = "        ";
+const static char mn133[] PROGMEM = "trace?  "; // FIXME reconsider order of new instructions
+const static char mn134[] PROGMEM = "zoom    ";
+const static char mn135[] PROGMEM = "rchan?  ";
+const static char mn136[] PROGMEM = "wchan?  ";
+const static char mn137[] PROGMEM = "gchan?  ";
+const static char mn138[] PROGMEM = "pchan?  ";
+const static char mn139[] PROGMEM = "pc?     ";
+const static char mn140[] PROGMEM = "[fly]   ";
+const static char mn141[] PROGMEM = "swap2   ";
+const static char mn142[] PROGMEM = "rev4    ";
+const static char mn143[] PROGMEM = "tor4    ";
+const static char mn144[] PROGMEM = "rot4    ";
+const static char mn145[] PROGMEM = "ret     ";
+const static char mn146[] PROGMEM = "invoke  ";
+const static char mn147[] PROGMEM = "[invoke]";
+const static char mn148[] PROGMEM = "fly     ";
+const static char mn149[] PROGMEM = "swap    ";
+const static char mn150[] PROGMEM = "over    ";
+const static char mn151[] PROGMEM = "rot     ";
+const static char mn152[] PROGMEM = "tor     ";
+const static char mn153[] PROGMEM = "leap    ";
+const static char mn154[] PROGMEM = "nip     ";
+const static char mn155[] PROGMEM = "tuck    ";
+const static char mn156[] PROGMEM = "rev     ";
+const static char mn157[] PROGMEM = "rpush   ";
+const static char mn158[] PROGMEM = "rpop    ";
+const static char mn159[] PROGMEM = "drop    ";
+const static char mn160[] PROGMEM = "drop2   ";
+const static char mn161[] PROGMEM = "drop3   ";
+const static char mn162[] PROGMEM = "drop4   ";
+const static char mn163[] PROGMEM = "dup     ";
+const static char mn164[] PROGMEM = "dup2    ";
+const static char mn165[] PROGMEM = "dup3    ";
+const static char mn166[] PROGMEM = "dup4    ";
+const static char mn167[] PROGMEM = "hold    ";
+const static char mn168[] PROGMEM = "hold2   ";
+const static char mn169[] PROGMEM = "hold3   ";
+const static char mn170[] PROGMEM = "hold4   ";
+const static char mn171[] PROGMEM = "speek   ";
+const static char mn172[] PROGMEM = "speek2  ";
+const static char mn173[] PROGMEM = "speek3  ";
+const static char mn174[] PROGMEM = "speek4  ";
+const static char mn175[] PROGMEM = "spush   ";
+const static char mn176[] PROGMEM = "spush2  ";
+const static char mn177[] PROGMEM = "spush3  ";
+const static char mn178[] PROGMEM = "spush4  ";
+const static char mn179[] PROGMEM = "spop    ";
+const static char mn180[] PROGMEM = "spop2   ";
+const static char mn181[] PROGMEM = "spop3   ";
+const static char mn182[] PROGMEM = "spop4   ";
+const static char mn183[] PROGMEM = "dec     ";
+const static char mn184[] PROGMEM = "decw    ";
+const static char mn185[] PROGMEM = "dec2w   ";
+const static char mn186[] PROGMEM = "inc     ";
+const static char mn187[] PROGMEM = "incw    ";
+const static char mn188[] PROGMEM = "inc2w   ";
+const static char mn189[] PROGMEM = "@       ";
+const static char mn190[] PROGMEM = "!       ";
+const static char mn191[] PROGMEM = "[@]     ";
+const static char mn192[] PROGMEM = "@b      ";
+const static char mn193[] PROGMEM = "!b      ";
+const static char mn194[] PROGMEM = "[@b]    ";
+const static char mn195[] PROGMEM = "@@      ";
+const static char mn196[] PROGMEM = "@!      ";
+const static char mn197[] PROGMEM = "[@@]    ";
+const static char mn198[] PROGMEM = "@@b     ";
+const static char mn199[] PROGMEM = "@!b     ";
+const static char mn200[] PROGMEM = "[@@b]   ";
+const static char mn201[] PROGMEM = "+       ";
+const static char mn202[] PROGMEM = "-       ";
+const static char mn203[] PROGMEM = "*       ";
+const static char mn204[] PROGMEM = "/       ";
+const static char mn205[] PROGMEM = "%       ";
+const static char mn206[] PROGMEM = "/%      ";
+const static char mn207[] PROGMEM = "[+]     ";
+const static char mn208[] PROGMEM = "[-]     ";
+const static char mn209[] PROGMEM = "[*]     ";
+const static char mn210[] PROGMEM = "[/]     ";
+const static char mn211[] PROGMEM = "[%]     ";
+const static char mn212[] PROGMEM = "[/%]    ";
+const static char mn213[] PROGMEM = "neg     ";
+const static char mn214[] PROGMEM = "abs     ";
+const static char mn215[] PROGMEM = "&       ";
+const static char mn216[] PROGMEM = "|       ";
+const static char mn217[] PROGMEM = "^       ";
+const static char mn218[] PROGMEM = "[&]     ";
+const static char mn219[] PROGMEM = "[|]     ";
+const static char mn220[] PROGMEM = "[^]     ";
+const static char mn221[] PROGMEM = "<<      ";
+const static char mn222[] PROGMEM = ">>      ";
+const static char mn223[] PROGMEM = "[<<]    ";
+const static char mn224[] PROGMEM = "[>>]    ";
+const static char mn225[] PROGMEM = "move    ";
+const static char mn226[] PROGMEM = "fill    ";
+const static char mn227[] PROGMEM = "find    ";
+const static char mn228[] PROGMEM = "match   ";
+const static char mn229[] PROGMEM = "moveb   ";
+const static char mn230[] PROGMEM = "fillb   ";
+const static char mn231[] PROGMEM = "findb   ";
+const static char mn232[] PROGMEM = "matchb  ";
+const static char mn233[] PROGMEM = "homio   ";
+const static char mn234[] PROGMEM = "rchan   ";
+const static char mn235[] PROGMEM = "wchan   ";
+const static char mn236[] PROGMEM = "gchan   ";
+const static char mn237[] PROGMEM = "pchan   ";
+const static char mn238[] PROGMEM = "ecode?  ";
+const static char mn239[] PROGMEM = "rcode?  ";
+const static char mn240[] PROGMEM = "rom?    ";
+const static char mn241[] PROGMEM = "ram?    ";
+const static char mn242[] PROGMEM = "map?    ";
+const static char mn243[] PROGMEM = "stdblk? ";
+const static char mn244[] PROGMEM = "ds?     ";
+const static char mn245[] PROGMEM = "ss?     ";
+const static char mn246[] PROGMEM = "rs?     ";
+const static char mn247[] PROGMEM = "dsn?    ";
+const static char mn248[] PROGMEM = "ssn?    ";
+const static char mn249[] PROGMEM = "rsn?    ";
+const static char mn250[] PROGMEM = "tron    ";
+const static char mn251[] PROGMEM = "troff   ";
+const static char mn252[] PROGMEM = "reset   ";
+const static char mn253[] PROGMEM = "reboot  ";
+const static char mn254[] PROGMEM = "halt    ";
+const static char mn255[] PROGMEM = "data    " ;
+const static char* const traceTable[] PROGMEM = {
   mn1, // Must be in same order as opcodeTable
   mn2,
   mn3,
@@ -1742,6 +1807,144 @@ const char* const traceTable[] PROGMEM = {
   mn254,
   mn255
 };
+
+
+  const char hex[0x10] PROGMEM = {'0','1','2','3','4','5','6','7','8','9',
+                      'a','b','c','d','e','f'};
+
+  void fvmTraceNewline() {
+    fvmTraceChar('\r');
+    fvmTraceChar('\n');
+  }
+
+  /* For tracing: print a message up to 256 characters long */
+  void fvmTrace(const char *msg) {
+    BYTE i = 0;    
+    while ((i <= BYTE_MAX) && (msg[i] != 0)) {
+      fvmTraceChar(msg[i]);
+      i++;
+    }
+  }
+
+  /* For tracing: print a byte in hexadecimal */
+  void fvmTraceByteHex(BYTE b) {
+    BYTE h = (b >> 4) & 0x0f;
+    fvmTraceChar(hex[h]);
+    h = b & 0x0f;
+    fvmTraceChar(hex[h]);
+  }
+
+  /* For tracing: print a byte in hexadecimal */
+  void fvmTraceWordHex(WORD n) { /* TODO make generic */
+    if (n == NONE) {
+      const static char str[] PROGMEM = "  NONE  ";
+      fvmTrace(str);
+      return;
+    }
+    BYTE b = (n >> 24) & 0x000000ff;
+    fvmTraceByteHex(b);
+    b = (n >> 16) & 0x000000ff;
+    fvmTraceByteHex(b);
+    b = (n >> 8) & 0x000000ff;
+    fvmTraceByteHex(b);
+    b = n & 0x000000ff;
+    fvmTraceByteHex(b);
+  }
+
+  /* For tracing: pretty print a mnemonic up to 8 characters long */
+  void fvmTraceMnemonic(const char *msg) {
+    int i = 0;
+    int spaces = 8;      
+    while ((i < 8) && (msg[i] != 0)) {
+      fvmTraceChar(msg[i]);
+      i++;
+      spaces--;
+    }
+    while (spaces > 0) {
+      fvmTraceChar(' ');
+      spaces--;
+    }
+  }
+
+  // =========================================================================
+  //                 TRACING (optional for production VM)
+  // =========================================================================
+  void traceInfo(WORD pc)
+  {
+    WORD opcode = wordAtPc
+    if (opcode >= 0 && opcode <=256) {
+      fvmTraceWordHex(pc);
+      fvmTraceChar(' ');
+      fvmTraceMnemonic(traceTable[opcode]);
+    } else {
+      fvmTraceWordHex(pc);
+      fvmTrace("  ");
+    }
+    if (opcode < LOWEST_SIMPLE_OPCODE && pc
+        < (HIGHEST_WRITABLE_WORD - WORD_SIZE)) {
+      WORD cellValue = wordAtAddr(pc+WORD_SIZE);
+      fvmTraceWordHex(cellValue);
+      fvmTraceChar(' ');
+    } else {
+      fvmTrace("         ");
+    }
+  }
+
+  void traceStacks() {
+    fvmTrace("( ");
+    int i = 1;
+    int numElems = (DS_EMPTY-dsp);
+    for (; i<=numElems; i++) {
+      fvmTraceWordHex(ds[dsStop-i]);
+      fvmTraceChar(' '); 
+    } 
+    fvmTrace(") ");
+    fvmTrace("[ ");
+    i = 1;
+    numElems = (SS_EMPTY-ssp);
+    for (; i<=numElems; i++) {
+      fvmTraceWordHex(ss[ssStop-i]);
+      fvmTraceChar(' '); 
+    } 
+    fvmTrace("] ");
+    fvmTrace("{ ");
+    i = 1;
+    numElems = (RS_EMPTY-rsp);
+    for (; i<=numElems; i++) {
+      fvmTraceWordHex(rs[rsStop-i]);
+      fvmTraceChar(' '); 
+    } 
+    fvmTraceChar('}');
+    fvmTraceNewline();
+  }
+
+#endif
+
+// ===========================================================================
+//                              EXIT TRACING
+// ===========================================================================
+// Send an error message to stdtrc
+// along with information regarding current program state.
+#ifdef FVMO_TRON
+  const static char STR_AT[] PROGMEM = " at ";
+
+  void traceExit(WORD pc, const char *msg) {
+    fvmTrace(msg);
+    fvmTrace(STR_AT);
+    fvmTraceWordHex(lastTrapAddress);
+    fvmTraceNewline();
+    traceInfo(pc);
+    traceStacks();
+  }
+  void traceExitMsg(const char *msg) {
+    fvmTrace(msg);
+    fvmTrace(STR_AT);
+    fvmTraceWordHex(lastTrapAddress); 
+    fvmTraceNewline();
+  }
+#else
+  void traceExit(WORD pc, onst char *msg) {}
+  void traceExitMsg(const char *msg) {}
 #endif // .ifdef FVMO_TRON
 
 // ===========================================================================
@@ -1777,8 +1980,8 @@ WORD iOntrapCount = 0; // Used to implement iOntrap instruction
 // Trace if trace flag set in vmFlags
 #define optTrace \
   if ((vmFlags & 0b00000001) == 1) { \
-    traceInfo \
-    traceStacks \
+    traceInfo(pc); \
+    traceStacks(); \
   }
 
 // ===========================================================================
@@ -2237,185 +2440,6 @@ WORD iOntrapCount = 0; // Used to implement iOntrap instruction
   if ((reg < 0) || (reg > HIGHEST_WRITABLE_WORD) ) { \
     goto trapMemBounds; \
   }
-
-// ===========================================================================
-//                           INSTRUCTION SET
-// ===========================================================================
-// opcodeTable
-  // haltOpcode (1)
-    #define iWALL 0 // WALL must be zero
-  // complexOpcodes (44)
-    #define iLIT 1
-    #define iCALL 2
-    #define iJMP 3
-    #define iBRGZ 4
-    #define iBRGEZ 5
-    #define iBRZ 6
-    #define iBRNZ 7
-    #define iBRLEZ 8
-    #define iBRLZ 9
-    #define iBRG 10
-    #define iBRGE 11
-    #define iBRE 12
-    #define iBRNE 13
-    #define iBRLE 14
-    #define iBRL 15
-    #define iJGZ 16
-    #define iJGEZ 17
-    #define iJZ 18
-    #define iJNZ 19
-    #define iJLEZ 20
-    #define iJLZ 21
-    #define iJG 22
-    #define iJGE 23
-    #define iJE 24
-    #define iJNE 25
-    #define iJLE 26
-    #define iJL 27
-    #define iREADOR 28
-    #define iWRITOR 29
-    #define iTRACOR 30
-    #define iGETOR 31
-    #define iPUTOR 32
-    #define iREADORB 33
-    #define iWRITORB 34
-    #define iTRACORB 35
-    #define iGETORB 36
-    #define iPUTORB 37
-    #define iMATH 38
-    #define iTRAP 39
-    #define iDIE 40
-    #define iREAD 41
-    #define iWRITE 42
-    #define iGET 43
-    #define iPUT 44
-  // complexOpcodesEnd
-  // simpleOpcodes (123)
-    #define iTRACE 133
-    #define iZOOM 134
-    #define iRCHANN 135
-    #define iWCHANN 136
-    #define iGCHANN 137
-    #define iPCHANN 138
-    #define iPC 139
-    #define iRDJMP 140
-    #define iSWAP2 141
-    #define iREV4 142
-    #define iTOR4 143
-    #define iROT4 144
-    #define iEXIT 145
-    #define iDCALL 146
-    #define iRDCALL 147
-    #define iDJMP 148
-    #define iSWAP 149
-    #define iOVER 150
-    #define iROT 151
-    #define iTOR 152
-    #define iLEAP 153
-    #define iNIP 154
-    #define iTUCK 155
-    #define iREV 156
-    #define iRPUSH 157
-    #define iRPOP 158
-    #define iDROP 159
-    #define iDROP2 160
-    #define iDROP3 161
-    #define iDROP4 162
-    #define iDUP 163
-    #define iDUP2 164
-    #define iDUP3 165
-    #define iDUP4 166
-    #define iHOLD 167
-    #define iHOLD2 168
-    #define iHOLD3 169
-    #define iHOLD4 170
-    #define iSPEEK 171
-    #define iSPEEK2 172
-    #define iSPEEK3 173
-    #define iSPEEK4 174
-    #define iSPUSH 175
-    #define iSPUSH2 176
-    #define iSPUSH3 177
-    #define iSPUSH4 178
-    #define iSPOP 179
-    #define iSPOP2 180
-    #define iSPOP3 181
-    #define iSPOP4 182
-    #define iDEC 183
-    #define iDECW 184
-    #define iDEC2W 185
-    #define iINC 186
-    #define iINCW 187
-    #define iINC2W 188
-    #define iLOAD 189
-    #define iSTORE 190
-    #define iRLOAD 191
-    #define iLOADB 192
-    #define iSTOREB 193
-    #define iRLOADB 194
-    #define iPLOAD 195
-    #define iPSTORE 196
-    #define iRPLOAD 197
-    #define iPLOADB 198
-    #define iPSTOREB 199
-    #define iRPLOADB 200
-    #define iADD 201
-    #define iSUB 202
-    #define iMUL 203
-    #define iDIV 204
-    #define iMOD 205
-    #define iDIVMOD 206
-    #define iRADD 207
-    #define iRSUB 208
-    #define iRMUL 209
-    #define iRDIV 210
-    #define iRMOD 211
-    #define iRDIVMOD 212
-    #define iNEG 213
-    #define iABS 214
-    #define iAND 215
-    #define iOR 216
-    #define iXOR 217
-    #define iRAND 218
-    #define iROR 219
-    #define iRXOR 220
-    #define iSHL 221
-    #define iSHR 222
-    #define iRSHL 223
-    #define iRSHR 224
-    #define iMOVE 225
-    #define iFILL 226
-    #define iFIND 227
-    #define iMATCH 228
-    #define iMOVEB 229
-    #define iFILLB 230
-    #define iFINDB 231
-    #define iMATCHB 232
-    #define iHOMIO 233
-    #define iRCHAN 234
-    #define iWCHAN 235
-    #define iGCHAN 236
-    #define iPCHAN 237
-    #define iECODE 238
-    #define iRCODE 239
-    #define iROM 240
-    #define iRAM 241
-    #define iMAP 242
-    #define iSTDBLK 243
-    #define iDS 244
-    #define iSS 245
-    #define iRS 246
-    #define iDSN 247
-    #define iSSN 248
-    #define iRSN 249
-    #define iTRON 250
-    #define iTROFF 251
-    #define iRESET 252
-    #define iREBOOT 253
-    #define iHALT 254
-    #define iDATA 255
-  // simpleOpcodesEnd
-// opcodeTableEnd
 
 // ===========================================================================
 //                            RESET POINTS
@@ -4396,38 +4420,15 @@ systemExit:                   // Exit using exitCode in rB
   return rB;                  // Return from runfvm()
 
 // ===========================================================================
-//                              EXIT TRACING
-// ===========================================================================
-// Send an error message to stdtrc
-// along with information regarding current program state.
-#ifdef FVMO_TRON
-  #define traceExit(msg) \
-    fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline(); \
-    traceInfo \
-    traceStacks
-  #define traceExitMsg(msg) \
-    fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline();
-#else
-  #define traceExit(msg) /* \
-    fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline(); */
-  #define traceExitMsg(msg) /*\
-    fvmTrace(msg); \
-    fvmTrace(" at "); fvmTraceWordHex(lastTrapAddress);  fvmTraceNewline(); */
-#endif // .ifdef FVMO_TRON
-
-// ===========================================================================
 //                                TRAPS
 // ===========================================================================
 trap:
   lastTrapAddress = safePreviousAddress(pc);
-  traceExit(msgTrap)
+  traceExit(pc,msgTrap);
   goto systemReset;
 die:
   lastTrapAddress = safePreviousAddress(pc);
-  traceExit(msgDied)
+  traceExit(pc,msgDied);
   goto systemExit;
 //----------------------------------------------------------------------------
 //                         TRAPS: ILLEGAL PROGRAM FLOW
@@ -4435,17 +4436,17 @@ die:
 trapWall:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 2;
-  traceExit(msgTrapWall)
+  traceExit(pc,msgTrapWall);
   goto systemReset;
 trapData:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 3;
-  traceExit(msgTrapData)
+  traceExit(pc,msgTrapData);
   goto systemReset;
 trapPcOverflow:
   lastTrapAddress = pc;
   rB = 4;
-  traceExitMsg(msgTrapPcOverflow)
+  traceExitMsg(msgTrapPcOverflow);
   goto systemReset;
 //----------------------------------------------------------------------------
 //                         TRAPS: ILLEGAL OPCODES
@@ -4454,7 +4455,7 @@ iNONE:
 trapIllegalOpcode:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 11;
-  traceExit(msgTrapIllegalOpcode)
+  traceExit(pc,msgTrapIllegalOpcode);
   goto systemReset;
 //----------------------------------------------------------------------------
 //                         TRAPS: ILLEGAL MATHEMATICAL OPERATIONS
@@ -4466,7 +4467,7 @@ trapMathOverflow:
   }
   lastTrapAddress = safePreviousAddress(pc);
   rB = 21;
-  traceExit(msgTrapMathOverflow)
+  traceExit(pc,msgTrapMathOverflow);
   goto systemReset;
 trapDivideByZero:
   if (iOntrapAddress != NONE) {
@@ -4475,7 +4476,7 @@ trapDivideByZero:
   }
   lastTrapAddress = safePreviousAddress(pc);
   rB = 22;
-  traceExit(msgTrapDivideByZero)
+  traceExit(pc,msgTrapDivideByZero);
   goto systemReset;
 trapXsBitshift:
   if (iOntrapAddress != NONE) {
@@ -4484,7 +4485,7 @@ trapXsBitshift:
   }
   lastTrapAddress = safePreviousAddress(pc);
   rB = 23;
-traceExit(msgTrapXsBitshift)
+traceExit(pc,msgTrapXsBitshift);
   goto systemReset;
 //----------------------------------------------------------------------------
 //                         TRAPS: ILLEGAL STACK OPERATIONS
@@ -4492,32 +4493,32 @@ traceExit(msgTrapXsBitshift)
 trapDsUnderflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 31;
-  traceExit(msgTrapDsUnderflow)
+  traceExit(pc,msgTrapDsUnderflow);
   goto systemReset;
 trapDsOverflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 32;
-  traceExit(msgTrapDsOverflow)
+  traceExit(pc,msgTrapDsOverflow);
   goto systemReset;
 trapRsUnderflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 33;
-  traceExit(msgTrapRsUnderflow)
+  traceExit(pc,msgTrapRsUnderflow);
   goto systemReset;
 trapRsOverflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 34;
-  traceExit(msgTrapRsOverflow)
+  traceExit(pc,msgTrapRsOverflow);
   goto systemReset;
 trapSsUnderflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 35;
-  traceExit(msgTrapSsUnderflow)
+  traceExit(pc,msgTrapSsUnderflow);
   goto systemReset;
 trapSsOverflow:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 36;
-  traceExit(msgTrapSsOverflow)
+  traceExit(pc,msgTrapSsOverflow);
   goto systemReset;
 //----------------------------------------------------------------------------
 //                         TRAPS: ILLEGAL MEMORY ACCESS
@@ -4525,12 +4526,12 @@ trapSsOverflow:
 trapMemBounds:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 41;
-  traceExitMsg(msgTrapMemBounds)
+  traceExitMsg(msgTrapMemBounds);
   goto systemReset;
 trapRAMBounds:
   lastTrapAddress = safePreviousAddress(pc);
   rB = 42;
-  traceExitMsg(msgTrapRAMBounds)
+  traceExitMsg(msgTrapRAMBounds);
   goto systemReset;
 //----------------------------------------------------------------------------
 //                         TRAPS: ROM
@@ -4538,15 +4539,15 @@ trapRAMBounds:
 //Note: a ROM file ('rom.fp') can be created using a Freelang compiler
 trapCantOpenRom:
   rB = 51;
-  traceExitMsg(msgTrapCantOpenRom)
+  traceExitMsg(msgTrapCantOpenRom);
   goto exitFail;
 trapCantCloseRom:
   rB = 52;
-  traceExitMsg(msgTrapCantCloseRom)
+  traceExitMsg(msgTrapCantCloseRom);
   goto exitFail;
 trapCantReadRom:
   rB = 53;
-  traceExitMsg(msgTrapCantReadRom)
+  traceExitMsg(msgTrapCantReadRom);
   goto exitFail;
 //----------------------------------------------------------------------------
 //                         TRAPS: STDBLK
@@ -4558,11 +4559,11 @@ trapCantReadRom:
 //           touch std.blk
 trapCantOpenStdblk:
   rB = 61;
-  traceExitMsg(msgTrapCantOpenStdblk)
+  traceExitMsg(msgTrapCantOpenStdblk);
   goto exitFail;
 trapCantCloseStdblk:
   rB = 62;
-  traceExitMsg(msgTrapCantCloseStdblk)
+  traceExitMsg(msgTrapCantCloseStdblk);
   goto exitFail;
 //----------------------------------------------------------------------------
 //                         TRAPS: STREAMS
@@ -4583,22 +4584,22 @@ trapCantWriteToStdtrc:
 //as it starts up; any previous data in that file will be lost
 trapCantOpenStdexp:
   rB = 74;
-  traceExitMsg(msgTrapCantOpenStdexp)
+  traceExitMsg(msgTrapCantOpenStdexp);
   goto exitFail;
 trapCantCloseStdexp:
   rB = 75;
-  traceExitMsg(msgTrapCantCloseStdexp)
+  traceExitMsg(msgTrapCantCloseStdexp);
   goto exitFail;
 
 //Note: to create a 'std.imp' file of 0 size on Linux simply use:
 //           touch std.imp
 trapCantOpenStdimp:
   rB = 77;
-  traceExitMsg(msgTrapCantOpenStdimp)
+  traceExitMsg(msgTrapCantOpenStdimp);
   goto exitFail;
 trapCantCloseStdimp:
   rB = 78;
-  traceExitMsg(msgTrapCantCloseStdimp)
+  traceExitMsg(msgTrapCantCloseStdimp);
   goto exitFail;
 // ===========================================================================
 
