@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160326:2022
-Version:    pre-alpha-0.0.0.11 for FVM 1.1
+Updated:    20160326:2137
+Version:    pre-alpha-0.0.0.12 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -255,6 +255,14 @@ Launchpads currently not working:
   #define FVMOS_SIZE_MINI
 #endif
 
+/* A tiny Arduino FVM with multiplexing.
+   Suitable for Arduino Uno */
+#ifdef FVMC_ARDUINO_UNO_TINY_MUX
+  #define FVMOS_ARDUINO_UNO
+  #define FVMOS_SIZE_TINY
+  #define FVMO_MULTIPLEX
+#endif
+
 /* A mini Energia FVM with multiplexing.
    Suitable for Texas Instruments ARM Launchpads including: 
     Tiva C Series EK-TM4C123GXL
@@ -368,14 +376,6 @@ Launchpads currently not working:
   #define FVMO_MULTIPLEX
 #endif
 
-/* A tiny Arduino FVM with multiplexing.
-   Suitable for Arduino Uno */
-#ifdef FVMC_ARDUINO_UNO_TINY_MUX
-  #define FVMOS_ARDUINO_UNO
-  #define FVMOS_SIZE_TINY
-  #define FVMO_MULTIPLEX
-#endif
-
 // ===========================================================================
 //                            SUPPORTED PLATFORMS:
 // ===========================================================================
@@ -407,7 +407,7 @@ Launchpads currently not working:
 /* Generic option set: typical options for Arduino Uno */
 #ifdef FVMOS_ARDUINO_UNO
   #define FVMP FVMP_ARDUINO_IDE
-  // #define FVMO_TRON
+  #define FVMO_TRON
   #define FVMO_SMALL_ROM
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
@@ -1229,7 +1229,8 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   /* For tracing: print a byte in hexadecimal */
   void fvmTraceWordHex(WORD n) { /* TODO make generic */
     if (n == NONE) {
-      fvmTrace("  NONE  ");
+      const static char str[] PROGMEM = "  NONE  ";
+      fvmTrace(str);
       return;
     }
     BYTE b = (n >> 24) & 0x000000ff;
@@ -1312,271 +1313,443 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 #endif
 
 // ===========================================================================
+//   EXPERIMENTAL RELOCATION OF CONSTANTS TO SAVE ARDUINO RAM MEMORY
+// ===========================================================================
+#ifdef FVMO_TRON // traceTable:
+const char mn0[] PROGMEM = "===     ";
+const char mn1[] PROGMEM = "lit     ";
+const char mn2[] PROGMEM = "call    ";
+const char mn3[] PROGMEM = "go      ";
+const char mn4[] PROGMEM = "go[>0]  ";
+const char mn5[] PROGMEM = "go[>=0] ";
+const char mn6[] PROGMEM = "go[==0] ";
+const char mn7[] PROGMEM = "go[!=0] ";
+const char mn8[] PROGMEM = "go[<=0] ";
+const char mn9[] PROGMEM = "go[<0]  ";
+const char mn10[] PROGMEM = "go[>]   ";
+const char mn11[] PROGMEM = "go[>=]  ";
+const char mn12[] PROGMEM = "go[==]  ";
+const char mn13[] PROGMEM = "go[!=]  ";
+const char mn14[] PROGMEM = "go[<=]  ";
+const char mn15[] PROGMEM = "go[<]   ";
+const char mn16[] PROGMEM = "go>0    ";
+const char mn17[] PROGMEM = "go>=0   ";
+const char mn18[] PROGMEM = "go==0   ";
+const char mn19[] PROGMEM = "go!=0   ";
+const char mn20[] PROGMEM = "go<=0   ";
+const char mn21[] PROGMEM = "go<0    ";
+const char mn22[] PROGMEM = "go>     ";
+const char mn23[] PROGMEM = "go>=    ";
+const char mn24[] PROGMEM = "go==    ";
+const char mn25[] PROGMEM = "go!=    ";
+const char mn26[] PROGMEM = "go<=    ";
+const char mn27[] PROGMEM = "go<     ";
+const char mn28[] PROGMEM = "reador  ";
+const char mn29[] PROGMEM = "writor  ";
+const char mn30[] PROGMEM = "tracor  ";
+const char mn31[] PROGMEM = "getor   ";
+const char mn32[] PROGMEM = "putor   ";
+const char mn33[] PROGMEM = "readorb ";
+const char mn34[] PROGMEM = "writorb ";
+const char mn35[] PROGMEM = "tracorb ";
+const char mn36[] PROGMEM = "getorb  ";
+const char mn37[] PROGMEM = "putorb  ";
+const char mn38[] PROGMEM = "math    ";
+const char mn39[] PROGMEM = "trap    ";
+const char mn40[] PROGMEM = "die     ";
+const char mn41[] PROGMEM = "read?   ";
+const char mn42[] PROGMEM = "write?  ";
+const char mn43[] PROGMEM = "get?    ";
+const char mn44[] PROGMEM = "put?    "; // FIXME reconsider order of new instructions
+const char mnBk[] PROGMEM = "        ";
+const char mn133[] PROGMEM = "trace?  "; // FIXME reconsider order of new instructions
+const char mn134[] PROGMEM = "zoom    ";
+const char mn135[] PROGMEM = "rchan?  ";
+const char mn136[] PROGMEM = "wchan?  ";
+const char mn137[] PROGMEM = "gchan?  ";
+const char mn138[] PROGMEM = "pchan?  ";
+const char mn139[] PROGMEM = "pc?     ";
+const char mn140[] PROGMEM = "[fly]   ";
+const char mn141[] PROGMEM = "swap2   ";
+const char mn142[] PROGMEM = "rev4    ";
+const char mn143[] PROGMEM = "tor4    ";
+const char mn144[] PROGMEM = "rot4    ";
+const char mn145[] PROGMEM = "ret     ";
+const char mn146[] PROGMEM = "invoke  ";
+const char mn147[] PROGMEM = "[invoke]";
+const char mn148[] PROGMEM = "fly     ";
+const char mn149[] PROGMEM = "swap    ";
+const char mn150[] PROGMEM = "over    ";
+const char mn151[] PROGMEM = "rot     ";
+const char mn152[] PROGMEM = "tor     ";
+const char mn153[] PROGMEM = "leap    ";
+const char mn154[] PROGMEM = "nip     ";
+const char mn155[] PROGMEM = "tuck    ";
+const char mn156[] PROGMEM = "rev     ";
+const char mn157[] PROGMEM = "rpush   ";
+const char mn158[] PROGMEM = "rpop    ";
+const char mn159[] PROGMEM = "drop    ";
+const char mn160[] PROGMEM = "drop2   ";
+const char mn161[] PROGMEM = "drop3   ";
+const char mn162[] PROGMEM = "drop4   ";
+const char mn163[] PROGMEM = "dup     ";
+const char mn164[] PROGMEM = "dup2    ";
+const char mn165[] PROGMEM = "dup3    ";
+const char mn166[] PROGMEM = "dup4    ";
+const char mn167[] PROGMEM = "hold    ";
+const char mn168[] PROGMEM = "hold2   ";
+const char mn169[] PROGMEM = "hold3   ";
+const char mn170[] PROGMEM = "hold4   ";
+const char mn171[] PROGMEM = "speek   ";
+const char mn172[] PROGMEM = "speek2  ";
+const char mn173[] PROGMEM = "speek3  ";
+const char mn174[] PROGMEM = "speek4  ";
+const char mn175[] PROGMEM = "spush   ";
+const char mn176[] PROGMEM = "spush2  ";
+const char mn177[] PROGMEM = "spush3  ";
+const char mn178[] PROGMEM = "spush4  ";
+const char mn179[] PROGMEM = "spop    ";
+const char mn180[] PROGMEM = "spop2   ";
+const char mn181[] PROGMEM = "spop3   ";
+const char mn182[] PROGMEM = "spop4   ";
+const char mn183[] PROGMEM = "dec     ";
+const char mn184[] PROGMEM = "decw    ";
+const char mn185[] PROGMEM = "dec2w   ";
+const char mn186[] PROGMEM = "inc     ";
+const char mn187[] PROGMEM = "incw    ";
+const char mn188[] PROGMEM = "inc2w   ";
+const char mn189[] PROGMEM = "@       ";
+const char mn190[] PROGMEM = "!       ";
+const char mn191[] PROGMEM = "[@]     ";
+const char mn192[] PROGMEM = "@b      ";
+const char mn193[] PROGMEM = "!b      ";
+const char mn194[] PROGMEM = "[@b]    ";
+const char mn195[] PROGMEM = "@@      ";
+const char mn196[] PROGMEM = "@!      ";
+const char mn197[] PROGMEM = "[@@]    ";
+const char mn198[] PROGMEM = "@@b     ";
+const char mn199[] PROGMEM = "@!b     ";
+const char mn200[] PROGMEM = "[@@b]   ";
+const char mn201[] PROGMEM = "+       ";
+const char mn202[] PROGMEM = "-       ";
+const char mn203[] PROGMEM = "*       ";
+const char mn204[] PROGMEM = "/       ";
+const char mn205[] PROGMEM = "%       ";
+const char mn206[] PROGMEM = "/%      ";
+const char mn207[] PROGMEM = "[+]     ";
+const char mn208[] PROGMEM = "[-]     ";
+const char mn209[] PROGMEM = "[*]     ";
+const char mn210[] PROGMEM = "[/]     ";
+const char mn211[] PROGMEM = "[%]     ";
+const char mn212[] PROGMEM = "[/%]    ";
+const char mn213[] PROGMEM = "neg     ";
+const char mn214[] PROGMEM = "abs     ";
+const char mn215[] PROGMEM = "&       ";
+const char mn216[] PROGMEM = "|       ";
+const char mn217[] PROGMEM = "^       ";
+const char mn218[] PROGMEM = "[&]     ";
+const char mn219[] PROGMEM = "[|]     ";
+const char mn220[] PROGMEM = "[^]     ";
+const char mn221[] PROGMEM = "<<      ";
+const char mn222[] PROGMEM = ">>      ";
+const char mn223[] PROGMEM = "[<<]    ";
+const char mn224[] PROGMEM = "[>>]    ";
+const char mn225[] PROGMEM = "move    ";
+const char mn226[] PROGMEM = "fill    ";
+const char mn227[] PROGMEM = "find    ";
+const char mn228[] PROGMEM = "match   ";
+const char mn229[] PROGMEM = "moveb   ";
+const char mn230[] PROGMEM = "fillb   ";
+const char mn231[] PROGMEM = "findb   ";
+const char mn232[] PROGMEM = "matchb  ";
+const char mn233[] PROGMEM = "homio   ";
+const char mn234[] PROGMEM = "rchan   ";
+const char mn235[] PROGMEM = "wchan   ";
+const char mn236[] PROGMEM = "gchan   ";
+const char mn237[] PROGMEM = "pchan   ";
+const char mn238[] PROGMEM = "ecode?  ";
+const char mn239[] PROGMEM = "rcode?  ";
+const char mn240[] PROGMEM = "rom?    ";
+const char mn241[] PROGMEM = "ram?    ";
+const char mn242[] PROGMEM = "map?    ";
+const char mn243[] PROGMEM = "stdblk? ";
+const char mn244[] PROGMEM = "ds?     ";
+const char mn245[] PROGMEM = "ss?     ";
+const char mn246[] PROGMEM = "rs?     ";
+const char mn247[] PROGMEM = "dsn?    ";
+const char mn248[] PROGMEM = "ssn?    ";
+const char mn249[] PROGMEM = "rsn?    ";
+const char mn250[] PROGMEM = "tron    ";
+const char mn251[] PROGMEM = "troff   ";
+const char mn252[] PROGMEM = "reset   ";
+const char mn253[] PROGMEM = "reboot  ";
+const char mn254[] PROGMEM = "halt    ";
+const char mn255[] PROGMEM = "data    " ;
+const char* const traceTable[] PROGMEM = {
+  mn1, // Must be in same order as opcodeTable
+  mn2,
+  mn3,
+  mn4,
+  mn5,
+  mn6,
+  mn7,
+  mn8,
+  mn9,
+  mn10,
+  mn11,
+  mn12,
+  mn13,
+  mn14,
+  mn15,
+  mn16,
+  mn17,
+  mn18,
+  mn19,
+  mn20,
+  mn21,
+  mn22,
+  mn23,
+  mn24,
+  mn25,
+  mn26,
+  mn27,
+  mn28,
+  mn29,
+  mn30,
+  mn31,
+  mn32,
+  mn33,
+  mn34,
+  mn35,
+  mn36,
+  mn37,
+  mn38,
+  mn39,
+  mn40,
+  mn41,
+  mn42,
+  mn43,
+  mn44,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mnBk,
+  mn133,
+  mn134,
+  mn135,
+  mn136,
+  mn137,
+  mn138,
+  mn139,
+  mn140,
+  mn141,
+  mn142,
+  mn143,
+  mn144,
+  mn145,
+  mn146,
+  mn147,
+  mn148,
+  mn149,
+  mn150,
+  mn151,
+  mn152,
+  mn153,
+  mn154,
+  mn155,
+  mn156,
+  mn157,
+  mn158,
+  mn159,
+  mn160,
+  mn161,
+  mn162,
+  mn163,
+  mn164,
+  mn165,
+  mn166,
+  mn167,
+  mn168,
+  mn169,
+  mn170,
+  mn171,
+  mn172,
+  mn173,
+  mn174,
+  mn175,
+  mn176,
+  mn177,
+  mn178,
+  mn179,
+  mn180,
+  mn181,
+  mn182,
+  mn183,
+  mn184,
+  mn185,
+  mn186,
+  mn187,
+  mn188,
+  mn189,
+  mn190,
+  mn191,
+  mn192,
+  mn193,
+  mn194,
+  mn195,
+  mn196,
+  mn197,
+  mn198,
+  mn199,
+  mn200,
+  mn201,
+  mn202,
+  mn203,
+  mn204,
+  mn205,
+  mn206,
+  mn207,
+  mn208,
+  mn209,
+  mn210,
+  mn211,
+  mn212,
+  mn213,
+  mn214,
+  mn215,
+  mn216,
+  mn217,
+  mn218,
+  mn219,
+  mn220,
+  mn221,
+  mn222,
+  mn223,
+  mn224,
+  mn225,
+  mn226,
+  mn227,
+  mn228,
+  mn229,
+  mn230,
+  mn231,
+  mn232,
+  mn233,
+  mn234,
+  mn235,
+  mn236,
+  mn237,
+  mn238,
+  mn239,
+  mn240,
+  mn241,
+  mn242,
+  mn243,
+  mn244,
+  mn245,
+  mn246,
+  mn247,
+  mn248,
+  mn249,
+  mn250,
+  mn251,
+  mn252,
+  mn253,
+  mn254,
+  mn255
+};
+#endif // .ifdef FVMO_TRON
+
+// ===========================================================================
 //                          FVM RUNTIME LOGIC
 //       In C this has to be packaged into a runfvm() function
 //              to allow use of goto and labels for speed  
 // ===========================================================================
 int runfvm() {
-
-#ifdef FVMO_TRON // traceTable: 
-const char *traceTable[] = { // Must be in same order as opcodeTable
-  "===     ",
-  "lit     ",
-  "call    ",
-  "go      ",
-  "go[>0]  ",
-  "go[>=0] ",
-  "go[==0] ",
-  "go[!=0] ",
-  "go[<=0] ",
-  "go[<0]  ",
-  "go[>]   ",
-  "go[>=]  ",
-  "go[==]  ",
-  "go[!=]  ",
-  "go[<=]  ",
-  "go[<]   ",
-  "go>0    ",
-  "go>=0   ",
-  "go==0   ",
-  "go!=0   ",
-  "go<=0   ",
-  "go<0    ",
-  "go>     ",
-  "go>=    ",
-  "go==    ",
-  "go!=    ",
-  "go<=    ",
-  "go<     ",
-  "reador  ",
-  "writor  ",
-  "tracor  ",
-  "getor   ",
-  "putor   ",
-  "readorb ",
-  "writorb ",
-  "tracorb ",
-  "getorb  ",
-  "putorb  ",
-  "math    ", // Start of 107 empty fillers in blocks of 10...
-  "trap    ",
-  "die     ",
-  "read?   ",
-  "write?  ",
-  "get?    ",
-  "put?    ", // FIXME reconsider order of new instructions
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10 empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",           // 10+ empty fillers
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "        ",
-  "trace?  ", // FIXME reconsider order of new instructions
-  "zoom    ",
-  "rchan?  ",
-  "wchan?  ",
-  "gchan?  ",
-  "pchan?  ",
-  "pc?     ",
-  "[fly]   ",
-  "swap2   ",
-  "rev4    ",
-  "tor4    ",
-  "rot4    ", // End of 107 empty fillers in blocks of 10
-  "ret     ",
-  "invoke  ",
-  "[invoke]",
-  "fly     ",
-  "swap    ",
-  "over    ",
-  "rot     ",
-  "tor     ",
-  "leap    ",
-  "nip     ",
-  "tuck    ",
-  "rev     ",
-  "rpush   ",
-  "rpop    ",
-  "drop    ",
-  "drop2   ",
-  "drop3   ",
-  "drop4   ",
-  "dup     ",
-  "dup2    ",
-  "dup3    ",
-  "dup4    ",
-  "hold    ",
-  "hold2   ",
-  "hold3   ",
-  "hold4   ",
-  "speek   ",
-  "speek2  ",
-  "speek3  ",
-  "speek4  ",
-  "spush   ",
-  "spush2  ",
-  "spush3  ",
-  "spush4  ",
-  "spop    ",
-  "spop2   ",
-  "spop3   ",
-  "spop4   ",
-  "dec     ",
-  "decw    ",
-  "dec2w   ",
-  "inc     ",
-  "incw    ",
-  "inc2w   ",
-  "@       ",
-  "!       ",
-  "[@]     ",
-  "@b      ",
-  "!b      ",
-  "[@b]    ",
-  "@@      ",
-  "@!      ",
-  "[@@]    ",
-  "@@b     ",
-  "@!b     ",
-  "[@@b]   ",
-  "+       ",
-  "-       ",
-  "*       ",
-  "/       ",
-  "%       ",
-  "/%      ",
-  "[+]     ",
-  "[-]     ",
-  "[*]     ",
-  "[/]     ",
-  "[%]     ",
-  "[/%]    ",
-  "neg     ",
-  "abs     ",
-  "&       ",
-  "|       ",
-  "^       ",
-  "[&]     ",
-  "[|]     ",
-  "[^]     ",
-  "<<      ",
-  ">>      ",
-  "[<<]    ",
-  "[>>]    ",
-  "move    ",
-  "fill    ",
-  "find    ",
-  "match   ",
-  "moveb   ",
-  "fillb   ",
-  "findb   ",
-  "matchb  ",
-  "homio   ",
-  "rchan   ",
-  "wchan   ",
-  "gchan   ",
-  "pchan   ",
-  "ecode?  ",
-  "rcode?  ",
-  "rom?    ",
-  "ram?    ",
-  "map?    ",
-  "stdblk? ",
-  "ds?     ",
-  "ss?     ",
-  "rs?     ",
-  "dsn?    ",
-  "ssn?    ",
-  "rsn?    ",
-  "tron    ",
-  "troff   ",
-  "reset   ",
-  "reboot  ",
-  "halt    ",
-  "data    " };
-#endif // .ifdef FVMO_TRON
 
 // Note: The FVM is a stack machine. It has no exposed registers.
 // The registers referred to below are physical or virtual registers of the
@@ -4527,33 +4700,38 @@ void clearState() {
 
 #ifdef FVMO_LOCAL_TAPE
   #ifdef FVMO_TRON
-    fvmTrace("About to initialize local tape");
+    const static char str1[] PROGMEM = "About to initialize local tape";
+    fvmTrace(str1);
     fvmTraceNewline();
   #endif
     bool initialized = tape_local_init();
     if (initialized) {
     #ifdef FVMO_TRON
-      fvmTrace("Initialized tape");
+      const static char str2[] PROGMEM = "Initialized tape";
+      fvmTrace(str2);
       fvmTraceNewline();
     #endif
     } else {
       tape_local_shutdown();
     #ifdef FVMO_TRON
-      fvmTrace("FAILED TO initialize tape");
+      const static char str3[] PROGMEM = "FAILED TO initialize tape";
+      fvmTrace(str3);
       fvmTraceNewline();
     #endif
       // FIXME probably should bail out here so we do not start FVM
     }
 #endif
   #ifdef FVMO_TRON
-    fvmTrace("About to run FVM...");
+    const static char str4[] PROGMEM = "About to run FVM...";
+    fvmTrace(str4);
     fvmTraceNewline();
   #endif
   }
   void loop() {
     int theExitCode = runfvm();
   #ifdef FVMO_TRON
-    fvmTrace("FVM exit code was: ");
+    const static char str5[] PROGMEM = "FVM exit code was: ";
+    fvmTrace(str5);
     fvmTraceWordHex(theExitCode);
     fvmTraceNewline();
   #endif
