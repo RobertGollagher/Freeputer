@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160327:1559
-Version:    pre-alpha-0.0.0.17 for FVM 1.1
+Updated:    20160328:0137
+Version:    pre-alpha-0.0.0.18 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
   ENERGIA IDE
   * Tiva C Series Launchpad EK-TM4C123GXL
   * MSP430 Launchpad MSP-EXP430FR6989
-  * MSP430 Launchpad MSO-EXP430F5529LP
+  * MSP430 Launchpad MSP-EXP430F5529LP
 
 Notes:
 
@@ -208,7 +208,7 @@ Notes:
   =====================
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
-  #define FVMO_STDTRC_FILE_ALSO // When multiplexing, also output to std.trc
+  #define FVMO_STDTRC_FILE_ALSO // Send stdtrc output to 'std.trc' file also
   #define FVMO_STDTRC_SEP // Use second serial connection for stdtrc (Arduino)
   #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
   #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
@@ -219,6 +219,7 @@ Notes:
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
   #define FVMO_SD // Target has SD card and uses Arduino SD library
+  #define FVMO_SD_CS_PIN 4 // Specify CS pin for SD card for your board 
 
   New feature: Incorporate a tape device into the FVM executable
   and use it as stdin and stdout (monolithic but fast and sometimes convenient)
@@ -266,7 +267,13 @@ Notes:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_CHIPKIT_MINI_MUX
+/* Note at 20160328:0137 (was pre-alpha-0.0.0.18 for FVM 1.1):
+      All commits until this comment is removed shall be exclusively
+      for the Freetronics EtherDue board, for the purpose of
+      implementing SD card support. Until this comment is
+      removed, SD card support is incomplete.
+*/
+#define FVMC_ARDUINO_SD4_MINI_MUX
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -366,6 +373,17 @@ Notes:
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
   #define FVMO_MULTIPLEX
+#endif
+
+/* A mini Arduino FVM with multiplexing and an SD card whose CS pin is 4.
+   Suitable for Freetronics EtherDue board. */
+#ifdef FVMC_ARDUINO_SD4_MINI_MUX
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
+  #define FVMO_STDTRC_FILE_ALSO
 #endif
 
 /* A mini Arduino FVM, not multiplexed, and using a second serial connection
@@ -866,8 +884,10 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
           fflush(stdtrcHandle);
         #endif
       #else
-        putc(c,stdtrcHandle);
-        fflush(stdtrcHandle);
+        #ifdef FVMO_STDTRC_FILE_ALSO
+          putc(c,stdtrcHandle);
+          fflush(stdtrcHandle);
+        #endif
       #endif
     }
 
@@ -895,10 +915,9 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define Serial SerialUSB
   #endif
 
-  #ifdef FVMO_SEPARATE_ROM
-    #include "rom.h"
-  #else ifdef FVMO_INCORPORATE_ROM
-    #include "rom.h"
+  #ifdef FVMO_INCORPORATE_ROM
+      #include <avr/pgmspace.h>
+      #include "rom.h"
   #endif
 
   // ===========================================================================
@@ -1013,99 +1032,77 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #define msgTrapCantOpenStdimp             "CAN'T OPEN STDIMP "
   #define msgTrapCantCloseStdimp            "CAN'T CLOSE STDIMP"
 
-  #ifdef FVMO_INCORPORATE_ROM
-      #include <avr/pgmspace.h>
-      // #include "rom.h"
-  #else
+  #ifndef FVMO_INCORPORATE_ROM
       #ifdef FVMO_SD
-        SD_FILE_TYPE *romHandle;             // File handle for ROM file
-        /* Open ROM */ // FIXME note: might be used occasionally
-        #define openRom
-        /* Close ROM */ // FIXME note: might be used occasionally
-        #define closeRom
-      #endif
-            #endif
-            #ifdef FVMO_SEPARATE_ROM // FIXME Complex as SD must be initialized
-              #include <avr/pgmspace.h>
-      #ifdef FVMO_SD
-              #include <SD.h>
-      #endif
-            #else // FIXME tidy up here and remove incorrect #else/#endifs?
-      #ifdef FVMO_SD
-            SD_FILE_TYPE romHandle;            // File handle for ROM file
-            /* Open ROM */
-            #define openRom \
-            romHandle = SD.open(romFilename, FILE_READ); \
-            if (!romHandle) { \
-              goto trapCantOpenRom; \
-            }
-
-            /* Close ROM */
-            #define closeRom romHandle.close();
-      #endif
-            #endif
-
-            #if STDBLK_SIZE > 0
-      #ifdef FVMO_SD // FIXME
-          //#include <SD.h>
-          SD_FILE_TYPE stdblkHandle;           // File handle for stdblk file
-          /* Open stdblk */
-          #define openStdblk \
-            stdblkHandle = SD.open(stdblkFilename, FILE_WRITE); \
-            if (!stdblkHandle) { \
-              goto trapCantOpenStdblk; \
-            }
-          /* Close stdblk */
-          #define closeStdblk stdblkHandle.close();
-      #endif
-  #endif
+        SD_FILE_TYPE romHandle; // File handle for ROM file
+        /* Open ROM */
+        #define openRom \
+        romHandle = SD.open(romFilename, FILE_READ); \
+        if (!romHandle) { \
+          goto trapCantOpenRom; \
+        }
+        /* Close ROM */
+        #define closeRom romHandle.close();
+      #endif // #ifdef FVMO_SD
+  #endif // #ifndef FVMO_INCORPORATE_ROM
 
   // ==========================================================================
   //   PRIVATE SERVICES // FIXME make all these conditional and tidy up
   // ==========================================================================
   #ifdef FVMO_SD
-        SD_FILE_TYPE stdtrcHandle;               // File handle for stdtrc file
-        SD_FILE_TYPE stdexpHandle;               // File handle for stdexp file
-        SD_FILE_TYPE stdimpHandle;               // File handle for stdimp file
-  #endif
+    #if STDBLK_SIZE > 0
+      SD_FILE_TYPE stdblkHandle; // File handle for stdblk file
+      /* Open stdblk */
+      #define openStdblk \
+        stdblkHandle = SD.open(stdblkFilename, FILE_WRITE); \
+        if (!stdblkHandle) { \
+          goto trapCantOpenStdblk; \
+        }
+      /* Close stdblk */
+      #define closeStdblk stdblkHandle.close();
+    #endif
+    SD_FILE_TYPE stdtrcHandle; // File handle for stdtrc file
+    SD_FILE_TYPE stdexpHandle; // File handle for stdexp file
+    SD_FILE_TYPE stdimpHandle; // File handle for stdimp file
 
-  /* Open stdtrc
+    /* Open stdtrc */ // FIXME may need another config option here for stdtrc
+    #define openStdtrc \
+    stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
+    if (!stdtrcHandle) { \
+      goto trapCantOpenStdtrc; \
+    }
+    /* Close stdtrc */
+    #define closeStdtrc stdtrcHandle.close();
 
-     Normally this should do:
-              stdtrcHandle = fopen(stdtrcFilename, "w")
-     but for fvm16-16MB-sr-append for fvmtest change this to:
-              stdtrcHandle = fopen(stdtrcFilename, "a")
+    /* Open stdexp */
+    #define openStdexp \
+      stdexpHandle = SD.open(stdexpFilename, FILE_WRITE); \
+      if (!stdexpHandle) { \
+        goto trapCantOpenStdexp; \
+      }
+    /* Close stdexp */
+    #define closeStdexp stdexpHandle.close();
 
-     FIXME add #ifdef logic for fvmtest mode
-  */
+    /* Open stdimp */
+    #define openStdimp \
+      stdimpHandle = SD.open(stdimpFilename, FILE_READ); \
+      if (!stdimpHandle) { \
+        goto trapCantOpenStdimp; \
+      }
+    /* Close stdimp */
+    #define closeStdimp stdimpHandle.close();
 
-  // FIXME bogus for now as don't want to enforce SD card
-  // requirement just for tracing
-  #define openStdtrc
-  #define closeStdtrc 
-
-  /*
-  #define openStdtrc \
-  stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
-  if (!stdtrcHandle) { \
-    goto trapCantOpenStdtrc; \
-  }
-
-  /* Close stdtrc *//*
-  #define closeStdtrc stdtrcHandle.close();
-  */
-
-  /* Open stdexp */ // FIXME
-  #define openStdexp
-
-  /* Close stdexp */ // FIXME
-  #define closeStdexp
-
-  /* Open stdimp */ // FIXME
-  #define openStdimp
-
-  /* Close stdimp */ // FIXME
-  #define closeStdimp
+  #else // #ifdef FVMO_SD
+    // We have no SD card, so define these so as to make them do nothing.
+    //   FIXME consider adding an EEPROM option for stdblok
+    //   FIXME consider what to do about stdimp and stdexp
+    #define openStdtrc
+    #define closeStdtrc 
+    #define openStdexp
+    #define closeStdexp
+    #define openStdimp
+    #define closeStdimp
+  #endif // #ifdef FVMO_SD
 
   void clearDevices() {
     // FIXME Anything to do here on Arduino?
@@ -1153,39 +1150,39 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
           Serial.flush();
         #endif
     #endif // #ifdef FVMO_LOCAL_TAPE
+    #ifdef FVMO_STDTRC_FILE_ALSO // FIXME could fill up the card quickly!
+      stdtrcHandle.write(c);
+      stdtrcHandle.flush();
+    #endif
   }
 
-  #ifdef FVMO_SD // FIXME
-        #define fvmSeek(file,pos) file.seek(pos) == 0
-  /*#ifdef FVMO_SD
-        // FIXME NEXT These 3 SD_FILE_TYPEs are the Energia problem
-        //   so temporarily commenting out
-        #define fvmReadByte(buf,file) ardReadByte(buf,file)
-        #define fvmReadWord(buf,file) ardReadWord(buf,file)
-        int ardReadByte(WORD *buf, SD_FILE_TYPE file) {
-          while (file.available() < 1) {};
-          *buf = file.read();
-          return 1;
-        }
-        int ardReadWord(WORD *buf, SD_FILE_TYPE file) {
-          while (file.available() < 4) {};
-          WORD b1 = file.read();
-          WORD b2 = file.read();
-          WORD b3 = file.read();
-          WORD b4 = file.read();
-          *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
-          return 4;
-        }
-
-        int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
-           int numBytesWritten = file.write(buf,numBytes);
-           // file.flush(); FIXME
-           return numBytesWritten;
-        }
-  */
+  #ifdef FVMO_SD
+    #define fvmSeek(file,pos) file.seek(pos) == 0
+    // FIXME NEXT These 3 SD_FILE_TYPEs are the Energia problem
+    #define fvmReadByte(buf,file) ardReadByte(buf,file)
+    #define fvmReadWord(buf,file) ardReadWord(buf,file)
+    int ardReadByte(WORD *buf, SD_FILE_TYPE file) {
+      while (file.available() < 1) {};
+      *buf = file.read();
+      return 1;
+    }
+    int ardReadWord(WORD *buf, SD_FILE_TYPE file) {
+      while (file.available() < 4) {};
+      WORD b1 = file.read();
+      WORD b2 = file.read();
+      WORD b3 = file.read();
+      WORD b4 = file.read();
+      *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
+      return 4;
+    }
+    int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
+       int numBytesWritten = file.write(buf,numBytes);
+       // file.flush(); FIXME NEXT
+       return numBytesWritten;
+    }
   #else 
-        #define fvmReadByte(buf,file) 0
-        #define fvmReadWord(buf,file) 0
+    #define fvmReadByte(buf,file) 0
+    #define fvmReadWord(buf,file) 0
   #endif
 
   int ardReadByteStdin(WORD *buf) {
@@ -1215,20 +1212,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
     return 4;
   }
-/*
-  // FIXME is this a dupe function (see above)?
-  // Commented out in preparation for permanent removal.
-  int ardReadByteStdin(WORD buf) {
-    #ifdef FVMO_LOCAL_TAPE
-      while (memcom_available(&memcom, 1) < 1) {};
-      buf = memcom_read(&memcom);
-    #else    
-      while (Serial.available() < 1) {};
-      buf = Serial.read();
-    #endif
-    return 1;
-  }
-*/
+
   int ardWriteStdout(char *buf, int numBytes) {
     const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
     #ifdef FVMO_LOCAL_TAPE
@@ -2613,7 +2597,7 @@ systemInitDevices:
 
 #if FVMP == FVMP_ARDUINO_IDE  // ----------------------------------------------
   // systemInitDevices: // moved label to fvm.c
-  // FIXME suspect the below won't work when relevant
+  // FIXME NEXT suspect the below won't work when relevant
   #ifdef FVMO_SD
     openStdtrc
     #if STDBLK_SIZE > 0
@@ -4489,20 +4473,20 @@ systemReset:
   lastExitCode = rB;          // Save lastExitCode (passed in here in rB)
 
 #ifdef FVMO_SD
-#if STDBLK_SIZE > 0
-  if (stdblkHandle) {
-    closeStdblk                 // Close the standard block device
+  #if STDBLK_SIZE > 0
+    if (stdblkHandle) {
+      closeStdblk                 // Close the standard block device
+    }
+  #endif
+  if (stdexpHandle) {
+    closeStdexp                 // Close stdexp
   }
-#endif
-if (stdexpHandle) {
-  closeStdexp                 // Close stdexp
-}
-if (stdimpHandle) {
-  closeStdimp                 // Close stdimp
-}
-if (stdtrcHandle) {
-  closeStdtrc                 // Close stdtrc
-}
+  if (stdimpHandle) {
+    closeStdimp                 // Close stdimp
+  }
+  if (stdtrcHandle) {
+    closeStdtrc                 // Close stdtrc
+  }
 #endif
   // The next line should normally be the uncommented one for most FVMs
      goto exitFail;           // Uncomment for exit with specific failure code
@@ -4799,31 +4783,40 @@ void clearState() {
     #ifdef FVMO_TRON
       fvmTraceNewline();
     #endif
-  /*
-    // FIXME the below is unnecessary if no SD-card-based stdblk
-    if (!SD.begin(chipSelect_SD)) {
-      Serial.println("initialization failed!"); // FIXME use fvmTrace...
-      return;
-    }
-  */
+
+    #ifdef FVMO_SD 
+      if (!SD.begin(FVMO_SD_CS_PIN)) {
+        #ifdef FVMO_TRON
+          const static char str13[] PROGMEM = "SD card FAIL";
+          fvmTrace(str13);
+        #endif
+        // FIXME probably should bail out here so we do not start FVM
+      } else {
+        #ifdef FVMO_TRON
+          const static char str14[] PROGMEM = "SD card OK";
+          fvmTrace(str14);
+          fvmTraceNewline();
+        #endif
+      }
+    #endif
 
 #ifdef FVMO_LOCAL_TAPE
   #ifdef FVMO_TRON
-    const static char str1[] PROGMEM = "About to initialize local tape";
+    const static char str1[] PROGMEM = "Init tape...";
     fvmTrace(str1);
     fvmTraceNewline();
   #endif
     bool initialized = tape_local_init();
     if (initialized) {
     #ifdef FVMO_TRON
-      const static char str2[] PROGMEM = "Initialized tape";
+      const static char str2[] PROGMEM = "Tape OK";
       fvmTrace(str2);
       fvmTraceNewline();
     #endif
     } else {
       tape_local_shutdown();
     #ifdef FVMO_TRON
-      const static char str3[] PROGMEM = "FAILED TO initialize tape";
+      const static char str3[] PROGMEM = "Tape FAIL";
       fvmTrace(str3);
       fvmTraceNewline();
     #endif
@@ -4831,7 +4824,7 @@ void clearState() {
     }
 #endif
   #ifdef FVMO_TRON
-    const static char str4[] PROGMEM = "About to run FVM...";
+    const static char str4[] PROGMEM = "Run FVM...";
     fvmTrace(str4);
     fvmTraceNewline();
   #endif
@@ -4839,7 +4832,7 @@ void clearState() {
   void loop() {
     int theExitCode = runfvm();
   #ifdef FVMO_TRON
-    const static char str5[] PROGMEM = "FVM exit code was: ";
+    const static char str5[] PROGMEM = "FVM exit code: ";
     fvmTrace(str5);
     fvmTraceWordHex(theExitCode);
     fvmTraceNewline();
