@@ -33,13 +33,16 @@ Freeputer 1.1 is coming!
 Expected as an alpha release by mid-2016, it should include:
 
 * an FVM 1.1, with some additional instructions
-* continued support for running on servers and desktops
+* continued support for targeting x86 or gcc or Linux or Java
 * slightly enhanced versions of the Freelang compilers flc and flx
 * support for an extraordinarily portable textual user-interface (the 'tape')
-* very significant support for using the FVM 1.1 on Arduino and chipKIT
+* support for Arduino (AVR, ARM) and chipKIT (PIC32) boards via the Arduino IDE
+* support for TI Launchpad (MSP430, ARM) boards via the Energia IDE
 * design enhancements meant to facilitate future standalone use
 
 Most of the above has already been successfully spiked.
+
+Freeputer 1.1 is fundamentally about hardware freedom. For example, it very easily allows a Freeputer Virtual Machine to be deployed to an Arduino as a bare-metal, dedicated, interactive system with its own PS/2 keyboard and simple LCD display. Alternatively, it very easily allows that Arduino to be connected via serial connection to a remote 'tape terminal' with a more sophisticated display (driven by another Arduino or running on a Linux computer). Such hardware freedom is a prerequisite to true software freedom. That the same software module can easily be run on a tiny Arduino or on a powerful server demonstrates true freedom and protects your investment in writing that software.
 
 ## So where's the code?
 
@@ -58,7 +61,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 12 March 2016 at 16:47.  
+This document was last updated on 27 March 2016 at 1704.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
