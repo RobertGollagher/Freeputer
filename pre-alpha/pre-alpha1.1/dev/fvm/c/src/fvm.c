@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160327:1334
-Version:    pre-alpha-0.0.0.13 for FVM 1.1
+Updated:    20160327:1451
+Version:    pre-alpha-0.0.0.14 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -71,16 +71,13 @@ option then you can skip the above preparation.
 
 For now, since this is a pre-alpha implementation and thus performance is
 a secondary consideration, the recommended command to build the FVM executable
-with the provided Makefile is simply:
+for a Linux target with the provided Makefile is simply:
 
   make
 
 Which is equivalent to:
 
   gcc -o fvm fvm.c
-
-Target platforms known to work well:
-  * x86 Debian Linux
 
 If your target is Arduino or chipKIT then of course you will need to use
 the Arduino IDE to build the FVM executable rather than running make. To do
@@ -108,7 +105,18 @@ For some other kinds of Launchpads you can simply use the Upload button
 in the Energia IDE in the normal manner. Use Energia 17 or higher.
 
 ==============================================================================
+
+  The following targets have successfully run the 'ts.fl' tape server
+  on an 'fvm.c' FVM instance connected by serial connection over USB to a
+  'tape.c' tape terminal running on Linux.
+
+  Of course, doing so requires appropriate 'fvm.c' configuration
+  for the target in question and for the desired mode of tape operation.
+  It also requires matching 'tape.c' configuration for that same mode.
+  Lastly, slotFloor in 'ts.fl' must equal ROM_SIZE in 'fvm.c'.
+
   TARGETS CURRENTLY WORKING WELL:
+
 ==============================================================================
 
   LINUX
@@ -122,16 +130,20 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
 
   ENERGIA IDE
   * Tiva C Series Launchpad EK-TM4C123GXL
+  * MSP430 Launchpad MSP-EXP430FR6989
+  * MSP430 Launchpad MSO-EXP430F5529LP
+
+Notes:
+
+  * For MSP-EXP430FR6989 Launchpad, do not start the Linux tape terminal
+    until your Launchpad 'ts.fl' tape server is up and running.
   
 ==============================================================================
-  TARGETS CURRENTLY NOT WORKING:
+  TARGETS CURRENTLY NOT WORKING
 ==============================================================================
 
   ARDUINO IDE
-  * Fubarino SD 1.5  
-
-  ENERGIA IDE
-  * All MSP430 boards
+  * Fubarino SD 1.5
 
 ==============================================================================
 
@@ -254,7 +266,7 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_UNO_TINY_MUX
+#define FVMC_ENERGIA_MSP430_TINY_MUX
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -274,9 +286,20 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
   #define FVMO_MULTIPLEX
 #endif
 
+/* A tiny Energia FVM with multiplexing.
+   Suitable for some MSP430 Launchpads including:
+     MSP430 Launchpad MSP-EXP430FR6989
+     MSP430 Launchpad MSO-EXP430F5529LP
+ */
+#ifdef FVMC_ENERGIA_MSP430_TINY_MUX
+  #define FVMOS_ENERGIA_MSP430
+  #define FVMOS_SIZE_TINY
+  #define FVMO_MULTIPLEX
+#endif
+
 /* A mini Energia FVM with multiplexing.
-   Suitable for Texas Instruments ARM Launchpads including: 
-    Tiva C Series EK-TM4C123GXL
+   Suitable for some Texas Instruments ARM Launchpads including: 
+     Tiva C Series EK-TM4C123GXL
 */
 #ifdef FVMC_ENERGIA_ARM_MINI_MUX
   #define FVMOS_ENERGIA_ARM
@@ -414,7 +437,7 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
   #define FVMO_INCORPORATE_ROM
 #endif
 
-/* Generic option set: typical options for Arduino Uno */
+/* Generic option set: typical Arduino Uno options */
 #ifdef FVMOS_ARDUINO_UNO
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON // Comment to save memory if tracing not needed
@@ -423,7 +446,17 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
   #define FVMO_INCORPORATE_ROM
 #endif
 
-/* Generic option set: ARM Launchpad options. */
+/* Generic option set: typical MSP430 Launchpad options. */
+#ifdef FVMOS_ENERGIA_MSP430
+  #define FVMP FVMP_ARDUINO_IDE
+  #define FVMO_TRON // Comment to save memory if tracing not needed
+  #define FVMO_SMALL_ROM
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_INCORPORATE_ROM
+  #define FVMO_SAFE_ALIGNMENT
+#endif
+
+/* Generic option set: typical ARM Launchpad options. */
 #ifdef FVMOS_ENERGIA_ARM
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
