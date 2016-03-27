@@ -146,8 +146,8 @@ for a demonstration like this but is hardly robust.
 ============================================================================== )
 
 \ Set slotFloor to size of FVM instance's ROM in bytes
-\ slotFloor 32768  \ Suitable for FVMOS_SIZE_MINI
-  slotFloor 4096   \ Suitable for FVMOS_SIZE_TINY (e.g. Arduino Uno)
+   slotFloor 32768  \ Suitable for FVMOS_SIZE_MINI
+\  slotFloor 4096   \ Suitable for FVMOS_SIZE_TINY (e.g. Arduino Uno)
 
 ts{
 

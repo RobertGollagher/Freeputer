@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160327:1451
-Version:    pre-alpha-0.0.0.14 for FVM 1.1
+Updated:    20160327:1508
+Version:    pre-alpha-0.0.0.15 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -141,9 +141,9 @@ Notes:
 ==============================================================================
   TARGETS CURRENTLY NOT WORKING
 ==============================================================================
-
   ARDUINO IDE
-  * Fubarino SD 1.5
+  * Fubarino SD 1.5 (incompatible serial communication)
+  * DuinoMite-Mega  (incompatible serial communication)
 
 ==============================================================================
 
@@ -248,9 +248,9 @@ Notes:
   GENERAL NOTE
   ============
 
-  Don't forget to set the corresponding #defines in your tape source code
-  to the ones found in this FVM source code, or things won't work.
-  This will probably be automated in future.
+  Don't forget to set the corresponding mode #defines in your tape source code
+  to the ones found in this 'fvm.c' FVM source code, or things won't work.
+  Also, slotFloor in 'ts.fl' must equal ROM_SIZE in 'fvm.c'.
 
   SIZING OPTIONS
   ==============
@@ -266,7 +266,7 @@ Notes:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ENERGIA_MSP430_TINY_MUX
+#define FVMC_CHIPKIT_MINI_MUX
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -395,11 +395,18 @@ Notes:
   #define FVMO_MULTIPLEX
 #endif
 
-/* A mini Arduino FVM without multiplexing.
-   Suitable for Arduino Mega 2560 */
-#ifdef FVMC_ARDUINO_MINI
-  #define FVMOS_ARDUINO
+/* A mini Arduino FVM without multiplexing. */
+#ifdef FVMC_CHIPKIT_MINI
+  #define FVMOS_CHIPKIT
   #define FVMOS_SIZE_MINI
+#endif
+
+/* A mini Arduino FVM without multiplexing and a slow baud rate. */
+#ifdef FVMC_CHIPKIT_MINI_MUX_SLOW
+  #define FVMOS_CHIPKIT
+  #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_SLOW_BAUD
 #endif
 
 /* A tiny Arduino FVM with multiplexing. */
