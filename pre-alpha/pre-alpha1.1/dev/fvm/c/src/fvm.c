@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160326:2224
-Version:    pre-alpha-0.0.0.12 for FVM 1.1
+Updated:    20160327:1334
+Version:    pre-alpha-0.0.0.13 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -90,15 +90,6 @@ course also ensure 'rom.h' is in the same directory as your 'fvm.ino'.
 Alternatively, use appropriate symbolic links for convenience.
 Use Arduino IDE 1.6.7 or higher.
 
-Boards currently working well:
-  * Arduino Mega 2560
-  * Arduino Due
-  * chipKIT Max32
-
-Boards currently not working:
-  * Arduino Uno
-  * Fubarino SD 1.5
-
 If your target is a Texas Instruments Launchpad (also treated as
 platform FVMP_ARDUINO_IDE) do the same but use the Energia IDE (see energia.nu).
 For Tiva C Series Launchpads you will first need to install lm4flash by:
@@ -116,10 +107,30 @@ That will upload this compiled sketch to your Tiva C Series Launchpad board
 For some other kinds of Launchpads you can simply use the Upload button
 in the Energia IDE in the normal manner. Use Energia 17 or higher.
 
-Launchpads currently working well:
-  * EK-TM4C123GXL
+==============================================================================
+  TARGETS CURRENTLY WORKING WELL:
+==============================================================================
 
-Launchpads currently not working:
+  LINUX
+  * Debian Linux
+
+  ARDUINO IDE
+  * Arduino Uno
+  * Arduino Mega 2560
+  * Arduino Due
+  * chipKIT Max32
+
+  ENERGIA IDE
+  * Tiva C Series Launchpad EK-TM4C123GXL
+  
+==============================================================================
+  TARGETS CURRENTLY NOT WORKING:
+==============================================================================
+
+  ARDUINO IDE
+  * Fubarino SD 1.5  
+
+  ENERGIA IDE
   * All MSP430 boards
 
 ==============================================================================
@@ -401,17 +412,15 @@ Launchpads currently not working:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
 #endif
 
 /* Generic option set: typical options for Arduino Uno */
 #ifdef FVMOS_ARDUINO_UNO
   #define FVMP FVMP_ARDUINO_IDE
-  #define FVMO_TRON
+  #define FVMO_TRON // Comment to save memory if tracing not needed
   #define FVMO_SMALL_ROM
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  //#define FVMO_SAFE_ALIGNMENT // FIXME using this breaks Mega
 #endif
 
 /* Generic option set: ARM Launchpad options. */
@@ -447,7 +456,7 @@ Launchpads currently not working:
 #endif
 
 // ===========================================================================
-#ifdef FVMO_SMALL_ROM
+#ifdef FVMO_SMALL_ROM // FIXME refactor these to generic name
   #define pgm_read_byte_far pgm_read_byte_near
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
@@ -892,17 +901,18 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         if (addr < ROM_SIZE) { 
             #ifdef FVMO_SAFE_ALIGNMENT
               // FIXME NEXT roll this safe alignment out in all files
-              // for all platforms and add test to fvm test
+              // for all platforms and add test to fvm test. Also reconsider
+              // its implementation as it has hardly been tested at all.
               #ifdef FVMO_NO_PROGMEM
                 return (WORD)(prog[addr] |
-                        prog[1+addr] << 8 |
-                        prog[2+addr] << 16 | 
-                        prog[3+addr] << 24);
+                        prog[addr+1] << 8 |
+                        prog[addr+2] << 16 | 
+                        prog[addr+3] << 24);
               #else
                 return (WORD)(pgm_read_byte_far(prog+addr) |
-                        pgm_read_byte_far(1+prog[0]+addr) << 8 |
-                        pgm_read_byte_far(2+prog[0]+addr) << 16 | 
-                        pgm_read_byte_far(3+prog[0]+addr) << 24);
+                        pgm_read_byte_far(prog+addr+1) << 8 |
+                        pgm_read_byte_far(prog+addr+2) << 16 | 
+                        pgm_read_byte_far(prog+addr+3) << 24);
               #endif
             #else
               #ifdef FVMO_NO_PROGMEM
@@ -914,9 +924,9 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         } else {
             #ifdef FVMO_SAFE_ALIGNMENT
               return (WORD)(ram[addr-ROM_SIZE] |
-                      ram[1+addr-ROM_SIZE] << 8 |
-                      ram[2+addr-ROM_SIZE] << 16 | 
-                      ram[3+addr-ROM_SIZE] << 24);
+                      ram[addr+1-ROM_SIZE] << 8 |
+                      ram[addr+2-ROM_SIZE] << 16 | 
+                      ram[addr+3-ROM_SIZE] << 24);
             #else
               return *(WORD *)&ram[addr-ROM_SIZE]; 
             #endif
@@ -926,9 +936,9 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #ifdef FVMO_SAFE_ALIGNMENT
         inline void setWordAtAddr(WORD val, WORD addr) {
           ram[addr-ROM_SIZE] = val;
-          ram[1+addr-ROM_SIZE] = val >> 8;
-          ram[2+addr-ROM_SIZE] = val >> 16;
-          ram[3+addr-ROM_SIZE] = val >> 24;
+          ram[addr+1-ROM_SIZE] = val >> 8;
+          ram[addr+2-ROM_SIZE] = val >> 16;
+          ram[addr+3-ROM_SIZE] = val >> 24;
         }
       #else
         inline void setWordAtAddr(WORD val, WORD addr) {
@@ -1551,7 +1561,8 @@ const static char mn253[] PROGMEM = "reboot  ";
 const static char mn254[] PROGMEM = "halt    ";
 const static char mn255[] PROGMEM = "data    " ;
 const static char* const traceTable[] PROGMEM = {
-  mn1, // Must be in same order as opcodeTable
+  mn0, // Must be in same order as opcodeTable
+  mn1,
   mn2,
   mn3,
   mn4,
@@ -1817,30 +1828,65 @@ const static char* const traceTable[] PROGMEM = {
     fvmTraceChar('\n');
   }
 
-  /* For tracing: print a message up to 256 characters long */
-  void fvmTrace(const char *msg) {
-    BYTE i = 0;    
-    while ((i <= BYTE_MAX) && (msg[i] != 0)) {
-      fvmTraceChar(msg[i]);
-      i++;
+  #ifdef FVMO_NO_PROGMEM
+    /* For tracing: print a message up to 256 characters long */
+    void fvmTrace(const char *msg) {
+      BYTE i = 0;
+      while ((i <= BYTE_MAX) && (msg[i] != 0)) {
+        fvmTraceChar(msg[i]);
+        i++;
+      }
     }
-  }
+  #else
+    /* 
+       For tracing: print a message from PROGMEM up to 256 characters long.
+       IMPORTANT NOTE: when not in FVMO_NO_PROGMEM mode, absolutely all
+       strings passed into fvmTrace must reside in PROGMEM!
+       This will NOT work:
+
+          fvmTrace("some string"); 
+
+       But this will work:
+
+          const static char someStr[] PROGMEM = "some string";
+          fvmTrace(someStr); 
+
+    */
+    void fvmTrace(const char *msg) {
+      BYTE i = 0;
+      char c;
+      while (i <= BYTE_MAX) {
+        c = pgm_read_byte_far(msg+i);
+        if (c == 0) {
+          break;
+        }
+        fvmTraceChar(c);
+        i++;
+      }
+    }
+  #endif
 
   /* For tracing: print a byte in hexadecimal */
   void fvmTraceByteHex(BYTE b) {
     BYTE h = (b >> 4) & 0x0f;
-    fvmTraceChar(hex[h]);
+    char c;
+    #ifdef FVMO_NO_PROGMEM
+      c = hex[h];
+    #else
+      c = pgm_read_byte_far(hex+h);
+    #endif
+    fvmTraceChar(c);
     h = b & 0x0f;
-    fvmTraceChar(hex[h]);
+    #ifdef FVMO_NO_PROGMEM
+      c = hex[h];
+    #else
+      c = pgm_read_byte_far(hex+h);
+    #endif
+    fvmTraceChar(c);
   }
 
   /* For tracing: print a byte in hexadecimal */
   void fvmTraceWordHex(WORD n) { /* TODO make generic */
-    if (n == NONE) {
-      const static char str[] PROGMEM = "  NONE  ";
-      fvmTrace(str);
-      return;
-    }
     BYTE b = (n >> 24) & 0x000000ff;
     fvmTraceByteHex(b);
     b = (n >> 16) & 0x000000ff;
@@ -1854,9 +1900,18 @@ const static char* const traceTable[] PROGMEM = {
   /* For tracing: pretty print a mnemonic up to 8 characters long */
   void fvmTraceMnemonic(const char *msg) {
     int i = 0;
-    int spaces = 8;      
-    while ((i < 8) && (msg[i] != 0)) {
-      fvmTraceChar(msg[i]);
+    int spaces = 8;
+    char c;
+    while (i < 8) {
+    #ifdef FVMO_NO_PROGMEM
+      c = msg[i];
+    #else
+      c = pgm_read_byte_far(msg+i);
+    #endif
+      if (c == 0) {
+        break;
+      }
+      fvmTraceChar(c);
       i++;
       spaces--;
     }
@@ -1875,10 +1930,17 @@ const static char* const traceTable[] PROGMEM = {
     if (opcode >= 0 && opcode <=256) {
       fvmTraceWordHex(pc);
       fvmTraceChar(' ');
-      fvmTraceMnemonic(traceTable[opcode]);
+      const char* pStr;
+      #ifdef FVMO_NO_PROGMEM
+        pStr = traceTable[opcode];
+      #else
+        pStr = (char *)pgm_read_dword_far(&(traceTable[opcode]));
+      #endif
+      fvmTraceMnemonic(pStr);
     } else {
       fvmTraceWordHex(pc);
-      fvmTrace("  ");
+      const static char str6[] PROGMEM = "  ";
+      fvmTrace(str6);
     }
     if (opcode < LOWEST_SIMPLE_OPCODE && pc
         < (HIGHEST_WRITABLE_WORD - WORD_SIZE)) {
@@ -1886,28 +1948,34 @@ const static char* const traceTable[] PROGMEM = {
       fvmTraceWordHex(cellValue);
       fvmTraceChar(' ');
     } else {
-      fvmTrace("         ");
+      const static char str7[] PROGMEM = "         ";
+      fvmTrace(str7);
     }
   }
 
   void traceStacks() {
-    fvmTrace("( ");
+    const static char str8[] PROGMEM = "( ";
+    fvmTrace(str8);
     int i = 1;
     int numElems = (DS_EMPTY-dsp);
     for (; i<=numElems; i++) {
       fvmTraceWordHex(ds[dsStop-i]);
       fvmTraceChar(' '); 
-    } 
-    fvmTrace(") ");
-    fvmTrace("[ ");
+    }
+    const static char str9[] PROGMEM = ") ";
+    fvmTrace(str9);
+    const static char str10[] PROGMEM = "[ ";
+    fvmTrace(str10);
     i = 1;
     numElems = (SS_EMPTY-ssp);
     for (; i<=numElems; i++) {
       fvmTraceWordHex(ss[ssStop-i]);
       fvmTraceChar(' '); 
-    } 
-    fvmTrace("] ");
-    fvmTrace("{ ");
+    }
+    const static char str11[] PROGMEM = "] ";
+    fvmTrace(str11);
+    const static char str12[] PROGMEM = "{ ";
+    fvmTrace(str12);
     i = 1;
     numElems = (RS_EMPTY-rsp);
     for (; i<=numElems; i++) {
@@ -1943,7 +2011,7 @@ const static char* const traceTable[] PROGMEM = {
     fvmTraceNewline();
   }
 #else
-  void traceExit(WORD pc, onst char *msg) {}
+  void traceExit(WORD pc, const char *msg) {}
   void traceExitMsg(const char *msg) {}
 #endif // .ifdef FVMO_TRON
 

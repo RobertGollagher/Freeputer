@@ -4,8 +4,8 @@ Program:    ts.fl
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    2016
-Updated:    20160321:2000
-Version:    pre-alpha-0.0.0.2
+Updated:    20160326:2253
+Version:    pre-alpha-0.0.0.3
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -145,7 +145,9 @@ for a demonstration like this but is hardly robust.
 
 ============================================================================== )
 
-slotFloor 32768  \ Size of FVM instance's ROM in bytes
+\ Set slotFloor to size of FVM instance's ROM in bytes
+\ slotFloor 32768  \ Suitable for FVMOS_SIZE_MINI
+  slotFloor 4096   \ Suitable for FVMOS_SIZE_TINY (e.g. Arduino Uno)
 
 ts{
 
