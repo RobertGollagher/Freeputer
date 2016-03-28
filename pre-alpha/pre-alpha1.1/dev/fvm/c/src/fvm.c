@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160328:0137
-Version:    pre-alpha-0.0.0.18 for FVM 1.1
+Updated:    20160328:1645
+Version:    pre-alpha-0.0.0.19 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -219,7 +219,8 @@ Notes:
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
   #define FVMO_SD // Target has SD card and uses Arduino SD library
-  #define FVMO_SD_CS_PIN 4 // Specify CS pin for SD card for your board 
+  #define FVMO_SD_CS_PIN 4 // Specify CS pin for SD card for your board
+  #define FVMO_FVMTEST // A special mode for running the fvmtest suite
 
   New feature: Incorporate a tape device into the FVM executable
   and use it as stdin and stdout (monolithic but fast and sometimes convenient)
@@ -800,21 +801,22 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   FILE *stdtrcHandle;                // File handle for stdtrc file
   FILE *stdexpHandle;                // File handle for stdexp file
   FILE *stdimpHandle;                // File handle for stdimp file
-
-  /* Open stdtrc
-
-     Normally this should do:
-              stdtrcHandle = fopen(stdtrcFilename, "w")
-     but for fvm16-16MB-sr-append for fvmtest change this to:
-              stdtrcHandle = fopen(stdtrcFilename, "a")
-
-     FIXME add #ifdef logic for fvmtest mode
-  */
-  #define openStdtrc \
-  stdtrcHandle = fopen(stdtrcFilename, "w"); \
-  if (!stdtrcHandle) { \
-    goto trapCantOpenStdtrc; \
-  }
+ 
+  #ifdef FVMO_FVMTEST
+    /* Open stdtrc for appending (suitable for fvmtest suite) */
+    #define openStdtrc \
+    stdtrcHandle = fopen(stdtrcFilename, "a"); \
+    if (!stdtrcHandle) { \
+      goto trapCantOpenStdtrc; \
+    }
+  #else
+    /* Open stdtrc for writing (not appending) */ 
+    #define openStdtrc \
+    stdtrcHandle = fopen(stdtrcFilename, "w"); \
+    if (!stdtrcHandle) { \
+      goto trapCantOpenStdtrc; \
+    }
+  #endif
 
   /* Close stdtrc */
   #define closeStdtrc \
@@ -880,13 +882,17 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         putchar(c);
         fflush(stdout);
         #ifdef FVMO_STDTRC_FILE_ALSO
+        if (stdtrcHandle) {
           putc(c,stdtrcHandle);
           fflush(stdtrcHandle);
+        }        
         #endif
       #else
         #ifdef FVMO_STDTRC_FILE_ALSO
+        if (stdtrcHandle) {
           putc(c,stdtrcHandle);
           fflush(stdtrcHandle);
+        } 
         #endif
       #endif
     }
@@ -1014,7 +1020,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #endif
 
   // ===========================================================================
-  //        DEVICES
+  //        DEVICES  // FIXME add logic for Linux too: #if STDBLK_SIZE > 0
   // ===========================================================================
   #define stdblkFilename         "std.blk"   // Name of file for standard block
   #define romFilename            "rom.fp"    // Name of file for system ROM
@@ -1065,12 +1071,27 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     SD_FILE_TYPE stdexpHandle; // File handle for stdexp file
     SD_FILE_TYPE stdimpHandle; // File handle for stdimp file
 
-    /* Open stdtrc */ // FIXME may need another config option here for stdtrc
-    #define openStdtrc \
-    stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
-    if (!stdtrcHandle) { \
-      goto trapCantOpenStdtrc; \
-    }
+
+    // FIXME may need another config option here for stdtrc
+    #ifdef FVMO_FVMTEST
+      /* Open stdtrc for appending */ 
+      #define openStdtrc \
+      stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
+      if (!stdtrcHandle) { \
+        goto trapCantOpenStdtrc; \
+      }
+    #else
+      /* Open stdtrc for writing (not appending) */ 
+      #define openStdtrc \
+      if (SD.exists(stdtrcFilename)) { \
+        SD.remove(stdtrcFilename); \
+      } \
+      stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
+      if (!stdtrcHandle) { \
+        goto trapCantOpenStdtrc; \
+      }
+    #endif
+
     /* Close stdtrc */
     #define closeStdtrc stdtrcHandle.close();
 
@@ -1105,21 +1126,13 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #endif // #ifdef FVMO_SD
 
   void clearDevices() {
-    // FIXME Anything to do here on Arduino?
-    /*
-    stdblkHandle = NULL;
-    #ifndef FVMO_INCORPORATE_ROM
-      romHandle = NULL;
-    #endif
-    stdtrcHandle = NULL;
-    stdexpHandle = NULL;
-    stdimpHandle = NULL;
-    */
+    // On Linux we set all file pointers to NULL here but on Arduino here we
+    // do nothing (since Arduino SD files apparently are not pointers).
   }
 
-  // ===========================================================================
+  // =========================================================================
   //        UTILITIES
-  // ===========================================================================
+  // =========================================================================
   // FIXME Consider here smart Arduinos with SD for stdtrc or similar
   void fvmTraceChar(const char c) {
     #ifdef FVMO_LOCAL_TAPE
@@ -1150,9 +1163,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
           Serial.flush();
         #endif
     #endif // #ifdef FVMO_LOCAL_TAPE
-    #ifdef FVMO_STDTRC_FILE_ALSO // FIXME could fill up the card quickly!
+    #ifdef FVMO_STDTRC_FILE_ALSO
+    if (stdtrcHandle) {
       stdtrcHandle.write(c);
       stdtrcHandle.flush();
+    }
     #endif
   }
 
@@ -4488,12 +4503,16 @@ systemReset:
     closeStdtrc                 // Close stdtrc
   }
 #endif
-  // The next line should normally be the uncommented one for most FVMs
-     goto exitFail;           // Uncomment for exit with specific failure code
-  // goto exitFailGeneric;    // Uncomment for exit with generic failure code
-  // The next line should be uncommented for fvm16-16MB-sr-append for fvmtest
-  // goto systemSoftReset;    // Uncomment for soft reset
-  // goto systemHardReset;    // Uncomment for hard reset
+
+#ifdef FVMO_FVMTEST
+// The next line should be uncommented for fvm16-16MB-sr-append for fvmtest
+   goto systemSoftReset;    // Uncomment for soft reset
+#else
+// The next line should normally be the uncommented one for most FVMs
+   goto exitFail;           // Uncomment for exit with specific failure code
+// goto exitFailGeneric;    // Uncomment for exit with generic failure code
+// goto systemHardReset;    // Uncomment for hard reset
+#endif
 
 // ===========================================================================
 //                              EXIT POINTS
@@ -4733,6 +4752,10 @@ void clearState() {
 #endif   // ------------------------------------------------------------------
 
 #if FVMP == FVMP_ARDUINO_IDE // ----------------------------------------------
+  /* Note that none of the diagnostic messages in this function will
+     appear in 'std.trc' on an SD card, because they precede the running
+     of the FVM itself. They can however be seen over serial if
+     configuration is appropriate for that. */
   void setup() {
 
   /*
@@ -4788,6 +4811,7 @@ void clearState() {
       if (!SD.begin(FVMO_SD_CS_PIN)) {
         #ifdef FVMO_TRON
           const static char str13[] PROGMEM = "SD card FAIL";
+          fvmTraceNewline();
           fvmTrace(str13);
         #endif
         // FIXME probably should bail out here so we do not start FVM
