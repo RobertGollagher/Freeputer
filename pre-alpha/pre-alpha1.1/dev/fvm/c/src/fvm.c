@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160328:1855
-Version:    pre-alpha-0.0.0.21 for FVM 1.1
+Updated:    20160328:2121
+Version:    pre-alpha-0.0.0.22 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -226,8 +226,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       another Arduino. Problems arise from limited buffering.
 
   (4) This implementation never multiplexes anything other than stdout,
-      stdtrc and stdin. That is, even when in FVMO_MULTIPLEX there is no
-      multiplexing of stdimp, stdexp and stdblk.
+      stdtrc and stdin. That is, even when in FVMO_MULTIPLEX mode there
+      is no multiplexing of stdimp, stdexp and stdblk.
 
   (5) In summary: whenever reasonably possible you should avoid
       using multiplexing. However, it is undeniably convenient and
@@ -2990,19 +2990,42 @@ systemInitCore:
             break;
         }
         break;
-      case iREADOR:  // FIXME FVMO_MULTIPLEX //
+      case iREADOR:
         readBuf = 0; // zero the buffer
         switch(rchannel) {
           case STDIN:
             if (fvmReadWordStdin(&readBuf) < 1) {
               branch // read failed
               break;
-            } else {
-              rA = readBuf;
-              pushDs
-              dontBranch
-              break;
             }
+            rA = readBuf;
+#ifdef FVMO_MULTIPLEX
+            // WARNING: input buffering would need to be added for this
+            // to be of any real use for true multiplexing. This currently
+            // can only work reliably because stdin is the only input
+            // stream that this 'fvm.c' 'multiplexes'. Also note that here
+            // in iREADOR we are only using byte-level multiplexing which
+            // is inefficient compared to word-level multiplexing but
+            // probably has to be used for reasons of practicality;
+            // thus rendering word-level multiplexing redundant.
+
+            // FIXME untested:
+            if (readBuf != STDIN_BYTE) { branch break; }
+            if (fvmReadByteStdin(&readBuf) < 1) { branch break; }
+            rA = readBuf;
+            if (readBuf != STDIN_BYTE) { branch break; }
+            if (fvmReadByteStdin(&readBuf) < 1) { branch break; }
+            rA = rA << 8; rA = rA & (readBuf & 0x000000ff);
+            if (readBuf != STDIN_BYTE) { branch break; }
+            if (fvmReadByteStdin(&readBuf) < 1) { branch break; }
+            rA = rA << 8; rA = rA & (readBuf & 0x000000ff);
+            if (readBuf != STDIN_BYTE) { branch break; }
+            if (fvmReadByteStdin(&readBuf) < 1) { branch break; }
+            rA = rA << 8; rA = rA & (readBuf & 0x000000ff);
+#endif
+            pushDs
+            dontBranch
+            break;
           break;
           case STDIMP:
             if (fvmReadWord(&readBuf,stdimpHandle) < 1) {
@@ -3029,6 +3052,10 @@ systemInitCore:
               break;
             }
 #ifdef FVMO_MULTIPLEX
+            // WARNING: input buffering would need to be added for this
+            // to be of any real use for true multiplexing. This currently
+            // only works reliably because stdin is the only input
+            // stream that this 'fvm.c' 'multiplexes'.
             if (readBuf != STDIN_BYTE) {
               branch // read is from wrong input stream
               break;
@@ -3144,6 +3171,7 @@ systemInitCore:
       case iTRACOR:
         popDs
 #ifdef FVMO_MULTIPLEX
+          // FIXME untested
           writeBuf = STDTRC_BYTE;
           if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
           writeBuf = rA;
