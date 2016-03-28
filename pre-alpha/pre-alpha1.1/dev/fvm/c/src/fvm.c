@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160328:1645
-Version:    pre-alpha-0.0.0.19 for FVM 1.1
+Updated:    20160328:1734
+Version:    pre-alpha-0.0.0.20 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -221,6 +221,13 @@ Notes:
   #define FVMO_SD // Target has SD card and uses Arduino SD library
   #define FVMO_SD_CS_PIN 4 // Specify CS pin for SD card for your board
   #define FVMO_FVMTEST // A special mode for running the fvmtest suite
+
+  WARNING regarding FVMO_SD_CS_PIN: be sure to consult the documentation for
+  your board and/or SD card shield to determine the correct pin. Examples:
+  Ethernet Shield = 4; Freetronics EtherDue = 4; Fubarino SD (1.5) = 27.
+  Note that even if it is not used as the CS pin, the hardware SS pin
+  (10 on most Arduino boards, 53 on the Mega) must be left as an
+  output or the SD library functions will not work.
 
   New feature: Incorporate a tape device into the FVM executable
   and use it as stdin and stdout (monolithic but fast and sometimes convenient)
@@ -4487,7 +4494,6 @@ systemInitCore:
 systemReset:
   lastExitCode = rB;          // Save lastExitCode (passed in here in rB)
 
-#ifdef FVMO_SD
   #if STDBLK_SIZE > 0
     if (stdblkHandle) {
       closeStdblk                 // Close the standard block device
@@ -4502,7 +4508,6 @@ systemReset:
   if (stdtrcHandle) {
     closeStdtrc                 // Close stdtrc
   }
-#endif
 
 #ifdef FVMO_FVMTEST
 // The next line should be uncommented for fvm16-16MB-sr-append for fvmtest
@@ -4527,6 +4532,15 @@ exitFail:
   exitFailGeneric:
     rB = 1;                   // exitCode for generic failure
     goto systemExit;
+
+/* FIXME Actually, if we arrive at systemExit without first going through
+   systemReset, which indeed we do if we jumped to exitSuccess or exitFail,
+   then any open files will not be explicitly closed prior to the end of the
+   run of the FVM instance. On Linux this does not seem to matter since
+   the operating system presumably closes them when the process
+   ends but on bare metal this might be a problem. However, since this
+   behaviour has existed since FVM 1.0 without causing any problems,
+   fixing it is a low priority for now. */
 systemExit:                   // Exit using exitCode in rB
   return rB;                  // Return from runfvm()
 
@@ -4807,7 +4821,13 @@ void clearState() {
       fvmTraceNewline();
     #endif
 
-    #ifdef FVMO_SD 
+    #ifdef FVMO_SD
+      // Only some boards require the next 2 lines but apparently
+      // they can be used whether or not the board actually requires them
+      // (see note, far above, regarding hardware SS pin).
+      pinMode(FVMO_SD_CS_PIN, OUTPUT);
+      digitalWrite(FVMO_SD_CS_PIN, HIGH);
+
       if (!SD.begin(FVMO_SD_CS_PIN)) {
         #ifdef FVMO_TRON
           const static char str13[] PROGMEM = "SD card FAIL";
@@ -4861,7 +4881,11 @@ void clearState() {
     fvmTraceWordHex(theExitCode);
     fvmTraceNewline();
   #endif
-    // FIXME is there any shutdown we need to do? eg tape, Serial, etc
+    // If any of the devices started in setup() need graceful shutdown
+    // then that would be done here. The current implementation does
+    // not require it. Note: this is NOT the place to close any
+    // open files, that should be done at systemReset: and/or systemExit:
+    // and there is a code comment at systemExit: regarding that. 
     while(true);
   }
 #endif // #if FVMP == FVMP_ARDUINO_IDE // -------------------------------------
