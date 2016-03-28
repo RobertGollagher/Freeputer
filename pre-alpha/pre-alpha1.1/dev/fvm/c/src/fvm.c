@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160328:1734
-Version:    pre-alpha-0.0.0.20 for FVM 1.1
+Updated:    20160328:1855
+Version:    pre-alpha-0.0.0.21 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -147,52 +147,94 @@ Notes:
 
 ==============================================================================
 
-  For reference: FVM 1.1 SIMPLE MULTIPLEXING
+For reference: FVM 1.1 SIMPLE MULTIPLEXING
 
-  FVM 1.1 may optionally use multiplexing to allow multiple virtual devices
-  to share a single physical serial communication link. The simple multiplexing
-  is that each data packet is preceded by a routing byte in which the
-  most significant bit (bit 7) is always zero, the next two
-  most significant bits (bits 6 and 5) identify the device type and
-  the next bit (bit 4) identifies the packet size (essentially byte or word) and
-  the four least significant bits (bit 3 to 0) identify the absolute value
-  of the device ID (e.g. an ID of -1 is communicated as an ID of 1).
-  Note that, by Freeputer convention, a device ID of 0 is only used for stdtrc
-  and stdblk; an input stream never has a device ID of 0; and output streams
-  have negative IDs. The crude multiplexing scheme used here only supports
-  device IDs whose absolute value is between 0 and 15 inclusive.
+FVM 1.1 may optionally use multiplexing to allow multiple virtual devices
+to share a single physical serial communication link. The simple multiplexing
+is that each data packet is preceded by a routing byte in which the
+most significant bit (bit 7) is always zero, the next two
+most significant bits (bits 6 and 5) identify the device type and
+the next bit (bit 4) identifies the packet size (essentially byte or word) and
+the four least significant bits (bit 3 to 0) identify the absolute value
+of the device ID (e.g. an ID of -1 is communicated as an ID of 1).
+Note that, by Freeputer convention, a device ID of 0 is only used for stdtrc
+and stdblk; an input stream never has a device ID of 0; and output streams
+have negative IDs. The crude multiplexing scheme used here only supports
+device IDs whose absolute value is between 0 and 15 inclusive.
 
-  Most significant bits:
+Most significant bits:
 
-    0b0100 = device: output stream, packet size: 1 byte (byte)
-    0b0101 = device: output stream, packet size: 4 bytes (word)
-    0b0000 = device: input stream, packet size: 1 byte (byte)
-    0b0001 = device: input stream, packet size: 4 bytes (word)
-    0b0010 = device: block device, packet size: 5 bytes (word addr then byte)
-    0b0011 = device: block device, packet size: 8 bytes (word addr then word)
-    0b0110 = reserved (not used)
-    0b0111 = reserved (not used) e.g. 0b01111111 unknown device
-    0b1--- = reserved (not used)
+  0b0100 = device: output stream, packet size: 1 byte (byte)
+  0b0101 = device: output stream, packet size: 4 bytes (word)
+  0b0000 = device: input stream, packet size: 1 byte (byte)
+  0b0001 = device: input stream, packet size: 4 bytes (word)
+  0b0010 = device: block device, packet size: 5 bytes (word addr then byte)
+  0b0011 = device: block device, packet size: 8 bytes (word addr then word)
+  0b0110 = reserved (not used)
+  0b0111 = reserved (not used) e.g. 0b01111111 unknown device
+  0b1--- = reserved (not used)
 
-  Thus byte communication uses:
+Thus byte communication uses:
 
-    0b01000000 = stdtrc 0
-    0b00000001 = stdin 1
-    0b00000002 = stdimp 2
-    0b00100000 = stdblk 0
-    0b01000001 = stdout -1
-    0b01000010 = stdexp -2
-    0b0110----- = reserved (not used)
+  0b01000000 = stdtrc 0
+  0b00000001 = stdin 1
+  0b00000002 = stdimp 2
+  0b00100000 = stdblk 0
+  0b01000001 = stdout -1
+  0b01000010 = stdexp -2
+  0b0110----- = reserved (not used)
 
-  Thus word communication uses:
+Thus word communication uses:
 
-    0b01010000 = stdtrc 0
-    0b00010001 = stdin 1
-    0b00010002 = stdimp 2
-    0b00110000 = stdblk 0
-    0b01010001 = stdout -1
-    0b01010010 = stdexp -2
-    0b0111----- = reserved (not used)
+  0b01010000 = stdtrc 0
+  0b00010001 = stdin 1
+  0b00010002 = stdimp 2
+  0b00110000 = stdblk 0
+  0b01010001 = stdout -1
+  0b01010010 = stdexp -2
+  0b0111----- = reserved (not used)
+
+NOTE:
+=====
+
+  The use of this multiplexing scheme, as opposed to some other scheme
+  or no multiplexing at all, is optional. It is merely provided as a
+  convenient option for use with this FVM implementation. This is
+  not meant to suggest that this has to be a Freeputer standard.
+  Indeed, an application running within an FVM instance does
+  not know or care whether that FVM uses multiplexing.
+
+
+IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
+======================================================================
+
+  (1) The limited multiplexing implemented in this 'fvm.c' works
+      reasonably well when the FVM instance, and any process it communicates
+      with, are hosted on a sophisticated operating system such as Linux.
+      This is because Linux provides comprehensive buffering.
+
+  (2) The limited multiplexing implemented in this 'fvm.c' works
+      reasonably well when the FVM instance is on an Arduino (or similar)
+      and the only communication is to a process (such as the 'tape.c'
+      tape terminal) running on Linux (or similar operating system).
+      This is because Linux provides comprehensive buffering.
+
+  (3) The limited multiplexing implemented in this 'fvm.c' works almost
+      tolerably well, but only if slow baud rates are used, when the
+      FVM instance is on an Arduino (or similar) communicating with a
+      process (such as the 'tape-clcd' tape terminal) running on
+      another Arduino. Problems arise from limited buffering.
+
+  (4) This implementation never multiplexes anything other than stdout,
+      stdtrc and stdin. That is, even when in FVMO_MULTIPLEX there is no
+      multiplexing of stdimp, stdexp and stdblk.
+
+  (5) In summary: whenever reasonably possible you should avoid
+      using multiplexing. However, it is undeniably convenient and
+      very useful for (2) and of some use for (3). In future it is likely
+      that multiplexing support will be dropped from this implementation
+      and instead the use of FVMO_STDTRC_SEP will be promoted;
+      but first 'tape.c' will need to be enhanced.
 
 ==============================================================================
                                 KEY TO OPTIONS
@@ -920,8 +962,8 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #include <Arduino.h>
   #include <SPI.h>
   #ifdef FVMO_SD
-      #include <SD.h> // FIXME Could move depending on stdblk support
-      #define SD_FILE_TYPE File // FIXME Arduino IDE needs this comment
+      #include <SD.h>
+      #define SD_FILE_TYPE File  // FIXME Arduino IDE needs this comment!!
   #endif
 
   #ifdef FVMO_SERIALUSB
@@ -1060,7 +1102,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #endif // #ifndef FVMO_INCORPORATE_ROM
 
   // ==========================================================================
-  //   PRIVATE SERVICES // FIXME make all these conditional and tidy up
+  //   PRIVATE SERVICES
   // ==========================================================================
   #ifdef FVMO_SD
     #if STDBLK_SIZE > 0
@@ -2579,12 +2621,12 @@ systemInitDevices:
   setIOdefaults
 
 #if FVMP == FVMP_STDIO // ----------------------------------------------------
-  //systemInitDevices:
     openStdtrc
-    openStdblk
+    #if STDBLK_SIZE > 0
+      openStdblk
+    #endif
     openStdexp
     openStdimp
-  //  setIOdefaults
 
   #ifdef FVMO_INCORPORATE_ROM
     #ifdef FVMO_SEPARATE_ROM
@@ -2618,8 +2660,6 @@ systemInitDevices:
 #endif // #if FVMP == FVMP_STDIO ----------------------------------------------
 
 #if FVMP == FVMP_ARDUINO_IDE  // ----------------------------------------------
-  // systemInitDevices: // moved label to fvm.c
-  // FIXME NEXT suspect the below won't work when relevant
   #ifdef FVMO_SD
     openStdtrc
     #if STDBLK_SIZE > 0
@@ -2628,8 +2668,6 @@ systemInitDevices:
     openStdexp
     openStdimp
   #endif
-  // setIOdefaults  // moved label to fvm.c
-
 
   #ifndef FVMO_INCORPORATE_ROM
 
@@ -2966,7 +3004,6 @@ systemInitCore:
               break;
             }
           break;
-/* Not supported yet FIXME
           case STDIMP:
             if (fvmReadWord(&readBuf,stdimpHandle) < 1) {
               branch // read failed
@@ -2978,7 +3015,6 @@ systemInitCore:
               break;
             }
           break;
-*/
           default:
             branch // Unsupported rchannel
             break;
@@ -2993,9 +3029,6 @@ systemInitCore:
               break;
             }
 #ifdef FVMO_MULTIPLEX
-// FIXME FVMO_MULTIPLEX // Actually this will not work without buffering if there
-// is more than 1 input stream attached to the FVM instance and they are all
-// sending data to the FVM simultaneoulsy by push rather than pull
             if (readBuf != STDIN_BYTE) {
               branch // read is from wrong input stream
               break;
@@ -3011,7 +3044,6 @@ systemInitCore:
             pushDs
             dontBranch
             break;
-/* Not supported yet FIXME
           case STDIMP:
             if (fvmReadByte(&readBuf,stdimpHandle) < 1) {
               branch // read failed
@@ -3021,7 +3053,6 @@ systemInitCore:
             pushDs
             dontBranch
             break;
-*/
           default:
             branch // Unsupported rchannel
             break;
@@ -3031,7 +3062,7 @@ systemInitCore:
         switch(wchannel) {
           case STDOUT:
             popDs
-#ifdef FVMO_MULTIPLEX // FIXME refactor and roll out across all
+#ifdef FVMO_MULTIPLEX
               writeBuf = STDOUT_BYTE;
               if (fvmWriteByteStdout(&writeBuf) < 1) { branch break; }
               writeBuf = rA;
@@ -3053,16 +3084,15 @@ systemInitCore:
               if (fvmWriteByteStdout(&writeBuf) < 1) { branch break; }
               dontBranch
 #else
-            writeBuf = rA;
-            if (fvmWriteWordStdout(&writeBuf) < 1) {
-              branch  // write failed
-              break;
-            } else {
-              dontBranch
-            }
+              writeBuf = rA;
+              if (fvmWriteWordStdout(&writeBuf) < 1) {
+                branch  // write failed
+                break;
+              } else {
+                dontBranch
+              }
 #endif
             break;
-/* Not supported yet FIXME
           case STDEXP:
             popDs
             writeBuf = rA;
@@ -3073,7 +3103,6 @@ systemInitCore:
               dontBranch
             }
             break;
-*/
           default:
             branch // Unsupported wchannel
             break;
@@ -3098,7 +3127,6 @@ systemInitCore:
               dontBranch
               break;
             }
-/* Not supported yet FIXME
           case STDEXP:
             popDs
             writeBuf = rA;
@@ -3108,22 +3136,44 @@ systemInitCore:
               dontBranch
               break;
             }
-*/
           default:
             branch // Unsupported wchannel
             break;
         }
         break;
-      case iTRACOR:  // FIXME MULTIPLEX (roll out across all I/O instrs)
+      case iTRACOR:
         popDs
-        writeBuf = rA;
-        if (fvmWrite(&writeBuf,WORD_SIZE,1,stdtrcHandle) < 1) {
-          branch // trace failed
-          break;
-        } else {
+#ifdef FVMO_MULTIPLEX
+          writeBuf = STDTRC_BYTE;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+          writeBuf = rA;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+
+          writeBuf = STDTRC_BYTE;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+          rA = rA >> 8; writeBuf = rA;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+
+          writeBuf = STDTRC_BYTE;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+          rA = rA >> 8; writeBuf = rA;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+
+          writeBuf = STDTRC_BYTE;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
+          rA = rA >> 8; writeBuf = rA;
+          if (fvmWrite(&writeBuf,1,1,stdtrcHandle) < 1) { branch break; }
           dontBranch
-          break;
-        }
+#else
+          writeBuf = rA;
+          if (fvmWrite(&writeBuf,WORD_SIZE,1,stdtrcHandle) < 1) {
+            branch // trace failed
+            break;
+          } else {
+            dontBranch
+            break;
+          }
+#endif
         break;
       case iTRACORB:
         popDs
@@ -4771,34 +4821,6 @@ void clearState() {
      of the FVM itself. They can however be seen over serial if
      configuration is appropriate for that. */
   void setup() {
-
-  /*
-  // FIXME Fubarino only add this as a callback
-      // change this to match your SD shield or module;
-      // Arduino Ethernet shield: pin 4
-      // Adafruit SD shields and modules: pin 10
-      // Sparkfun SD shield: pin 8
-      // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
-      // Note that even if it's not used as the CS pin, the hardware SS pin 
-      // (10 on most Arduino boards, 53 on the Mega) must be left as an output 
-      // or the SD library functions will not work. 
-
-      // Default SD chip select for Uno and Mega type devices
-      const int chipSelect_SD_default = 10; // Change 10 to 53 for a Mega
-
-      // chipSelect_SD can be changed if you do not use default CS pin
-      const int chipSelect_SD = 27;
-        // Make sure the default chip select pin is set to so that
-        // shields that have a device that use the default CS pin
-        // that are connected to the SPI bus do not hold drive bus
-        pinMode(chipSelect_SD_default, OUTPUT);
-        digitalWrite(chipSelect_SD_default, HIGH);
-
-        pinMode(chipSelect_SD, OUTPUT);
-        digitalWrite(chipSelect_SD, HIGH);
-  // End of Fubarino only section
-  */
-
     #ifdef FVMO_LOCAL_TAPE
       #ifdef FVMO_STDTRC_ALSO_SERIAL
         Serial.begin(BAUD_RATE);
@@ -4844,35 +4866,37 @@ void clearState() {
       }
     #endif
 
-#ifdef FVMO_LOCAL_TAPE
-  #ifdef FVMO_TRON
-    const static char str1[] PROGMEM = "Init tape...";
-    fvmTrace(str1);
-    fvmTraceNewline();
-  #endif
-    bool initialized = tape_local_init();
-    if (initialized) {
+    #ifdef FVMO_LOCAL_TAPE
+      #ifdef FVMO_TRON
+        const static char str1[] PROGMEM = "Init tape...";
+        fvmTrace(str1);
+        fvmTraceNewline();
+      #endif
+        bool initialized = tape_local_init();
+        if (initialized) {
+        #ifdef FVMO_TRON
+          const static char str2[] PROGMEM = "Tape OK";
+          fvmTrace(str2);
+          fvmTraceNewline();
+        #endif
+        } else {
+          tape_local_shutdown();
+        #ifdef FVMO_TRON
+          const static char str3[] PROGMEM = "Tape FAIL";
+          fvmTrace(str3);
+          fvmTraceNewline();
+        #endif
+          // FIXME probably should bail out here so we do not start FVM
+        }
+    #endif
+
     #ifdef FVMO_TRON
-      const static char str2[] PROGMEM = "Tape OK";
-      fvmTrace(str2);
+      const static char str4[] PROGMEM = "Run FVM...";
+      fvmTrace(str4);
       fvmTraceNewline();
     #endif
-    } else {
-      tape_local_shutdown();
-    #ifdef FVMO_TRON
-      const static char str3[] PROGMEM = "Tape FAIL";
-      fvmTrace(str3);
-      fvmTraceNewline();
-    #endif
-      // FIXME probably should bail out here so we do not start FVM
-    }
-#endif
-  #ifdef FVMO_TRON
-    const static char str4[] PROGMEM = "Run FVM...";
-    fvmTrace(str4);
-    fvmTraceNewline();
-  #endif
   }
+
   void loop() {
     int theExitCode = runfvm();
   #ifdef FVMO_TRON
