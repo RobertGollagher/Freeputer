@@ -323,7 +323,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       implementing SD card support. Until this comment is
       removed, SD card support is incomplete.
 */
-#define FVMC_ARDUINO_SD4_MINI_MUX
+#define FVMC_ARDUINO_SD4_MINI_STDBLK16MB_MUX
+#define FVMO_SERIALUSB
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -430,6 +431,18 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #ifdef FVMC_ARDUINO_SD4_MINI_MUX
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
+  #define FVMO_MULTIPLEX
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
+  #define FVMO_STDTRC_FILE_ALSO
+#endif
+
+/* A mini Arduino FVM with multiplexing and an SD card whose CS pin is 4.
+   Also 16 MB stdblk (as a file on that SD card).
+   Suitable for Freetronics EtherDue board. */
+#ifdef FVMC_ARDUINO_SD4_MINI_STDBLK16MB_MUX
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_MINI_STDBLK16MB
   #define FVMO_MULTIPLEX
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 4
@@ -561,6 +574,13 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define ROM_SIZE 32768
   #define RAM_SIZE 2048
   #define STDBLK_SIZE 0
+#endif
+
+/* Sizing: mini with 16 MB stdblk */
+#ifdef FVMOS_SIZE_MINI_STDBLK16MB
+  #define ROM_SIZE 32768
+  #define RAM_SIZE 2048
+  #define STDBLK_SIZE 16777216
 #endif
 
 // ===========================================================================
@@ -1212,11 +1232,13 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
           Serial.flush();
         #endif
     #endif // #ifdef FVMO_LOCAL_TAPE
-    #ifdef FVMO_STDTRC_FILE_ALSO
-    if (stdtrcHandle) {
-      stdtrcHandle.write(c);
-      stdtrcHandle.flush();
-    }
+    #ifdef FVMO_SD
+      #ifdef FVMO_STDTRC_FILE_ALSO
+      if (stdtrcHandle) {
+        stdtrcHandle.write(c);
+        stdtrcHandle.flush();
+      }
+      #endif
     #endif
   }
 
@@ -1287,7 +1309,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     return numBytesWritten;
   }
 
-  #define fvmWrite(buf,unitSize,numUnits,file) ardWriteStdout((char *)buf,numUnits)
+  #define fvmWrite(buf,unitSize,numUnits,file) ardWrite(file,(char *)buf,(unitSize*numUnits)) // FIXME NEXT
   #define fvmReadByteStdin(buf) ardReadByteStdin(buf)
   #define fvmReadWordStdin(buf) ardReadWordStdin(buf)
   #define fvmWriteByteStdout(buf) ardWriteStdout((char *)buf,1)
@@ -4572,20 +4594,23 @@ systemInitCore:
 systemReset:
   lastExitCode = rB;          // Save lastExitCode (passed in here in rB)
 
+#ifdef FVMO_SD
   #if STDBLK_SIZE > 0
-    if (stdblkHandle) {
-      closeStdblk                 // Close the standard block device
-    }
+    if (stdblkHandle) { closeStdblk }
   #endif
-  if (stdexpHandle) {
-    closeStdexp                 // Close stdexp
-  }
-  if (stdimpHandle) {
-    closeStdimp                 // Close stdimp
-  }
-  if (stdtrcHandle) {
-    closeStdtrc                 // Close stdtrc
-  }
+  if (stdexpHandle) { closeStdexp }
+  if (stdimpHandle) { closeStdimp }
+  if (stdtrcHandle) { closeStdtrc }
+#else
+  #if FVMP == FVMP_STDIO
+    #if STDBLK_SIZE > 0
+    if (stdblkHandle) { closeStdblk }
+    #endif
+    if (stdexpHandle) { closeStdexp }
+    if (stdimpHandle) { closeStdimp }
+    if (stdtrcHandle) { closeStdtrc }
+  #endif
+#endif
 
 #ifdef FVMO_FVMTEST
 // The next line should be uncommented for fvm16-16MB-sr-append for fvmtest
@@ -4919,6 +4944,7 @@ void clearState() {
     #endif
 
     #ifdef FVMO_TRON
+      fvmTraceNewline();
       const static char str4[] PROGMEM = "Run FVM...";
       fvmTrace(str4);
       fvmTraceNewline();
