@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160328:2121
-Version:    pre-alpha-0.0.0.22 for FVM 1.1
+Updated:    20160329:1342
+Version:    pre-alpha-0.0.0.23 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -251,6 +251,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON // Enable tracing (degrades performance)
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
   #define FVMO_STDTRC_FILE_ALSO // Send stdtrc output to 'std.trc' file also
+  #define FVMO_STDTRC_STDOUT // Send stdtrc serial output to stdout instead
   #define FVMO_STDTRC_SEP // Use second serial connection for stdtrc (Arduino)
   #define FVMO_SLOW_BAUD // Use low baud rate when multiplexing
   #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
@@ -263,6 +264,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SD // Target has SD card and uses Arduino SD library
   #define FVMO_SD_CS_PIN 4 // Specify CS pin for SD card for your board
   #define FVMO_FVMTEST // A special mode for running the fvmtest suite
+  #define FVMO_STDIMP // Support stdimp // FIXME add one for stdblk (eg EEPROM not SD Card etc rather than size)
+  #define FVMO_STDEXP // Support stdexp
 
   WARNING regarding FVMO_SD_CS_PIN: be sure to consult the documentation for
   your board and/or SD card shield to determine the correct pin. Examples:
@@ -321,10 +324,40 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       All commits until this comment is removed shall be exclusively
       for the Freetronics EtherDue board, for the purpose of
       implementing SD card support. Until this comment is
-      removed, SD card support is incomplete.
+      removed, SD card support is incomplete. This shall include
+      getting the entire fvmtest suite to pass, albeit modified
+      for systems with little RAM.
+
+      For reference, here is the configuration used in the
+      modified 'fvmtest.fl' being used for this testing:
+
+              slotFloor 126976 \ 16777216
+
+              fvmtest{
+
+              \ Constants that inform tests of the sizing of the FVM instance
+              \ upon which the tests are being run:
+              ROM_SIZE.    126976 \ 16777216 \ FVM ROM size (bytes)
+              RAM_SIZE.    4096 \ 16777216 \ FVM RAM size (bytes)
+              MAP_SIZE.    0        \ FVM MAP size (bytes)
+              STDBLK_SIZE. 16777216 \ FVM STDBLK size (bytes)
+              MAX_DEPTH_DS. 32      \ FVM max depth of data stack
+              MAX_DEPTH_SS. 32      \ FVM max depth of software stack
+              MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+
+      So far everything passing except:
+
+            ::testMOVE       ." testMOVE             " expectTraps
+            ::testFILL       ." testFILL             " expectTraps
+            ::testFIND       ." testFIND             " expectTraps
+            ::testMATCH      ." testMATCH            " expectTraps
+            ::testMOVEB      ." testMOVEB            " expectTraps
+            ::testFILLB      ." testFILLB            " expectTraps
+            ::testFINDB      ." testFINDB            " expectTraps
+            ::testMATCHB     ." testMATCHB           " expectTraps
+  
 */
-#define FVMC_ARDUINO_SD4_MINI_STDBLK16MB_MUX
-#define FVMO_SERIALUSB
+#define FVMC_ARDUINO_DUE_SD4_FVMTEST
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -449,6 +482,20 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDTRC_FILE_ALSO
 #endif
 
+/* An Arduino FVM suitable for
+   running a special 'fvmtest.fl' on EtherDue using Native Port. */
+#ifdef FVMC_ARDUINO_DUE_SD4_FVMTEST
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
+  // #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_SERIALUSB
+  #define FVMO_STDTRC_STDOUT
+#endif
+
 /* A mini Arduino FVM, not multiplexed, and using a second serial connection
    for stdtrc. Suitable for Arduino Due or Mega 2560 connected to an Arduino
    tape terminal (and producing good terminal performance). */
@@ -515,6 +562,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_INCORPORATE_ROM
   #define FVMO_NO_PROGMEM
   #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDIMP
+  #define FVMO_STDEXP
 #endif
 
 /* Generic option set: typical options for Arduinos larger than Uno. */
@@ -583,6 +632,13 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 16777216
 #endif
 
+/* Sizing: for running a special 'fvmtest.fl' suite on an Arduino Due */
+#ifdef FVMOS_SIZE_FVMTEST_ARDUINO
+  #define ROM_SIZE 126976
+  #define RAM_SIZE 4096
+  #define STDBLK_SIZE 16777216
+#endif
+
 // ===========================================================================
 #ifdef FVMO_SMALL_ROM // FIXME refactor these to generic name
   #define pgm_read_byte_far pgm_read_byte_near
@@ -590,7 +646,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #endif
 
 #ifdef FVMO_STDTRC_SEP
-  #define BAUD_RATE_STDTRC 38400
+  #define BAUD_RATE_STDTRC 115200 // FIXME 38400
 #endif
 
 #ifdef FVMO_MULTIPLEX
@@ -613,6 +669,11 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
 #ifdef FVMO_NO_PROGMEM
    #define PROGMEM
+#endif
+
+#ifdef FVMO_STDTRC_STDOUT
+  // FIXME need a more robust, comprehensive solution here
+  #define Serial1 Serial
 #endif
 // ============================================================================
 //                             EXPERIMENTAL!
@@ -984,6 +1045,10 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #ifdef FVMO_SD
       #include <SD.h>
       #define SD_FILE_TYPE File  // FIXME Arduino IDE needs this comment!!
+      #define FVMO_STDIMP
+      #define FVMO_STDEXP
+  #else
+      #define SD_FILE_TYPE int // FIXME a hack for stdtrcHandle
   #endif
 
   #ifdef FVMO_SERIALUSB
@@ -1192,7 +1257,18 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define closeStdexp
     #define openStdimp
     #define closeStdimp
-  #endif // #ifdef FVMO_SD
+    // FIXME need to make all this more robust and roll out across all
+    SD_FILE_TYPE stdtrcHandle = 0; // FIXME a hack for when no SD card
+    int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) { // FIXME a hack for when no SD card
+        #ifdef FVMO_STDTRC_SEP // FIXME could route all this through fvmTraceChar instead
+          if (file == stdtrcHandle ) {
+            Serial1.write(buf,numBytes);
+            Serial1.flush();
+          }
+        #endif
+       return numBytes;
+    }
+  #endif // #ifdef FVMO_SD 
 
   void clearDevices() {
     // On Linux we set all file pointers to NULL here but on Arduino here we
@@ -1262,11 +1338,37 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       return 4;
     }
     int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
-       int numBytesWritten = file.write(buf,numBytes);
-       // file.flush(); FIXME NEXT
-       return numBytesWritten;
+      #ifndef FVMO_TRON
+        int numBytesWritten = file.write(buf,numBytes);
+        file.flush();
+        return numBytesWritten;
+      #else
+        // TODO refactor for better performance
+        #ifdef FVMO_STDTRC_SEP
+          if (strcmp(file.name(),stdtrcHandle.name()) == 0) {
+            Serial1.write(buf,numBytes);
+            Serial1.flush();
+          }
+        #endif
+        #ifdef FVMO_STDTRC_FILE_ALSO
+          // Write to any file here
+          int numBytesWritten = file.write(buf,numBytes);
+          file.flush();
+          return numBytesWritten;
+        #else
+          if ( strcmp(file.name(),stdtrcHandle.name()) != 0) {
+            // Write files other than stdtrc here...
+            int numBytesWritten = file.write(buf,numBytes);
+            file.flush();
+            return numBytesWritten;
+          } else {
+            // ...and silently write nothing to stdfile
+            return numBytes;
+          }
+        #endif
+      #endif
     }
-  #else 
+  #else
     #define fvmReadByte(buf,file) 0
     #define fvmReadWord(buf,file) 0
   #endif
@@ -1309,7 +1411,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     return numBytesWritten;
   }
 
-  #define fvmWrite(buf,unitSize,numUnits,file) ardWrite(file,(char *)buf,(unitSize*numUnits)) // FIXME NEXT
+  #define fvmWrite(buf,unitSize,numUnits,file) ardWrite(file,(char *)buf,(unitSize*numUnits))
   #define fvmReadByteStdin(buf) ardReadByteStdin(buf)
   #define fvmReadWordStdin(buf) ardReadWordStdin(buf)
   #define fvmWriteByteStdout(buf) ardWriteStdout((char *)buf,1)
@@ -3142,6 +3244,7 @@ systemInitCore:
               }
 #endif
             break;
+#ifdef FVMO_STDEXP // FIXME roll these out across all relevant
           case STDEXP:
             popDs
             writeBuf = rA;
@@ -3152,6 +3255,7 @@ systemInitCore:
               dontBranch
             }
             break;
+#endif
           default:
             branch // Unsupported wchannel
             break;
@@ -3176,6 +3280,7 @@ systemInitCore:
               dontBranch
               break;
             }
+#ifdef FVMO_STDEXP
           case STDEXP:
             popDs
             writeBuf = rA;
@@ -3185,6 +3290,7 @@ systemInitCore:
               dontBranch
               break;
             }
+#endif
           default:
             branch // Unsupported wchannel
             break;
