@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160329:2039
-Version:    pre-alpha-0.0.0.26 for FVM 1.1
+Updated:    20160329:2208
+Version:    pre-alpha-0.0.0.27 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -535,6 +535,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
+//  #define FVMO_SAFE_ALIGNMENT
 #endif
 
 /* Generic option set: typical Arduino Uno options */

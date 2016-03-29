@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160329:2033
-Version:    pre-alpha-0.0.0.4
+Updated:    20160329:2210
+Version:    pre-alpha-0.0.0.5
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -219,6 +219,7 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
 \ And all sizes below must be multiples of 4:
 MOVEX.  100000  \ Amount of memory to use in testMOVE etc [bytes]
 MOVEX3. 300000  \ Must be MOVEX*3
+testAlign# 8    \ Do not change this line [must always be first slot]
 slotA#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
@@ -258,6 +259,7 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
 \ And all sizes below must be multiples of 4:
 MOVEX.  100  \ Amount of memory to use in testMOVE etc [bytes]
 MOVEX3. 300  \ Must be MOVEX*3
+testAlign# 8    \ Do not change this line [must always be first slot]
 slotA#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
@@ -282,7 +284,14 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     -1 ##numResets !                \ No soft resets done yet [see intercept]
   ;
 
-  \ Finish running the test suite (that is, all tests have passed)
+  \ Finish running the test suite (that is, all tests have passed).
+  \ Note: if there is a WARNING that the number of restarts of the FVM
+  \ differed from the expected number, this most probably means either:
+  \ (a) some new test functionality has been added to this test suite
+  \ but the constant ..EXPECTED_RESETS was not appropriately updated in
+  \ this source code; or (b) the FVM instance being tested malfunctioned
+  \ due to a bug in its implementation (regardless of any "All tests passed"
+  \ message) and needs to be fixed.
   : finish
     dbg{newline}
     ##numResets @ ..EXPECTED_RESETS go== :resetNumberCorrect
@@ -2290,6 +2299,32 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     111 ##testvar !                \ STORE 111 to testvar slot
     ##testvar @ 111 assert{eq}     \ Verify STORE and LOAD worked
     0 ##testvar !                  \ STORE 0 to testvar slot
+
+    \ Verify that the free alignment of words functions correctly by storing
+    \ 0x41424344 = 1145258561 = UTF-8 "ABCD" in one word, at 1-byte offsets,
+    \ then loading that word to verify the load and store worked correctly.
+    \ Zero-out each word after verifying it.
+    \ Offset 0:
+    ..ABCD ##testAlign !
+    ##testAlign @ ..ABCD assert{eq}
+    0 ##testAlign !
+    \ Offset 1:
+    ..ABCD ##testAlign 1 + !
+    ##testAlign 1 + @ ..ABCD assert{eq}
+    0 ##testAlign 1 + !
+    \ Offset 2:
+    ..ABCD ##testAlign 2 + !
+    ##testAlign 2 + @ ..ABCD assert{eq}
+    0 ##testAlign 2 + !
+    \ Offset 3:
+    ..ABCD ##testAlign 3 + !
+    ##testAlign 3 + @ ..ABCD assert{eq}
+    0 ##testAlign 3 + !
+    \ Offset 4:
+    ..ABCD ##testAlign 4 + !
+    ##testAlign 4 + @ ..ABCD assert{eq}
+    0 ##testAlign 4 + !
+
     \ Verify traps occur as they should:
     :overLOAD verifyTrapDsOverflow   \ Should trap
     :memlowLOAD verifyTrapMemBounds  \ Should trap
