@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160316:1506
-Version:    pre-alpha-0.0.0.2 for FVM 1.1
+Updated:    20160329:1610
+Version:    pre-alpha-0.0.0.3
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ to simply halt when a trap occurs and there is no such problem.
 This test suite intentionally causes the FVM to undergo a soft reset,
 thus restarting itself, over 200 times to test various traps.
 
-To run this test suite on 32-bit Linux:
+To run this test suite on Linux:
 
   1. Place the FVM executable you wish to test in a suitable directory.
      The FVM executable needs to conform to the specifications noted in the
@@ -100,6 +100,16 @@ To run this test suite on 32-bit Linux:
      by the test suite to verify the standard input device [stdin] is working.
      You can create this by:
             touch std.in.tst && echo "ABCDABCD" > std.in.tst
+
+     Note: if you are compiling this 'fvmtest.fl' test to run on an
+     Arduino [or similar] rather than Linux, then instead of creating this
+     'std.in.tst' file you should simply cause ABCDABCD to be sent to the
+     stdin of your Arduino FVM at the appropriate time. The easiest way is
+     simply to type ABCD into minicom when prompted by testREADOR and again
+     type ABCD when prompted by testREADORB. Use all capital letters and
+     do not press Enter. Alternatively, you could create a 'std.in.tst'
+     file as above and do something like an appropriately timed:
+            cat std.in.tst > /dev/ttyACM0
 
   3. Place a zero-filled 16 MB file called 'std.blk' in the same directory.
      You can create this by:
@@ -162,41 +172,100 @@ To run this test suite on 32-bit Linux:
 
         OK     : All tests passed
 
+
+    NEW: CHOOSING A CONFIGURATION
+    =============================
+
+    Uncomment only one of the following CONFIGURATION sections,
+    appropriate to the kind of FVM instance to be tested.
 )
 
-\ ============================================================================
-\                             CONFIGURATION
-\ ============================================================================
-\ This 'fvmtest.fl' test suite for the FVM is coded to be run on an
-\ FVM instance having 16 MB RAM, 16 MB ROM, 16 MB stdblk and no memory-mapped
-\ devices. Accordingly here we inform the Freelang compiler that the lowest
-\ slot shall be at address 16777216, which is the start of RAM.
-\ IMPORTANT: the FVM instance must be configured to do a soft reset upon
-\ trap [rather than halt or hard reset upon trap] otherwise the test suite
-\ will not be able to complete running as many of these tests deliberately
-\ cause traps to occur so as to test that traps occur as they should.
-\ Furthermore, in order to be able to meaningfully read the resulting test
-\ report that is output to 'std.trc' it is necessary that the FVM instance
-\ be configured to append to an existing 'std.trc' file rather than
-\ truncating or recreating the 'std.trc' file upon start up. Otherwise
-\ each soft reset that occurs while the test suite runs would erase the
-\ test report of the previous test cases. This is unusual; most FVM instances
-\ are normally configured to truncate and recreate an empty 'std.trc' file
-\ upon start up [so that applications do not accumulate gigantic trace logs].
-\ Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
-slotFloor 16777216
+( ============================================================================
+                          DEFAULT CONFIGURATION
+               Suitable for an FVM running on Linux or Java.
+  ============================================================================
+  This 'fvmtest.fl' test suite for the FVM is coded to be run on an
+  FVM instance having 16 MB RAM, 16 MB ROM, 16 MB stdblk and no memory-mapped
+  devices. Accordingly here we inform the Freelang compiler that the lowest
+  slot shall be at address 16777216, which is the start of RAM.
+  IMPORTANT: the FVM instance must be configured to do a soft reset upon
+  trap [rather than halt or hard reset upon trap] otherwise the test suite
+  will not be able to complete running as many of these tests deliberately
+  cause traps to occur so as to test that traps occur as they should.
+  Furthermore, in order to be able to meaningfully read the resulting test
+  report that is output to 'std.trc' it is necessary that the FVM instance
+  be configured to append to an existing 'std.trc' file rather than
+  truncating or recreating the 'std.trc' file upon start up. Otherwise
+  each soft reset that occurs while the test suite runs would erase the
+  test report of the previous test cases. This is unusual; most FVM instances
+  are normally configured to truncate and recreate an empty 'std.trc' file
+  upon start up [so that applications do not accumulate gigantic trace logs].
+  Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
+  ========================================================================== )
+(
+slotFloor 16777216    \ This must equal FVM ROM size
 
 fvmtest{
 
-\ Constants that inform tests of the sizing of the FVM instance
-\ upon which the tests are being run:
-ROM_SIZE.    16777216 \ FVM ROM size (bytes)
-RAM_SIZE.    16777216 \ FVM RAM size (bytes)
-MAP_SIZE.    0        \ FVM MAP size (bytes)
-STDBLK_SIZE. 16777216 \ FVM STDBLK size (bytes)
+\ These must match the sizing of the FVM instance to be tested:
+ROM_SIZE.    16777216 \ FVM ROM size [bytes]
+RAM_SIZE.    16777216 \ FVM RAM size [bytes]
+MAP_SIZE.    0        \ FVM MAP size [bytes]
+STDBLK_SIZE. 16777216 \ FVM STDBLK size [bytes]
 MAX_DEPTH_DS. 32      \ FVM max depth of data stack
 MAX_DEPTH_SS. 32      \ FVM max depth of software stack
 MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+
+\ And all sizes below must be multiples of 4:
+MOVEX.  100000  \ Amount of memory to use in testMOVE etc [bytes]
+MOVEX3. 300000  \ Must be MOVEX*3
+slotA#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+slotB#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+slotC#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
+)
+\ ============================================================================
+\                  End of DEFAULT CONFIGURATION
+\ ============================================================================
+
+( ============================================================================
+                     MINI ARDUINO CONFIGURATION
+                  Suitable for Arduino Mega or larger.
+    Requires an SD card containing 'std.imp' and 'std.blk' as above.
+     Neither requires nor uses any 'std.in.tst' on the SD card.
+       See 'fvm.c' for how to compile a suitable Arduino FVM.
+                    
+  This configuration assumes the FVM instance to be tested has:
+    ROM_SIZE 126976 bytes
+    RAM_SIZE 4096 bytes
+    STDBLK_SIZE 16777216 bytes 
+
+  ========================================================================== )
+
+slotFloor 126976      \ This must equal FVM ROM size
+
+fvmtest{
+
+\ These must match the sizing of the FVM instance to be tested:
+ROM_SIZE.    126976   \ FVM ROM size [bytes]
+RAM_SIZE.    4096     \ FVM RAM size [bytes]
+MAP_SIZE.    0        \ FVM MAP size [bytes]
+STDBLK_SIZE. 16777216 \ FVM STDBLK size [bytes]
+MAX_DEPTH_DS. 32      \ FVM max depth of data stack
+MAX_DEPTH_SS. 32      \ FVM max depth of software stack
+MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+
+\ And all sizes below must be multiples of 4:
+MOVEX.  100  \ Amount of memory to use in testMOVE etc [bytes]
+MOVEX3. 300  \ Must be MOVEX*3
+slotA#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+slotB#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+slotC#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
+MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
+
+\ ============================================================================
+\             End of MINI ARDUINO CONFIGURATION
+\ ============================================================================
 
 \ ============================================================================
 \                             TEST SUITE
@@ -2907,13 +2976,13 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ Test opcode 225 MOVE ( numWords src dest -- )
   \ Note: numWords can meaningfully be negative but not tested here
   : testMOVE
-    100000 -1 ##slotA fill \ Make all 100000 words of slotA hold value -1
-    100000 -2 ##slotB fill \ Make all 100000 words of slotB hold value -2
-    100000 -3 ##slotC fill \ Make all 100000 words of slotC hold value -3
-    100000 ##slotA ##slotB move \ Move whole of slotA to slotB
+    ..MOVEX -1 ##slotA fill \ Make all ..MOVEX words of slotA hold value -1
+    ..MOVEX -2 ##slotB fill \ Make all ..MOVEX words of slotB hold value -2
+    ..MOVEX -3 ##slotC fill \ Make all ..MOVEX words of slotC hold value -3
+    ..MOVEX ##slotA ##slotB move \ Move whole of slotA to slotB
     0 ##slotC ##slotB move \ Specifying 0 as numWords should cause no move
     \ Verify every word of slotB now holds value -1 after the MOVE
-    ##slotB 100000
+    ##slotB ..MOVEX
       verifying:
         swap [@] dup -1 go!= :fail
           drop incw swap dec
@@ -2925,17 +2994,17 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     fail:
        drop2 ." not -1 " fail
     \ Labels for use by verifyTrap
-    memlowMOVE:  100000 -4 ##slotB move tfail   \ trapMemBounds
-    memhighMOVE: 100000 0 4 move tfail          \ trapRAMBounds
+    memlowMOVE:  ..MOVEX -4 ##slotB move tfail   \ trapMemBounds
+    memhighMOVE: ..MOVEX 0 4 move tfail          \ trapRAMBounds
   ;
 
   \ Test opcode 226 FILL ( numWords n dest -- )
   : testFILL
-    100000 -3 ##slotB fill \ Make all 100000 words of slotB hold value -3
+    ..MOVEX -3 ##slotB fill \ Make all ..MOVEX words of slotB hold value -3
     0 -4 ##slotB fill \ Specifying 0 as numWords should cause no fill
     -100 -4 ##slotB fill \ Specifying -100 as numWords should cause no fill
     \ Verify every word of slotB now holds value -3 after the FILL
-    ##slotB 100000
+    ##slotB ..MOVEX
       verifying:
         swap [@] dup -3 go!= :fail
           drop incw swap dec
@@ -2946,8 +3015,8 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     fail:
        drop2 ." not -3 " fail
     \ Labels for use by verifyTrap
-    memlowFILL:  100000 99 ..ADDR_NOT_RAM fill tfail \ trapRAMBounds
-    memhighFILL: 100000 99 ..ADDR_BUST fill tfail    \ trapRAMBounds
+    memlowFILL:  ..MOVEX 99 ..ADDR_NOT_RAM fill tfail \ trapRAMBounds
+    memhighFILL: ..MOVEX 99 ..ADDR_BUST fill tfail    \ trapRAMBounds
   ;
 
   \ Test opcode 227 FIND ( numWords n src -- wordIndex )
@@ -2955,16 +3024,19 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ Note: returned index starts at 0
   : testFIND                   \ Note: slotB filled with -3s by testFILL
     -1234 ##slotB !            \ Store value -1234 to 0th word of slotB
-    100000 -1234 ##slotB find  \ Find first occurrence of -1234
+    ..MOVEX -1234 ##slotB find  \ Find first occurrence of -1234
     0 assert{eq}               \ Verify found at expected 0th wordIndex
     -3 ##slotB !               \ Store value -3 to 0th word of slotB
 
-    -1234 ##slotB 90000 + !    \ Store value -1234 to 22500th word of slotB
-    100000 -1234 ##slotB find  \ Find first occurrence of -1234
-    22500 assert{eq}           \ Verify found at expected 22500th wordIndex
+    \ Store value -1234 to nth word of slotB. So if ..MOVEX is 100000
+    \ and ..MOVEY is 90000 then n is 22500, thus this would store
+    \ value -1234 to the 22500th word of slotB. [That is, n = ..MOVEY / 4]
+    -1234 ##slotB ..MOVEY + !   \ Store value -1234 to nth word of slotB 
+    ..MOVEX -1234 ##slotB find  \ Find first occurrence of -1234
+    ..MOVEY {..WORD} / assert{eq} \ Verify found at expected nth wordIndex
     -3 ##slotB !               \ Store value -3 to 0th word of slotB
 
-    100000 -9999 ##slotB find  \ Find first occurrence of word -9999 in slotB
+    ..MOVEX -9999 ##slotB find  \ Find first occurrence of word -9999 in slotB
     {..NO_VALUE} assert{eq}    \ Verify, as expected, that -9999 was not found
 
     \ Verify traps occur as they should:
@@ -2972,30 +3044,30 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     :memhighFIND verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    memlowFIND:  100000 99 -1 find tfail            \ trapMemBounds
-    memhighFIND: 100000 99 ..ADDR_BUST find tfail   \ trapMemBounds
+    memlowFIND:  ..MOVEX 99 -1 find tfail            \ trapMemBounds
+    memhighFIND: ..MOVEX 99 ..ADDR_BUST find tfail   \ trapMemBounds
   ;
 
   \ Test opcode 228 MATCH ( numWords src dest -- TRUE/FALSE )
   : testMATCH
     \ Note: slotA still filled with -1s
     \ Note: slotB still filled with -3s
-    100000 -1 ##slotC fill \ Make all 100000 words of slotC hold value -1
+    ..MOVEX -1 ##slotC fill \ Make all ..MOVEX words of slotC hold value -1
     \ Verify 0 numWords is always treated as a match regardless of content
     0 ##slotA ##slotB match {..TRUE} assert{eq}
     \ Verify whole of slotA matches whole of slotC
-    100000 ##slotA ##slotC match {..TRUE} assert{eq}
+    ..MOVEX ##slotA ##slotC match {..TRUE} assert{eq}
     \ Verify the same is not true of 1 word longer
-    100001 ##slotA ##slotC match {..FALSE} assert{eq}
+    ..MOVEX 1 + ##slotA ##slotC match {..FALSE} assert{eq}
     \ Verify whole of slotA does not match whole of slotB
-    100000 ##slotA ##slotB match {..FALSE} assert{eq}
+    ..MOVEX ##slotA ##slotB match {..FALSE} assert{eq}
     \ Verify traps occur as they should:
     :memlowMATCH verifyTrapMemBounds  \ Should trap
     :memhighMATCH verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    memlowMATCH:  100000 ##slotA -1 match tfail          \ trapMemBounds
-    memhighMATCH: 100000 ##slotA ..ADDR_BUST match tfail \ trapMemBounds
+    memlowMATCH:  ..MOVEX ##slotA -1 match tfail          \ trapMemBounds
+    memhighMATCH: ..MOVEX ##slotA ..ADDR_BUST match tfail \ trapMemBounds
   ;
 
   \ Test opcode 229 MOVEB ( numBytes src dest -- )
@@ -3004,18 +3076,18 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ as positive since the concept of a negative number in Freeputer is
   \ fundamentally a word-based concept (a 32-bit two's complement integer)
   : testMOVEB
-    \ Make last 100000 bytes of slotA hold value 1
-    100000 1 ##slotA 300000 + fillb
-    \ Make 1st 100000 bytes of slotB hold value 2
-    100000 2 ##slotB fillb
-    \ Make 1st 100000 bytes of slotC hold value 3
-    100000 3 ##slotC fillb
-    \ Move last 100000 bytes of slotA to start of slotB
-    100000 ##slotA 300000 + ##slotB moveb
+    \ Make last ..MOVEX bytes of slotA hold value 1
+    ..MOVEX 1 ##slotA ..MOVEX3 + fillb
+    \ Make 1st ..MOVEX bytes of slotB hold value 2
+    ..MOVEX 2 ##slotB fillb
+    \ Make 1st ..MOVEX bytes of slotC hold value 3
+    ..MOVEX 3 ##slotC fillb
+    \ Move last ..MOVEX bytes of slotA to start of slotB
+    ..MOVEX ##slotA ..MOVEX3 + ##slotB moveb
     \ Specifying 0 as numBytes should cause no moveb
     0 ##slotC ##slotB moveb
-    \ Verify 1st 100000 bytes of slotB now hold value 1 after the MOVEB
-    ##slotB 100000
+    \ Verify 1st ..MOVEX bytes of slotB now hold value 1 after the MOVEB
+    ##slotB ..MOVEX
       verifying:
         swap [@b] dup 1 go!= :fail
           drop inc swap dec
@@ -3027,8 +3099,8 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     fail:
        drop2 ." not 1 " fail
     \ Labels for use by verifyTrap
-    memlowMOVEB:  100000 -4 ##slotB moveb tfail  \ trapMemBounds
-    memhighMOVEB: 100000 0 4 moveb tfail         \ trapRAMBounds
+    memlowMOVEB:  ..MOVEX -4 ##slotB moveb tfail  \ trapMemBounds
+    memhighMOVEB: ..MOVEX 0 4 moveb tfail         \ trapRAMBounds
   ;
 
   \ Test opcode 230 FILLB ( numBytes b dest -- )
@@ -3036,11 +3108,11 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ as positive since the concept of a negative number in Freeputer is
   \ fundamentally a word-based concept (a 32-bit two's complement integer)
   : testFILLB
-    100000 3 ##slotB fillb \ Make 1st 100000 bytes of slotB hold value 3
+    ..MOVEX 3 ##slotB fillb \ Make 1st ..MOVEX bytes of slotB hold value 3
     0 -4 ##slotB fillb \ Specifying 0 as numBytes should cause no fillb
     -100 -4 ##slotB fillb \ Specifying -100 as numBytes should cause no fillb
-    \ Verify 1st 100000 bytes of slotB now holds value 3 after the FILLB
-    ##slotB 100000
+    \ Verify 1st ..MOVEX bytes of slotB now holds value 3 after the FILLB
+    ##slotB ..MOVEX
       verifying:
         swap [@b] dup 3 go!= :fail
           drop inc swap dec
@@ -3051,8 +3123,8 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     fail:
        drop2 ." not 3 " fail
     \ Labels for use by verifyTrap
-    memlowFILLB:  100000 99 ..ADDR_NOT_RAM fillb tfail \ trapRAMBounds
-    memhighFILLB: 100000 99 ..ADDR_BUST fillb tfail    \ trapRAMBounds
+    memlowFILLB:  ..MOVEX 99 ..ADDR_NOT_RAM fillb tfail \ trapRAMBounds
+    memhighFILLB: ..MOVEX 99 ..ADDR_BUST fillb tfail    \ trapRAMBounds
   ;
 
   \ Test opcode 231 FINDB ( numBytes b src -- byteIndex )
@@ -3061,18 +3133,18 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ as positive since the concept of a negative number in Freeputer is
   \ fundamentally a word-based concept (a 32-bit two's complement integer).
   \ Note: returned index starts at 0.
-  : testFINDB \ Note: 1st 100000 bytes of slotB filled with 3s by testFILLB
+  : testFINDB \ Note: 1st ..MOVEX bytes of slotB filled with 3s by testFILLB
     123 ##slotB !b             \ Store value 123 to 0th byte of slotB
-    100000 123 ##slotB findb   \ Find first occurrence of 123
+    ..MOVEX 123 ##slotB findb   \ Find first occurrence of 123
     0 assert{eq}               \ Verify found at expected 0th byteIndex
     3 ##slotB !b               \ Store value 3 to 0th byte of slotB
 
-    123 ##slotB 90000 + !b     \ Store value 123 to 90000th byte of slotB
-    100000 123 ##slotB findb   \ Find first occurrence of 123
-    90000 assert{eq}           \ Verify found at expected 90000th byteIndex
+    123 ##slotB ..MOVEY + !b     \ Store value 123 to ..MOVEYth byte of slotB
+    ..MOVEX 123 ##slotB findb   \ Find first occurrence of 123
+    ..MOVEY assert{eq}           \ Verify found at expected ..MOVEYth byteIndex
     3 ##slotB !b               \ Store value 3 to 0th byte of slotB
 
-    100000 99 ##slotB findb    \ Find first occurrence of byte 99 in slotB
+    ..MOVEX 99 ##slotB findb    \ Find first occurrence of byte 99 in slotB
     {..NO_VALUE} assert{eq}    \ Verify, as expected, that 99 was not found
 
     \ Verify traps occur as they should:
@@ -3080,30 +3152,30 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
     :memhighFINDB verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    memlowFINDB:  100000 99 -1 findb tfail          \ trapMemBounds
-    memhighFINDB: 100000 99 ..ADDR_BUST findb tfail \ trapMemBounds
+    memlowFINDB:  ..MOVEX 99 -1 findb tfail          \ trapMemBounds
+    memhighFINDB: ..MOVEX 99 ..ADDR_BUST findb tfail \ trapMemBounds
   ;
 
   \ Test opcode 232 MATCHB ( numBytes src dest -- TRUE/FALSE )
   : testMATCHB
-    \ Note: last 100000 bytes of slotA filled with 1s by testMOVEB
-    \ Note: 1st 100000 bytes of slotB filled with 3s by testFILLB
-    100000 1 ##slotC fillb \ Make 1st 100000 bytes of slotC hold value 1
+    \ Note: last ..MOVEX bytes of slotA filled with 1s by testMOVEB
+    \ Note: 1st ..MOVEX bytes of slotB filled with 3s by testFILLB
+    ..MOVEX 1 ##slotC fillb \ Make 1st ..MOVEX bytes of slotC hold value 1
     \ Verify 0 numBytes is always treated as a match regardless of content
     0 ##slotA ##slotB matchb {..TRUE} assert{eq}
-    \ Verify last 100000 bytes of slotA match 1st 100000 bytes of slotC
-    100000 ##slotA 300000 + ##slotC matchb {..TRUE} assert{eq}
+    \ Verify last ..MOVEX bytes of slotA match 1st ..MOVEX bytes of slotC
+    ..MOVEX ##slotA ..MOVEX3 + ##slotC matchb {..TRUE} assert{eq}
     \ Verify the same is not true of 1 word longer
-    100001 ##slotA 300000 + ##slotC matchb {..FALSE} assert{eq}
-    \ Verify the last 100000 bytes of slotA do not match those of slotB
-    100000 ##slotA 300000 + ##slotB matchb {..FALSE} assert{eq}
+    ..MOVEX 1 + ##slotA ..MOVEX3 + ##slotC matchb {..FALSE} assert{eq}
+    \ Verify the last ..MOVEX bytes of slotA do not match those of slotB
+    ..MOVEX ##slotA ..MOVEX3 + ##slotB matchb {..FALSE} assert{eq}
     \ Verify traps occur as they should:
     :memlowMATCHB verifyTrapMemBounds  \ Should trap
     :memhighMATCHB verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    memlowMATCHB:  100000 ##slotA -1 matchb tfail          \ trapMemBounds
-    memhighMATCHB: 100000 ##slotA ..ADDR_BUST matchb tfail \ trapMemBounds
+    memlowMATCHB:  ..MOVEX ##slotA -1 matchb tfail          \ trapMemBounds
+    memhighMATCHB: ..MOVEX ##slotA ..ADDR_BUST matchb tfail \ trapMemBounds
   ;
 
   \ Test opcode 233 HOMIO
@@ -3333,9 +3405,6 @@ MAX_DEPTH_RS. 32      \ FVM max depth of return stack
   \ Arbitrary slots used by tests
   pTestvar# 4      \ A pointer to the testvar slot
   testvar# 4       \ A slot called testvar to hold 1 word [4 bytes]
-  slotA# 400000    \ A slot of size 100000 words [400000 bytes]
-  slotB# 400000    \ A slot of size 100000 words [400000 bytes]
-  slotC# 400000    \ A slot of size 100000 words [400000 bytes]
 
   \ Slots and constants used by the test suite to monitor soft resets
   numResets# 4     \ A counter of the number of soft resets that have occurred

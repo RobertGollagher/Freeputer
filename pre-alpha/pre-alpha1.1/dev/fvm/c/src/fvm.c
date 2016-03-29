@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160329:1342
-Version:    pre-alpha-0.0.0.23 for FVM 1.1
+Updated:    20160329:1353
+Version:    pre-alpha-0.0.0.24 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -632,7 +632,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 16777216
 #endif
 
-/* Sizing: for running a special 'fvmtest.fl' suite on an Arduino Due */
+/* Sizing: for running a special 'fvmtest.fl' suite on an EtherDue */
 #ifdef FVMOS_SIZE_FVMTEST_ARDUINO
   #define ROM_SIZE 126976
   #define RAM_SIZE 4096
