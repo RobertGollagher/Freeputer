@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160329:1610
-Version:    pre-alpha-0.0.0.3
+Updated:    20160329:2033
+Version:    pre-alpha-0.0.0.4
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2608,6 +2608,11 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
      3  7 -  -4 assert{eq}
      3 -7 -  10 assert{eq}
     -3 -7 -   4 assert{eq}
+     0  0 -   0 assert{eq}
+     0  1 -  -1 assert{eq}
+     0 -1 -   1 assert{eq}
+     1  0 -   1 assert{eq}
+    -1  0 -  -1 assert{eq}
     \ Verify traps occur as they should:
     :overSUBlow verifyTrapMathOverflow    \ Should trap
     :overSUBhigh verifyTrapMathOverflow   \ Should trap
