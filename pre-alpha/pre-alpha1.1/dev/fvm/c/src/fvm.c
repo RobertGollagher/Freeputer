@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160329:1353
-Version:    pre-alpha-0.0.0.24 for FVM 1.1
+Updated:    20160329:1653
+Version:    pre-alpha-0.0.0.25 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -320,43 +320,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-/* Note at 20160328:0137 (was pre-alpha-0.0.0.18 for FVM 1.1):
-      All commits until this comment is removed shall be exclusively
-      for the Freetronics EtherDue board, for the purpose of
-      implementing SD card support. Until this comment is
-      removed, SD card support is incomplete. This shall include
-      getting the entire fvmtest suite to pass, albeit modified
-      for systems with little RAM.
-
-      For reference, here is the configuration used in the
-      modified 'fvmtest.fl' being used for this testing:
-
-              slotFloor 126976 \ 16777216
-
-              fvmtest{
-
-              \ Constants that inform tests of the sizing of the FVM instance
-              \ upon which the tests are being run:
-              ROM_SIZE.    126976 \ 16777216 \ FVM ROM size (bytes)
-              RAM_SIZE.    4096 \ 16777216 \ FVM RAM size (bytes)
-              MAP_SIZE.    0        \ FVM MAP size (bytes)
-              STDBLK_SIZE. 16777216 \ FVM STDBLK size (bytes)
-              MAX_DEPTH_DS. 32      \ FVM max depth of data stack
-              MAX_DEPTH_SS. 32      \ FVM max depth of software stack
-              MAX_DEPTH_RS. 32      \ FVM max depth of return stack
-
-      So far everything passing except:
-
-            ::testMOVE       ." testMOVE             " expectTraps
-            ::testFILL       ." testFILL             " expectTraps
-            ::testFIND       ." testFIND             " expectTraps
-            ::testMATCH      ." testMATCH            " expectTraps
-            ::testMOVEB      ." testMOVEB            " expectTraps
-            ::testFILLB      ." testFILLB            " expectTraps
-            ::testFINDB      ." testFINDB            " expectTraps
-            ::testMATCHB     ." testMATCHB           " expectTraps
-  
-*/
 #define FVMC_ARDUINO_DUE_SD4_FVMTEST
 
 // ===========================================================================
