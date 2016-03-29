@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160329:2208
-Version:    pre-alpha-0.0.0.27 for FVM 1.1
+Updated:    20160329:2233
+Version:    pre-alpha-0.0.0.28 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -298,6 +298,11 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   Note that FVMO_STDTRC_SEP is still a valid alternative to multiplexing
   even when using FVMO_LOCAL_TAPE mode, since FVMO_LOCAL_TAPE mode will
   in that case use a separate memcom for stdtrc.
+
+  Notes on FVMO_SAFE_ALIGNMENT:
+    FVMO_SAFE_ALIGNMENT is not needed by: Arduino Due
+
+    FVMO_SAFE_ALIGNMENT is needed by:
 
   GENERAL NOTE
   ============
@@ -795,9 +800,27 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // Such caution is essential since no overflow checking is performed here.
   #ifndef FVMO_SEPARATE_ROM
       #define byteAtAddr(addr) memory[addr]
-      #define wordAtAddr(addr) *(WORD *)&memory[addr]
+      #ifdef FVMO_SAFE_ALIGNMENT
+        // FIXME untested
+        return (WORD)(memory[addr] |
+                memory[addr+1] << 8 |
+                memory[addr+2] << 16 | 
+                memory[addr+3] << 24);
+      #else
+        #define wordAtAddr(addr) *(WORD *)&memory[addr]
+      #endif
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #ifdef FVMO_SAFE_ALIGNMENT
+        // FIXME untested
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          memory[addr] = val;
+          memory[addr+1] = val >> 8;
+          memory[addr+2] = val >> 16;
+          memory[addr+3] = val >> 24;
+        }
+      #else
+        #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #endif
       // System memory (even multiple of WORD size)
       BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
       // Evaluates to word at specified address in system memory
@@ -823,15 +846,41 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       WORD wordAtAddr(WORD addr) {
         WORD result;
         if (addr < ROM_SIZE) {
+        #ifdef FVMO_SAFE_ALIGNMENT
+          // FIXME untested
+          return (WORD)(rom[addr] |
+                  rom[addr+1] << 8 |
+                  rom[addr+2] << 16 | 
+                  rom[addr+3] << 24);
+        #else
             result = *(WORD *)&rom[addr];
             return result;
+        #endif
         } else {
+        #ifdef FVMO_SAFE_ALIGNMENT
+          // FIXME untested
+          return (WORD)(ram[addr-ROM_SIZE] |
+                  ram[addr+1-ROM_SIZE] << 8 |
+                  ram[addr+2-ROM_SIZE] << 16 | 
+                  ram[addr+3-ROM_SIZE] << 24);
+        #else
           result = *(WORD *)&ram[addr-ROM_SIZE];
           return result;
+        #endif
         }
       }
       #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
-      #define setWordAtAddr(val,addr) *(WORD *)&ram[addr-ROM_SIZE] = val;
+      #ifdef FVMO_SAFE_ALIGNMENT
+        // FIXME untested
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          ram[addr-ROM_SIZE] = val;
+          ram[addr+1-ROM_SIZE] = val >> 8;
+          ram[addr+2-ROM_SIZE] = val >> 16;
+          ram[addr+3-ROM_SIZE] = val >> 24;
+        }
+      #else
+        #define setWordAtAddr(val,addr) *(WORD *)&ram[addr-ROM_SIZE] = val;
+      #endif
       #define wordAtPc wordAtAddr(pc);
       // Zero-fill all FVM system memory
       void clearMem() {
@@ -1034,11 +1083,30 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #define byteAtAddr(addr) memory[addr]
       #define wordAtAddr(addr) *(WORD *)&memory[addr]
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #ifdef FVMO_SAFE_ALIGNMENT
+        // FIXME untested
+        return (WORD)(memory[addr] |
+                memory[addr+1] << 8 |
+                memory[addr+2] << 16 | 
+                memory[addr+3] << 24);
+      #else
+        #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #endif
       // System memory (even multiple of WORD size)
       BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
-      // Evaluates to word at specified address in system memory
-      #define wordAtAddr(addr) *(WORD *)&memory[addr]
+
+      #ifdef FVMO_SAFE_ALIGNMENT
+        // FIXME untested
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          memory[addr] = val;
+          memory[addr+1] = val >> 8;
+          memory[addr+2] = val >> 16;
+          memory[addr+3] = val >> 24;
+        }
+      #else
+        // Evaluates to word at specified address in system memory
+        #define wordAtAddr(addr) *(WORD *)&memory[addr]
+      #endif
       // Evaluates to word at pc
       #define wordAtPc wordAtAddr(pc);
       // Evaluates to byte at specified address in system memory
@@ -1063,9 +1131,6 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       inline WORD wordAtAddr(WORD addr) {
         if (addr < ROM_SIZE) { 
             #ifdef FVMO_SAFE_ALIGNMENT
-              // FIXME NEXT roll this safe alignment out in all files
-              // for all platforms and add test to fvm test. Also reconsider
-              // its implementation as it has hardly been tested at all.
               #ifdef FVMO_NO_PROGMEM
                 return (WORD)(prog[addr] |
                         prog[addr+1] << 8 |
