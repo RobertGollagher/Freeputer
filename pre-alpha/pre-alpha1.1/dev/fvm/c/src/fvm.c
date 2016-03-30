@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160331:0006
-Version:    pre-alpha-0.0.0.33 for FVM 1.1
+Updated:    20160331:0142
+Version:    pre-alpha-0.0.0.34 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -309,11 +309,13 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
     FMVO_NO_UPCASTS is needed by:
 
+      chipKIT Max32
+
     FMVO_NO_UPCASTS cannot be used on (breaks):
 
     FMVO_NO_UPCASTS can be used successfully on:
 
-      Arduino Due, Arduino Mega 2560
+      Arduino Due, Arduino Mega 2560, chipKIT Max32
 
 
   Boards known to have fully passed the fvmtest suite:
@@ -328,7 +330,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     Freetronics EtherDue              20160329
     Arduino Mega 2560 (clone)         20160330
     Arduino Due (clone)               20160331
-
+    chipKIT Max32                     20160331
 
 
   GENERAL NOTE
@@ -352,7 +354,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_DUE_SD4_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
+#define FVMC_CHIPKIT_MAX32_SD53_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -480,7 +482,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
 /* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Mega.
    Pins are connected as follows (Mega to SD Card):
-      53 (=SS)  to CS
+      53 (SS)   to CS
       5V        to VCC
       GND       to GND
       ICSP MOSI to MOSI
@@ -547,6 +549,30 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDTRC_STDOUT
   #define FVMO_SERIALUSB // Arduino Due passes fvmtest either way
   // #define FMVO_NO_UPCASTS // Arduino Due passes fvmtest either way
+#endif
+
+/* An Arduino FVM suitable for running 'fvmtest.fl' on chipKIT Max32.
+
+   Pins are connected as follows (Max32 to SD Card):
+      53 (SS)   to CS
+      3.3 V     to VCC
+      GND       to GND
+      51 (MOSI) to MOSI
+      50 (MISO) to MISO
+      52 (SCK)  to SCK
+
+  chipKIT Max32 passed fvmtest suite on: 20160331
+
+ */
+#ifdef FVMC_CHIPKIT_MAX32_SD53_FVMTEST
+  #define FVMOS_CHIPKIT
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+  // #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
 #endif
 
 /* A mini Arduino FVM, not multiplexed, and using a second serial connection
@@ -671,8 +697,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FMVO_NO_UPCASTS
-  #define FVMO_NO_PROGMEM
+  #define FMVO_NO_UPCASTS // chipKIT always requires FMVO_NO_UPCASTS
+  #define FVMO_NO_PROGMEM // chipKIT always requires FVMO_NO_PROGMEM
 #endif
 
 /* Sizing: tiny */
@@ -1304,13 +1330,13 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
               #ifdef FVMO_NO_PROGMEM
                 // FIXME untested
                 WORD result, temp;
-                temp = rom[addr+3];
+                temp = prog[addr+3];
                 result = result | temp << 24;
-                temp = rom[addr+2];
+                temp = prog[addr+2];
                 result = result | temp << 16; 
-                temp = rom[addr+1];
+                temp = prog[addr+1];
                 result = result | temp << 8;
-                temp = rom[addr];
+                temp = prog[addr];
                 result = result | temp;
                 return result;
 /*
