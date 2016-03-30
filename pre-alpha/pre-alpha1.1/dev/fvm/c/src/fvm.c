@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160330:2203
-Version:    pre-alpha-0.0.0.31 for FVM 1.1
+Updated:    20160330:2315
+Version:    pre-alpha-0.0.0.32 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -328,7 +328,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MEGA_SD53_FVMTEST
+#define FVMC_ARDUINO_ETHERDUE_SD4_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
