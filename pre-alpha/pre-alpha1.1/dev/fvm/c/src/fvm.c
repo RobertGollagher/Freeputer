@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160330:1818
-Version:    pre-alpha-0.0.0.30 for FVM 1.1
+Updated:    20160330:2203
+Version:    pre-alpha-0.0.0.31 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -992,7 +992,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   );
   // FIXME these probably need changing
   extern char prog[]; // Was working perfectly on Linux elsewhere
-  extern unsigned prog_size; // maybe add "int" here but already worked elsewhere perfectly
+  extern unsigned int prog_size;
 */
       #else
         #include "rom.h"
@@ -1158,7 +1158,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #ifdef FVMO_INCORPORATE_ROM
       #include <avr/pgmspace.h>
       #ifdef FVMO_INCORPORATE_BIN
-  
+  // FIXME need also to consider FVMO_NO_PROGMEM
   // FIXME fully qualified path is inconvenient here
   // IMPORTANT: When compiling for Arduino, you must use a fully qualified
   // path to your rom.fp file in the .incbin line below. For example:
@@ -1176,12 +1176,8 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       "prog_size:                      \n\t"
       "  .long     prog_size - prog    \n\t"
   );
-
-  // works nicely but for small progams under the 32kB limit ONLY
   extern const unsigned char PROGMEM prog[];
-  // FIXME currently not used:
-  //extern unsigned int prog_size = 29272;
-
+  extern unsigned int prog_size; // Maximum 32 kB on 8-bit Arduinos, sadly
       #else
         #include "rom.h"
       #endif
