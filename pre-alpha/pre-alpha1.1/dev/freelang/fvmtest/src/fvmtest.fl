@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160330:1635
-Version:    pre-alpha-0.0.0.6
+Updated:    20160330:1818
+Version:    pre-alpha-0.0.0.7
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -384,7 +384,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testMATH       ." testMATH             " expectTraps
     ::testTRAP       ." testTRAP             " expectTraps
     ::testDIE        ." testDIE              " untested \ 29148 bytes [62 restarts]
-(((    ::testREAD       ." testREAD             " test
+    ::testREAD       ." testREAD             " test
     ::testWRITE      ." testWRITE            " test
     ::testGET        ." testGET              " test
     ::testPUT        ." testPUT              " test
@@ -511,7 +511,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testHALT       ." testHALT             " untested
     ::testDATA       ." testDATA             " expectTrap
     \ Other tests:
-    ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap  ))) \ 20876 bytes [34 restarts]
+    ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap \ 20876 bytes [34 restarts]
   ;
 
   \ Trace the supplied string msg, then invoke unit test function f,
@@ -1307,7 +1307,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ since halt uses an exit code of exitSUCCESS.
   \ This test is not yet implemented.
   : testDIE ;
-(((
+
   \ Test opcode 41 READ
   : testREAD
     read? {..STDIN} {..TRUE} assert{eq}
@@ -3431,7 +3431,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ jump to the word having the value 256 within this data block
   hitIllegalOpcode:
     data 1 256 ===
-    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line! )))
+    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line!
 
 \ ============================================================================
 \                             DECLARATIONS

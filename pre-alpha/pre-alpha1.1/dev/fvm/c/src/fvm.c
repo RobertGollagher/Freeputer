@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160330:1635
-Version:    pre-alpha-0.0.0.29 for FVM 1.1
+Updated:    20160330:1818
+Version:    pre-alpha-0.0.0.30 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -257,6 +257,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
+  #define FVMO_INCORPORATE_BIN // Incorporate 'rom.fp' ditto // FIXME give more instructions
   #define FMVO_NO_UPCASTS // Avoid doing *(WORD *)&memory[addr] // FIXME needs comprehensive testing in all variants
   #define FVMO_NO_PROGMEM // Target does not understand the PROGMEM keyword
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
@@ -463,7 +464,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
  */
 #ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
-  #define FVMOS_ARDUINO
+  #define FVMOS_ARDUINO_BIN // FIXME experimental
   #define FVMOS_SIZE_FVMTEST_ARDUINO
   #define FVMO_FVMTEST
   #define FVMO_SD
@@ -559,6 +560,16 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDIMP
   #define FVMO_STDEXP
+#endif
+
+/* Generic option set: typical options for Arduinos larger than Uno
+   and using binary incorporation of 'rom.fp' rather than using 'rom.h' */
+#ifdef FVMOS_ARDUINO_BIN
+  #define FVMP FVMP_ARDUINO_IDE
+  #define FVMO_TRON
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_INCORPORATE_BIN
+//  #define FMVO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical options for Arduinos larger than Uno. */
@@ -671,6 +682,10 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #ifdef FVMO_STDTRC_STDOUT
   // FIXME need a more robust, comprehensive solution here
   #define Serial1 Serial
+#endif
+
+#ifdef FVMO_INCORPORATE_BIN
+  #define FVMO_INCORPORATE_ROM
 #endif
 // ============================================================================
 //                             EXPERIMENTAL!
@@ -959,7 +974,29 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 
   #ifdef FVMO_INCORPORATE_ROM
       #define PROGMEM
-      #include "rom.h"
+      #ifdef FVMO_INCORPORATE_BIN
+/* FIXME
+      // FIXME untested in this context (but known to work elsewhere)
+  __asm__ __volatile__(
+      "  .section  .rodata             \n\t"
+      "  .global   prog                \n\t"
+      "  .type     prog , @object      \n\t"
+      "  .align    4                   \n\t"
+      "prog:                           \n\t"
+      "  .incbin   \"rom.fp\"          \n\t"
+      "  .global   prog_size           \n\t"
+      "  .type     prog_size, @object  \n\t"
+      "  .align    4                   \n\t"
+      "prog_size:                      \n\t"
+      "  .int      prog_size - prog    \n\t"
+  );
+  // FIXME these probably need changing
+  extern char prog[]; // Was working perfectly on Linux elsewhere
+  extern unsigned prog_size; // maybe add "int" here but already worked elsewhere perfectly
+*/
+      #else
+        #include "rom.h"
+      #endif
   #else
       FILE *romHandle;                   // File handle for ROM file
       /* Open ROM */
@@ -1120,7 +1157,34 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 
   #ifdef FVMO_INCORPORATE_ROM
       #include <avr/pgmspace.h>
-      #include "rom.h"
+      #ifdef FVMO_INCORPORATE_BIN
+  
+  // FIXME fully qualified path is inconvenient here
+  // IMPORTANT: When compiling for Arduino, you must use a fully qualified
+  // path to your rom.fp file in the .incbin line below. For example:
+  //        "  .incbin   \"/home/sally/foo/bar/rom.fp\"          \n\t"
+  __asm__ __volatile__(
+      "  .section  .progmem.data       \n\t"
+      "  .global   prog                \n\t"
+      "  .type     prog , @object      \n\t"
+      "  .align    4                   \n\t"
+      "prog:                           \n\t"
+      "  .incbin   \"/home/rob/Dev/Freeputer2/16th-spike/rom.fp\"          \n\t"
+      "  .global   prog_size           \n\t"
+      "  .type     prog_size, @object  \n\t"
+      "  .align    4                   \n\t"
+      "prog_size:                      \n\t"
+      "  .long     prog_size - prog    \n\t"
+  );
+
+  // works nicely but for small progams under the 32kB limit ONLY
+  extern const unsigned char PROGMEM prog[];
+  // FIXME currently not used:
+  //extern unsigned int prog_size = 29272;
+
+      #else
+        #include "rom.h"
+      #endif
   #endif
 
   // ===========================================================================
