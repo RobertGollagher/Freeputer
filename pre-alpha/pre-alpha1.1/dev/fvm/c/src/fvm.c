@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160330:2315
-Version:    pre-alpha-0.0.0.32 for FVM 1.1
+Updated:    20160331:0006
+Version:    pre-alpha-0.0.0.33 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -300,12 +300,36 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   even when using FVMO_LOCAL_TAPE mode, since FVMO_LOCAL_TAPE mode will
   in that case use a separate memcom for stdtrc.
 
-  Notes on FMVO_NO_UPCASTS:
-    FMVO_NO_UPCASTS is not needed by: Arduino Due
+  Notes on FMVO_NO_UPCASTS based on fvmtest results:
+  ==================================================
+
+    FMVO_NO_UPCASTS is not needed by:
+
+      Arduino Due
 
     FMVO_NO_UPCASTS is needed by:
 
     FMVO_NO_UPCASTS cannot be used on (breaks):
+
+    FMVO_NO_UPCASTS can be used successfully on:
+
+      Arduino Due, Arduino Mega 2560
+
+
+  Boards known to have fully passed the fvmtest suite:
+  ====================================================
+
+  Listed are boards that have passed the complete 'fvmtest.fl' test suite
+  in at least one possible configuration for the board (not necessarily
+  in all possible configurations that this 'fvm.c' allows).
+
+            BOARD                 DATE FIRST PASSED
+
+    Freetronics EtherDue              20160329
+    Arduino Mega 2560 (clone)         20160330
+    Arduino Due (clone)               20160331
+
+
 
   GENERAL NOTE
   ============
@@ -328,7 +352,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_ETHERDUE_SD4_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
+#define FVMC_ARDUINO_DUE_SD4_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -431,7 +455,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #endif
 
 /* A mini Arduino FVM with multiplexing and an SD card whose CS pin is 4.
-   Suitable for Freetronics EtherDue board. */
+   Suitable for Freetronics EtherDue board. 
+*/
 #ifdef FVMC_ARDUINO_SD4_MINI_MUX
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_MINI
@@ -462,6 +487,9 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       ICSP MISO to MISO
       ICSP SCK  to SCK
 
+   This configuration uses FVMO_INCORPORATE_ROM.
+
+   Arduino Mega passed fvmtest suite on: 20160330
  */
 #ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
   #define FVMOS_ARDUINO_BIN // FIXME experimental
@@ -472,13 +500,14 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
   #define FVMO_STDTRC_STDOUT
-  #define FMVO_NO_UPCASTS
+  #define FMVO_NO_UPCASTS // FIXME TODO also test if tests pass without this
 #endif
 
 /* An Arduino FVM suitable for running 'fvmtest.fl'
    on Freetronics EtherDue using its native port and inbuilt SD card.
+   This configuration uses FVMO_INCORPORATE_ROM.
 
-   Freetronics Due passed FVM test on: 20160329
+   Freetronics Due passed fvmtest suite on: 20160329
  */
 #ifdef FVMC_ARDUINO_ETHERDUE_SD4_FVMTEST
   #define FVMOS_ARDUINO
@@ -488,8 +517,36 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SD_CS_PIN 4
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
-  #define FVMO_SERIALUSB
+  #define FVMO_SERIALUSB // FIXME TODO also test if tests pass without this
+  // #define FMVO_NO_UPCASTS // FIXME TODO also test if tests pass with this
   #define FVMO_STDTRC_STDOUT
+#endif
+
+/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Due.
+
+   Pins are connected as follows (Due to SD Card):
+      4         to CS
+      3.3 V     to VCC
+      GND       to GND
+      ICSP MOSI to MOSI
+      ICSP MISO to MISO
+      ICSP SCK  to SCK
+
+   This configuration uses FVMO_INCORPORATE_ROM.
+
+   Arduino Due passed fvmtest suite on: 20160331
+ */
+#ifdef FVMC_ARDUINO_DUE_SD4_FVMTEST
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
+  // #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
+  #define FVMO_SERIALUSB // Arduino Due passes fvmtest either way
+  // #define FMVO_NO_UPCASTS // Arduino Due passes fvmtest either way
 #endif
 
 /* A mini Arduino FVM, not multiplexed, and using a second serial connection
@@ -1158,6 +1215,8 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #ifdef FVMO_INCORPORATE_ROM
       #include <avr/pgmspace.h>
       #ifdef FVMO_INCORPORATE_BIN
+  // FIXME document that this will NOT compile on ARM boards (eg Arduino Due)
+  // using the Arduino IDE (at least not without hacking the IDE gcc config)
   // FIXME need also to consider FVMO_NO_PROGMEM
   // FIXME fully qualified path is inconvenient here
   // IMPORTANT: When compiling for Arduino, you must use a fully qualified
