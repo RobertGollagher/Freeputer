@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160329:2233
-Version:    pre-alpha-0.0.0.28 for FVM 1.1
+Updated:    20160330:1635
+Version:    pre-alpha-0.0.0.29 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -257,7 +257,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_VERY_SLOW_BAUD // Use very low baud rate when multiplexing
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
-  #define FVMO_SAFE_ALIGNMENT // Target requires safely aligned memory access
+  #define FMVO_NO_UPCASTS // Avoid doing *(WORD *)&memory[addr] // FIXME needs comprehensive testing in all variants
   #define FVMO_NO_PROGMEM // Target does not understand the PROGMEM keyword
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
@@ -299,10 +299,12 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   even when using FVMO_LOCAL_TAPE mode, since FVMO_LOCAL_TAPE mode will
   in that case use a separate memcom for stdtrc.
 
-  Notes on FVMO_SAFE_ALIGNMENT:
-    FVMO_SAFE_ALIGNMENT is not needed by: Arduino Due
+  Notes on FMVO_NO_UPCASTS:
+    FMVO_NO_UPCASTS is not needed by: Arduino Due
 
-    FVMO_SAFE_ALIGNMENT is needed by:
+    FMVO_NO_UPCASTS is needed by:
+
+    FMVO_NO_UPCASTS cannot be used on (breaks):
 
   GENERAL NOTE
   ============
@@ -325,7 +327,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_DUE_SD4_FVMTEST
+#define FVMC_ARDUINO_MEGA_SD53_FVMTEST
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -450,9 +452,34 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDTRC_FILE_ALSO
 #endif
 
-/* An Arduino FVM suitable for
-   running a special 'fvmtest.fl' on EtherDue using Native Port. */
-#ifdef FVMC_ARDUINO_DUE_SD4_FVMTEST
+/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Mega.
+   Pins are connected as follows (Mega to SD Card):
+      53 (=SS)  to CS
+      5V        to VCC
+      GND       to GND
+      ICSP MOSI to MOSI
+      ICSP MISO to MISO
+      ICSP SCK  to SCK
+
+ */
+#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
+  #define FVMOS_ARDUINO
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+  // #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
+  #define FMVO_NO_UPCASTS
+#endif
+
+/* An Arduino FVM suitable for running 'fvmtest.fl'
+   on Freetronics EtherDue using its native port and inbuilt SD card.
+
+   Freetronics Due passed FVM test on: 20160329
+ */
+#ifdef FVMC_ARDUINO_ETHERDUE_SD4_FVMTEST
   #define FVMOS_ARDUINO
   #define FVMOS_SIZE_FVMTEST_ARDUINO
   #define FVMO_FVMTEST
@@ -540,7 +567,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-//  #define FVMO_SAFE_ALIGNMENT
+//  #define FMVO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical Arduino Uno options */
@@ -559,7 +586,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SMALL_ROM
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FVMO_SAFE_ALIGNMENT
+  #define FMVO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical ARM Launchpad options. */
@@ -576,7 +603,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FVMO_SAFE_ALIGNMENT
+  #define FMVO_NO_UPCASTS
   #define FVMO_NO_PROGMEM
 #endif
 
@@ -614,8 +641,9 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
+// FIXME rationalize this baud rate stuff, it is too complex
 #ifdef FVMO_STDTRC_SEP
-  #define BAUD_RATE_STDTRC 115200 // FIXME 38400
+  #define BAUD_RATE_STDTRC 38400
 #endif
 
 #ifdef FVMO_MULTIPLEX
@@ -693,24 +721,24 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #define LAST_RESTART_CODE_RESET 1     // Indicates program-requested RESET
 #define LAST_RESTART_CODE_REBOOT 2    // Indicates program-requested REBOOT
 // Error messages for traps (these go to stdtrc)
-#define msgTrapIllegalOpcode              "ILLEGAL OPCODE    "
-#define msgTrapMathOverflow               "MATH OVERFLOW     "
-#define msgTrapDsOverflow                 "DS OVERFLOW       "
-#define msgTrapDsUnderflow                "DS UNDERFLOW      "
-#define msgTrapRsOverflow                 "RS OVERFLOW       "
-#define msgTrapRsUnderflow                "RS UNDERFLOW      "
-#define msgTrapSsOverflow                 "SS OVERFLOW       "
-#define msgTrapSsUnderflow                "SS UNDERFLOW      "
-#define msgTrapXsBitshift                 "XS BITSHIFT       "
-#define msgTrapMemBounds                  "BEYOND MEM BOUNDS "
-#define msgTrapRAMBounds                  "BEYOND RAM BOUNDS "
-#define msgTrapDivideByZero               "DIVIDE BY ZERO    "
-#define msgTrapWall                       "HIT WALL          "
-#define msgTrapData                       "HIT DATA          "
-#define msgTrapPcOverflow                 "PC OVERFLOW       "
-#define msgTrap                           "APPLICATION TRAP  "
-#define msgDied                           "APPLICATION DIED  "
-#define msgBefore                         " just before:     "
+const static char msgTrapIllegalOpcode[] PROGMEM =    "ILLEGAL OPCODE    ";
+const static char msgTrapMathOverflow[] PROGMEM =     "MATH OVERFLOW     ";
+const static char msgTrapDsOverflow[] PROGMEM =       "DS OVERFLOW       ";
+const static char msgTrapDsUnderflow[] PROGMEM =      "DS UNDERFLOW      ";
+const static char msgTrapRsOverflow[] PROGMEM =       "RS OVERFLOW       ";
+const static char msgTrapRsUnderflow[] PROGMEM =      "RS UNDERFLOW      ";
+const static char msgTrapSsOverflow[] PROGMEM =       "SS OVERFLOW       ";
+const static char msgTrapSsUnderflow[] PROGMEM =      "SS UNDERFLOW      ";
+const static char msgTrapXsBitshift[] PROGMEM =       "XS BITSHIFT       ";
+const static char msgTrapMemBounds[] PROGMEM =        "BEYOND MEM BOUNDS ";
+const static char msgTrapRAMBounds[] PROGMEM =        "BEYOND RAM BOUNDS ";
+const static char msgTrapDivideByZero[] PROGMEM =     "DIVIDE BY ZERO    ";
+const static char msgTrapWall[] PROGMEM =             "HIT WALL          ";
+const static char msgTrapData[] PROGMEM =             "HIT DATA          ";
+const static char msgTrapPcOverflow[] PROGMEM =       "PC OVERFLOW       ";
+const static char msgTrap[] PROGMEM =                 "APPLICATION TRAP  ";
+const static char msgDied[] PROGMEM =                 "APPLICATION DIED  ";
+const static char msgBefore[] PROGMEM =               " just before:     ";
 
 void clearState();
 
@@ -800,17 +828,21 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // Such caution is essential since no overflow checking is performed here.
   #ifndef FVMO_SEPARATE_ROM
       #define byteAtAddr(addr) memory[addr]
-      #ifdef FVMO_SAFE_ALIGNMENT
+      #ifdef FMVO_NO_UPCASTS
         // FIXME untested
-        return (WORD)(memory[addr] |
-                memory[addr+1] << 8 |
-                memory[addr+2] << 16 | 
-                memory[addr+3] << 24);
+        // FIXME this is wrong
+        inline WORD wordAtAddr(WORD addr) {
+          return (WORD)(memory[addr] |
+                  memory[addr+1] << 8 |
+                  memory[addr+2] << 16 | 
+                  memory[addr+3] << 24);
+        }
       #else
+        // Evaluates to word at specified address in system memory
         #define wordAtAddr(addr) *(WORD *)&memory[addr]
       #endif
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #ifdef FVMO_SAFE_ALIGNMENT
+      #ifdef FMVO_NO_UPCASTS
         // FIXME untested
         inline void setWordAtAddr(WORD val, WORD addr) {
           memory[addr] = val;
@@ -823,8 +855,6 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #endif
       // System memory (even multiple of WORD size)
       BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
-      // Evaluates to word at specified address in system memory
-      #define wordAtAddr(addr) *(WORD *)&memory[addr]
       // Evaluates to word at pc
       #define wordAtPc wordAtAddr(pc);
       // Evaluates to byte at specified address in system memory
@@ -846,23 +876,42 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       WORD wordAtAddr(WORD addr) {
         WORD result;
         if (addr < ROM_SIZE) {
-        #ifdef FVMO_SAFE_ALIGNMENT
+        #ifdef FMVO_NO_UPCASTS
           // FIXME untested
+          // FIXME this is wrong
+          WORD result;
+          result = rom[addr];
+          result = result | rom[addr+1];
+          result = result | rom[addr+2];
+          result = result | rom[addr+3];
+          return result;
+
+/*
           return (WORD)(rom[addr] |
                   rom[addr+1] << 8 |
                   rom[addr+2] << 16 | 
                   rom[addr+3] << 24);
+*/
         #else
             result = *(WORD *)&rom[addr];
             return result;
         #endif
         } else {
-        #ifdef FVMO_SAFE_ALIGNMENT
+        #ifdef FMVO_NO_UPCASTS
           // FIXME untested
+          // FIXME this is wrong
+          WORD result;
+          result = ram[addr-ROM_SIZE];
+          result = result | ram[addr+1-ROM_SIZE] << 8;
+          result = result | ram[addr+2-ROM_SIZE] << 16;
+          result = result | ram[addr+3-ROM_SIZE] << 24;
+          return result;
+/*
           return (WORD)(ram[addr-ROM_SIZE] |
                   ram[addr+1-ROM_SIZE] << 8 |
                   ram[addr+2-ROM_SIZE] << 16 | 
                   ram[addr+3-ROM_SIZE] << 24);
+*/
         #else
           result = *(WORD *)&ram[addr-ROM_SIZE];
           return result;
@@ -870,8 +919,9 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         }
       }
       #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
-      #ifdef FVMO_SAFE_ALIGNMENT
+      #ifdef FMVO_NO_UPCASTS
         // FIXME untested
+        // FIXME this is wrong
         inline void setWordAtAddr(WORD val, WORD addr) {
           ram[addr-ROM_SIZE] = val;
           ram[addr+1-ROM_SIZE] = val >> 8;
@@ -1081,27 +1131,28 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // Such caution is essential since no overflow checking is performed here.
   #ifndef FVMO_SEPARATE_ROM
       #define byteAtAddr(addr) memory[addr]
-      #define wordAtAddr(addr) *(WORD *)&memory[addr]
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #ifdef FVMO_SAFE_ALIGNMENT
-        // FIXME untested
-        return (WORD)(memory[addr] |
-                memory[addr+1] << 8 |
-                memory[addr+2] << 16 | 
-                memory[addr+3] << 24);
-      #else
-        #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
-      #endif
-      // System memory (even multiple of WORD size)
-      BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
-
-      #ifdef FVMO_SAFE_ALIGNMENT
+      #ifdef FMVO_NO_UPCASTS
         // FIXME untested
         inline void setWordAtAddr(WORD val, WORD addr) {
           memory[addr] = val;
           memory[addr+1] = val >> 8;
           memory[addr+2] = val >> 16;
           memory[addr+3] = val >> 24;
+        }
+      #else
+        #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #endif
+      // System memory (even multiple of WORD size)
+      BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
+      #ifdef FMVO_NO_UPCASTS
+        // FIXME untested
+        // FIXME this is wrong
+        inline WORD wordAtAddr(WORD addr) {
+          return (WORD)(memory[addr] |
+                  memory[addr+1] << 8 |
+                  memory[addr+2] << 16 | 
+                  memory[addr+3] << 24);
         }
       #else
         // Evaluates to word at specified address in system memory
@@ -1130,17 +1181,42 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       }
       inline WORD wordAtAddr(WORD addr) {
         if (addr < ROM_SIZE) { 
-            #ifdef FVMO_SAFE_ALIGNMENT
+            #ifdef FMVO_NO_UPCASTS
               #ifdef FVMO_NO_PROGMEM
+                // FIXME untested
+                WORD result, temp;
+                temp = rom[addr+3];
+                result = result | temp << 24;
+                temp = rom[addr+2];
+                result = result | temp << 16; 
+                temp = rom[addr+1];
+                result = result | temp << 8;
+                temp = rom[addr];
+                result = result | temp;
+                return result;
+/*
                 return (WORD)(prog[addr] |
                         prog[addr+1] << 8 |
                         prog[addr+2] << 16 | 
                         prog[addr+3] << 24);
+*/
               #else
+                WORD result, temp;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+3));
+                result = temp << 24;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+2));
+                result = result | temp << 16;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+1));
+                result = result | temp << 8;
+                temp = (WORD)(pgm_read_byte_far(prog+addr));
+                result = result | temp;
+                return result;
+/*
                 return (WORD)(pgm_read_byte_far(prog+addr) |
                         pgm_read_byte_far(prog+addr+1) << 8 |
                         pgm_read_byte_far(prog+addr+2) << 16 | 
                         pgm_read_byte_far(prog+addr+3) << 24);
+*/
               #endif
             #else
               #ifdef FVMO_NO_PROGMEM
@@ -1150,18 +1226,30 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
               #endif
             #endif
         } else {
-            #ifdef FVMO_SAFE_ALIGNMENT
+            #ifdef FMVO_NO_UPCASTS
+                WORD result, temp;
+                temp = ram[addr+3-ROM_SIZE];
+                result = temp << 24;
+                temp = ram[addr+2-ROM_SIZE];
+                result = result | temp << 16; 
+                temp = ram[addr+1-ROM_SIZE];
+                result = result | temp << 8;
+                temp = ram[addr-ROM_SIZE];
+                result = result | temp;
+                return result;
+/*
               return (WORD)(ram[addr-ROM_SIZE] |
                       ram[addr+1-ROM_SIZE] << 8 |
                       ram[addr+2-ROM_SIZE] << 16 | 
                       ram[addr+3-ROM_SIZE] << 24);
+*/
             #else
               return *(WORD *)&ram[addr-ROM_SIZE]; 
             #endif
         }
       }
       #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
-      #ifdef FVMO_SAFE_ALIGNMENT
+      #ifdef FMVO_NO_UPCASTS
         inline void setWordAtAddr(WORD val, WORD addr) {
           ram[addr-ROM_SIZE] = val;
           ram[addr+1-ROM_SIZE] = val >> 8;
@@ -3401,9 +3489,9 @@ systemInitCore:
           break;
         } else if (rA < 0 ) {
           // numWords is negative, do descending search
-          int i = 0;
-          int addr;
-          int result = -1; // -1 means not found
+          WORD i = 0;
+          WORD addr;
+          WORD result = -1; // -1 means not found
           for (; i>rA; i--) {
             addr = rC+(i*WORD_SIZE);
             if (rB == wordAtAddr(addr)) {
@@ -3416,9 +3504,9 @@ systemInitCore:
           break;
         } else {
           // numWords is positive, do ascending search
-          int i = 0;
-          int addr;
-          int result = -1; // -1 means not found
+          WORD i = 0;
+          WORD addr;
+          WORD result = -1; // -1 means not found
           for (; i<rA; i++) {
             addr = rC+(i*WORD_SIZE);
             if (rB == wordAtAddr(addr)) {
@@ -3452,9 +3540,9 @@ systemInitCore:
           break;
         } else if (rA < 0 ) {
           // numBytes is negative, do descending search
-          int i = 0;
-          int addr;
-          int result = -1; // -1 means not found
+          WORD i = 0;
+          WORD addr;
+          WORD result = -1; // -1 means not found
           for (; i>rA; i--) {
             addr = rC+i;
             if (byteAtAddr(addr) == rB) {
@@ -3467,9 +3555,9 @@ systemInitCore:
           break;
         } else {
           // numBytes is positive, do ascending search
-          int i = 0;
-          int addr;
-          int result = -1; // -1 means not found
+          WORD i = 0;
+          WORD addr;
+          WORD result = -1; // -1 means not found
           for (; i<rA; i++) {
             addr = rC+i;
             if (byteAtAddr(addr) == rB) {
@@ -3493,8 +3581,8 @@ systemInitCore:
           // numWords is zero or less, so do nothing
           break;
         } else {
-            int i = 0;
-            int addr;
+            WORD i = 0;
+            WORD addr;
             for (; i<rA; i++) {
               addr = rC+(i*WORD_SIZE);
               setWordAtAddr(rB,addr);
@@ -3513,8 +3601,8 @@ systemInitCore:
           // numBytes is zero or less, so do nothing
           break;
         } else {
-            int i = 0;
-            int addr;
+            WORD i = 0;
+            WORD addr;
             for (; i<rA; i++) {
               addr = rC+i;
               setByteAtAddr(rB,addr)
@@ -3524,7 +3612,7 @@ systemInitCore:
         break;
       case iMATCH: ;  //  ( numWords src dest -- TRUE/FALSE ) see if strings match
         {
-          threePopDs    // rA = numWords, rB = src, rC = dest    
+          threePopDs    // rA = numWords, rB = src, rC = dest
           ensureWordAddressable(rB)
           if (rA >= 0) { // FIXME this overflow protection is untested
             if (((POS_INT_MAX-rB)/ WORD_SIZE)<rA) {
@@ -3547,10 +3635,10 @@ systemInitCore:
             } 
           }
           ensureWordAddressable(rC+(rA*WORD_SIZE))
-          int i = 0;
-          int w1addr;
-          int w2addr;
-          int result = TRUE;
+          WORD i = 0;
+          WORD w1addr;
+          WORD w2addr;
+          WORD result = TRUE;
           for (; i<rA; i++) {
             w1addr = rB+(i*WORD_SIZE);
             w2addr = rC+(i*WORD_SIZE);
@@ -3588,10 +3676,10 @@ systemInitCore:
             } 
           }
           ensureByteAddressable(rC+rA)
-          int i = 0;
-          int b1addr;
-          int b2addr;
-          int result = TRUE;
+          WORD i = 0;
+          WORD b1addr;
+          WORD b2addr;
+          WORD result = TRUE;
           for (; i<rA; i++) {
             b1addr = rB+i;
             b2addr = rC+i;
@@ -3636,9 +3724,9 @@ systemInitCore:
           break;
         } else if (rA > 0) {
           // numBytes is positive, do ascending move
-          int i = 0;
-          int b1addr;
-          int b2addr;
+          WORD i = 0;
+          WORD b1addr;
+          WORD b2addr;
           for (; i<rA; i++) {
             b1addr = rB+i;
             b2addr = rC+i;
@@ -3647,9 +3735,9 @@ systemInitCore:
           break;
         } else {
           // numBytes is negative, do descending move
-          int i = 0;
-          int b1addr;
-          int b2addr;
+          WORD i = 0;
+          WORD b1addr;
+          WORD b2addr;
           for (; i>rA; i--) {
             b1addr = rB+i;
             b2addr = rC+i;
@@ -3689,9 +3777,9 @@ systemInitCore:
           break;
         } else if (rA > 0) {
           // numWords is positive, do ascending move
-          int i = 0;
-          int w1addr;
-          int w2addr;
+          WORD i = 0;
+          WORD w1addr;
+          WORD w2addr;
           for (; i<rA; i++) {
             w1addr = rB+(i*WORD_SIZE);
             w2addr = rC+(i*WORD_SIZE);
@@ -3700,9 +3788,9 @@ systemInitCore:
           break;
         } else {
           // numWords is negative, do descending move
-          int i = 0;
-          int w1addr;
-          int w2addr;
+          WORD i = 0;
+          WORD w1addr;
+          WORD w2addr;
           for (; i>rA; i--) {
             w1addr = rB+(i*WORD_SIZE);
             w2addr = rC+(i*WORD_SIZE);
