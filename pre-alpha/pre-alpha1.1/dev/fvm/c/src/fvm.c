@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160331:0231
-Version:    pre-alpha-0.0.0.35 for FVM 1.1
+Updated:    20160331:1659
+Version:    pre-alpha-0.0.0.36 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -258,7 +258,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SEPARATE_ROM // Use real (or at least separate) ROM memory
   #define FVMO_INCORPORATE_ROM // Incorporate 'rom.h' program in FVM executable
   #define FVMO_INCORPORATE_BIN // Incorporate 'rom.fp' ditto // FIXME give more instructions
-  #define FMVO_NO_UPCASTS // Avoid doing *(WORD *)&memory[addr] // FIXME needs comprehensive testing in all variants
+  #define FVMO_NO_UPCASTS // Avoid doing *(WORD *)&memory[addr] // FIXME needs comprehensive testing in all variants
   #define FVMO_NO_PROGMEM // Target does not understand the PROGMEM keyword
   #define FVMO_SMALL_ROM // Target only supports _near not _far pgm_read
   #define FVMO_SERIALUSB // Target uses SerialUSB (Arduino Due native port)
@@ -267,6 +267,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_FVMTEST // A special mode for running the fvmtest suite
   #define FVMO_STDIMP // Support stdimp // FIXME add one for stdblk (eg EEPROM not SD Card etc rather than size)
   #define FVMO_STDEXP // Support stdexp
+  #define FVMO_SDCROM // Use in-situ ROM on SD card (exceedingly slow)
 
   WARNING regarding FVMO_SD_CS_PIN: be sure to consult the documentation for
   your board and/or SD card shield to determine the correct pin. Examples:
@@ -300,20 +301,20 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   even when using FVMO_LOCAL_TAPE mode, since FVMO_LOCAL_TAPE mode will
   in that case use a separate memcom for stdtrc.
 
-  Notes on FMVO_NO_UPCASTS based on fvmtest results:
+  Notes on FVMO_NO_UPCASTS based on fvmtest results:
   ==================================================
 
-    FMVO_NO_UPCASTS is not needed by:
+    FVMO_NO_UPCASTS is not needed by:
 
       Arduino Due
 
-    FMVO_NO_UPCASTS is needed by:
+    FVMO_NO_UPCASTS is needed by:
 
       chipKIT Max32
 
-    FMVO_NO_UPCASTS cannot be used on (breaks):
+    FVMO_NO_UPCASTS cannot be used on (breaks):
 
-    FMVO_NO_UPCASTS can be used successfully on:
+    FVMO_NO_UPCASTS can be used successfully on:
 
       Arduino Due, Arduino Mega 2560, chipKIT Max32
 
@@ -354,7 +355,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_CHIPKIT_MAX32_SD53_FVMTEST // FIXME FVMC_ARDUINO_MEGA_SD53_FVMTEST
+#define FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -494,6 +495,31 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
    Arduino Mega passed fvmtest suite on: 20160330
  */
 #ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
+  #define FVMOS_ARDUINO_ROM
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+  // #define FVMO_STDTRC_FILE_ALSO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
+  #define FVMO_NO_UPCASTS // FIXME TODO also test if tests pass without this
+#endif
+
+/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Mega.
+   Pins are connected as follows (Mega to SD Card):
+      53 (SS)   to CS
+      5V        to VCC
+      GND       to GND
+      ICSP MOSI to MOSI
+      ICSP MISO to MISO
+      ICSP SCK  to SCK
+
+   This configuration uses FVMO_INCORPORATE_BIN.
+
+   Arduino Mega passed fvmtest suite on: 20160330
+ */
+#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
   #define FVMOS_ARDUINO_BIN // FIXME experimental
   #define FVMOS_SIZE_FVMTEST_ARDUINO
   #define FVMO_FVMTEST
@@ -502,7 +528,31 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
   #define FVMO_STDTRC_STDOUT
-  #define FMVO_NO_UPCASTS // FIXME TODO also test if tests pass without this
+  #define FVMO_NO_UPCASTS // FIXME TODO also test if tests pass without this
+#endif
+
+/* 
+   Like FVMC_ARDUINO_MEGA_SD53_FVMTEST but uses FVMO_SDCROM instead of
+   FVMO_INCORPORATE_ROM and therefore is exceedingly slow.
+   See notes for FVMOS_ARDUINO_SDCROM below.
+
+   Your SD card must of course have a 'rom.fp' file, containing the compiled
+   Freeputer program (as Freeputer bytecode) that you wish to run.
+
+   WARNING: running fvmtest in this way does not test if using
+   the physical ROM memory of a microcontroller as Freeputer ROM works
+   or not (and therefore does not test FVMO_NO_UPCASTS at all).
+
+   Arduino Mega passed fvmtest suite on: 20160331
+ */
+#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM
+  #define FVMOS_ARDUINO_SDCROM
+  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMO_FVMTEST
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
 #endif
 
 /* An Arduino FVM suitable for running 'fvmtest.fl'
@@ -520,7 +570,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
   #define FVMO_SERIALUSB // FIXME TODO also test if tests pass without this
-  // #define FMVO_NO_UPCASTS // FIXME TODO also test if tests pass with this
+  // #define FVMO_NO_UPCASTS // FIXME TODO also test if tests pass with this
   #define FVMO_STDTRC_STDOUT
 #endif
 
@@ -548,7 +598,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDTRC_SEP
   #define FVMO_STDTRC_STDOUT
   #define FVMO_SERIALUSB // Arduino Due passes fvmtest either way
-  // #define FMVO_NO_UPCASTS // Arduino Due passes fvmtest either way
+  // #define FVMO_NO_UPCASTS // Arduino Due passes fvmtest either way
 #endif
 
 /* An Arduino FVM suitable for running 'fvmtest.fl' on chipKIT Max32.
@@ -646,13 +696,41 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #endif
 
 /* Generic option set: typical options for Arduinos larger than Uno
+   and using the file 'rom.fp' on an SD card directly (in situ) as ROM.
+   This is exceedingly slow! However, it allows huge Freeputer programs to
+   run (at a snail's pace) on microcontrollers whose inbuilt
+   physical ROM is too small to accommodate such programs.
+   The main purpose of this configuration is to run the 'fvmtest.fl'
+   test suite conveniently on small microcontrollers. Don't bother using
+   this configuration if the physical ROM of your microcontroller is large
+   enough to accommodate fvmtest (in that case use FVMOS_ARDUINO
+   or FVMOS_ARDUINO_BIN instead; they use FVMO_INCORPORATE_ROM or
+   FVMO_INCORPORATE_BIN respectively rather than FVMO_SDCROM and
+   will run one or two orders of magnitude faster).
+
+   Your SD card must of course have a 'rom.fp' file, containing the compiled
+   Freeputer program (as Freeputer bytecode) that you wish to run.
+
+   IMPORTANT: you MUST also #define FVMO_SD and must also ensure that
+   you define FVMO_SD_CS_PIN correctly for your board.
+
+ */
+#ifdef FVMOS_ARDUINO_SDCROM
+  #define FVMP FVMP_ARDUINO_IDE
+  #define FVMO_TRON
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_SDCROM
+//  #define FVMO_NO_UPCASTS
+#endif
+
+/* Generic option set: typical options for Arduinos larger than Uno
    and using binary incorporation of 'rom.fp' rather than using 'rom.h' */
 #ifdef FVMOS_ARDUINO_BIN
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_BIN
-//  #define FMVO_NO_UPCASTS
+//  #define FVMO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical options for Arduinos larger than Uno. */
@@ -661,7 +739,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-//  #define FMVO_NO_UPCASTS
+//  #define FVMO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical Arduino Uno options */
@@ -680,7 +758,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SMALL_ROM
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FMVO_NO_UPCASTS
+  #define FVMO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical ARM Launchpad options. */
@@ -697,7 +775,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-  #define FMVO_NO_UPCASTS // chipKIT always requires FMVO_NO_UPCASTS
+  #define FVMO_NO_UPCASTS // chipKIT always requires FVMO_NO_UPCASTS
   #define FVMO_NO_PROGMEM // chipKIT always requires FVMO_NO_PROGMEM
 #endif
 
@@ -926,7 +1004,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // Such caution is essential since no overflow checking is performed here.
   #ifndef FVMO_SEPARATE_ROM
       #define byteAtAddr(addr) memory[addr]
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         // FIXME untested
         // FIXME this is wrong
         inline WORD wordAtAddr(WORD addr) {
@@ -940,7 +1018,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         #define wordAtAddr(addr) *(WORD *)&memory[addr]
       #endif
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         // FIXME untested
         inline void setWordAtAddr(WORD val, WORD addr) {
           memory[addr] = val;
@@ -974,7 +1052,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       WORD wordAtAddr(WORD addr) {
         WORD result;
         if (addr < ROM_SIZE) {
-        #ifdef FMVO_NO_UPCASTS
+        #ifdef FVMO_NO_UPCASTS
           // FIXME untested
           // FIXME this is wrong
           WORD result;
@@ -995,7 +1073,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
             return result;
         #endif
         } else {
-        #ifdef FMVO_NO_UPCASTS
+        #ifdef FVMO_NO_UPCASTS
           // FIXME untested
           // FIXME this is wrong
           WORD result;
@@ -1017,7 +1095,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         }
       }
       #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         // FIXME untested
         // FIXME this is wrong
         inline void setWordAtAddr(WORD val, WORD addr) {
@@ -1230,6 +1308,8 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #define SD_FILE_TYPE File  // FIXME Arduino IDE needs this comment!!
       #define FVMO_STDIMP
       #define FVMO_STDEXP
+      int ardReadByte(WORD *buf, SD_FILE_TYPE file);
+      int ardReadWord(WORD *buf, SD_FILE_TYPE file);
   #else
       #define SD_FILE_TYPE int // FIXME a hack for stdtrcHandle
   #endif
@@ -1266,6 +1346,18 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #else
         #include "rom.h"
       #endif
+  #else
+      #ifdef FVMO_SD
+        SD_FILE_TYPE romHandle; // File handle for ROM file
+        /* Open ROM */
+        #define openRom \
+        romHandle = SD.open(romFilename, FILE_READ); \
+        if (!romHandle) { \
+          goto trapCantOpenRom; \
+        }
+        /* Close ROM */
+        #define closeRom romHandle.close();
+      #endif // #ifdef FVMO_SD
   #endif
 
   // ===========================================================================
@@ -1277,7 +1369,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #ifndef FVMO_SEPARATE_ROM
       #define byteAtAddr(addr) memory[addr]
       #define setByteAtAddr(val,addr) memory[addr] = val;
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         // FIXME untested
         inline void setWordAtAddr(WORD val, WORD addr) {
           memory[addr] = val;
@@ -1290,7 +1382,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #endif
       // System memory (even multiple of WORD size)
       BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         // FIXME untested
         // FIXME this is wrong
         inline WORD wordAtAddr(WORD addr) {
@@ -1315,18 +1407,51 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       BYTE ram[RAM_SIZE+MAP_SIZE];
       inline BYTE byteAtAddr(WORD addr) {
         if (addr < ROM_SIZE) {
+          #ifdef FVMO_SDCROM
+            // WARNING: returns 0 upon any kind of failure whatsoever;
+            // this is a reasonable compromise for now as failure here is
+            // essentially equivalent to hardware failue.
+            // TODO reconsider failure handling.
+            WORD buf = 0;
+            if (romHandle.seek(addr) == 0) {
+              // seek failed
+              return 0;
+            }
+            if (ardReadByte(&buf,romHandle) < 1) {
+              // get failed
+              return 0;
+            }
+            return buf;
+          #else
             #ifdef FVMO_NO_PROGMEM
               return prog[addr];
             #else
               return (BYTE)pgm_read_byte_far(prog+addr);
             #endif
+          #endif
         } else {
           return ram[addr-ROM_SIZE];
         }
       }
       inline WORD wordAtAddr(WORD addr) {
-        if (addr < ROM_SIZE) { 
-            #ifdef FMVO_NO_UPCASTS
+        if (addr < ROM_SIZE) {
+          #ifdef FVMO_SDCROM
+            // WARNING: returns 0 upon any kind of failure whatsoever;
+            // this is a reasonable compromise for now as failure here is
+            // essentially equivalent to hardware failue.
+            // TODO reconsider failure handling.
+            WORD buf = 0;
+            if (romHandle.seek(addr) == 0) {
+              // seek failed
+              return 0;
+            }
+            if (ardReadWord(&buf,romHandle) < 1) {
+              // get failed
+              return 0;
+            }
+            return buf;
+          #else // #ifdef FVMO_SDCROM
+            #ifdef FVMO_NO_UPCASTS
               #ifdef FVMO_NO_PROGMEM
                 // FIXME untested
                 WORD result, temp;
@@ -1345,7 +1470,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
                         prog[addr+2] << 16 | 
                         prog[addr+3] << 24);
 */
-              #else
+              #else // #ifdef FVMO_NO_PROGMEM
                 WORD result, temp;
                 temp = (WORD)(pgm_read_byte_far(prog+addr+3));
                 result = temp << 24;
@@ -1362,16 +1487,17 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
                         pgm_read_byte_far(prog+addr+2) << 16 | 
                         pgm_read_byte_far(prog+addr+3) << 24);
 */
-              #endif
-            #else
+              #endif // #ifdef FVMO_NO_PROGMEM
+            #else // #ifdef FVMO_NO_UPCASTS
               #ifdef FVMO_NO_PROGMEM
                 return *(WORD *)&prog[addr];
               #else
                 return (WORD)pgm_read_dword_far(prog+addr);
               #endif
-            #endif
-        } else {
-            #ifdef FMVO_NO_UPCASTS
+            #endif // #ifdef FVMO_NO_UPCASTS
+          #endif // #ifdef FVMO_SDCROM
+        } else { // if (addr < ROM_SIZE) {
+            #ifdef FVMO_NO_UPCASTS
                 WORD result, temp;
                 temp = ram[addr+3-ROM_SIZE];
                 result = temp << 24;
@@ -1394,7 +1520,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         }
       }
       #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
-      #ifdef FMVO_NO_UPCASTS
+      #ifdef FVMO_NO_UPCASTS
         inline void setWordAtAddr(WORD val, WORD addr) {
           ram[addr-ROM_SIZE] = val;
           ram[addr+1-ROM_SIZE] = val >> 8;
@@ -1433,24 +1559,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #define msgTrapCantCloseStdexp            "CAN'T CLOSE STDEXP"
   #define msgTrapCantOpenStdimp             "CAN'T OPEN STDIMP "
   #define msgTrapCantCloseStdimp            "CAN'T CLOSE STDIMP"
+  // Note: declaration of romHandle, openRom, closeRom have been moved up
 
-  #ifndef FVMO_INCORPORATE_ROM
-      #ifdef FVMO_SD
-        SD_FILE_TYPE romHandle; // File handle for ROM file
-        /* Open ROM */
-        #define openRom \
-        romHandle = SD.open(romFilename, FILE_READ); \
-        if (!romHandle) { \
-          goto trapCantOpenRom; \
-        }
-        /* Close ROM */
-        #define closeRom romHandle.close();
-      #endif // #ifdef FVMO_SD
-  #endif // #ifndef FVMO_INCORPORATE_ROM
-
-  // ==========================================================================
+  // =========================================================================
   //   PRIVATE SERVICES
-  // ==========================================================================
+  // =========================================================================
   #ifdef FVMO_SD
     #if STDBLK_SIZE > 0
       SD_FILE_TYPE stdblkHandle; // File handle for stdblk file
@@ -3056,6 +3169,7 @@ systemInitDevices:
   #endif
 
   #ifndef FVMO_INCORPORATE_ROM
+    openRom
 
    // systemLoadProgram: // label probably not needed
   //FIXME make this suitable for Arduino and add all 4 options
@@ -4954,6 +5068,11 @@ systemReset:
   lastExitCode = rB;          // Save lastExitCode (passed in here in rB)
 
 #ifdef FVMO_SD
+  #ifndef FVMO_INCORPORATE_ROM
+    #ifdef FVMO_SDCROM
+      if (romHandle) { closeRom }
+    #endif
+  #endif
   #if STDBLK_SIZE > 0
     if (stdblkHandle) { closeStdblk }
   #endif

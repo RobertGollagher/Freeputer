@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160330:2315
-Version:    pre-alpha-0.0.0.8
+Updated:    20160331:1758
+Version:    pre-alpha-0.0.0.9
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -231,9 +231,10 @@ MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
 
 ( ============================================================================
                      MINI ARDUINO CONFIGURATION
-                  Suitable for Arduino Mega or larger.
+                Suitable for Arduino Mega 2560 or larger.
     Requires an SD card containing 'std.imp' and 'std.blk' as above.
      Neither requires nor uses any 'std.in.tst' on the SD card.
+      If using FVMO_SDCROM requires a 'rom.fp' on the SD card.
        See 'fvm.c' for how to compile a suitable Arduino FVM.
                     
   This configuration assumes the FVM instance to be tested has:
@@ -249,13 +250,35 @@ MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
   Unfortunately this C array brings with it limitations
   with respect to 8-bit or 16-bit boards.
 
-  On 8-bit or 16-bit boards, such as the Arduino Mega, which cannot index
-  arrays larger than 32768 bytes in C, it is unfortunately necessary
+  On 8-bit or 16-bit boards, such as the Arduino Mega 2560, which cannot
+  index arrays larger than 32768 bytes in C, it is unfortunately necessary
   to break this 'fvmtest.fl' into parts and, using that same
   procedure, compile and run each part separately. This is because
   this 'fvmtest.fl' when compiled into Freeputer bytecode occupies
-  around 80 kB. Therefore for the Mega it is most convenient to
-  break this up into 4 parts. FIXME add more instructions here
+  around 80 kB. Therefore for the Mega it is most convenient to break
+  this up into 4 parts; see comments below like \ 29272 bytes [62 restarts]
+  which indicate where this has been done in the past.
+
+  New feature: as an alternative to the tedious manual procedure
+  of breaking this test suite up into several parts to be run separately,
+  there is now a new FVMO_SDCROM option in 'fvm.c' that allows you
+  to compile an FVM instance that will directly use a 'rom.fp' binary file
+  on an SD card as its ROM [in situ]. This is exceedingly slow
+  [so fvmtest will run up to two orders of magnitude slower] but
+  convenient for running fvmtest as a whole in a single run. You would
+  simply compile this 'fvmtest.fl' to 'rom.fp' and copy that 'rom.fp'
+  to your SD card; then compile 'fvm.c' appropriately [see therein
+  FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM for an example configuration].
+  Of course, the drawback is that this does not test if FVMO_INCORPORATE_ROM
+  or FVMO_INCORPORATE_BIN work correctly on your microcontroller, and
+  cannot test FVMO_NO_UPCASTS at all, but at least it otherwise tests
+  the FVM nicely [such as on the Arduino Mega 2560].
+
+  Sadly the FVMO_SDCROM option does not allow runing fvmtest on
+  Arduino Uno; there is currently no solution for doing so. Of course,
+  the 'fvm.c' FVM can be compiled for Arduino Uno and will run small
+  Freeputer programs but with insuffient Flash memory remaining
+  to use either the SD library or fvmtest [even in parts].
 
   ========================================================================== )
 
