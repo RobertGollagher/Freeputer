@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160331:1758
-Version:    pre-alpha-0.0.0.9
+Updated:    20160331:1820
+Version:    pre-alpha-0.0.0.10
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -366,7 +366,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ some of these tests involve I/O.
   : runAllTests
     \ Tests for each instruction in the FVM instruction set:
-    ::testWALL       ." testWALL             " expectTrap \ 0 bytes [0 restarts]
+((( ::testWALL       ." testWALL             " expectTrap \ 0 bytes [0 restarts]
     ::testLIT        ." testLIT              " expectTrap
     ::testCALL       ." testCALL             " expectTraps
     ::testJMP        ." testJMP              " expectTraps
@@ -448,7 +448,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testHOLD2      ." testHOLD2            " expectTrap
     ::testHOLD3      ." testHOLD3            " expectTrap
     ::testHOLD4      ." testHOLD4            " expectTrap \ 21304 bytes [45 restarts]
-    ::testSPEEK      ." testSPEEK            " expectTraps
+)))    ::testSPEEK      ." testSPEEK            " expectTraps
     ::testSPEEK2     ." testSPEEK2           " expectTraps
     ::testSPEEK3     ." testSPEEK3           " expectTraps
     ::testSPEEK4     ." testSPEEK4           " expectTraps
@@ -488,7 +488,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testRSUB       ." testRSUB             " expectTraps
     ::testRMUL       ." testRMUL             " expectTraps
     ::testRDIV       ." testRDIV             " expectTraps \ 28080 bytes [97 restarts]
-    ::testRMOD       ." testRMOD             " expectTraps
+(((    ::testRMOD       ." testRMOD             " expectTraps
     ::testRDIVMOD    ." testRDIVMOD          " expectTraps
     ::testNEG        ." testNEG              " expectTrap
     ::testABS        ." testABS              " expectTrap
@@ -534,7 +534,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testHALT       ." testHALT             " untested
     ::testDATA       ." testDATA             " expectTrap
     \ Other tests:
-    ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap  \ 20876 bytes [34 restarts]
+    ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap ))) \ 20876 bytes [34 restarts]
   ;
 
   \ Trace the supplied string msg, then invoke unit test function f,
@@ -614,7 +614,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
 \ ============================================================================
 \                               TESTS
 \ ============================================================================
-
+(((
   \ Test opcode 0 WALL
   : testWALL
     \ Verify trapWall occurs as it should:
@@ -2005,7 +2005,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
                spush4 spush4 spush4 spush
                1 2 3 4 hold4 tfail \ trapSsOverflow
   ;
-
+)))
   \ Test opcode 171 SPEEK
   : testSPEEK
     1 2 3 4             \ ( 1 2 3 4 )
@@ -2346,7 +2346,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Verify that the free alignment of words functions correctly by storing
     \ 0x41424344 = 1145258561 = UTF-8 "ABCD" in one word, at 1-byte offsets,
     \ then loading that word to verify the load and store worked correctly.
-    \ Zero-out each word after verifying it.
+    \ Zero-out each word after verifying it. This tests FVMO_NO_UPCASTS.
     \ Offset 0:
     ..ABCD ##testAlign !
     ##testAlign @ ..ABCD assert{eq}
@@ -2835,7 +2835,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     zeroRDIV: 0 1 [/] tfail                  \ verifyTrapDivideByZero
     overRDIVneg: -1 ..NEG_INT_MAX  [/] tfail \ trapMathOverflow
   ;
-
+(((
   \ Test opcode 211 RMOD ( n1 n2 -- n1 n2%n1 )
   \ Note: RMOD modulo is the reverse of MOD
   : testRMOD
@@ -3454,7 +3454,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ jump to the word having the value 256 within this data block
   hitIllegalOpcode:
     data 1 256 ===
-    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line! 
+    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line! )))
 
 \ ============================================================================
 \                             DECLARATIONS

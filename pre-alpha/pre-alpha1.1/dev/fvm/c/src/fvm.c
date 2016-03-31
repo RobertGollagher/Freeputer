@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160331:1659
-Version:    pre-alpha-0.0.0.36 for FVM 1.1
+Updated:    20160331:1822
+Version:    pre-alpha-0.0.0.37 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -306,13 +306,15 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
     FVMO_NO_UPCASTS is not needed by:
 
-      Arduino Due
+      Arduino Due, Arduino Mega 2560
 
     FVMO_NO_UPCASTS is needed by:
 
       chipKIT Max32
 
     FVMO_NO_UPCASTS cannot be used on (breaks):
+
+
 
     FVMO_NO_UPCASTS can be used successfully on:
 
@@ -355,7 +357,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM
+#define FVMC_ARDUINO_MEGA_SD53_FVMTEST_BIN
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -519,8 +521,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
    Arduino Mega passed fvmtest suite on: 20160330
  */
-#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
-  #define FVMOS_ARDUINO_BIN // FIXME experimental
+#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST_BIN
+  #define FVMOS_ARDUINO_BIN
   #define FVMOS_SIZE_FVMTEST_ARDUINO
   #define FVMO_FVMTEST
   #define FVMO_SD
@@ -528,7 +530,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
   #define FVMO_STDTRC_STDOUT
-  #define FVMO_NO_UPCASTS // FIXME TODO also test if tests pass without this
+  // #define FVMO_NO_UPCASTS // Arduino Mega 2560 passes fvmtest either way
 #endif
 
 /* 
