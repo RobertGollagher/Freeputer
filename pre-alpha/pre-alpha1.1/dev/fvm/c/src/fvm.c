@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160331:1833
-Version:    pre-alpha-0.0.0.38 for FVM 1.1
+Updated:    20160401:0111
+Version:    pre-alpha-0.0.0.39 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -123,20 +123,10 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
   * Debian Linux
 
   ARDUINO IDE
-  * Arduino Uno
-  * Arduino Mega 2560
-  * Arduino Due
+  * Arduino Mega 2560 (clone)
+  * Arduino Due (clone)
+  * Freetronics EtherDue
   * chipKIT Max32
-
-  ENERGIA IDE
-  * Tiva C Series Launchpad EK-TM4C123GXL
-  * MSP430 Launchpad MSP-EXP430FR6989
-  * MSP430 Launchpad MSP-EXP430F5529LP
-
-Notes:
-
-  * For MSP-EXP430FR6989 Launchpad, do not start the Linux tape terminal
-    until your Launchpad 'ts.fl' tape server is up and running.
   
 ==============================================================================
   TARGETS CURRENTLY NOT WORKING
@@ -144,6 +134,39 @@ Notes:
   ARDUINO IDE
   * Fubarino SD 1.5 (incompatible serial communication)
   * DuinoMite-Mega  (incompatible serial communication)
+
+==============================================================================
+  TARGETS FOR WHICH SUPPORT HAS BEEN WITHDRAWN
+==============================================================================
+  
+  Earlier versions of this 'fvm.c' supported some MSP430 Launchpads and
+  at least one Tiva C Series Launchpad via the Energia IDE. Unfortunately
+  the Energia IDE 0101E0017 has since been unreliable in this context 
+  and extremely difficult to debug when a compile error occurs.
+  Accordingly as on 20160331 a decision has been made to abandon
+  using the Energia IDE and hence all TI Launchpads. This is not to say
+  that this 'fvm.c' could not be successfully ported to TI Launchpads
+  using a tool other than the Energia IDE; it probably could be
+  but doing so is beyond the current scope of this project.
+
+  Earlier versions of this 'fvm.c' supported running small Freeputer
+  programs on the Arduino Uno. However, after much thought, a decision has
+  been made on 20160331 to withdraw support for the Arduino Uno as a target.
+  This is because it has insufficient flash memory (only 32 kB) to
+  conveniently accommodate 'fvm.c' except when compiled without
+  SD card support, and because meaningfully running the 'fvmtest.fl'
+  test suite on an Uno is not easily possible, thus making it
+  difficult to verify the full and correct function of the FVM.
+  An Arduino Mega 2560 has none of these problems.
+
+  As a rule of thumb for the near future, this project will only
+  bother using microcontrollers with at least 128 kB of flash (or similar
+  persistent memory technology) and at least 8 kB of RAM. This is because
+  the project also targets Linux computers, and other platforms such as Java,
+  and a balance needs to be struck between supporting the very small and
+  the very large. After all, Freeputer is primarily intended to be
+  an extremely portable platform for software development and therefore
+  it makes sense to support small but not miniscule devices.
 
 ==============================================================================
 
@@ -367,35 +390,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #ifdef FVMC_LINUX_MINI
   #define FVMOS_LINUX
   #define FVMOS_SIZE_MINI
-#endif
-
-/* A tiny Arduino FVM with multiplexing.
-   Suitable for Arduino Uno */
-#ifdef FVMC_ARDUINO_UNO_TINY_MUX
-  #define FVMOS_ARDUINO_UNO
-  #define FVMOS_SIZE_TINY
-  #define FVMO_MULTIPLEX
-#endif
-
-/* A tiny Energia FVM with multiplexing.
-   Suitable for some MSP430 Launchpads including:
-     MSP430 Launchpad MSP-EXP430FR6989
-     MSP430 Launchpad MSO-EXP430F5529LP
- */
-#ifdef FVMC_ENERGIA_MSP430_TINY_MUX
-  #define FVMOS_ENERGIA_MSP430
-  #define FVMOS_SIZE_TINY
-  #define FVMO_MULTIPLEX
-#endif
-
-/* A mini Energia FVM with multiplexing.
-   Suitable for some Texas Instruments ARM Launchpads including: 
-     Tiva C Series EK-TM4C123GXL
-*/
-#ifdef FVMC_ENERGIA_ARM_MINI_MUX
-  #define FVMOS_ENERGIA_ARM
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
 #endif
 
 /* A mini Arduino FVM with a built-in CLCD tape user interface.
@@ -742,33 +736,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
 //  #define FVMO_NO_UPCASTS
-#endif
-
-/* Generic option set: typical Arduino Uno options */
-#ifdef FVMOS_ARDUINO_UNO
-  #define FVMP FVMP_ARDUINO_IDE
-  #define FVMO_TRON // Comment to save memory if tracing not needed
-  #define FVMO_SMALL_ROM
-  #define FVMO_SEPARATE_ROM
-  #define FVMO_INCORPORATE_ROM
-#endif
-
-/* Generic option set: typical MSP430 Launchpad options. */
-#ifdef FVMOS_ENERGIA_MSP430
-  #define FVMP FVMP_ARDUINO_IDE
-  #define FVMO_TRON // Comment to save memory if tracing not needed
-  #define FVMO_SMALL_ROM
-  #define FVMO_SEPARATE_ROM
-  #define FVMO_INCORPORATE_ROM
-  #define FVMO_NO_UPCASTS
-#endif
-
-/* Generic option set: typical ARM Launchpad options. */
-#ifdef FVMOS_ENERGIA_ARM
-  #define FVMP FVMP_ARDUINO_IDE
-  #define FVMO_TRON
-  #define FVMO_SEPARATE_ROM
-  #define FVMO_INCORPORATE_ROM
 #endif
 
 /* Generic option set: typical chipKIT options */
