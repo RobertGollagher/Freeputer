@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160401:0111
-Version:    pre-alpha-0.0.0.39 for FVM 1.1
+Updated:    20160401:0118
+Version:    pre-alpha-0.0.0.40 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -87,23 +87,6 @@ course also ensure 'rom.h' is in the same directory as your 'fvm.ino'.
 Alternatively, use appropriate symbolic links for convenience.
 Use Arduino IDE 1.6.7 or higher.
 
-If your target is a Texas Instruments Launchpad (also treated as
-platform FVMP_ARDUINO_IDE) do the same but use the Energia IDE (see energia.nu).
-For Tiva C Series Launchpads you will first need to install lm4flash by:
-
-  aptitude install lm4flash
-
-Use Energia to build this sketch, then select "Show Compilation Folder" to
-identify the folder in which the resulting 'fvm.cpp.bin' was produced.
-In a terminal, navigate to that directory and do:
-
-  lm4flash fvm.cpp.bin
-
-That will upload this compiled sketch to your Tiva C Series Launchpad board
-(and you may find later, after a restart, that the Upload button starts working).
-For some other kinds of Launchpads you can simply use the Upload button
-in the Energia IDE in the normal manner. Use Energia 17 or higher.
-
 ==============================================================================
 
   The following targets have successfully run the 'ts.fl' tape server
@@ -131,6 +114,7 @@ in the Energia IDE in the normal manner. Use Energia 17 or higher.
 ==============================================================================
   TARGETS CURRENTLY NOT WORKING
 ==============================================================================
+
   ARDUINO IDE
   * Fubarino SD 1.5 (incompatible serial communication)
   * DuinoMite-Mega  (incompatible serial communication)
@@ -267,7 +251,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   ===================
   #define FVMP FVMP_STDIO // gcc using <stdio.h> for FILEs (eg Linux targets)
   #define FVMP FVMP_ARDUINO_IDE // Arduino IDE (eg Arduino or chipKIT targets)
-                                or Energia IDE (Texas Instruments Launchpads)
 
   CONFIGURATION OPTIONS
   =====================
