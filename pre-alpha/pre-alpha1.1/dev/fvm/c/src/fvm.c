@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160401:0118
-Version:    pre-alpha-0.0.0.40 for FVM 1.1
+Updated:    20160402:1656
+Version:    pre-alpha-0.0.0.41 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -274,6 +274,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDIMP // Support stdimp // FIXME add one for stdblk (eg EEPROM not SD Card etc rather than size)
   #define FVMO_STDEXP // Support stdexp
   #define FVMO_SDCROM // Use in-situ ROM on SD card (exceedingly slow)
+  #define FVMO_STDIN_FROM_FILE // Use 'std.in' file as stdin (eg on SD card) // FIXME and for Linux
 
   WARNING regarding FVMO_SD_CS_PIN: be sure to consult the documentation for
   your board and/or SD card shield to determine the correct pin. Examples:
@@ -363,7 +364,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_MEGA_SD53_FVMTEST
+#define FVMC_CHIPKIT_SD53_FLC_SMALL
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -637,6 +638,15 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMOS_SIZE_MINI
 #endif
 
+/* A small chipKIT FVM for running flc with minimal RAM */
+#ifdef FVMC_CHIPKIT_SD53_FLC_SMALL
+  #define FVMOS_CHIPKIT
+  #define FVMO_STDIN_FROM_FILE // FIXME
+  #define FVMO_STDTRC_SEP // FIXME DELETEME
+  #define FVMO_STDTRC_STDOUT // FIXME DELETEME
+  #define FVMOS_SIZE_SD53_FLC_SMALL
+#endif
+
 /* A mini chipKIT FVM without multiplexing and a slow baud rate. */
 #ifdef FVMC_CHIPKIT_MINI_MUX_SLOW
   #define FVMOS_CHIPKIT
@@ -745,6 +755,15 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 0
 #endif
 
+/* Sizing: small for running flc in stdblk mode (minimal RAM usage) */
+#ifdef FVMOS_SIZE_SD53_FLC_SMALL
+  #define ROM_SIZE 126976
+  #define RAM_SIZE 4096
+  #define STDBLK_SIZE 16777216
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+#endif
+
 /* Sizing: mini with 16 MB stdblk */
 #ifdef FVMOS_SIZE_MINI_STDBLK16MB
   #define ROM_SIZE 32768
@@ -765,9 +784,9 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
-// FIXME rationalize this baud rate stuff, it is too complex
+// FIXME rationalize this baud rate stuff, it is too complex and doesn't play nicely with some config combos 
 #ifdef FVMO_STDTRC_SEP
-  #define BAUD_RATE_STDTRC 38400
+  #define BAUD_RATE_STDTRC 9600 // 115200 // FIXME 38400
 #endif
 
 #ifdef FVMO_MULTIPLEX
@@ -785,7 +804,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     #endif
   #endif
 #else
-  #define BAUD_RATE 115200
+  #define BAUD_RATE 9600 // FIXME 115200
 #endif
 
 #ifdef FVMO_NO_PROGMEM
@@ -1501,6 +1520,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   #define stdtrcFilename         "std.trc"   // Name of file for standard trace
   #define stdexpFilename         "std.exp"   // Name of file for standard export
   #define stdimpFilename         "std.imp"   // Name of file for standard import
+  #ifdef FVMO_STDIN_FROM_FILE
+    #define stdinFilename          "std.in" // Name of file for stdin
+    #define msgTrapCantOpenStdin            "CAN'T OPEN STDIN  "
+    #define msgTrapCantCloseStdin           "CAN'T CLOSE STDIN "
+  #endif
 
   #define msgTrapCantOpenStdblk             "CAN'T OPEN STDBLK "
   #define msgTrapCantCloseStdblk            "CAN'T CLOSE STDBLK"
@@ -1532,6 +1556,17 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     SD_FILE_TYPE stdexpHandle; // File handle for stdexp file
     SD_FILE_TYPE stdimpHandle; // File handle for stdimp file
 
+    #ifdef FVMO_STDIN_FROM_FILE
+      SD_FILE_TYPE stdinHandle; // File handle for stdin file
+      /* Open stdin */
+      #define openStdin \
+        stdinHandle = SD.open(stdinFilename, FILE_READ); \
+        if (!stdinHandle) { \
+          goto trapCantOpenStdin; \
+        }
+      /* Close stdin */
+      #define closeStdin stdinHandle.close();
+    #endif
 
     // FIXME may need another config option here for stdtrc
     #ifdef FVMO_FVMTEST
@@ -1621,6 +1656,10 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
           #endif
         #endif
     #else
+        #ifdef FVMO_STDTRC_ALSO_SERIAL // FIXME originally was for when FVMO_LOCAL_TAPE only
+          Serial.write(c);
+          Serial.flush();
+        #endif
         #ifdef FVMO_STDTRC_SEP
             Serial1.write(c);
         #else
@@ -1667,26 +1706,26 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
       #ifndef FVMO_TRON
         int numBytesWritten = file.write(buf,numBytes);
-        file.flush();
+        file.flush(); // FIXME need to try without this to speed up stdblk on SD card
         return numBytesWritten;
       #else
         // TODO refactor for better performance
         #ifdef FVMO_STDTRC_SEP
           if (strcmp(file.name(),stdtrcHandle.name()) == 0) {
             Serial1.write(buf,numBytes);
-            Serial1.flush();
+            Serial1.flush(); // Necessary for timely debugging
           }
         #endif
         #ifdef FVMO_STDTRC_FILE_ALSO
           // Write to any file here
           int numBytesWritten = file.write(buf,numBytes);
-          file.flush();
+          file.flush(); // FIXME maybe try without this?
           return numBytesWritten;
         #else
           if ( strcmp(file.name(),stdtrcHandle.name()) != 0) {
             // Write files other than stdtrc here...
             int numBytesWritten = file.write(buf,numBytes);
-            file.flush();
+            // file.flush(); // FIXME need to try without this to speed up stdblk on SD card
             return numBytesWritten;
           } else {
             // ...and silently write nothing to stdfile
@@ -1704,9 +1743,13 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #ifdef FVMO_LOCAL_TAPE
       while (memcom_available(&memcom, 1) < 1) {};
       *buf = memcom_read(&memcom);
-    #else    
-      while (Serial.available() < 1) {};
-      *buf = Serial.read();
+    #else
+      #ifdef FVMO_STDIN_FROM_FILE
+        ardReadByte(buf,stdinHandle);
+      #else
+        while (Serial.available() < 1) {};
+        *buf = Serial.read();
+      #endif
     #endif
     return 1;
   }
@@ -1717,12 +1760,19 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       WORD b2 = memcom_read(&memcom);
       WORD b3 = memcom_read(&memcom);
       WORD b4 = memcom_read(&memcom);
-    #else    
-      while (Serial.available() < 4) {};
-      WORD b1 = Serial.read();
-      WORD b2 = Serial.read();
-      WORD b3 = Serial.read();
-      WORD b4 = Serial.read();
+    #else
+      #ifdef FVMO_STDIN_FROM_FILE
+        ardReadByte(buf,stdinHandle); WORD b1 = *buf; *buf = 0;
+        ardReadByte(buf,stdinHandle); WORD b2 = *buf; *buf = 0;
+        ardReadByte(buf,stdinHandle); WORD b3 = *buf; *buf = 0;
+        ardReadByte(buf,stdinHandle); WORD b4 = *buf; *buf = 0;
+      #else
+        while (Serial.available() < 4) {};
+        WORD b1 = Serial.read();
+        WORD b2 = Serial.read();
+        WORD b3 = Serial.read();
+        WORD b4 = Serial.read();
+      #endif
     #endif
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
     return 4;
@@ -3118,6 +3168,13 @@ systemInitDevices:
     #endif
     openStdexp
     openStdimp
+    #ifdef FVMO_STDIN_FROM_FILE
+      const static char strx[] PROGMEM = "openStdin..."; // FIXME DELETEME
+      fvmTrace(strx); fvmTraceNewline();
+      openStdin
+      const static char stry[] PROGMEM = "Did openStdin"; // FIXME DELETEME
+      fvmTrace(stry); fvmTraceNewline();
+    #endif
   #endif
 
   #ifndef FVMO_INCORPORATE_ROM
@@ -5031,6 +5088,9 @@ systemReset:
   if (stdexpHandle) { closeStdexp }
   if (stdimpHandle) { closeStdimp }
   if (stdtrcHandle) { closeStdtrc }
+  #ifdef FVMO_STDIN_FROM_FILE
+    if (stdinHandle) { closeStdin }
+  #endif
 #else
   #if FVMP == FVMP_STDIO
     #if STDBLK_SIZE > 0
@@ -5259,6 +5319,17 @@ trapCantCloseStdimp:
   rB = 78;
   traceExitMsg(msgTrapCantCloseStdimp);
   goto exitFail;
+
+#ifdef FVMO_STDIN_FROM_FILE
+trapCantOpenStdin:
+  rB = 81;
+  traceExitMsg(msgTrapCantOpenStdin);
+  goto exitFail;
+trapCantCloseStdin:
+  rB = 82;
+  traceExitMsg(msgTrapCantCloseStdin);
+  goto exitFail;
+#endif
 // ===========================================================================
 
 } // end of runfvm()
