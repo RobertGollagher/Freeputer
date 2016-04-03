@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160402:1656
-Version:    pre-alpha-0.0.0.41 for FVM 1.1
+Updated:    20160404:0053
+Version:    pre-alpha-0.0.0.42 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -86,6 +86,61 @@ Assuming that you are using the FVMO_INCORPORATE_ROM option you must of
 course also ensure 'rom.h' is in the same directory as your 'fvm.ino'.
 Alternatively, use appropriate symbolic links for convenience.
 Use Arduino IDE 1.6.7 or higher.
+
+If your target is U-Boot on Raspberry Pi B (that is, bare metal, no Linux)
+then follow instructions at http://elinux.org/RPi_U-Boot for mainline U-Boot
+and then build with a script such as this from your u-boot directory:
+
+        # Note: For this to work you will first need:
+        #   aptitude install gcc-arm-linux-gnueabi
+        #   aptitude install bc
+        export CROSS_COMPILE=arm-linux-gnueabi-
+        make rpi_defconfig
+        touch examples/standalone/fvm.c
+        make
+
+You may also need 'rom.h' present along with this 'fvm.c' in your
+u-boot/examples/standalone directory (or use appropriate symbolic links).
+
+From u-boot/examples/standalone check what your loadb address must be by:
+
+  nm -n examples/standalone/fvm | grep fvm
+
+In the output of that your loadb address is identified such as:
+
+  0c100000 T fvm
+
+And in fact this is not known to work reliably unless your loadb address
+either is 0c100000 or is only a few bytes above that. Essentially you
+want the fvm function (entry point for FVMP_UBOOT platform) to be
+the first function implemented in this 'fvm.c' file so as to
+ensure that it will be found at 0c100000.
+
+Run kermit by:
+
+  kermit -c
+
+In kermit, switch to your U-Boot prompt by:
+
+  connect
+
+Then at your U-Boot prompt:
+
+  loadb 0c100000
+
+Then switch to kermit by Ctrl-\ C and do:
+
+  send /bin examples/standalone/fvm.bin
+  
+In kermit, switch to your U-Boot prompt by:
+
+  connect
+
+Then at your U-Boot prompt:
+
+  go 0c100000
+
+And if all is well the FVM should now run.
 
 ==============================================================================
 
@@ -364,11 +419,17 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_CHIPKIT_SD53_FLC_SMALL
+#define FVMC_UBOOT_RPI // Just ran first tiny Freeputer program on RPi U-Boot
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
 // ===========================================================================
+
+/* A mini U-Boot FVM for Raspberry Pi */
+#ifdef FVMC_UBOOT_RPI
+  #define FVMOS_UBOOT
+  #define FVMOS_SIZE_MINI
+#endif
 
 /* A mini Linux FVM without multiplexing */
 #ifdef FVMC_LINUX_MINI
@@ -668,10 +729,21 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
   #define FVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
   #define FVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
+  #define FVMP_UBOOT 2 // U-Boot targets
 
 // ===========================================================================
 //        SOME GENERIC OPTION SETS USED BY THE EXAMPLE CONFIGURATIONS:
 // ===========================================================================
+/* Generic option set: typical U-Boot options */
+#ifdef FVMOS_UBOOT
+  #define FVMP FVMP_UBOOT
+  #define FVMO_TRON
+  #define FVMO_SEPARATE_ROM
+  #define FVMO_INCORPORATE_ROM
+  #define FVMO_NO_PROGMEM
+  #define FVMO_NO_UPCASTS
+#endif
+
 /* Generic option set: typical Linux options */
 #ifdef FVMOS_LINUX
   #define FVMP FVMP_STDIO
@@ -819,6 +891,47 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #ifdef FVMO_INCORPORATE_BIN
   #define FVMO_INCORPORATE_ROM
 #endif
+
+#if FVMP == FVMP_UBOOT
+
+#include <common.h>
+#include <exports.h>
+
+  int runfvm(void);
+  // IMPORTANT: this should be the first function implementation
+  // in this 'fvm.c' file otherwise running as a U-Boot standalone
+  // application may not work. On Raspberry Pi B this is known to
+  // work if our loadb address consequently will be 0x0C100000.
+  // Anything much higher does NOT work.
+  int fvm(int argc, char * const argv[]) {
+    app_startup(argv);
+    printf("Expected U-Boot ABI version: %d\n", XF_VERSION);
+    printf("Actual U-Boot ABI version  : %d\n", (int)get_version());
+    printf("About to run FVM...\n");
+    int exitCode = runfvm();
+    printf("Finished running FVM\n");
+    printf("FVM exit code was: %d\n", exitCode);
+    return exitCode;
+  }
+
+  //#define NULL 0
+  #define int32_t int // TODO not robust for all targets
+  #define uint8_t char // TODO not robust for all targets
+  #define uint32_t unsigned int // TODO not robust for all targets
+
+  void *memset(void *dest, int c, __kernel_size_t n) {
+    char *mmem = (char *)dest;
+    for (int i = 0; i < n; i++) {
+      mmem[0] = c;
+    }
+    return dest;
+  }
+
+  void raise() {
+    // do nothing
+  }
+
+#endif
 // ============================================================================
 //                             EXPERIMENTAL!
 // ============================================================================
@@ -887,7 +1000,7 @@ const static char msgTrap[] PROGMEM =                 "APPLICATION TRAP  ";
 const static char msgDied[] PROGMEM =                 "APPLICATION DIED  ";
 const static char msgBefore[] PROGMEM =               " just before:     ";
 
-void clearState();
+void clearState(void); // FIXME use (void) in all applicable prototypes
 
 // ===========================================================================
 //                               VARIABLES
@@ -965,8 +1078,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 
 #if FVMP == FVMP_STDIO // -----------------------------------------------------
 
-  #include <stdio.h>
-  #include <string.h>
+  #ifndef FVMO_UBOOT
+    #include <stdio.h>
+    #include <string.h>
+  #endif
+
   // ==========================================================================
   //        SYSTEM MEMORY
   // ==========================================================================
@@ -1796,6 +1912,595 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 
 #endif // #if FVMP == FVMP_ARDUINO_IDE  // ------------------------------------
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if FVMP == FVMP_UBOOT // -----------------------------------------------
+  /* This section is a work in progress. It was copied from FVMP_ARDUINO_IDE
+     and is being modified so as to suit U-Boot targets.
+     Obvioulsy FVMO_SD does note work yet here.
+     Initial goal is just stdin and stdout support only. */
+
+  #ifdef FVMO_SD
+      #include <SD.h>
+      #define SD_FILE_TYPE File  // FIXME Arduino IDE needs this comment!!
+      #define FVMO_STDIMP
+      #define FVMO_STDEXP
+      int ubootReadByte(WORD *buf, SD_FILE_TYPE file);
+      int ubootReadWord(WORD *buf, SD_FILE_TYPE file);
+  #else
+      #define SD_FILE_TYPE int // FIXME a hack for stdtrcHandle
+  #endif
+
+  #ifdef FVMO_INCORPORATE_ROM
+
+      #ifdef FVMO_INCORPORATE_BIN
+  // FIXME document that this will NOT compile on ARM boards (eg Arduino Due)
+  // using the Arduino IDE (at least not without hacking the IDE gcc config)
+  // FIXME need also to consider FVMO_NO_PROGMEM
+  // FIXME fully qualified path is inconvenient here
+  // IMPORTANT: When compiling for Arduino, you must use a fully qualified
+  // path to your rom.fp file in the .incbin line below. For example:
+  //        "  .incbin   \"/home/sally/foo/bar/rom.fp\"          \n\t"
+  __asm__ __volatile__(
+      "  .section  .progmem.data       \n\t"
+      "  .global   prog                \n\t"
+      "  .type     prog , @object      \n\t"
+      "  .align    4                   \n\t"
+      "prog:                           \n\t"
+      "  .incbin   \"/home/rob/Dev/Freeputer2/16th-spike/rom.fp\"          \n\t"
+      "  .global   prog_size           \n\t"
+      "  .type     prog_size, @object  \n\t"
+      "  .align    4                   \n\t"
+      "prog_size:                      \n\t"
+      "  .long     prog_size - prog    \n\t"
+  );
+  extern const unsigned char PROGMEM prog[];
+  extern unsigned int prog_size; // Maximum 32 kB on 8-bit Arduinos, sadly
+      #else
+        #include "rom.h"
+      #endif
+  #else
+      #ifdef FVMO_SD
+        SD_FILE_TYPE romHandle; // File handle for ROM file
+        /* Open ROM */
+        #define openRom \
+        romHandle = SD.open(romFilename, FILE_READ); \
+        if (!romHandle) { \
+          goto trapCantOpenRom; \
+        }
+        /* Close ROM */
+        #define closeRom romHandle.close();
+      #endif // #ifdef FVMO_SD
+  #endif
+
+  // ===========================================================================
+  //        SYSTEM MEMORY
+  // ===========================================================================
+  // WARNING: The below must only be used AFTER you have first ensured
+  // that the address to be accessed is neither inappropriate nor out of bounds!
+  // Such caution is essential since no overflow checking is performed here.
+  #ifndef FVMO_SEPARATE_ROM
+      #define byteAtAddr(addr) memory[addr]
+      #define setByteAtAddr(val,addr) memory[addr] = val;
+      #ifdef FVMO_NO_UPCASTS
+        // FIXME untested
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          memory[addr] = val;
+          memory[addr+1] = val >> 8;
+          memory[addr+2] = val >> 16;
+          memory[addr+3] = val >> 24;
+        }
+      #else
+        #define setWordAtAddr(val,addr) *(WORD *)&memory[addr] = val;
+      #endif
+      // System memory (even multiple of WORD size)
+      BYTE memory[ROM_SIZE + RAM_SIZE + MAP_SIZE];
+      #ifdef FVMO_NO_UPCASTS
+        // FIXME untested
+        // FIXME this is wrong
+        inline WORD wordAtAddr(WORD addr) {
+          return (WORD)(memory[addr] |
+                  memory[addr+1] << 8 |
+                  memory[addr+2] << 16 | 
+                  memory[addr+3] << 24);
+        }
+      #else
+        // Evaluates to word at specified address in system memory
+        #define wordAtAddr(addr) *(WORD *)&memory[addr]
+      #endif
+      // Evaluates to word at pc
+      #define wordAtPc wordAtAddr(pc);
+      // Evaluates to byte at specified address in system memory
+      #define byteAtAddr(addr) memory[addr]
+      // Zero-fill all FVM system memory
+      void clearMem() {
+        memset(memory, 0, ROM_SIZE + RAM_SIZE + MAP_SIZE);
+      }
+  #else // FIXME need overflow protection for ROM access?
+      BYTE ram[RAM_SIZE+MAP_SIZE];
+      inline BYTE byteAtAddr(WORD addr) {
+        if (addr < ROM_SIZE) {
+          #ifdef FVMO_SDCROM
+            // WARNING: returns 0 upon any kind of failure whatsoever;
+            // this is a reasonable compromise for now as failure here is
+            // essentially equivalent to hardware failue.
+            // TODO reconsider failure handling.
+            WORD buf = 0;
+            if (romHandle.seek(addr) == 0) {
+              // seek failed
+              return 0;
+            }
+            if (ubootReadByte(&buf,romHandle) < 1) {
+              // get failed
+              return 0;
+            }
+            return buf;
+          #else
+            #ifdef FVMO_NO_PROGMEM
+              return prog[addr];
+            #else
+              return (BYTE)pgm_read_byte_far(prog+addr);
+            #endif
+          #endif
+        } else {
+          return ram[addr-ROM_SIZE];
+        }
+      }
+      inline WORD wordAtAddr(WORD addr) {
+        if (addr < ROM_SIZE) {
+          #ifdef FVMO_SDCROM
+            // WARNING: returns 0 upon any kind of failure whatsoever;
+            // this is a reasonable compromise for now as failure here is
+            // essentially equivalent to hardware failue.
+            // TODO reconsider failure handling.
+            WORD buf = 0;
+            if (romHandle.seek(addr) == 0) {
+              // seek failed
+              return 0;
+            }
+            if (ubootReadWord(&buf,romHandle) < 1) {
+              // get failed
+              return 0;
+            }
+            return buf;
+          #else // #ifdef FVMO_SDCROM
+            #ifdef FVMO_NO_UPCASTS
+              #ifdef FVMO_NO_PROGMEM
+                // FIXME untested
+                WORD result, temp;
+                temp = prog[addr+3];
+                result = result | temp << 24;
+                temp = prog[addr+2];
+                result = result | temp << 16; 
+                temp = prog[addr+1];
+                result = result | temp << 8;
+                temp = prog[addr];
+                result = result | temp;
+                return result;
+/*
+                return (WORD)(prog[addr] |
+                        prog[addr+1] << 8 |
+                        prog[addr+2] << 16 | 
+                        prog[addr+3] << 24);
+*/
+              #else // #ifdef FVMO_NO_PROGMEM
+                WORD result, temp;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+3));
+                result = temp << 24;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+2));
+                result = result | temp << 16;
+                temp = (WORD)(pgm_read_byte_far(prog+addr+1));
+                result = result | temp << 8;
+                temp = (WORD)(pgm_read_byte_far(prog+addr));
+                result = result | temp;
+                return result;
+/*
+                return (WORD)(pgm_read_byte_far(prog+addr) |
+                        pgm_read_byte_far(prog+addr+1) << 8 |
+                        pgm_read_byte_far(prog+addr+2) << 16 | 
+                        pgm_read_byte_far(prog+addr+3) << 24);
+*/
+              #endif // #ifdef FVMO_NO_PROGMEM
+            #else // #ifdef FVMO_NO_UPCASTS
+              #ifdef FVMO_NO_PROGMEM
+                return *(WORD *)&prog[addr];
+              #else
+                return (WORD)pgm_read_dword_far(prog+addr);
+              #endif
+            #endif // #ifdef FVMO_NO_UPCASTS
+          #endif // #ifdef FVMO_SDCROM
+        } else { // if (addr < ROM_SIZE) {
+            #ifdef FVMO_NO_UPCASTS
+                WORD result, temp;
+                temp = ram[addr+3-ROM_SIZE];
+                result = temp << 24;
+                temp = ram[addr+2-ROM_SIZE];
+                result = result | temp << 16; 
+                temp = ram[addr+1-ROM_SIZE];
+                result = result | temp << 8;
+                temp = ram[addr-ROM_SIZE];
+                result = result | temp;
+                return result;
+/*
+              return (WORD)(ram[addr-ROM_SIZE] |
+                      ram[addr+1-ROM_SIZE] << 8 |
+                      ram[addr+2-ROM_SIZE] << 16 | 
+                      ram[addr+3-ROM_SIZE] << 24);
+*/
+            #else
+              return *(WORD *)&ram[addr-ROM_SIZE]; 
+            #endif
+        }
+      }
+      #define setByteAtAddr(val,addr) ram[addr-ROM_SIZE] = val;
+      #ifdef FVMO_NO_UPCASTS
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          ram[addr-ROM_SIZE] = val;
+          ram[addr+1-ROM_SIZE] = val >> 8;
+          ram[addr+2-ROM_SIZE] = val >> 16;
+          ram[addr+3-ROM_SIZE] = val >> 24;
+        }
+      #else
+        inline void setWordAtAddr(WORD val, WORD addr) {
+          *(WORD *)&ram[addr-ROM_SIZE] = val;
+        }
+      #endif
+      #define wordAtPc wordAtAddr(pc);
+
+      /* Zero-fill all FVM system memory */
+      void clearMem(void) {
+        memset(ram, 0, RAM_SIZE + MAP_SIZE);
+        // FIXME doco that Arduino only supports real ROM not virtual ROM
+      }
+  #endif
+
+  // ===========================================================================
+  //        DEVICES  // FIXME add logic for Linux too: #if STDBLK_SIZE > 0
+  // ===========================================================================
+  #define stdblkFilename         "std.blk"   // Name of file for standard block
+  #define romFilename            "rom.fp"    // Name of file for system ROM
+  #define stdtrcFilename         "std.trc"   // Name of file for standard trace
+  #define stdexpFilename         "std.exp"   // Name of file for standard export
+  #define stdimpFilename         "std.imp"   // Name of file for standard import
+  #ifdef FVMO_STDIN_FROM_FILE
+    #define stdinFilename          "std.in" // Name of file for stdin
+    #define msgTrapCantOpenStdin            "CAN'T OPEN STDIN  "
+    #define msgTrapCantCloseStdin           "CAN'T CLOSE STDIN "
+  #endif
+
+  #define msgTrapCantOpenStdblk             "CAN'T OPEN STDBLK "
+  #define msgTrapCantCloseStdblk            "CAN'T CLOSE STDBLK"
+  #define msgTrapCantOpenRom                "CAN'T OPEN ROM    "
+  #define msgTrapCantCloseRom               "CAN'T CLOSE ROM   "
+  #define msgTrapCantReadRom                "CAN'T READ ROM    "
+  #define msgTrapCantOpenStdexp             "CAN'T OPEN STDEXP "
+  #define msgTrapCantCloseStdexp            "CAN'T CLOSE STDEXP"
+  #define msgTrapCantOpenStdimp             "CAN'T OPEN STDIMP "
+  #define msgTrapCantCloseStdimp            "CAN'T CLOSE STDIMP"
+  // Note: declaration of romHandle, openRom, closeRom have been moved up
+
+  // =========================================================================
+  //   PRIVATE SERVICES
+  // =========================================================================
+  #ifdef FVMO_SD
+    #if STDBLK_SIZE > 0
+      SD_FILE_TYPE stdblkHandle; // File handle for stdblk file
+      /* Open stdblk */
+      #define openStdblk \
+        stdblkHandle = SD.open(stdblkFilename, FILE_WRITE); \
+        if (!stdblkHandle) { \
+          goto trapCantOpenStdblk; \
+        }
+      /* Close stdblk */
+      #define closeStdblk stdblkHandle.close();
+    #endif
+    SD_FILE_TYPE stdtrcHandle; // File handle for stdtrc file
+    SD_FILE_TYPE stdexpHandle; // File handle for stdexp file
+    SD_FILE_TYPE stdimpHandle; // File handle for stdimp file
+
+    #ifdef FVMO_STDIN_FROM_FILE
+      SD_FILE_TYPE stdinHandle; // File handle for stdin file
+      /* Open stdin */
+      #define openStdin \
+        stdinHandle = SD.open(stdinFilename, FILE_READ); \
+        if (!stdinHandle) { \
+          goto trapCantOpenStdin; \
+        }
+      /* Close stdin */
+      #define closeStdin stdinHandle.close();
+    #endif
+
+    // FIXME may need another config option here for stdtrc
+    #ifdef FVMO_FVMTEST
+      /* Open stdtrc for appending */ 
+      #define openStdtrc \
+      stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
+      if (!stdtrcHandle) { \
+        goto trapCantOpenStdtrc; \
+      }
+    #else
+      /* Open stdtrc for writing (not appending) */ 
+      #define openStdtrc \
+      if (SD.exists(stdtrcFilename)) { \
+        SD.remove(stdtrcFilename); \
+      } \
+      stdtrcHandle = SD.open(stdtrcFilename, FILE_WRITE); \
+      if (!stdtrcHandle) { \
+        goto trapCantOpenStdtrc; \
+      }
+    #endif
+
+    /* Close stdtrc */
+    #define closeStdtrc stdtrcHandle.close();
+
+    /* Open stdexp */
+    #define openStdexp \
+      stdexpHandle = SD.open(stdexpFilename, FILE_WRITE); \
+      if (!stdexpHandle) { \
+        goto trapCantOpenStdexp; \
+      }
+    /* Close stdexp */
+    #define closeStdexp stdexpHandle.close();
+
+    /* Open stdimp */
+    #define openStdimp \
+      stdimpHandle = SD.open(stdimpFilename, FILE_READ); \
+      if (!stdimpHandle) { \
+        goto trapCantOpenStdimp; \
+      }
+    /* Close stdimp */
+    #define closeStdimp stdimpHandle.close();
+
+  #else // #ifdef FVMO_SD
+    // We have no SD card, so define these so as to make them do nothing.
+    //   FIXME consider adding an EEPROM option for stdblok
+    //   FIXME consider what to do about stdimp and stdexp
+    #define openStdtrc
+    #define closeStdtrc 
+    #define openStdexp
+    #define closeStdexp
+    #define openStdimp
+    #define closeStdimp
+    // FIXME need to make all this more robust and roll out across all
+    SD_FILE_TYPE stdtrcHandle = 0; // FIXME a hack for when no SD card
+    int ubootWrite(SD_FILE_TYPE file, char *buf, int numBytes) { // FIXME a hack for when no SD card
+        #ifdef FVMO_STDTRC_SEP // FIXME could route all this through fvmTraceChar instead
+          if (file == stdtrcHandle ) {
+            Serial1.write(buf,numBytes);
+            Serial1.flush();
+          }
+        #endif
+       return numBytes;
+    }
+  #endif // #ifdef FVMO_SD 
+
+  void clearDevices(void) {
+    // On Linux we set all file pointers to NULL here but on Arduino here we
+    // do nothing (since Arduino SD files apparently are not pointers).
+  }
+
+  // =========================================================================
+  //        UTILITIES
+  // =========================================================================
+  // FIXME Consider here smart Arduinos with SD for stdtrc or similar
+  void fvmTraceChar(const char c) {
+    #ifdef FVMO_LOCAL_TAPE
+        #ifdef FVMO_STDTRC_ALSO_SERIAL
+        putc(c);
+        // Serial.flush();
+        #endif
+        #ifdef FVMO_STDTRC_SEP
+            memcom_write(&memcom1, c);
+        #else
+          #ifdef FVMO_MULTIPLEX
+            memcom_write(&memcom, (char)STDTRC_BYTE);
+            memcom_write(&memcom, c);
+          #endif
+        #endif
+    #else
+        #ifdef FVMO_STDTRC_ALSO_SERIAL // FIXME originally was for when FVMO_LOCAL_TAPE only
+          putc(c);
+          //Serial.flush();
+        #endif
+        #ifdef FVMO_STDTRC_SEP
+            //Serial1.write(c);
+        #else
+          #ifdef FVMO_MULTIPLEX
+            putc((char)STDTRC_BYTE);
+            putc(c);
+          #endif
+        #endif
+        #ifdef FVMO_STDTRC_SEP
+          //Serial1.flush();
+        #else
+          //Serial.flush();
+        #endif
+    #endif // #ifdef FVMO_LOCAL_TAPE
+    #ifdef FVMO_SD
+      #ifdef FVMO_STDTRC_FILE_ALSO
+      if (stdtrcHandle) {
+        stdtrcHandle.write(c);
+        stdtrcHandle.flush();
+      }
+      #endif
+    #endif
+  }
+
+  #ifdef FVMO_SD
+    #define fvmSeek(file,pos) file.seek(pos) == 0
+    // FIXME NEXT These 3 SD_FILE_TYPEs are the Energia problem
+    #define fvmReadByte(buf,file) ubootReadByte(buf,file)
+    #define fvmReadWord(buf,file) ubootReadWord(buf,file)
+    int ubootReadByte(WORD *buf, SD_FILE_TYPE file) {
+      while (file.available() < 1) {};
+      *buf = file.read();
+      return 1;
+    }
+    int ubootReadWord(WORD *buf, SD_FILE_TYPE file) {
+      while (file.available() < 4) {};
+      WORD b1 = file.read();
+      WORD b2 = file.read();
+      WORD b3 = file.read();
+      WORD b4 = file.read();
+      *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
+      return 4;
+    }
+    int ubootWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
+      #ifndef FVMO_TRON
+        int numBytesWritten = file.write(buf,numBytes);
+        file.flush(); // FIXME need to try without this to speed up stdblk on SD card
+        return numBytesWritten;
+      #else
+        // TODO refactor for better performance
+        #ifdef FVMO_STDTRC_SEP
+          if (strcmp(file.name(),stdtrcHandle.name()) == 0) {
+            Serial1.write(buf,numBytes);
+            Serial1.flush(); // Necessary for timely debugging
+          }
+        #endif
+        #ifdef FVMO_STDTRC_FILE_ALSO
+          // Write to any file here
+          int numBytesWritten = file.write(buf,numBytes);
+          file.flush(); // FIXME maybe try without this?
+          return numBytesWritten;
+        #else
+          if ( strcmp(file.name(),stdtrcHandle.name()) != 0) {
+            // Write files other than stdtrc here...
+            int numBytesWritten = file.write(buf,numBytes);
+            // file.flush(); // FIXME need to try without this to speed up stdblk on SD card
+            return numBytesWritten;
+          } else {
+            // ...and silently write nothing to stdfile
+            return numBytes;
+          }
+        #endif
+      #endif
+    }
+  #else
+    #define fvmReadByte(buf,file) 0
+    #define fvmReadWord(buf,file) 0
+  #endif
+
+  int ubootReadByteStdin(WORD *buf) {
+    #ifdef FVMO_LOCAL_TAPE
+      while (memcom_available(&memcom, 1) < 1) {};
+      *buf = memcom_read(&memcom);
+    #else
+      #ifdef FVMO_STDIN_FROM_FILE
+        ubootReadByte(buf,stdinHandle);
+      #else
+        // while (Serial.available() < 1) {};
+        *buf = getc();
+      #endif
+    #endif
+    return 1;
+  }
+  int ubootReadWordStdin(WORD *buf) {
+    #ifdef FVMO_LOCAL_TAPE
+      while (memcom_available(&memcom, 4) < 4) {};
+      WORD b1 = memcom_read(&memcom);
+      WORD b2 = memcom_read(&memcom);
+      WORD b3 = memcom_read(&memcom);
+      WORD b4 = memcom_read(&memcom);
+    #else
+      #ifdef FVMO_STDIN_FROM_FILE
+        ubootReadByte(buf,stdinHandle); WORD b1 = *buf; *buf = 0;
+        ubootReadByte(buf,stdinHandle); WORD b2 = *buf; *buf = 0;
+        ubootReadByte(buf,stdinHandle); WORD b3 = *buf; *buf = 0;
+        ubootReadByte(buf,stdinHandle); WORD b4 = *buf; *buf = 0;
+      #else
+        //while (Serial.available() < 4) {};
+        WORD b1 = getc();
+        WORD b2 = getc();
+        WORD b3 = getc();
+        WORD b4 = getc();
+      #endif
+    #endif
+    *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
+    return 4;
+  }
+
+  int ubootWriteStdout(char *buf, int numBytes) {
+    const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
+    int numBytesWritten;
+    #ifdef FVMO_LOCAL_TAPE
+      numBytesWritten = memcom_write(&memcom, bbuf,numBytes);
+    #else
+      //int numBytesWritten = Serial.write(bbuf,numBytes);
+      for (int i=0; i<numBytes; i++) {
+        putc(bbuf[i]);
+        numBytesWritten = i+1;
+      }
+    #endif
+    return numBytesWritten;
+  }
+
+  #define fvmWrite(buf,unitSize,numUnits,file) ubootWrite(file,(char *)buf,(unitSize*numUnits))
+  #define fvmReadByteStdin(buf) ubootReadByteStdin(buf)
+  #define fvmReadWordStdin(buf) ubootReadWordStdin(buf)
+  #define fvmWriteByteStdout(buf) ubootWriteStdout((char *)buf,1)
+  #define fvmWriteWordStdout(buf) ubootWriteStdout((char *)buf,4)
+
+#endif // #if FVMP == FVMP_UBOOT  // ------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ===========================================================================
 //                           INSTRUCTION SET
 // ===========================================================================
@@ -2412,7 +3117,7 @@ const static char* const traceTable[] PROGMEM = {
   const char hex[0x10] PROGMEM = {'0','1','2','3','4','5','6','7','8','9',
                       'a','b','c','d','e','f'};
 
-  void fvmTraceNewline() {
+  void fvmTraceNewline(void) {
     fvmTraceChar('\r');
     fvmTraceChar('\n');
   }
@@ -2542,7 +3247,7 @@ const static char* const traceTable[] PROGMEM = {
     }
   }
 
-  void traceStacks() {
+  void traceStacks(void) {
     const static char str8[] PROGMEM = "( ";
     fvmTrace(str8);
     int i = 1;
@@ -2609,7 +3314,7 @@ const static char* const traceTable[] PROGMEM = {
 //       In C this has to be packaged into a runfvm() function
 //              to allow use of goto and labels for speed  
 // ===========================================================================
-int runfvm() {
+int runfvm(void) {
 
 // Note: The FVM is a stack machine. It has no exposed registers.
 // The registers referred to below are physical or virtual registers of the
@@ -5364,7 +6069,7 @@ void clearState() {
 }
 
 #if FVMP == FVMP_STDIO  // ---------------------------------------------------
-  int main() {
+  int main(void) {
     return runfvm();
   }
 #endif   // ------------------------------------------------------------------
