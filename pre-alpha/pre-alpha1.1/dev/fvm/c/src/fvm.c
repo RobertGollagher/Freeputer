@@ -6,8 +6,39 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160404:0053
-Version:    pre-alpha-0.0.0.42 for FVM 1.1
+Updated:    20160405:0306
+Version:    pre-alpha-0.0.0.43 for FVM 1.1
+            [Could be broken, due to bare-metal Raspberry Pi U-Boot testing.]
+
+            [You should use an earlier version of this 'fvm.c' if you
+             wish to experiment with it as since U-Boot testing began
+             this 'fvm.c' either is or might be broken for other platforms
+             and Raspberry Pi U-Boot support itself is very incomplete
+             and very minor since the lack of stdin buffering on
+             U-Boot is a roadblock to any further progress.
+
+             Work will now be put on hold for at least a week due to
+             other commitments. The decision will then be either:
+             (a) drop U-Boot support; or (b) implement software flow control
+             so as to allow the proper, sensible, meaningful function
+             of stdin. This is by no means an easy decision.
+
+             Currently the FVM is running quite nicely on U-Boot
+             except for I/O (of which only stdout is working meaningfully).
+             The self-hosted compiler, flc, has been found to work
+             correctly for tiny programs whose source code is only a few
+             characters long. But piping in more than a few characters
+             of source code causes stdin to stop functioning meaningfully
+             since the U-Boot getc() function has almost no buffering.
+             The best way forward is probably to implement XON/XOFF
+             software flow control and roll that out across all
+             platforms, not just U-Boot. However, there is also a valid
+             argument that Linux boards are inherently so complex that one
+             should only bother using them with Linux. That is, freedom
+             fundamentally is inhibited by hardware complexity and,
+             all other considerations being equal, freedom lies
+             in the direction of simplicity not complexity.
+             Linux is part of the problem here.]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -89,7 +120,8 @@ Use Arduino IDE 1.6.7 or higher.
 
 If your target is U-Boot on Raspberry Pi B (that is, bare metal, no Linux)
 then follow instructions at http://elinux.org/RPi_U-Boot for mainline U-Boot
-and then build with a script such as this from your u-boot directory:
+and then build 'fvm.bin' and 'u-boot.bin' at the same time with a script
+such as this from your u-boot directory:
 
         # Note: For this to work you will first need:
         #   aptitude install gcc-arm-linux-gnueabi
@@ -99,8 +131,11 @@ and then build with a script such as this from your u-boot directory:
         touch examples/standalone/fvm.c
         make
 
-You may also need 'rom.h' present along with this 'fvm.c' in your
-u-boot/examples/standalone directory (or use appropriate symbolic links).
+As well as this 'fvm.c', you may also need 'rom.h' to be present in your
+u-boot/examples/standalone directory (or use appropriate symbolic links)
+in order for the above build to succeed. Whether or not you need
+'rom.h' depends on the options chosen in this 'fvm.c'. It is needed
+if you are using the convenient FVMO_INCORPORATE_ROM option.
 
 From u-boot/examples/standalone check what your loadb address must be by:
 
@@ -141,6 +176,51 @@ Then at your U-Boot prompt:
   go 0c100000
 
 And if all is well the FVM should now run.
+
+To automate starting the FVM, place 'fvm.bin' in the root of the FAT
+partition of your Raspberry Pi SD card (along with only: 'bootcode.bin';
+'kernel.img' renamed from 'u-boot.bin'; 'start.elf' and the 'boot.scr.uimg'
+described next) so it can be automatically loaded and run by U-Boot
+upon board start-up. (Note: if you have done a saveenv command previously
+in the U-Boot shell then there will also be a 'uboot.env' file representing
+the saved U-Boot environment settings.) To accomplish this, create a
+text file called 'uboot.scr' containing the following lines:
+
+        fatload mmc 0:1 0c100000 fvm.bin
+        go 0c100000
+
+
+FIXME: fatwrite mmc 0:1 0c100000 fvm.bin // eg 0x1800c
+       fatls mmc 0:1
+
+Those are U-Boot shell commands instructing U-Boot to load the contents
+of the file 'fvm.bin' on the FAT partition of the SD card into
+RAM at 0x0c100000 and then to execute that as code,
+hence causing the FVM to run.
+
+In Linux, convert 'uboot.scr' to 'uboot.scr.uimg' by (all one 1 line):
+
+  tools/mkimage -A arm -O u-boot -T script -C none -n 'Start from fvm.bin'
+    -a 0c100000 -e 0c100000 -d boot.scr boot.scr.uimg
+
+Check that the conversion succeeded by:
+
+  tools/mkimage -l boot.scr.uimg
+
+The output should read something like:
+
+        Image Name:   Start from fvm.bin
+        Created:      Mon Apr  4 14:07:21 2016
+        Image Type:   ARM U-Boot Script (uncompressed)
+        Data Size:    54 Bytes = 0.05 kB = 0.00 MB
+        Load Address: 0c100000
+        Entry Point:  0c100000
+        Contents:
+           Image 0: 46 Bytes = 0.04 kB = 0.00 MB
+
+This 'boot.scr.uimg' is a binary file representing the 'boot.scr'
+script to be run by U-Boot upon board start-up. U-Boot will automatically
+run any 'boot.scr.uimg' it finds in the FAT partition root.
 
 ==============================================================================
 
@@ -425,10 +505,16 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
 // ===========================================================================
 
-/* A mini U-Boot FVM for Raspberry Pi */
+/* A mini U-Boot FVM for Raspberry Pi 
+
+  Works for stdin, stdout only and does not support multiplexing at all.
+*/
 #ifdef FVMC_UBOOT_RPI
   #define FVMOS_UBOOT
-  #define FVMOS_SIZE_MINI
+  #define FVMOS_SIZE_FLC
+  //#define FVMOS_SIZE_MINI
+  #define FVMO_STDTRC_ALSO_SERIAL
+  //#define FVMO_MULTIPLEX
 #endif
 
 /* A mini Linux FVM without multiplexing */
@@ -827,6 +913,13 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 0
 #endif
 
+/* Sizing: flc sizing */
+#ifdef FVMOS_SIZE_FLC
+  #define ROM_SIZE 16777216
+  #define RAM_SIZE 16777216
+  #define STDBLK_SIZE 0
+#endif
+
 /* Sizing: small for running flc in stdblk mode (minimal RAM usage) */
 #ifdef FVMOS_SIZE_SD53_FLC_SMALL
   #define ROM_SIZE 126976
@@ -897,6 +990,9 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #include <common.h>
 #include <exports.h>
 
+#define CHAR_XON 17
+#define CHAR_XOFF 19
+
   int runfvm(void);
   // IMPORTANT: this should be the first function implementation
   // in this 'fvm.c' file otherwise running as a U-Boot standalone
@@ -907,6 +1003,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     app_startup(argv);
     printf("Expected U-Boot ABI version: %d\n", XF_VERSION);
     printf("Actual U-Boot ABI version  : %d\n", (int)get_version());
+    printf("fvm.c last updated 20160405:0235\n");
     printf("About to run FVM...\n");
     int exitCode = runfvm();
     printf("Finished running FVM\n");
@@ -927,7 +1024,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     return dest;
   }
 
-  void raise() {
+  void raise(void) {
     // do nothing
   }
 
@@ -1077,11 +1174,6 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 // ============================================================================
 
 #if FVMP == FVMP_STDIO // -----------------------------------------------------
-
-  #ifndef FVMO_UBOOT
-    #include <stdio.h>
-    #include <string.h>
-  #endif
 
   // ==========================================================================
   //        SYSTEM MEMORY
@@ -2285,15 +2377,18 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define openStdimp
     #define closeStdimp
     // FIXME need to make all this more robust and roll out across all
-    SD_FILE_TYPE stdtrcHandle = 0; // FIXME a hack for when no SD card
+    SD_FILE_TYPE stdtrcHandle = 0; // FIXME an INCOMPLETE hack for when no SD card
     int ubootWrite(SD_FILE_TYPE file, char *buf, int numBytes) { // FIXME a hack for when no SD card
-        #ifdef FVMO_STDTRC_SEP // FIXME could route all this through fvmTraceChar instead
-          if (file == stdtrcHandle ) {
-            Serial1.write(buf,numBytes);
-            Serial1.flush();
-          }
-        #endif
-       return numBytes;
+        if (file == stdtrcHandle ) {
+          int numBytesWritten;
+            for (int i=0; i<numBytes; i++) {
+              putc(buf[i]);
+              numBytesWritten = i+1;
+            }
+          return numBytesWritten;
+        } else {
+          return numBytes;
+        }
     }
   #endif // #ifdef FVMO_SD 
 
@@ -2305,7 +2400,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   // =========================================================================
   //        UTILITIES
   // =========================================================================
-  // FIXME Consider here smart Arduinos with SD for stdtrc or similar
+  // FIXME Consider here smart SD card for stdtrc or similar
   void fvmTraceChar(const char c) {
     #ifdef FVMO_LOCAL_TAPE
         #ifdef FVMO_STDTRC_ALSO_SERIAL
@@ -2404,6 +2499,22 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define fvmReadWord(buf,file) 0
   #endif
 
+  // As a last resort, trying software flow control as U-Boot does
+  // not sufficiently or meaningfully buffer getc input
+  int ubootBlockingGetc() {
+    putc(CHAR_XON);
+    int result;    
+    tryAgain:    
+      while (tstc() == 0) {};
+      result = getc();
+      if (result == 0) {
+        goto tryAgain;
+      } else {
+        putc(CHAR_XOFF);
+        return result;
+      }
+  }
+
   int ubootReadByteStdin(WORD *buf) {
     #ifdef FVMO_LOCAL_TAPE
       while (memcom_available(&memcom, 1) < 1) {};
@@ -2412,8 +2523,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #ifdef FVMO_STDIN_FROM_FILE
         ubootReadByte(buf,stdinHandle);
       #else
-        // while (Serial.available() < 1) {};
-        *buf = getc();
+
+        *buf = ubootBlockingGetc();
+//fvmTraceWordHex(*buf); // FIXME
+//fvmTraceNewline(); // FIXME
+
       #endif
     #endif
     return 1;
@@ -2432,14 +2546,19 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         ubootReadByte(buf,stdinHandle); WORD b3 = *buf; *buf = 0;
         ubootReadByte(buf,stdinHandle); WORD b4 = *buf; *buf = 0;
       #else
-        //while (Serial.available() < 4) {};
-        WORD b1 = getc();
-        WORD b2 = getc();
-        WORD b3 = getc();
-        WORD b4 = getc();
+         while (tstc() == 0) {};
+        WORD b1 = ubootBlockingGetc();
+         while (tstc() == 0) {};
+        WORD b2 = ubootBlockingGetc();
+         while (tstc() == 0) {};
+        WORD b3 = ubootBlockingGetc();
+         while (tstc() == 0) {};
+        WORD b4 = ubootBlockingGetc();
       #endif
     #endif
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
+//fvmTraceWordHex(*buf); // FIXME
+//fvmTraceNewline(); // FIXME
     return 4;
   }
 

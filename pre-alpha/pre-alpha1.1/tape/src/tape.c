@@ -234,7 +234,7 @@ Only send 7-bit ASCII characters to stdtrc.
   FILE *trc; // File for debugging output from the tape itself
   FILE *fvmtrc; // File for stdtrc output from the connected FVM instance
 #endif
-#define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
+//#define MULTIPLEX // Uncomment to support FVM 1.1 multiplexing
 #ifdef MULTIPLEX  //   (note: an FVM 1.1 may or may not support mutliplexing)
   #define STDIN_BYTE  0b00000001
   #define STDOUT_BYTE 0b01000001
