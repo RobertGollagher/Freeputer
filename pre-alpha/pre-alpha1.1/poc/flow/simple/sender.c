@@ -3,7 +3,7 @@ Program:    sender.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20160430
-Updated:    20160501:1510
+Updated:    20160502:0129
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -71,19 +71,57 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // To ease debugging here is a second log (other than: tee acklog)
+  // which contains all characters (not just ACKs) received from receiver
+  FILE *login = fopen("log.in", "w");
+  if (!login) {
+    printf("Could not open log.in for writing");
+    return 1;
+  }
+
+  // To ease debugging here is a third log (other than: tee acklog)
+  // which contains all characters sent to the receiver
+  FILE *logout = fopen("log.out", "w");
+  if (!logout) {
+    printf("Could not open log.out for writing");
+    return 1;
+  }
+
   while (1) {
-    while(getchar() != CHAR_ACK){};
+    char cin = 0;
+    while(cin != CHAR_ACK){
+      // Log incoming characters until received an ACK
+      cin = getchar();
+      fputc(cin, login);
+      fflush(login);
+    };
     // Go ahead and send a byte of text
     char c = fgetc(text);
     if (!feof(text)) {
       putchar(c);
       fflush(stdout);
+      fputc(c, logout);
+      fflush(logout);
     } else {
       putchar(CHAR_EOT);
       fflush(stdout);
+      fputc(CHAR_EOT, logout);
+      fflush(logout);
       break;
     }
   }
+
+// FIXME A hack: instead of quitting, just keep logging everything
+// returned from the receiver. This is not needed when communicating with
+// receiver.c but is helpful for testing self-hosted compiling of flc
+// on Raspberry Pi bare metal. Said testing was successful.
+// This now never exits, so use Ctrl-C to kill it.
+while(1) {
+  char cin = 0;
+  cin = getchar();
+  fputc(cin, login);
+  fflush(login);
+}
 
   fclose(text);
   return 0;

@@ -6,39 +6,29 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160405:0306
-Version:    pre-alpha-0.0.0.43 for FVM 1.1
-            [Could be broken, due to bare-metal Raspberry Pi U-Boot testing.]
+Updated:    20160502:0135
+Version:    pre-alpha-0.0.0.44 for FVM 1.1
 
-            [You should use an earlier version of this 'fvm.c' if you
-             wish to experiment with it as since U-Boot testing began
-             this 'fvm.c' either is or might be broken for other platforms
-             and Raspberry Pi U-Boot support itself is very incomplete
-             and very minor since the lack of stdin buffering on
-             U-Boot is a roadblock to any further progress.
+    [MILESTONE: at 20160502:0103 the 'flc.fl' (1.0.0.0 for FVM 1.0)
+     self-hosted compiler successfully compiled itself for the first time
+     on the bare metal of a Raspberry Pi; that is, using only U-Boot and
+     without Linux or any other operating system. The 'flc.fl' source code
+     was sent via serial connection from a Linux box running the
+     'sender.c' program (see poc/simple/sender.c) using
+     simple software flow control to work around the lack of
+     any getc buffering in U-Boot. The compiled flc binary
+     was returned over the same serial connection along
+     with other information. The software flow control was slow,
+     one byte at a time, taking perhaps a couple of minutes to transfer
+     the 175 kB of 'flc.fl' source code. Compilation itself was
+     reasonably quick, taking only a minute or so.
 
-             Work will now be put on hold for at least a week due to
-             other commitments. The decision will then be either:
-             (a) drop U-Boot support; or (b) implement software flow control
-             so as to allow the proper, sensible, meaningful function
-             of stdin. This is by no means an easy decision.
-
-             Currently the FVM is running quite nicely on U-Boot
-             except for I/O (of which only stdout is working meaningfully).
-             The self-hosted compiler, flc, has been found to work
-             correctly for tiny programs whose source code is only a few
-             characters long. But piping in more than a few characters
-             of source code causes stdin to stop functioning meaningfully
-             since the U-Boot getc() function has almost no buffering.
-             The best way forward is probably to implement XON/XOFF
-             software flow control and roll that out across all
-             platforms, not just U-Boot. However, there is also a valid
-             argument that Linux boards are inherently so complex that one
-             should only bother using them with Linux. That is, freedom
-             fundamentally is inhibited by hardware complexity and,
-             all other considerations being equal, freedom lies
-             in the direction of simplicity not complexity.
-             Linux is part of the problem here.]
+     WARNING: this 'fvm.c' is probably broken at the moment for other
+     platforms and is in an incomplete state even for bare metal on
+     Raspberry Pi (since stdimp, stdexp and stdblk are not yet
+     implemented there). If you wish to experiment with the pre-alpha
+     FVM 1.1 you are therefore advised to do so with an earlier version
+     unless you are experimenting on bare-metal Raspberry Pi.]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -189,10 +179,6 @@ text file called 'uboot.scr' containing the following lines:
         fatload mmc 0:1 0c100000 fvm.bin
         go 0c100000
 
-
-FIXME: fatwrite mmc 0:1 0c100000 fvm.bin // eg 0x1800c
-       fatls mmc 0:1
-
 Those are U-Boot shell commands instructing U-Boot to load the contents
 of the file 'fvm.bin' on the FAT partition of the SD card into
 RAM at 0x0c100000 and then to execute that as code,
@@ -221,6 +207,19 @@ The output should read something like:
 This 'boot.scr.uimg' is a binary file representing the 'boot.scr'
 script to be run by U-Boot upon board start-up. U-Boot will automatically
 run any 'boot.scr.uimg' it finds in the FAT partition root.
+
+Note: If this 'fvm.c' has been updated and recompiled, and you wish to
+deploy the latest compiled FVM version to the Raspberry Pi, a convenient
+way to do so is to use loadb (via Kermit as above) to load the newly
+compiled FVM binary into Pi RAM at 0c100000 and then subsequently
+to save that in-RAM binary onto the SD card as 'fat.bin' by issuing the
+following U-boot shell commands. This example assumes that the size of the
+compiled FVM binary is 0x236c4 bytes (it could be much smaller but such
+a large size can be caused by the FVMO_INCORPORATE_ROM option); you must
+replace that size with whatever the actual size of the binary is.
+
+       fatwrite mmc 0:1 0c100000 fvm.bin 0x236c4
+       fatls mmc 0:1
 
 ==============================================================================
 
@@ -990,8 +989,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #include <common.h>
 #include <exports.h>
 
-#define CHAR_XON 17
-#define CHAR_XOFF 19
+#define CHAR_ACK 6
+#define CHAR_EOT 4
 
   int runfvm(void);
   // IMPORTANT: this should be the first function implementation
@@ -1003,7 +1002,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     app_startup(argv);
     printf("Expected U-Boot ABI version: %d\n", XF_VERSION);
     printf("Actual U-Boot ABI version  : %d\n", (int)get_version());
-    printf("fvm.c last updated 20160405:0235\n");
+    printf("fvm.c last updated 20160501:2300\n");
     printf("About to run FVM...\n");
     int exitCode = runfvm();
     printf("Finished running FVM\n");
@@ -2499,20 +2498,17 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define fvmReadWord(buf,file) 0
   #endif
 
-  // As a last resort, trying software flow control as U-Boot does
-  // not sufficiently or meaningfully buffer getc input
-  int ubootBlockingGetc() {
-    putc(CHAR_XON);
-    int result;    
-    tryAgain:    
-      while (tstc() == 0) {};
-      result = getc();
-      if (result == 0) {
-        goto tryAgain;
-      } else {
-        putc(CHAR_XOFF);
-        return result;
-      }
+  // As a last resort, trying simple software flow control as U-Boot does
+  // not sufficiently or meaningfully buffer getc input.
+  //
+  // For the sender (to send a text file via serial from Linux) use:
+  //   pre-alpha/pre-alpha1.1/poc/flow/simple/sender.c
+  //
+  int ubootBlockingGetc(void) {
+    // Send ACK to let sender know we are ready to receive 1 byte
+    putc(CHAR_ACK);
+    // Wait for a byte from the sender
+    return getc();
   }
 
   int ubootReadByteStdin(WORD *buf) {
