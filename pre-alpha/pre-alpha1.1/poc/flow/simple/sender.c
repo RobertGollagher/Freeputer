@@ -2,7 +2,7 @@
 Program:    sender.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
-Created:    20150430
+Created:    20160430
 Updated:    20160501:1510
 
 This program is free software: you can redistribute it and/or modify
