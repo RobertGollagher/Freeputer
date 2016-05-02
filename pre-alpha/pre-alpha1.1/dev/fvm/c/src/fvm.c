@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160502:1252
-Version:    pre-alpha-0.0.0.45 for FVM 1.1
+Updated:    20160502:1333
+Version:    pre-alpha-0.0.0.46 for FVM 1.1
 
     [MILESTONE: at 20160502:0103 the 'flc.fl' (1.0.0.0 for FVM 1.0)
      self-hosted compiler successfully compiled itself for the first time
@@ -300,7 +300,7 @@ a Linux box to the Pi over a 115200-baud serial connection.
 The second pass of compilation itself was reasonably quick, taking
 1 minute and 30 seconds. Total FVM run time was about 4 mins 45 secs.
 This performance is about 53 times faster than on a chipKIT Max32 board
-(which had to use SD card as a substitue for RAM) and about 267 times
+(which had to use SD card as a substitue for RAM) and about 285 times
 slower than on Linux on a 3 GHz i5 box (takes about 1 second).
 Equivalent performance on Linux on Pi has not been recently tested
 but is presumably at least an order of magnitude faster. Given the great
