@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160502:0135
-Version:    pre-alpha-0.0.0.44 for FVM 1.1
+Updated:    20160502:1252
+Version:    pre-alpha-0.0.0.45 for FVM 1.1
 
     [MILESTONE: at 20160502:0103 the 'flc.fl' (1.0.0.0 for FVM 1.0)
      self-hosted compiler successfully compiled itself for the first time
@@ -19,9 +19,10 @@ Version:    pre-alpha-0.0.0.44 for FVM 1.1
      any getc buffering in U-Boot. The compiled flc binary
      was returned over the same serial connection along
      with other information. The software flow control was slow,
-     one byte at a time, taking perhaps a couple of minutes to transfer
-     the 175 kB of 'flc.fl' source code. Compilation itself was
-     reasonably quick, taking only a minute or so.
+     one byte at a time, taking 3 minutes for the first pass of the compiler,
+     including the transfer of the 175 kB of 'flc.fl' source code.
+     The second pass of compilation itself was reasonably quick, taking
+     1 minute and 30 seconds. Total FVM run time was about 4 mins 45 secs.
 
      WARNING: this 'fvm.c' is probably broken at the moment for other
      platforms and is in an incomplete state even for bare metal on
@@ -221,6 +222,94 @@ replace that size with whatever the actual size of the binary is.
        fatwrite mmc 0:1 0c100000 fvm.bin 0x236c4
        fatls mmc 0:1
 
+Important: after quitting kermit but before attempting to use sender.c
+to communicate with the FVM instance running on bare metal on the Pi,
+run Minicom at least once, then exit from Minicom. This is a workaround to
+ensure that the device (typically /dev/ttyUSB0) is configured correctly,
+especially with respect to eliminating unwanted buffering of output
+from sender.c to the Pi. To run Minicom once do:
+
+        minicom -c on -b 115200 -D /dev/ttyUSB0
+
+Then exit from Minicom.
+
+Also note that to kick start sender.c it may be necessary to do...
+
+        echo -n " " > /dev/ttyUSB0
+
+... so as to have the FVM send another ACK. You will not need to do so
+if, as in the summary steps below, you restart the sender before restarting
+the Pi, so that the sender is ready and listening for the initial ACK.
+
+Summary for running flc on bare-metal Pi using U-Boot:
+
+  1. Deploy latest compiled 'fvm.c' (having used the FVMO_INCORPORATE_ROM
+     option to incorporate the 'flc.fl' compiler into the 'fvm.bin'
+     executable so that the flc compiler will run upon FVM start-up) to Pi
+     as described above, using loadb to get it into RAM and then fatwrite
+     to get it onto the SD card. Ensure your 'uboot.scr.uimg' is there too.
+     Ensure you have connected using Minicom at least once as above.
+
+  2. Start the sender as follows. This assumes you wish to compile
+     'program.fl' and that /dev/ttyUSB0 is the serial connection to the Pi.
+
+        ./sender program.fl < /dev/ttyUSB0 > /dev/ttyUSB0
+
+     If you wish to observe the serial communications look at 'log.in'
+     and 'log.out'. Such as by (in two separate terminal windows):
+
+        tail -f log.in
+        tail -f log.out
+
+  2. Restart your Pi by disconnecting and reconnecting its power supply.
+     Ensure your serial-to-USB line is still connected to your Linux computer
+     from the Pi (here it is assumed this is /dev/ttyUSB0).
+
+  3. flc will now automatically run, consuming the 'program.fl' source code
+     sent to it by the sender, compiling it into FVM bytecode and sending
+     that bytecode back to the sender where it can be seen in 'log.in'
+     along with a lot of other information (not least of which is
+     currently the compiler report normally sent to stdtrc).
+     This suffices as an initial proof of concept.
+
+     Note: ignore U-Boot messages such as SCRIPT FAILED after the FVM run.
+     They are not of any significance for this proof of concept.
+
+  4. Use Ctrl-c to kill the sender.
+
+Troubleshooting:
+
+- if you get weird buffering behaviour, seen by delayed output to log.out,
+  the solution is to run Minicom at least once, as mentioned above;
+  doing so gets rid of this unwanted buffering behaviour. A better solution
+  in the long term would be to enhance sender.c so that it itself
+  configures the serial device as desired (a complex matter).
+
+- if you seem to be dropping or missing characters, ensure you do not have
+  more than one program simultaneously using the serial device (that is,
+  ensure that Kermit, Minicom, cat and the like are not running).
+
+- be sure you used Ctrl-c to kill the sender after your previous run,
+  since it will not function correctly without being restarted.
+
+OBSERVED PERFORMANCE for bare-metal Pi Model B running self-hosted flc
+compiler so as compile itself ('flc.fl'): The software flow control was slow,
+one byte at a time, taking 3 minutes for the first pass of the compiler,
+including the transfer of the 175 kB of 'flc.fl' source code from
+a Linux box to the Pi over a 115200-baud serial connection.
+The second pass of compilation itself was reasonably quick, taking
+1 minute and 30 seconds. Total FVM run time was about 4 mins 45 secs.
+This performance is about 53 times faster than on a chipKIT Max32 board
+(which had to use SD card as a substitue for RAM) and about 267 times
+slower than on Linux on a 3 GHz i5 box (takes about 1 second).
+Equivalent performance on Linux on Pi has not been recently tested
+but is presumably at least an order of magnitude faster. Given the great
+complexity and difficulty of working bare-metal on ARM Linux boards such as
+the Raspberry Pi, these results suggest it is probably not worth it
+since the complexity of these boards is too much of an impediment
+to freedom. However, this requires further thought.
+
+==============================================================================
 ==============================================================================
 
   The following targets have successfully run the 'ts.fl' tape server

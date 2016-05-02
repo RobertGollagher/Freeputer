@@ -3,7 +3,7 @@ Program:    sender.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20160430
-Updated:    20160502:0129
+Updated:    20160502:1128
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
 // receiver.c but is helpful for testing self-hosted compiling of flc
 // on Raspberry Pi bare metal. Said testing was successful.
 // This now never exits, so use Ctrl-C to kill it.
+fputs("\nsender.c DONE SENDING\n",login);
 while(1) {
   char cin = 0;
   cin = getchar();
