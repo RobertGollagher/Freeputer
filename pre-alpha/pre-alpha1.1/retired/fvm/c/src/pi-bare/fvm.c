@@ -6,8 +6,23 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160502:1333
+Updated:    20160502:1333 [with explanatory note added 20160506:0835]
 Version:    pre-alpha-0.0.0.46 for FVM 1.1
+
+    [EXPLANATORY NOTE UPON RETIRING THIS CODE:
+       This old version of 'flc.fl' has been moved to the 'retired'
+       folder because it was decided to abandon support for bare-metal
+       Raspberry Pi from the mainline version of 'flc.fl'. So this version
+       of 'flc.fl' represents the most advanced stage of development
+       of running FVM 1.1 on bare-metal Raspberry Pi using U-Boot,
+       before it was decided to abandon support for doing that.
+
+       Note: it is recommended that if in future work is ever resumed
+       to run Freeputer without Linux on boards designed for running Linux,
+       it would probably be best to use a lightweight operating system with
+       a hardware abstraction layer (HAL), such as ChibiOS, essentially
+       only so that the HAL can conveniently provide basic I/O
+       without requiring weeks of board-specific study.]
 
     [MILESTONE: at 20160502:0103 the 'flc.fl' (1.0.0.0 for FVM 1.0)
      self-hosted compiler successfully compiled itself for the first time
