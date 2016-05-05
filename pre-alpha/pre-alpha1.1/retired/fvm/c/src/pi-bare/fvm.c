@@ -6,14 +6,14 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160502:1333 [with explanatory note added 20160506:0835]
+Updated:    20160502:1333 [with explanatory note added 20160506:0849]
 Version:    pre-alpha-0.0.0.46 for FVM 1.1
 
     [EXPLANATORY NOTE UPON RETIRING THIS CODE:
-       This old version of 'flc.fl' has been moved to the 'retired'
+       This old version of 'fvm.c' has been moved to the 'retired'
        folder because it was decided to abandon support for bare-metal
-       Raspberry Pi from the mainline version of 'flc.fl'. So this version
-       of 'flc.fl' represents the most advanced stage of development
+       Raspberry Pi from the mainline version of 'fvm.c'. So this version
+       of 'fvm.c' represents the most advanced stage of development
        of running FVM 1.1 on bare-metal Raspberry Pi using U-Boot,
        before it was decided to abandon support for doing that.
 
