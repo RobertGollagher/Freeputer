@@ -6,9 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160503:1005
-Version:    pre-alpha-0.0.0.47 for FVM 1.1
-         (This version is a rollback. It is identical to pre-alpha-0.0.0.41)
+Updated:    20160403:1900
+Version:    pre-alpha-0.0.0.48 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -365,7 +364,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_CHIPKIT_SD53_FLC_SMALL
+#define FVMC_ARDUINO_DUE_SD4_FLC_SMALL
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -582,6 +581,27 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_NO_UPCASTS // Arduino Due passes fvmtest either way
 #endif
 
+/* A small Arduino Due FVM for running flc with minimal RAM.
+
+   Pins are connected as follows (Due to SD Card):
+      4         to CS
+      3.3 V     to VCC
+      GND       to GND
+      ICSP MOSI to MOSI
+      ICSP MISO to MISO
+      ICSP SCK  to SCK
+
+   This configuration uses FVMO_INCORPORATE_ROM.
+
+*/
+#ifdef FVMC_ARDUINO_DUE_SD4_FLC_SMALL
+  #define FVMOS_ARDUINO
+  #define FVMO_STDIN_FROM_FILE // FIXME
+  #define FVMO_STDTRC_SEP // FIXME DELETEME
+  #define FVMO_STDTRC_STDOUT // FIXME DELETEME
+  #define FVMOS_SIZE_SD4_FLC_SMALL
+#endif
+
 /* An Arduino FVM suitable for running 'fvmtest.fl' on chipKIT Max32.
 
    Pins are connected as follows (Max32 to SD Card):
@@ -756,13 +776,26 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 0
 #endif
 
-/* Sizing: small for running flc in stdblk mode (minimal RAM usage) */
+/* Sizing: small for running flc in stdblk mode (minimal RAM usage)
+   using FVMO_SD_CS_PIN 53
+*/
 #ifdef FVMOS_SIZE_SD53_FLC_SMALL
   #define ROM_SIZE 126976
   #define RAM_SIZE 4096
   #define STDBLK_SIZE 16777216
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 53
+#endif
+
+/* Sizing: small for running flc in stdblk mode (minimal RAM usage) 
+   using FVMO_SD_CS_PIN 4 
+*/
+#ifdef FVMOS_SIZE_SD4_FLC_SMALL
+  #define ROM_SIZE 126976
+  #define RAM_SIZE 4096
+  #define STDBLK_SIZE 16777216
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
 #endif
 
 /* Sizing: mini with 16 MB stdblk */
@@ -1707,7 +1740,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     int ardWrite(SD_FILE_TYPE file, char *buf, int numBytes) {
       #ifndef FVMO_TRON
         int numBytesWritten = file.write(buf,numBytes);
-        file.flush(); // FIXME need to try without this to speed up stdblk on SD card
+        //file.flush(); // FIXME need to try without this to speed up stdblk on SD card
         return numBytesWritten;
       #else
         // TODO refactor for better performance
@@ -1720,7 +1753,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         #ifdef FVMO_STDTRC_FILE_ALSO
           // Write to any file here
           int numBytesWritten = file.write(buf,numBytes);
-          file.flush(); // FIXME maybe try without this?
+          //file.flush(); // FIXME maybe try without this?
           return numBytesWritten;
         #else
           if ( strcmp(file.name(),stdtrcHandle.name()) != 0) {
@@ -2410,7 +2443,7 @@ const static char* const traceTable[] PROGMEM = {
 };
 
 
-  const char hex[0x10] PROGMEM = {'0','1','2','3','4','5','6','7','8','9',
+  const char fvmhex[0x10] PROGMEM = {'0','1','2','3','4','5','6','7','8','9',
                       'a','b','c','d','e','f'};
 
   void fvmTraceNewline() {
@@ -2461,16 +2494,16 @@ const static char* const traceTable[] PROGMEM = {
     BYTE h = (b >> 4) & 0x0f;
     char c;
     #ifdef FVMO_NO_PROGMEM
-      c = hex[h];
+      c = fvmhex[h];
     #else
-      c = pgm_read_byte_far(hex+h);
+      c = pgm_read_byte_far(fvmhex+h);
     #endif
     fvmTraceChar(c);
     h = b & 0x0f;
     #ifdef FVMO_NO_PROGMEM
-      c = hex[h];
+      c = fvmhex[h];
     #else
-      c = pgm_read_byte_far(hex+h);
+      c = pgm_read_byte_far(fvmhex+h);
     #endif
     fvmTraceChar(c);
   }
