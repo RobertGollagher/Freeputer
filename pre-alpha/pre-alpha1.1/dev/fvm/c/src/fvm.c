@@ -6,8 +6,29 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160506:0901
-Version:    pre-alpha-0.0.0.48 for FVM 1.1
+Updated:    20160506:2056
+Version:    pre-alpha-0.0.0.49 for FVM 1.1
+
+            [NOTE: This version of 'fvm.c' is completely untested.
+             In it the new standard sizings,
+             FVM Lite and FVM Heavy are introduced for the first time.
+             FVM Lite is 32 KiB RAM, 32 KiB ROM.
+             FVM Heavy is 16 MiB RAM, 16 MiB ROM.
+             Also introduced for the first time ever are new larger
+             stack sizes. The data stack, software stack and return stack
+             are henceforth (both in FVM Lite and FVM Heavy) 256 elements
+             each, increased from 32 elements each.
+
+             On balance it is thought that this move to larger sizings
+             will empower much greater flexibility in the use of the FVM,
+             for example when used as a platform for languages other
+             than Freelang, while at the same time still being
+             reasonably portable and easy to implement. The trade-off has
+             been dropping support for very small microcontrollers,
+             which is an acceptable trade-off.
+
+             This version of 'fvm.c' does not actually run FVM Lite
+             or FVM Heavy yet. Work on that will begin next.]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -812,6 +833,18 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 16777216
 #endif
 
+/* NEW: There are 2 standard sizings. This is the smaller: FVM Lite */
+#ifdef FVMOS_SIZE_FVM_LITE
+  #define ROM_SIZE 32768
+  #define RAM_SIZE 32768
+#endif
+
+/* NEW: There are 2 standard sizings. This is the larger: FVM Heavy */
+#ifdef FVMOS_SIZE_FVM_HEAVY
+  #define ROM_SIZE 16777216
+  #define RAM_SIZE 16777216
+#endif
+
 // ===========================================================================
 #ifdef FVMO_SMALL_ROM // FIXME refactor these to generic name
   #define pgm_read_byte_far pgm_read_byte_near
@@ -879,9 +912,9 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 #define TWO_WORDS_SIZE 8               // bytes
 #define THREE_WORDS_SIZE 12            // bytes
 #define FOUR_WORDS_SIZE 16             // bytes
-#define MAX_DEPTH_DS 32                // elements (words) (power of 2)
-#define MAX_DEPTH_RS 32                // elements (words) (power of 2)
-#define MAX_DEPTH_SS 32                // elements (words) (power of 2)
+#define MAX_DEPTH_DS 256               // elements (words) (power of 2)
+#define MAX_DEPTH_RS 256               // elements (words) (power of 2)
+#define MAX_DEPTH_SS 256               // elements (words) (power of 2)
 #define ROM_SIZE_WDS ROM_SIZE / WORD_SIZE
 // This VM implementation does not provide any memory-mapped device,
 //   therefore we always set MAP_SIZE to 0 here

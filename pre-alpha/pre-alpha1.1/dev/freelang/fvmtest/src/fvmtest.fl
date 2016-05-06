@@ -7,8 +7,11 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160401:0111
-Version:    pre-alpha-0.0.0.12
+Updated:    20160506:2049
+Version:    pre-alpha-0.0.0.13
+
+            [TODO: Update to reflect FVM Lite and FVM Heavy sizings
+             including the new standard stack depths of 256 elements.]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
