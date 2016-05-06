@@ -33,18 +33,21 @@ Freeputer 1.1 is coming!
 Expected as an alpha release by mid-2016, it should include:
 
 * an FVM 1.1, with some **additional instructions**
-* continued support for targeting x86 or gcc or Linux or Java
-* support for **Arduino** (ARM) and **chipKIT** (PIC32) boards via the Arduino IDE
-* optional support for an extraordinarily portable textual user-interface (**the tape**)
-* optional standard sizings: **Freeputer Lite** and **Freeputer Heavy**
-* design enhancements meant to facilitate future standalone use including  
-slightly enhanced versions of the Freelang compilers flc and flx
+* continued support for targeting **x86** or **gcc** or **Linux** or **Java**
+* new support for **Arduino** (ARM) and **chipKIT** (PIC32) boards via the Arduino IDE
+* new optional support for an extraordinarily portable textual user-interface (**the tape**)
+* new optional standard FVM sizings: **Freeputer Lite** and **Freeputer Heavy**,  
+both with **greater stack depth: 256 elements** instead of 32 elements
+* design enhancements meant to facilitate future standalone use,  
+including slightly enhanced Freelang compilers (flc and flx)
 
-A new standard sizing, called **Freeputer Lite** or FVM Lite, standardizes the use of Freeputer on microcontrollers and also facilitates the creation and reuse of tiny software modules of standard size on any supported platform. FVM Lite has 32 kB of FVM RAM, 32 kB of FVM ROM and stack depths of 32 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: *modular not monolithic*. Recommended minimum hardware to conveniently run FVM Lite is 64 kB RAM and 128 kB flash. Therefore FVM Lite is convenient to use on Arduino Due and chipKIT Max32. Of course you can still easily compile very large FVM instances, up to 2 gigabytes in size, and there will also be a standard **Freeputer Heavy** or FVM Heavy sized in megabytes.
+**Freeputer Lite** (aka **FVM Lite**) will standardize the size of small Freeputer 1.1 instances, facilitating the creation and reuse of small software modules of standard size on any supported platform. FVM Lite will have 32 KiB of FVM RAM, 32 KiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: *modular not monolithic*. On microcontrollers, the recommended minimum hardware to run FVM Lite is 64 KiB RAM and 128 KiB flash. Therefore FVM Lite is convenient to use on Arduino Due and chipKIT Max32. Of course, you can still easily compile smaller FVM instances but the use of this standard size is recommended so as to maximise software reuse in a manner that, due to the extremely portable nature of this standard sizing, is highly future-proof and modular. When running on a server and connected to a fast block device (such as a 2 GB RAM disk) an FVM Lite instance could be surprisingly useful; a cluster of such FVM Lite instances could be exceedingly powerful yet highly modular.
 
-Most of the above has already been successfully spiked.
+**Freeputer Heavy** (aka **FVM Heavy**) will standardize the size of larger Freeputer 1.1 instances, facilitating the creation and use of large software modules of standard size on servers. FVM Heavy will have 16 MiB of FVM RAM, 16 MiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. This is also a convenient size for Linux single board computers. Of course, you can still easily compile much larger FVM instances but the use of this standard size is recommended for all applications that could not reasonably be implemented either on a single FVM Lite instance or on a cluster of FVM Lite instances. Three common applications foreseen for FVM Heavy instances are: (1) to provide a convenient and flexible platform on which to run languages other than Freelang (such as [Rabbit](https://bitbucket.org/sts-q/freeputer/src)); (2) to provide heavyweight services to FVM Lite instances; (3) to be used to virtualize multiple FVM Lite instances (as a self-contained and highly portable cluster).
 
-Freeputer 1.1 is fundamentally about hardware freedom. For example, it very easily allows an FVM to be deployed to an Arduino as a bare-metal, dedicated, interactive system with its own PS/2 keyboard and simple LCD display. Alternatively, it very easily allows that Arduino to be connected via serial connection to a remote 'tape terminal' with a more sophisticated display (driven by another Arduino or running on a Linux computer). Such hardware freedom is a prerequisite for true software freedom. That the same software module can easily be run on a microcontroller or on a powerful server demonstrates true freedom and protects your investment in writing that software.
+Much of the above has already been successfully spiked.
+
+**Freeputer 1.1 is fundamentally about hardware freedom**. For example, it will allow an FVM Lite instance to be deployed to an Arduino as a bare-metal, dedicated, interactive system with its own PS/2 keyboard and simple LCD display. Alternatively, it will allow that Arduino to be connected via serial connection to a remote 'tape terminal' with a more sophisticated display (driven by another Arduino or running on a Linux computer). Such hardware freedom is a prerequisite for true software freedom. That the same software module can easily be run on a microcontroller or on a powerful server demonstrates true freedom and protects your investment in writing that software.
 
 ## So where's the code?
 
@@ -63,7 +66,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 6 May 2016 at 12:22.  
+This document was last updated on 6 May 2016 at 22:43.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
