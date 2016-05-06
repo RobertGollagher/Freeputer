@@ -40,7 +40,7 @@ Expected as an alpha release by mid-2016, it should include:
 * design enhancements meant to facilitate future standalone use including  
 slightly enhanced versions of the Freelang compilers flc and flx
 
-A new standard sizing, called **Freeputer Lite** or FVM Lite, standardizes the use of Freeputer on microcontrollers and also facilitates the creation and reuse of tiny software modules of standard size on any supported platform. FVM Lite has 32 kB of FVM RAM, 32 kB of FVM ROM and stack depths of 32 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: *modular not monolithic*. Recommended minimum hardware to conveniently run FVM Light is 64 kB RAM and 128 kB flash. Therefore FVM Light is convenient to use on Arduino Due and chipKIT Max32. Of course you can still easily compile very large FVM instances, up to 2 gigabytes in size, and there will also be a standard **Freeputer Heavy** or FVM Heavy sized in megabytes.
+A new standard sizing, called **Freeputer Lite** or FVM Lite, standardizes the use of Freeputer on microcontrollers and also facilitates the creation and reuse of tiny software modules of standard size on any supported platform. FVM Lite has 32 kB of FVM RAM, 32 kB of FVM ROM and stack depths of 32 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: *modular not monolithic*. Recommended minimum hardware to conveniently run FVM Lite is 64 kB RAM and 128 kB flash. Therefore FVM Lite is convenient to use on Arduino Due and chipKIT Max32. Of course you can still easily compile very large FVM instances, up to 2 gigabytes in size, and there will also be a standard **Freeputer Heavy** or FVM Heavy sized in megabytes.
 
 Most of the above has already been successfully spiked.
 
@@ -63,7 +63,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 6 May 2016 at 12:13.  
+This document was last updated on 6 May 2016 at 12:22.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
