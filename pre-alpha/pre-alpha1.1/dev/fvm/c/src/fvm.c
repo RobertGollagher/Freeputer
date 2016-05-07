@@ -6,29 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160506:2056
-Version:    pre-alpha-0.0.0.49 for FVM 1.1
-
-            [NOTE: This version of 'fvm.c' is completely untested.
-             In it the new standard sizings,
-             FVM Lite and FVM Heavy are introduced for the first time.
-             FVM Lite is 32 KiB RAM, 32 KiB ROM.
-             FVM Heavy is 16 MiB RAM, 16 MiB ROM.
-             Also introduced for the first time ever are new larger
-             stack sizes. The data stack, software stack and return stack
-             are henceforth (both in FVM Lite and FVM Heavy) 256 elements
-             each, increased from 32 elements each.
-
-             On balance it is thought that this move to larger sizings
-             will empower much greater flexibility in the use of the FVM,
-             for example when used as a platform for languages other
-             than Freelang, while at the same time still being
-             reasonably portable and easy to implement. The trade-off has
-             been dropping support for very small microcontrollers,
-             which is an acceptable trade-off.
-
-             This version of 'fvm.c' does not actually run FVM Lite
-             or FVM Heavy yet. Work on that will begin next.]
+Updated:    20160507:1458
+Version:    pre-alpha-0.0.0.50 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -82,9 +61,12 @@ either to use the provided 'romMake.sh' script or the following 3 steps:
           ./flx.rb source.fl rom.fp
     2. Convert binary 'rom.fp' into C header 'rom.h':
           xxd -i rom.fp > rom.h
-    3. Change the declarations in 'rom.h' to read:
+    3. Change the declarations in 'rom.h' from:
+          unsigned char rom_fp[] = {
+          unsigned int rom_fp_len = 56272;
+       to:
           const unsigned char prog[] PROGMEM = {
-          int prog_size = 
+          #define PROGRAM_SIZE 56272
 
 Then run make (or compile using the Arduino IDE) as usual to build
 the FVM executable itself. If you are not using the FVMO_INCORPORATE_ROM
@@ -139,39 +121,6 @@ Use Arduino IDE 1.6.7 or higher.
   ARDUINO IDE
   * Fubarino SD 1.5 (incompatible serial communication)
   * DuinoMite-Mega  (incompatible serial communication)
-
-==============================================================================
-  TARGETS FOR WHICH SUPPORT HAS BEEN WITHDRAWN
-==============================================================================
-  
-  Earlier versions of this 'fvm.c' supported some MSP430 Launchpads and
-  at least one Tiva C Series Launchpad via the Energia IDE. Unfortunately
-  the Energia IDE 0101E0017 has since been unreliable in this context 
-  and extremely difficult to debug when a compile error occurs.
-  Accordingly as on 20160331 a decision has been made to abandon
-  using the Energia IDE and hence all TI Launchpads. This is not to say
-  that this 'fvm.c' could not be successfully ported to TI Launchpads
-  using a tool other than the Energia IDE; it probably could be
-  but doing so is beyond the current scope of this project.
-
-  Earlier versions of this 'fvm.c' supported running small Freeputer
-  programs on the Arduino Uno. However, after much thought, a decision has
-  been made on 20160331 to withdraw support for the Arduino Uno as a target.
-  This is because it has insufficient flash memory (only 32 kB) to
-  conveniently accommodate 'fvm.c' except when compiled without
-  SD card support, and because meaningfully running the 'fvmtest.fl'
-  test suite on an Uno is not easily possible, thus making it
-  difficult to verify the full and correct function of the FVM.
-  An Arduino Mega 2560 has none of these problems.
-
-  As a rule of thumb for the near future, this project will only
-  bother using microcontrollers with at least 128 kB of flash (or similar
-  persistent memory technology) and at least 8 kB of RAM. This is because
-  the project also targets Linux computers, and other platforms such as Java,
-  and a balance needs to be struck between supporting the very small and
-  the very large. After all, Freeputer is primarily intended to be
-  an extremely portable platform for software development and therefore
-  it makes sense to support small but not miniscule devices.
 
 ==============================================================================
 
@@ -385,197 +334,22 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
-#define FVMC_ARDUINO_DUE_SD4_FLC_SMALL
+//#define FVMC_LITE_LINUX
+#define FVMC_LITE_ARDUINO_DUE
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
 // ===========================================================================
 
-/* A mini Linux FVM without multiplexing */
-#ifdef FVMC_LINUX_MINI
+/* FVM Lite for Linux without multiplexing */
+#ifdef FVMC_LITE_LINUX
   #define FVMOS_LINUX
-  #define FVMOS_SIZE_MINI
+  #define FVMOS_SIZE_FVM_LITE
+  #define STDBLK_SIZE 16777216
 #endif
 
-/* A mini Arduino FVM with a built-in CLCD tape user interface.
-   Requires a CLCD display and PS/2 keyboard directly
-   driven by the Arduino running the FVM. */
-#ifdef FVMC_ARDUINO_MINI_CLCD
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_LOCAL_TAPE "tape-clcd.h"
-  #define FVMO_STDTRC_SEP
-  #define FVMO_STDTRC_ALSO_SERIAL
-#endif
-
-/* A mini Linux FVM with multiplexing */
-#ifdef FVMC_LINUX_MINI_MUX
-  #define FVMOS_LINUX
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-#endif
-
-/* A mini Linux FVM without multiplexing */
-#ifdef FVMC_LINUX_MINI
-  #define FVMOS_LINUX
-  #define FVMOS_SIZE_MINI
-#endif
-
-/* A mini Linux FVM with multiplexing and a very slow baud rate.
-   Suitable when connected to a very slow Arduino CLCD tape terminal
-   such as a 40x4 CLCD running on an Arduino Mega 2560. */
-#ifdef FVMC_LINUX_MINI_MUX_VERY_SLOW
-  #define FVMOS_LINUX
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_VERY_SLOW_BAUD
-#endif
-
-/* A mini Linux FVM with multiplexing and a slow baud rate. */
-#ifdef FVMC_LINUX_MINI_MUX_SLOW
-  #define FVMOS_LINUX
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_SLOW_BAUD
-#endif
-
-/* A mini Arduino FVM with multiplexing.
-   Suitable for an Arduino Mega 2560 when connected
-   to a very slow Arduino CLCD tape terminal such as
-   a 40x4 CLCD running on an Arduino Mega 2560. */
-#ifdef FVMC_ARDUINO_MINI_MUX_VERY_SLOW
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_VERY_SLOW_BAUD
-#endif
-
-/* A mini Arduino FVM with multiplexing.
-   Suitable for Arduino Mega 2560 */
-#ifdef FVMC_ARDUINO_MINI_MUX
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-#endif
-
-/* A mini Arduino FVM with multiplexing and an SD card whose CS pin is 4.
-   Suitable for Freetronics EtherDue board. 
-*/
-#ifdef FVMC_ARDUINO_SD4_MINI_MUX
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 4
-  #define FVMO_STDTRC_FILE_ALSO
-#endif
-
-/* A mini Arduino FVM with multiplexing and an SD card whose CS pin is 4.
-   Also 16 MB stdblk (as a file on that SD card).
-   Suitable for Freetronics EtherDue board. */
-#ifdef FVMC_ARDUINO_SD4_MINI_STDBLK16MB_MUX
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI_STDBLK16MB
-  #define FVMO_MULTIPLEX
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 4
-  #define FVMO_STDTRC_FILE_ALSO
-#endif
-
-/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Mega.
-   Pins are connected as follows (Mega to SD Card):
-      53 (SS)   to CS
-      5V        to VCC
-      GND       to GND
-      ICSP MOSI to MOSI
-      ICSP MISO to MISO
-      ICSP SCK  to SCK
-
-   This configuration uses FVMO_INCORPORATE_ROM.
-
-   Arduino Mega passed fvmtest suite on: 20160330
- */
-#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
-  #define FVMO_FVMTEST
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 53
-  // #define FVMO_STDTRC_FILE_ALSO
-  #define FVMO_STDTRC_SEP
-  #define FVMO_STDTRC_STDOUT
-  // #define FVMO_NO_UPCASTS // Arduino Mega 2560 passes fvmtest either way
-#endif
-
-/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Mega.
-   Pins are connected as follows (Mega to SD Card):
-      53 (SS)   to CS
-      5V        to VCC
-      GND       to GND
-      ICSP MOSI to MOSI
-      ICSP MISO to MISO
-      ICSP SCK  to SCK
-
-   This configuration uses FVMO_INCORPORATE_BIN.
-
-   Arduino Mega passed fvmtest suite on: 20160330
- */
-#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST_BIN
-  #define FVMOS_ARDUINO_BIN
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
-  #define FVMO_FVMTEST
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 53
-  // #define FVMO_STDTRC_FILE_ALSO
-  #define FVMO_STDTRC_SEP
-  #define FVMO_STDTRC_STDOUT
-  // #define FVMO_NO_UPCASTS // Arduino Mega 2560 passes fvmtest either way
-#endif
-
-/* 
-   Like FVMC_ARDUINO_MEGA_SD53_FVMTEST but uses FVMO_SDCROM instead of
-   FVMO_INCORPORATE_ROM and therefore is exceedingly slow.
-   See notes for FVMOS_ARDUINO_SDCROM below.
-
-   Your SD card must of course have a 'rom.fp' file, containing the compiled
-   Freeputer program (as Freeputer bytecode) that you wish to run.
-
-   WARNING: running fvmtest in this way does not test if using
-   the physical ROM memory of a microcontroller as Freeputer ROM works
-   or not (and therefore does not test FVMO_NO_UPCASTS at all).
-
-   Arduino Mega passed fvmtest suite on: 20160331
- */
-#ifdef FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM
-  #define FVMOS_ARDUINO_SDCROM
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
-  #define FVMO_FVMTEST
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 53
-  #define FVMO_STDTRC_SEP
-  #define FVMO_STDTRC_STDOUT
-#endif
-
-/* An Arduino FVM suitable for running 'fvmtest.fl'
-   on Freetronics EtherDue using its native port and inbuilt SD card.
-   This configuration uses FVMO_INCORPORATE_ROM.
-
-   Freetronics Due passed fvmtest suite on: 20160329
- */
-#ifdef FVMC_ARDUINO_ETHERDUE_SD4_FVMTEST
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
-  #define FVMO_FVMTEST
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 4
-  // #define FVMO_STDTRC_FILE_ALSO
-  #define FVMO_STDTRC_SEP
-  #define FVMO_SERIALUSB // FIXME TODO also test if tests pass without this
-  // #define FVMO_NO_UPCASTS // FIXME TODO also test if tests pass with this
-  #define FVMO_STDTRC_STDOUT
-#endif
-
-/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Due.
+/* FVM Lite for Arduino Due with 16 MiB stdblk on an SD Card.
+   This configuration uses FVMO_INCORPORATE_ROM and no multiplexing.
 
    Pins are connected as follows (Due to SD Card):
       4         to CS
@@ -585,13 +359,57 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       ICSP MISO to MISO
       ICSP SCK  to SCK
 
-   This configuration uses FVMO_INCORPORATE_ROM.
+*/
+#ifdef FVMC_LITE_ARDUINO_DUE
+  #define FVMOS_ARDUINO
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
+  #define FVMOS_SIZE_FVM_LITE
+  #define STDBLK_SIZE 16777216
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 4
+#endif
 
-   Arduino Due passed fvmtest suite on: 20160331
+/* FVM Lite for chipKIT Max32 with 16 MiB stdblk on an SD Card.
+   This configuration uses FVMO_INCORPORATE_ROM and no multiplexing.
+
+   Pins are connected as follows (Max32 to SD Card):
+      53 (SS)   to CS
+      3.3 V     to VCC
+      GND       to GND
+      51 (MOSI) to MOSI
+      50 (MISO) to MISO
+      52 (SCK)  to SCK
+
+  WARNING: this configuration has not been tested yet.
+
+ */
+#ifdef FVMC_CHIPKIT_MAX32_SD53_FVMTEST
+  #define FVMOS_CHIPKIT
+  #define FVMO_STDTRC_SEP
+  #define FVMO_STDTRC_STDOUT
+  #define FVMOS_SIZE_FVM_LITE
+  #define STDBLK_SIZE 16777216
+  #define FVMO_SD
+  #define FVMO_SD_CS_PIN 53
+#endif
+
+/* An Arduino FVM suitable for running 'fvmtest.fl' on Arduino Due.
+   This configuration uses FVMO_INCORPORATE_ROM and no multiplexing.
+
+   Pins are connected as follows (Due to SD Card):
+      4         to CS
+      3.3 V     to VCC
+      GND       to GND
+      ICSP MOSI to MOSI
+      ICSP MISO to MISO
+      ICSP SCK  to SCK
+
+  WARNING: this configuration has not been tested yet.
  */
 #ifdef FVMC_ARDUINO_DUE_SD4_FVMTEST
   #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMOS_SIZE_FVM_LITE
   #define FVMO_FVMTEST
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 4
@@ -602,28 +420,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   // #define FVMO_NO_UPCASTS // Arduino Due passes fvmtest either way
 #endif
 
-/* A small Arduino Due FVM for running flc with minimal RAM.
-
-   Pins are connected as follows (Due to SD Card):
-      4         to CS
-      3.3 V     to VCC
-      GND       to GND
-      ICSP MOSI to MOSI
-      ICSP MISO to MISO
-      ICSP SCK  to SCK
-
-   This configuration uses FVMO_INCORPORATE_ROM.
-
-*/
-#ifdef FVMC_ARDUINO_DUE_SD4_FLC_SMALL
-  #define FVMOS_ARDUINO
-  #define FVMO_STDIN_FROM_FILE // FIXME
-  #define FVMO_STDTRC_SEP // FIXME DELETEME
-  #define FVMO_STDTRC_STDOUT // FIXME DELETEME
-  #define FVMOS_SIZE_SD4_FLC_SMALL
-#endif
-
 /* An Arduino FVM suitable for running 'fvmtest.fl' on chipKIT Max32.
+   This configuration uses FVMO_INCORPORATE_ROM and no multiplexing.
 
    Pins are connected as follows (Max32 to SD Card):
       53 (SS)   to CS
@@ -633,76 +431,18 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
       50 (MISO) to MISO
       52 (SCK)  to SCK
 
-  chipKIT Max32 passed fvmtest suite on: 20160331
+  WARNING: this configuration has not been tested yet.
 
  */
 #ifdef FVMC_CHIPKIT_MAX32_SD53_FVMTEST
   #define FVMOS_CHIPKIT
-  #define FVMOS_SIZE_FVMTEST_ARDUINO
+  #define FVMOS_SIZE_FVM_LITE
   #define FVMO_FVMTEST
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 53
   // #define FVMO_STDTRC_FILE_ALSO
   #define FVMO_STDTRC_SEP
   #define FVMO_STDTRC_STDOUT
-#endif
-
-/* A mini Arduino FVM, not multiplexed, and using a second serial connection
-   for stdtrc. Suitable for Arduino Due or Mega 2560 connected to an Arduino
-   tape terminal (and producing good terminal performance). */
-#ifdef FVMC_ARDUINO_MINI_TRC
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_STDTRC_SEP
-#endif
-
-/* A mini Arduino FVM with multiplexing and a slow baud rate.
-   Suitable for Arduino Due or Mega 2560 connected to an Arduino tape
-   terminal (and producing poor terminal performance).  */
-#ifdef FVMC_ARDUINO_MINI_MUX_SLOW
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_SLOW_BAUD
-#endif
-
-/* A mini chipKIT FVM with multiplexing.
-   Suitable for chipKIT Max32 */
-#ifdef FVMC_CHIPKIT_MINI_MUX
-  #define FVMOS_CHIPKIT
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-#endif
-
-/* A mini chipKIT FVM without multiplexing. */
-#ifdef FVMC_CHIPKIT_MINI
-  #define FVMOS_CHIPKIT
-  #define FVMOS_SIZE_MINI
-#endif
-
-/* A small chipKIT FVM for running flc with minimal RAM */
-#ifdef FVMC_CHIPKIT_SD53_FLC_SMALL
-  #define FVMOS_CHIPKIT
-  #define FVMO_STDIN_FROM_FILE // FIXME
-  #define FVMO_STDTRC_SEP // FIXME DELETEME
-  #define FVMO_STDTRC_STDOUT // FIXME DELETEME
-  #define FVMOS_SIZE_SD53_FLC_SMALL
-#endif
-
-/* A mini chipKIT FVM without multiplexing and a slow baud rate. */
-#ifdef FVMC_CHIPKIT_MINI_MUX_SLOW
-  #define FVMOS_CHIPKIT
-  #define FVMOS_SIZE_MINI
-  #define FVMO_MULTIPLEX
-  #define FVMO_SLOW_BAUD
-#endif
-
-/* A tiny Arduino FVM with multiplexing. */
-#ifdef FVMC_ARDUINO_TINY_MUX
-  #define FVMOS_ARDUINO
-  #define FVMOS_SIZE_TINY
-  #define FVMO_SMALL_ROM
-  #define FVMO_MULTIPLEX
 #endif
 
 // ===========================================================================
@@ -783,20 +523,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_NO_PROGMEM // chipKIT always requires FVMO_NO_PROGMEM
 #endif
 
-/* Sizing: tiny */
-#ifdef FVMOS_SIZE_TINY
-  #define ROM_SIZE 4096 
-  #define RAM_SIZE 512
-  #define STDBLK_SIZE 0
-#endif
-
-/* Sizing: mini */
-#ifdef FVMOS_SIZE_MINI
-  #define ROM_SIZE 32768
-  #define RAM_SIZE 2048
-  #define STDBLK_SIZE 0
-#endif
-
 /* Sizing: small for running flc in stdblk mode (minimal RAM usage)
    using FVMO_SD_CS_PIN 53
 */
@@ -817,13 +543,6 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 16777216
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 4
-#endif
-
-/* Sizing: mini with 16 MB stdblk */
-#ifdef FVMOS_SIZE_MINI_STDBLK16MB
-  #define ROM_SIZE 32768
-  #define RAM_SIZE 2048
-  #define STDBLK_SIZE 16777216
 #endif
 
 /* Sizing: small for running 'fvmtest.fl' suite */
@@ -1195,6 +914,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
 */
       #else
         #include "rom.h"
+        unsigned int prog_size = PROGRAM_SIZE;
+      #endif
+      // FIXME need similar check to the below when using FVMO_INCORPORATE_BIN
+      #if PROGRAM_SIZE > ROM_SIZE
+        #error PROGRAM_SIZE > ROM_SIZE of FVM instance
       #endif
   #else
       FILE *romHandle;                   // File handle for ROM file
@@ -1383,6 +1107,11 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
   extern unsigned int prog_size; // Maximum 32 kB on 8-bit Arduinos, sadly
       #else
         #include "rom.h"
+        unsigned int prog_size = PROGRAM_SIZE;
+      #endif
+      // FIXME need similar check to the below when using FVMO_INCORPORATE_BIN
+      #if PROGRAM_SIZE > ROM_SIZE
+        #error PROGRAM_SIZE > ROM_SIZE of FVM instance
       #endif
   #else
       #ifdef FVMO_SD

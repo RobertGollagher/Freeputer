@@ -4,8 +4,8 @@
 # Copyright © Robert Gollagher 2016
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20160314
-# Updated:    20160315:2317
-# Version:    pre-alpha-0.0.0.2 for FVM 1.1
+# Updated:    20160507:1430
+# Version:    pre-alpha-0.0.0.3 for FVM 1.1
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,5 +44,6 @@ if [ "$#" -ne 1 ]; then
 else
   ./flx.rb $1 rom.fp && xxd -i rom.fp > rom.h
   sed -i '1s/.*/const unsigned char prog[] PROGMEM = {/' rom.h
-  sed -i '$s/rom_fp_len/prog_size/' rom.h
+  sed -i '$s/unsigned int rom_fp_len = /#define PROGRAM_SIZE /' rom.h 
+  sed -i '$s/;//' rom.h 
 fi
