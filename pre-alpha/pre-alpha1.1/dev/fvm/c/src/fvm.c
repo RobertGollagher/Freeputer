@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160507:1458
-Version:    pre-alpha-0.0.0.50 for FVM 1.1
+Updated:    20160507:2052
+Version:    pre-alpha-0.0.0.51 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -245,6 +245,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDEXP // Support stdexp
   #define FVMO_SDCROM // Use in-situ ROM on SD card (exceedingly slow)
   #define FVMO_STDIN_FROM_FILE // Use 'std.in' file as stdin (eg on SD card) // FIXME and for Linux
+  #define FVMO_ACK_FLOW_CONTROL // Use rudimentary software flow control for serial input
 
   WARNING regarding FVMO_SD_CS_PIN: be sure to consult the documentation for
   your board and/or SD card shield to determine the correct pin. Examples:
@@ -368,6 +369,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define STDBLK_SIZE 16777216
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 4
+  //#define FVMO_STDIN_FROM_FILE // FIXME
+  #define FVMO_ACK_FLOW_CONTROL // FIXME
 #endif
 
 /* FVM Lite for chipKIT Max32 with 16 MiB stdblk on an SD Card.
@@ -572,7 +575,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
 // FIXME rationalize this baud rate stuff, it is too complex and doesn't play nicely with some config combos 
 #ifdef FVMO_STDTRC_SEP
-  #define BAUD_RATE_STDTRC 9600 // 115200 // FIXME 38400
+  #define BAUD_RATE_STDTRC 115200 // 9600 // 115200 // FIXME 38400
 #endif
 
 #ifdef FVMO_MULTIPLEX
@@ -590,7 +593,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
     #endif
   #endif
 #else
-  #define BAUD_RATE 9600 // FIXME 115200
+  #define BAUD_RATE 115200 // 9600 // FIXME 115200
 #endif
 
 #ifdef FVMO_NO_PROGMEM
@@ -610,6 +613,10 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ============================================================================
 #ifdef FVMO_LOCAL_TAPE
    #include FVMO_LOCAL_TAPE
+#endif
+#ifdef FVMO_ACK_FLOW_CONTROL
+  #define CHAR_ACK 6
+  char pACK[] = {CHAR_ACK};
 #endif
 // ============================================================================
 // ============================================================================
@@ -1535,6 +1542,26 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
     #define fvmReadWord(buf,file) 0
   #endif
 
+  int ardWriteStdout(char *buf, int numBytes) {
+    const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
+    #ifdef FVMO_LOCAL_TAPE
+      int numBytesWritten = memcom_write(&memcom, bbuf,numBytes);
+    #else
+      int numBytesWritten = Serial.write(bbuf,numBytes);
+    #endif
+    return numBytesWritten;
+  }
+
+  #ifdef FVMO_ACK_FLOW_CONTROL
+    int ardAckReadByteStdin() {
+      // Send ACK to let sender know we are ready to receive 1 byte
+      ardWriteStdout(pACK,1);
+      // Wait for a byte from the sender
+      while (Serial.available() < 1) {};
+      return Serial.read();
+    }
+  #endif
+
   int ardReadByteStdin(WORD *buf) {
     #ifdef FVMO_LOCAL_TAPE
       while (memcom_available(&memcom, 1) < 1) {};
@@ -1543,8 +1570,12 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #ifdef FVMO_STDIN_FROM_FILE
         ardReadByte(buf,stdinHandle);
       #else
-        while (Serial.available() < 1) {};
-        *buf = Serial.read();
+        #ifdef FVMO_ACK_FLOW_CONTROL
+          *buf = ardAckReadByteStdin();
+        #else
+          while (Serial.available() < 1) {};
+          *buf = Serial.read();
+        #endif
       #endif
     #endif
     return 1;
@@ -1563,25 +1594,22 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
         ardReadByte(buf,stdinHandle); WORD b3 = *buf; *buf = 0;
         ardReadByte(buf,stdinHandle); WORD b4 = *buf; *buf = 0;
       #else
-        while (Serial.available() < 4) {};
-        WORD b1 = Serial.read();
-        WORD b2 = Serial.read();
-        WORD b3 = Serial.read();
-        WORD b4 = Serial.read();
+        #ifdef FVMO_ACK_FLOW_CONTROL
+          WORD b1 = ardAckReadByteStdin();
+          WORD b2 = ardAckReadByteStdin();
+          WORD b3 = ardAckReadByteStdin();
+          WORD b4 = ardAckReadByteStdin();
+        #else
+          while (Serial.available() < 4) {};
+          WORD b1 = Serial.read();
+          WORD b2 = Serial.read();
+          WORD b3 = Serial.read();
+          WORD b4 = Serial.read();
+        #endif
       #endif
     #endif
     *buf = (b4 << 24) + (b3 <<16) + (b2<<8) + b1;
     return 4;
-  }
-
-  int ardWriteStdout(char *buf, int numBytes) {
-    const uint8_t *bbuf = (const uint8_t *)buf; // FIXME this line is for Energia
-    #ifdef FVMO_LOCAL_TAPE
-      int numBytesWritten = memcom_write(&memcom, bbuf,numBytes);
-    #else
-      int numBytesWritten = Serial.write(bbuf,numBytes);
-    #endif
-    return numBytesWritten;
   }
 
   #define fvmWrite(buf,unitSize,numUnits,file) ardWrite(file,(char *)buf,(unitSize*numUnits))

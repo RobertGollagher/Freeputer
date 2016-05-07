@@ -3,7 +3,7 @@ Program:    sender.c
 Copyright © Robert Gollagher 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20160430
-Updated:    20160502:1128
+Updated:    20160507:2141
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -90,10 +90,13 @@ int main(int argc, char *argv[]) {
   while (1) {
     char cin = 0;
     while(cin != CHAR_ACK){
-      // Log incoming characters until received an ACK
+      // Log incoming characters (except ACKs) until received an ACK
       cin = getchar();
-      fputc(cin, login);
-      fflush(login);
+      if (cin != CHAR_ACK) {
+        fputc(cin, login);
+        //fprintf(login,"=%d ",cin); // FIXME DELETME
+        fflush(login);
+      }
     };
     // Go ahead and send a byte of text
     char c = fgetc(text);
