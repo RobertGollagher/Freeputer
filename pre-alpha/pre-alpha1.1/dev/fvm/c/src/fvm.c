@@ -6,8 +6,8 @@ Program:    fvm.c
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150822
-Updated:    20160507:2052
-Version:    pre-alpha-0.0.0.51 for FVM 1.1
+Updated:    20160511:1221
+Version:    pre-alpha-0.0.0.52 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -224,7 +224,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 
   CONFIGURATION OPTIONS
   =====================
-  #define FVMO_TRON // Enable tracing (degrades performance)
+  #define FVMO_TRON // Enable tracing (degrades performance) FIXME this is wrong, it is stopping tracor as well as tron!
   #define FVMO_MULTIPLEX // Use multiplexing (see 'tape/tape.c')
   #define FVMO_STDTRC_FILE_ALSO // Send stdtrc output to 'std.trc' file also
   #define FVMO_STDTRC_STDOUT // Send stdtrc serial output to stdout instead
@@ -243,7 +243,12 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_FVMTEST // A special mode for running the fvmtest suite
   #define FVMO_STDIMP // Support stdimp // FIXME add one for stdblk (eg EEPROM not SD Card etc rather than size)
   #define FVMO_STDEXP // Support stdexp
-  #define FVMO_SDCROM // Use in-situ ROM on SD card (exceedingly slow)
+  #define FVMO_SDCROM // Use in-situ ROM on SD card (exceedingly slow but 
+    works well). You MUST also #define FVMO_SD and FVMO_SEPARATE_ROM and
+    must also ensure that you define FVMO_SD_CS_PIN correctly for your
+    board. Your SD card must of course have a 'rom.fp' file, containing
+    the compiled Freeputer program (as Freeputer bytecode)
+    that you wish to run.
   #define FVMO_STDIN_FROM_FILE // Use 'std.in' file as stdin (eg on SD card) // FIXME and for Linux
   #define FVMO_ACK_FLOW_CONTROL // Use rudimentary software flow control for serial input
 
@@ -336,7 +341,10 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 //                     SPECIFY FVM CONFIGURATION HERE:
 // ===========================================================================
 //#define FVMC_LITE_LINUX
-#define FVMC_LITE_ARDUINO_DUE
+//#define FVMC_HEAVY_LINUX
+#define FVMC_LITE_LINUX_FVMTEST
+//#define FVMC_HEAVY_LINUX_FVMTEST
+//#define FVMC_LITE_ARDUINO_DUE
 
 // ===========================================================================
 //                SOME EXAMPLE CONFIGURATIONS TO CHOOSE FROM:
@@ -347,6 +355,29 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMOS_LINUX
   #define FVMOS_SIZE_FVM_LITE
   #define STDBLK_SIZE 16777216
+#endif
+
+/* FVM Heavy for Linux without multiplexing */
+#ifdef FVMC_HEAVY_LINUX
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_FVM_HEAVY
+  #define STDBLK_SIZE 16777216
+#endif
+
+/* FVM Lite for Linux for running fvmtest */
+#ifdef FVMC_LITE_LINUX_FVMTEST
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_FVM_LITE
+  #define STDBLK_SIZE 16777216
+  #define FVMO_FVMTEST
+#endif
+
+/* FVM Heavy for Linux for running fvmtest */
+#ifdef FVMC_HEAVY_LINUX_FVMTEST
+  #define FVMOS_LINUX
+  #define FVMOS_SIZE_FVM_HEAVY
+  #define STDBLK_SIZE 16777216
+  #define FVMO_FVMTEST
 #endif
 
 /* FVM Lite for Arduino Due with 16 MiB stdblk on an SD Card.
@@ -370,7 +401,7 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_SD
   #define FVMO_SD_CS_PIN 4
   //#define FVMO_STDIN_FROM_FILE // FIXME
-  #define FVMO_ACK_FLOW_CONTROL // FIXME
+  //#define FVMO_ACK_FLOW_CONTROL // FIXME
 #endif
 
 /* FVM Lite for chipKIT Max32 with 16 MiB stdblk on an SD Card.
@@ -451,8 +482,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
 // ===========================================================================
 //                            SUPPORTED PLATFORMS:
 // ===========================================================================
-  #define FVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
-  #define FVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
+#define FVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
+#define FVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
 
 // ===========================================================================
 //        SOME GENERIC OPTION SETS USED BY THE EXAMPLE CONFIGURATIONS:
@@ -469,51 +500,21 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_STDEXP
 #endif
 
-/* Generic option set: typical options for Arduinos larger than Uno
-   and using the file 'rom.fp' on an SD card directly (in situ) as ROM.
-   This is exceedingly slow! However, it allows huge Freeputer programs to
-   run (at a snail's pace) on microcontrollers whose inbuilt
-   physical ROM is too small to accommodate such programs.
-   The main purpose of this configuration is to run the 'fvmtest.fl'
-   test suite conveniently on small microcontrollers. Don't bother using
-   this configuration if the physical ROM of your microcontroller is large
-   enough to accommodate fvmtest (in that case use FVMOS_ARDUINO
-   or FVMOS_ARDUINO_BIN instead; they use FVMO_INCORPORATE_ROM or
-   FVMO_INCORPORATE_BIN respectively rather than FVMO_SDCROM and
-   will run one or two orders of magnitude faster).
-
-   Your SD card must of course have a 'rom.fp' file, containing the compiled
-   Freeputer program (as Freeputer bytecode) that you wish to run.
-
-   IMPORTANT: you MUST also #define FVMO_SD and must also ensure that
-   you define FVMO_SD_CS_PIN correctly for your board.
-
- */
-#ifdef FVMOS_ARDUINO_SDCROM
-  #define FVMP FVMP_ARDUINO_IDE
-  #define FVMO_TRON
-  #define FVMO_SEPARATE_ROM
-  #define FVMO_SDCROM
-//  #define FVMO_NO_UPCASTS
-#endif
-
-/* Generic option set: typical options for Arduinos larger than Uno
+/* Generic option set: typical options for Arduinos
    and using binary incorporation of 'rom.fp' rather than using 'rom.h' */
 #ifdef FVMOS_ARDUINO_BIN
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_BIN
-//  #define FVMO_NO_UPCASTS
 #endif
 
-/* Generic option set: typical options for Arduinos larger than Uno. */
+/* Generic option set: typical options for Arduinos */
 #ifdef FVMOS_ARDUINO
   #define FVMP FVMP_ARDUINO_IDE
   #define FVMO_TRON
   #define FVMO_SEPARATE_ROM
   #define FVMO_INCORPORATE_ROM
-//  #define FVMO_NO_UPCASTS
 #endif
 
 /* Generic option set: typical chipKIT options */
@@ -526,42 +527,11 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define FVMO_NO_PROGMEM // chipKIT always requires FVMO_NO_PROGMEM
 #endif
 
-/* Sizing: small for running flc in stdblk mode (minimal RAM usage)
-   using FVMO_SD_CS_PIN 53
-*/
-#ifdef FVMOS_SIZE_SD53_FLC_SMALL
-  #define ROM_SIZE 126976
-  #define RAM_SIZE 4096
-  #define STDBLK_SIZE 16777216
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 53
-#endif
-
-/* Sizing: small for running flc in stdblk mode (minimal RAM usage) 
-   using FVMO_SD_CS_PIN 4 
-*/
-#ifdef FVMOS_SIZE_SD4_FLC_SMALL
-  #define ROM_SIZE 126976
-  #define RAM_SIZE 4096
-  #define STDBLK_SIZE 16777216
-  #define FVMO_SD
-  #define FVMO_SD_CS_PIN 4
-#endif
-
-/* Sizing: small for running 'fvmtest.fl' suite */
-#ifdef FVMOS_SIZE_FVMTEST_ARDUINO
-  #define ROM_SIZE 126976
-  #define RAM_SIZE 4096
-  #define STDBLK_SIZE 16777216
-#endif
-
-/* NEW: There are 2 standard sizings. This is the smaller: FVM Lite */
 #ifdef FVMOS_SIZE_FVM_LITE
-  #define ROM_SIZE 32768
-  #define RAM_SIZE 32768
+  #define ROM_SIZE 16384
+  #define RAM_SIZE 16384
 #endif
 
-/* NEW: There are 2 standard sizings. This is the larger: FVM Heavy */
 #ifdef FVMOS_SIZE_FVM_HEAVY
   #define ROM_SIZE 16777216
   #define RAM_SIZE 16777216
@@ -573,7 +543,8 @@ IMPORTANT WARNINGS REGARDING THIS 'fvm.c' MULTIPLEXING IMPLEMENTATION:
   #define pgm_read_dword_far pgm_read_dword_near
 #endif
 
-// FIXME rationalize this baud rate stuff, it is too complex and doesn't play nicely with some config combos 
+// FIXME rationalize this baud rate stuff, it is too complex and doesn't play nicely with some config combos.
+// Perhaps could solve by always using ACK software flow control instead.
 #ifdef FVMO_STDTRC_SEP
   #define BAUD_RATE_STDTRC 115200 // 9600 // 115200 // FIXME 38400
 #endif
@@ -925,7 +896,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #endif
       // FIXME need similar check to the below when using FVMO_INCORPORATE_BIN
       #if PROGRAM_SIZE > ROM_SIZE
-        #error PROGRAM_SIZE > ROM_SIZE of FVM instance
+        #error incorporated PROGRAM_SIZE too big for ROM_SIZE of FVM instance
       #endif
   #else
       FILE *romHandle;                   // File handle for ROM file
@@ -1118,7 +1089,7 @@ BYTE vmFlags = 0  ;   // Flags -------1 = trace on
       #endif
       // FIXME need similar check to the below when using FVMO_INCORPORATE_BIN
       #if PROGRAM_SIZE > ROM_SIZE
-        #error PROGRAM_SIZE > ROM_SIZE of FVM instance
+        #error incorporated PROGRAM_SIZE too big for ROM_SIZE of FVM instance
       #endif
   #else
       #ifdef FVMO_SD

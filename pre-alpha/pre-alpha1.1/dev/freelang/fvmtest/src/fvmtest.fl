@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160511:1458
-Version:    pre-alpha-0.0.0.14 for FVM 1.1
+Updated:    20160511:2317
+Version:    pre-alpha-0.0.0.15 for FVM 1.1
 
             [TODO: Update to reflect FVM Lite and FVM Heavy sizings.
              The increased stack depth of 256 has already been accounted for.
@@ -185,8 +185,8 @@ To run this test suite on Linux:
 )
 
 ( ============================================================================
-                          DEFAULT CONFIGURATION
-               Suitable for an FVM running on Linux or Java.
+                          FVM HEAVY CONFIGURATION
+                    Suitable for an FVM Heavy instance.
   ============================================================================
   This 'fvmtest.fl' test suite for the FVM is coded to be run on an
   FVM instance having 16 MB RAM, 16 MB ROM, 16 MB stdblk and no memory-mapped
@@ -206,7 +206,7 @@ To run this test suite on Linux:
   upon start up [so that applications do not accumulate gigantic trace logs].
   Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
   ========================================================================== )
-
+(
 slotFloor 16777216    \ For FVM Heavy
 
 fvmtest{
@@ -228,72 +228,30 @@ slotA#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
-
+)
 \ ============================================================================
-\                  End of DEFAULT CONFIGURATION
+\                     End of FVM HEAVY CONFIGURATION
 \ ============================================================================
 
 ( ============================================================================
-                     MINI ARDUINO CONFIGURATION
-                Suitable for Arduino Mega 2560 or larger.
-    Requires an SD card containing 'std.imp' and 'std.blk' as above.
-     Neither requires nor uses any 'std.in.tst' on the SD card.
-      If using FVMO_SDCROM requires a 'rom.fp' on the SD card.
-       See 'fvm.c' for how to compile a suitable Arduino FVM.
-                    
-  This configuration assumes the FVM instance to be tested has:
-    ROM_SIZE 126976 bytes
-    RAM_SIZE 4096 bytes
-    STDBLK_SIZE 16777216 bytes
-
-  On 32-bit boards such as Arduino Due, this 'fvmtest.fl' works as is,
-  compiled as a whole into the FVM executable using 'makeRom.sh' and the
-  FVMO_SEPARATE_ROM and FVMO_INCORPORATE_ROM options in 'fvm.c'. Note that
-  'makeRom.sh' will automatically create 'rom.h' which will contain
-  as a C array the compiled Freeputer bytecode for fvmtest.
-  Unfortunately this C array brings with it limitations
-  with respect to 8-bit or 16-bit boards.
-
-  On 8-bit or 16-bit boards, such as the Arduino Mega 2560, which cannot
-  index arrays larger than 32768 bytes in C, it is unfortunately necessary
-  to break this 'fvmtest.fl' into parts and, using that same
-  procedure, compile and run each part separately. This is because
-  this 'fvmtest.fl' when compiled into Freeputer bytecode occupies
-  around 80 kB. Therefore for the Mega it is most convenient to break
-  this up into 4 parts; see comments below like \ 29272 bytes [62 restarts]
-  which indicate where this has been done in the past.
-
-  New feature: as an alternative to the tedious manual procedure
-  of breaking this test suite up into several parts to be run separately,
-  there is now a new FVMO_SDCROM option in 'fvm.c' that allows you
-  to compile an FVM instance that will directly use a 'rom.fp' binary file
-  on an SD card as its ROM [in situ]. This is exceedingly slow
-  [so fvmtest will run up to two orders of magnitude slower] but
-  convenient for running fvmtest as a whole in a single run. You would
-  simply compile this 'fvmtest.fl' to 'rom.fp' and copy that 'rom.fp'
-  to your SD card; then compile 'fvm.c' appropriately [see therein
-  FVMC_ARDUINO_MEGA_SD53_FVMTEST_SDCROM for an example configuration].
-  Of course, the drawback is that this does not test if FVMO_INCORPORATE_ROM
-  or FVMO_INCORPORATE_BIN work correctly on your microcontroller, and
-  cannot test FVMO_NO_UPCASTS at all, but at least it otherwise tests
-  the FVM nicely [such as on the Arduino Mega 2560].
-
+                          FVM LITE CONFIGURATION
+                    Suitable for an FVM Lite instance.
   ========================================================================== )
-(
-slotFloor 126976      \ This must equal FVM ROM size
+
+slotFloor 16384       \ For FVM Lite
 
 fvmtest{
 
 \ These must match the sizing of the FVM instance to be tested:
-ROM_SIZE.    126976   \ FVM ROM size [bytes]
-RAM_SIZE.    4096     \ FVM RAM size [bytes]
+ROM_SIZE.    16384    \ FVM ROM size [bytes]
+RAM_SIZE.    16384    \ FVM RAM size [bytes]
 MAP_SIZE.    0        \ FVM MAP size [bytes]
 STDBLK_SIZE. 16777216 \ FVM STDBLK size [bytes]
-MAX_DEPTH_DS. 32      \ FVM max depth of data stack
-MAX_DEPTH_SS. 32      \ FVM max depth of software stack
-MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+MAX_DEPTH_DS. 256     \ FVM max depth of data stack
+MAX_DEPTH_SS. 256     \ FVM max depth of software stack
+MAX_DEPTH_RS. 256     \ FVM max depth of return stack
 
-\ And all sizes below must be multiples of 4:
+\ And all sizes below must be multiples of 4:       \ FIXME increase these
 MOVEX.  100  \ Amount of memory to use in testMOVE etc [bytes]
 MOVEX3. 300  \ Must be MOVEX*3
 testAlign# 8    \ Do not change this line [must always be first slot]
@@ -301,9 +259,9 @@ slotA#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
-)
+
 \ ============================================================================
-\             End of MINI ARDUINO CONFIGURATION
+\                     End of FVM LITE CONFIGURATION
 \ ============================================================================
 
 \ ============================================================================
@@ -348,6 +306,14 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ." OK     : ( ) [ ] { n } as expected " dbg{print}
 
     ." OK     : All tests passed " dbg{print}
+\ ((( XTFVMLITE+++
+  ." WARNING: PARTIAL RUN (NOT WHOLE FVMTEST SUITE) "
+      dbg{print}
+\ +++XTFVMLITE )))
+\ ((( XT_S1_FVMLITE+++
+  ." RAN    : XT_S1_FVMLITE "
+      dbg{print}
+\ +++XT_S1_FVMLITE )))
     dbg{newline}
   ;
 
@@ -372,6 +338,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testBRGEZ      ." testBRGEZ            " expectTraps
     ::testBRZ        ." testBRZ              " expectTraps
     ::testBRNZ       ." testBRNZ             " expectTraps
+\ ((( XTFVMLITE---
     ::testBRLEZ      ." testBRLEZ            " expectTraps
     ::testBRLZ       ." testBRLZ             " expectTraps
     ::testBRG        ." testBRG              " expectTraps
@@ -533,6 +500,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testDATA       ." testDATA             " expectTrap
     \ Other tests:
     ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap  \ 20876 bytes [34 restarts]
+\ ---XTFVMLITE )))
   ;
 
   \ Trace the supplied string msg, then invoke unit test function f,
@@ -813,7 +781,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toNeg1BRNZ: 1 go[!=0] -1 bfail         \ trapPcOverflow, addr negative
     toBustBRNZ: 1 go[!=0] 2147483644 bfail \ trapPcOverflow, addr too high
   ;
-
+\ ((( XT_S1_FVMLITE---
   \ Test opcode 8 BRLEZ
   : testBRLEZ
     -1 go[<=0] :pass1
@@ -3412,7 +3380,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   hitIllegalOpcode:
     data 1 256 ===
     ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line! 
-
+\ ---XTFVMLITE )))
 \ ============================================================================
 \                             DECLARATIONS
 \ ============================================================================
@@ -3438,7 +3406,15 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
 
   \ Slots and constants used by the test suite to monitor soft resets
   numResets# 4     \ A counter of the number of soft resets that have occurred
+
+\ ((( XTFVMLITE---
   EXPECTED_RESETS. 241  \ Exact number of soft resets expected by test suite
+\ ---XTFVMLITE )))
+
+((( XT_S1_FVMLITE===
+  EXPECTED_RESETS. 13
+===XT_S1_FVMLITE )))
+
   MAX_RESETS. 400       \ Limit to guard against infinite loop of resets!
   expectedEcode# 4      \ The currently expected FVM exit code
 
