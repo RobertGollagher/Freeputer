@@ -1,0 +1,1843 @@
+(
+FreeLine
+========
+
+a text editor
+written in Freelang
+for the Freeputer Virtual Machine
+
+Copyright © Robert Gollagher 2015
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20150503
+Updated:    20160511:1309
+Version:    pre-alpha 0.0.0.1 for FVM 1.1 [Appears ready]
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+[at your option] any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Instructions
+============
+
+See also the extensive comments in 'fl.sh'.
+
+Compiling on Linux
+==================
+
+Compile this 'fl.fl' Freelang source-code file into Freeputer bytecode
+using a Freelang compiler such as the self-hosted compiler flc,
+or 'flx.rb', a cross compiler written in Ruby.
+
+Usage on Linux
+==============
+
+Prior to running the FVM on which FreeLine is deployed,
+prepare your console by:
+
+  stty raw -echo
+
+You can then run FreeLine simply by:
+
+  ./fl.sh
+
+Known Issues with FreeLine
+==========================
+
+* The simple algorithm used for rendering text to the terminal is accurate
+  but slow. This makes pasting text extremely slow except at the end of
+  a document or on screens containing little or no text.
+  The workaround is to import rather than pasting.
+
+* The model used to store text is a simple contiguous one without any
+  gap buffer. FreeLine is therefore not suitable for working on very large
+  texts as this kind of model does not scale well. Surprisingly there
+  is no problem working on documents of moderate size such as the
+  source code of FreeLine itself which can be fluently edited.
+
+)
+
+\ ============================================================================
+\                              CONFIGURATION
+\ ============================================================================
+slotFloor 16777216            \ For FVM Heavy
+
+FreeLine{
+
+  init load show edit finish quit \ Algorithm
+
+  TXTSPACE.   16777000        \ Total size of text memory slot [bytes]
+  txtspace#   16777000        \ Text memory slot [simple, contiguous, no gap]
+  COLS. 80 cols#  4           \ Initial and current number of columns in scn
+  WIDE. 132                   \ Number of columns in wide mode
+  ROWS. 24 rows#  4           \ Initial and current number of rows in screen
+  TALL. 43                    \ Number of rows in tall mode
+  FBLK. 0  pFblk# 4           \ Address of text block in block device
+
+\ ============================================================================
+\                                 EDITOR
+\ ============================================================================
+  \ Characters are stored as words [32 bits]
+  pTxt#      4                \ Pointer to lowest char of text
+  pStop#     4                \ Pointer to word after the highest char of text
+  zTxt#      4                \ Size of text [bytes]
+  pCursor#   4                \ Pointer to text cursor [not screen cursor]
+  pStartScn# 4                \ Pointer to first character displayed on screen
+  pNextScn# 4                 \ Pointer to first character of next screen
+  pPrevScn# 4                 \ Pointer to first character of previous screen
+  cNEWLINE. 10                \ Character code used for newline char in text
+  insert?#   4                \ Switch for insert vs overwrite mode
+  visNewlines?# 4             \ Switch for visibility of newline chars
+  tall?# 4                    \ Switch for tall mode [more rows per screen]
+  wide?# 4                    \ Switch for wide mode [more columns per screen]
+  cVIS_NEWLINE. '$'           \ Character to represent visible newline char
+
+  ABOUT_MODE$   ." ABOUT      Press any key to continue  "
+  EDIT_MODE$    ." EDITING              Esc:commands  "
+  EDIT_MODE_W$  ." EDITING WIDE         Esc:commands  "
+  EDIT_MODE_T$  ." EDITING TALL         Esc:commands  "
+  EDIT_MODE_WT$ ." EDITING TALL WIDE    Esc:commands  "
+  ESC_MODE$
+." a:about e:edit h:help n:newlines t:tall w:wide i:import x:export s:save q:quit   "
+  HELP_MODE$    ." HELP       Press any key to continue  "
+  SAVED$        ." TEXT SAVED                            "
+  EXPORTED$     ." TEXT EXPORTED                         "
+  IMP_SUCCESS$  ." TEXT IMPORTED                         " \ All good
+  IMP_FAILED$   ." IMPORT MALFUNCTION (do not retry)     " \ Bug occurred
+  IMP_PARTIAL$  ." IMPORT STOPPED EARLY (no more space)  " \ Ran out of space
+  IMP_EMPTY$    ." NO TEXT IMPORTED  (none available)    " \ Stream empty
+  IMP_INVALID$  ." IMPORT INCOMPLETE (invalid character) " \ Hit a bad char
+  INSUFF_SPACE$ ." INSUFFICIENT SPACE (text memory full) " \ No space left
+
+  \ Initialize the text editor
+  : init ( -- )
+    ##txtspace ##pTxt !       \ Init txt pointer to start of text memory
+    ##txtspace ##pStop !      \ Init txt stop to start of text mem [empty txt]
+    ##txtspace ##pCursor !    \ Init txt csr to start of text mem [empty txt]
+    ##txtspace ##pStartScn !  \ Init ptr to first displayed char [empty txt]
+    {..NO_VALUE} ##pNextScn ! \ Init ptr to 1st char of next screen [none yet]
+    {..NO_VALUE} ##pPrevScn ! \ Init ptr to 1st char of prev screen [none yet]
+    0 ##zTxt !                \ Init txt size to zero [empty txt]
+    {..TRUE} ##insert? !      \ Init txt input to insert rather than overwrite
+    {..FALSE} ##tall? !       \ Init tall mode to off [fewer rows per screen]
+    {..FALSE} ##wide? !       \ Init wide mode to off [fewer columns per scn]
+    {..TRUE} ##visNewlines? ! \ Init newline char visility to true [=visible]
+    ..FBLK ##pFblk !          \ Init address of text block in block device
+    ..COLS ##cols !           \ Init number of columns to initial value
+    ..ROWS ##rows !           \ Init number of rows to initial value
+    ##cols @ ##rows @ scn{init} \ Init screen for txt display
+  ;
+
+  \ Load the text from block device
+  : load ( -- )
+    ##pTxt @                         \   to: the start of text in memory
+      ##pFblk @ blkdev{strip}        \ from: the strip of the block in blk dev
+      ##pFblk @ blkdev{size} sys{wds} \ numWords: block's strip size in words
+      blkdev{load} ( memAddrStop )   \ Load text and accordingly update...
+    dup ##pStop !                    \  1. ptr to wd after highest char of txt
+    ##pTxt @ - ##zTxt !              \  2. size of txt now present in txtspace
+    ##pTxt @ ##pCursor !             \  3. txt cursor to point at txt start
+    ##pTxt @ ##pStartScn !           \  4. first displayed char is txt start
+  ;
+
+  \ Display loaded text for the first time
+  : show ( -- )
+    renderScreen
+  ;
+
+  \ Interative editing by the user
+  : edit ( -- )
+      editModeMsg
+    skipMsg:
+      in{key}
+      in{..kESC} go[!=] :simple
+        $$ESC_MODE infoMsg
+        drop in{handleEscapeSequence}
+      simple:
+        in{..kRET} go[==] :enter
+        in{..kDEL} go[==] :del
+        in{..kBKSPC} go[==] :bkspc
+        in{..kLEFT} go[==] :navLeft
+        in{..kRIGHT} go[==] :navRight
+        in{..kUP} go[==] :navUp
+        in{..kDOWN} go[==] :navDown
+        in{..kPDOWN} go[==] :pageDown
+        in{..kPUP} go[==] :pageUp
+        in{..kINS} go[==] :toggleInsertionMode
+        in{..kEDIT} go[==] :resumeEditing
+        in{..kABOUT} go[==] :aboutInfo
+        in{..kHELP} go[==] :help
+        in{..kVISN} go[==] :visn
+        in{..kTALL} go[==] :tall
+        in{..kWIDE} go[==] :wide
+        in{..kIMPORT} go[==] :import
+        in{..kEXPORT} go[==] :export
+        in{..kSAVE} go[==] :save
+        in{..kQUIT} go[==] :quitEditing
+      addChar
+      checkAddCharOutcome:
+        {..FAILURE} go== :addCharFailed
+          go ::edit
+        addCharFailed:
+          $$INSUFF_SPACE errorMsg go :skipMsg
+      toggleInsertionMode:
+        drop ##insert? sys{vToggle} go ::edit
+      enter:
+        drop ..cNEWLINE addChar go :checkAddCharOutcome
+      bkspc:
+        drop backDeleteChar blankAtCursor renderRest go ::edit
+      del:
+        drop deleteChar renderRest go ::edit
+      navLeft:
+        drop navLeft go ::edit
+      navRight:
+        drop navRight go ::edit
+      navUp:
+        drop navUp go ::edit
+      navDown:
+        drop navDown go ::edit
+      pageDown:
+        drop pageDown go ::edit
+      pageUp:
+        drop pageUp go ::edit
+      aboutInfo:
+        drop aboutInfo go ::edit
+      help:
+        drop help go ::edit
+      visn:
+        drop newlines go ::edit
+      tall:
+        drop tall go ::edit
+      wide:
+        drop wide go ::edit
+      export:
+        drop export $$EXPORTED successMsg go :skipMsg
+      import:
+        drop import
+        {..SUCCESS} go[==] :importSuccess
+        {..PARTIAL} go[==] :importPartial
+        utf8{..EMPTY} go[==] :importEmpty
+        utf8{..INVALID} go[==] :importInvalid
+        {..FAILURE} go[==] :importFailed
+        halt \ unforseen bug so halt
+        importFailed:
+          drop $$IMP_FAILED errorMsg go :skipMsg
+        importPartial:
+          drop $$IMP_PARTIAL errorMsg go :skipMsg
+        importEmpty:
+          drop $$IMP_EMPTY errorMsg go :skipMsg
+        importInvalid:
+          drop $$IMP_INVALID errorMsg go :skipMsg
+        importSuccess:
+          drop $$IMP_SUCCESS successMsg go :skipMsg
+      save:
+        drop save $$SAVED successMsg go :skipMsg
+      resumeEditing:
+        drop go ::edit
+      quitEditing:
+  ;
+
+  \ Import the text from a stream device [stdimp] from some other system
+  \ and indicate outcome by returning an appropriate outcome value
+  : import
+  ( -- {..SUCCESS}/{..FAILURE}/{..PARTIAL}/utf8{..EMPTY}/utf8{INVALID} )
+    {..FALSE}                    \ ( F ) At least 1 char imported? flag=FALSE
+    ##pCursor @ spush            \ ( F ) [ pCursor ] Save text cursor pos
+    scn{xy} spush2               \ ( F ) [ pCursor x y ] Save scn cursor pos
+    ..TXTSPACE ##zTxt @ - spush  \ ( F ) [ pCursor x y limit ] No endless loop
+    importing:                  \ ( F ) [ pCursor x y limit-]
+      spop decw go[<=0] :break  \ ( F limit-) [ pCursor x y ]
+      spush                     \ ( F ) [ pCursor x y limit-]
+      imp{readChar}             \ ( F c ) [ pCursor x y limit-]
+      utf8{..EMPTY} go[==] :done    \ ( F c ) [ pCursor x y limit-]
+      utf8{..INVALID} go[==] :done  \ ( F c ) [ pCursor x y limit-]
+      silentAddChar             \ ( F SUCCESS/FAILURE ) [ pCursor x y limit-]
+      {..FAILURE} go== :insuffSpace \ ( F ) [ pCursor x y limit-]
+      drop {..TRUE}             \ ( F=true ) [ pCursor x y limit-] flag=TRUE
+      go :importing             \ ( F ) [ pCursor x y limit-]
+    insuffSpace:                \ ( F ) [ pCursor x y limit-]
+      \ We have attempted to addChar at least once but in doing so
+      \   have discovered there is insufficient space to add it to the text.
+      \   Note: actually this will never happen because the :break check
+      \   above will detect insufficient space before the :insuffSpace
+      \   check above does. This is here just to be doubly safe.
+      spop drop2 {..PARTIAL} go :ending \ ( F=PARTIAL ) [ pCursor x y ]
+    break:                      \ ( F limit- ) [ pCursor x y ]
+      drop                      \ ( F ) [ pCursor x y ]
+      {..FALSE} go== :breakAndNone
+        \ We broke but we did import at least 1 char
+        {..PARTIAL} go :ending  \ ( F=FAILURE ) [ pCursor x y ]
+      breakAndNone: \ Not only did we break but did not import even 1 char
+        {..FAILURE} go :ending  \ ( F=FAILURE ) [ pCursor x y ]
+    done:                       \ ( F o ) [ pCursor x y limit- ]
+      spop drop                 \ ( F o ) [ pCursor x y ]
+      swap                      \ ( o F ) [ pCursor x y ]
+      {..FALSE} go== :doneAndNone \ ( o ) [ pCursor x y ]
+        \ We did import at least 1 char prior to EMPTY or INVALID
+        utf8{..EMPTY} go== :importedTillEnd \ ( ) [ pCursor x y ]
+          ( importedTillInvalid : )
+              \ Our import got part way through then hit an invalid char
+              utf8{..INVALID} go :ending \ ( F=INVALID ) [ pCursor x y ]
+        importedTillEnd:       \ ( ) [ pCursor x y ]
+          \ Our import was successful all the way to end of stream
+              {..SUCCESS} go :ending \ ( F=SUCCESS ) [ pCursor x y ]
+      doneAndNone: \ We did not import even 1 char prior to EMPTY or INVALID
+        go :ending              \ ( o=EMPTY/INVALID ) [ pCursor x y ]
+    ending:                     \ ( o ) [ pCursor x y ]
+      renderScreen              \ ( o ) [ pCursor x y ]
+      spop2 scn{seek}           \ ( o ) [ ] Restore original screen cursor pos
+      spop ##pCursor !          \ ( o ) [ ] Restore original text cursor pos
+  ;
+
+  \ Export the text to a stream device [stdexp] for use by some other system
+  : export ( -- )
+    ##pTxt @ ##zTxt @ exp{export}
+  ;
+
+  \ Render the message which appears in the status line while editing.
+  \ TODO refactor this for performance reasons and render it less often.
+  : editModeMsg ( -- )
+    ##wide? @ {..TRUE} go== :wide
+      ##tall? @ {..TRUE} go== :tall
+        $$EDIT_MODE go :end
+    wide:
+      ##tall? @ {..TRUE} go== :tallAndWide
+        $$EDIT_MODE_W go :end
+      tallAndWide:
+        $$EDIT_MODE_WT go :end
+    tall:
+        $$EDIT_MODE_T
+    end:
+      minorMsg
+  ;
+
+  \ Return to the start of the text as if the text had just been loaded.
+  \ This is used after changing screen size.
+  : resetTxt ( -- )
+    scn{cls}                      \ Clear scn prior to any scn size change
+    ##pTxt @ ##pCursor !          \ Set text cursor to start of text
+    ##pTxt @ ##pStartScn !        \ Set ptr to start of screen to start of txt
+    {..NO_VALUE} ##pPrevScn !     \ Erase value of ptr to prev screen
+    {..NO_VALUE} ##pNextScn !     \ Erase value of ptr to next screen
+    ##cols @ ##rows @ scn{init}   \ Init screen for txt display
+    renderScreen                  \ Render the first screen of text
+  ;
+
+  \ Toggle Tall Mode
+  : tall ( -- )
+    ##tall? sys{vToggle}
+    ##tall? @ {..FALSE} go== :short
+      ..TALL ##rows ! resetTxt ret
+    short:
+      ..ROWS ##rows ! resetTxt ret
+  ;
+
+  \ Toggle Wide Mode
+  : wide ( -- )
+    ##wide? sys{vToggle}
+    ##wide? @ {..FALSE} go== :thin
+      ..WIDE ##cols ! resetTxt ret
+    thin:
+      ..COLS ##cols ! resetTxt ret
+  ;
+
+  \ Toggle newline visibility
+  : newlines ( -- )
+    ##visNewlines? sys{vToggle}
+    scn{svCursor} renderScreen scn{unsvCursor}
+  ;
+
+  \ Display about information until any key pressed
+  : aboutInfo ( -- ) ::renderAboutContent infoScreen ;
+
+  \ A function to render the content of the help screen.
+  \ This function should be passed in to infoScreen.
+  : renderAboutContent ( -- )
+    $$ABOUT_MODE moderateMsg scn{norm} scn{home}
+    ." FreeLine, a text editor for Freeputer " scn{print}
+    ." Copyright (C) 2015 Robert Gollagher " scn{print}
+    scn{nextline} scn{minorMode}
+    ." This program is free software: you can redistribute it and/or modify "
+      scn{print}
+    ." it under the terms of the GNU General Public License as published by "
+      scn{print}
+    ." the Free Software Foundation, either version 3 of the License, or "
+      scn{print}
+    ." (at your option) any later version. "
+      scn{print}
+    scn{nextline}
+    ." This program is distributed in the hope that it will be useful, "
+      scn{print}
+    ." but WITHOUT ANY WARRANTY; without even the implied warranty of "
+      scn{print}
+    ." MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+      scn{print}
+    ." GNU General Public License for more details. "
+      scn{print}
+    scn{nextline}
+    ." You should have received a copy of the GNU General Public License "
+      scn{print}
+    ." along with this program. If not, see <http://www.gnu.org/licenses/>. "
+      scn{print}
+    scn{nextline} scn{norm}
+    ." FreeLine pre-alpha 0.0.0.1 for FVM 1.1 " scn{print}
+    ." Author : Robert Gollagher   robert.gollagher@freeputer.net " scn{print}
+    ." Created:  3 May 2015 " scn{print}
+    ." Updated: 11 May 2016 " scn{print}
+    scn{nextline} scn{happyMode}
+    ." Freeputer ( ) [ ] { } forever free " scn{print} scn{norm}
+  ;
+
+  \ Display help information until any key pressed
+  : help ( -- ) ::renderHelpContent infoScreen ;
+
+  \ A function to render the content of the help screen.
+  \ This function should be passed in to infoScreen.
+  : renderHelpContent ( -- )
+    $$HELP_MODE prettyMsg scn{tmpHome}
+       \                                      \ Message size guides
+    1 1   ." EDITING Mode " info scn{minorMode}
+    20 1  ." Use UTF-8 " info scn{norm}
+    1 2   ." Left  : go left   (same line only) " info
+    1 3   ." Right : go right  (same line only) " info
+    1 4   ." Bkspc : backspace (same line only) " info
+    1 5   ." Del   : delete character " info
+    1 6   ." Up    : line start then prior line " info
+    1 7   ." Down  : line end then next line " info
+    1 8   ." Ins   : insert/overwrite " info
+    1 9   ." PageUp: page up " info
+    1 10  ." PageDn: page down " info
+
+    12 11 ." Do not use: " info
+    3 12  ." Ctrl, Alt, Home, End, F1-F12 " info
+    scn{happyMode}
+    1 14  ." FreeLine is a simple demonstration " info
+    1 15  ." application for Freeputer, a tiny " info
+    1 16  ." virtual machine easily ported to most " info
+    1 17  ." modern architectures, including bare " info
+    1 18  ." metal, and requiring neither file " info
+    1 19  ." system nor operating system. This " info
+    1 20  ." offers extreme portability and the " info
+    1 21  ." freedom to use software forever " info
+    1 22  ." without designed obsolescence. " info
+    scn{norm}
+    39 1  ." Esc: ESCAPE Mode " info scn{minorMode}
+    59 1  ." Linux: stty raw -echo " info scn{norm}
+    40 2  ."  a: about FreeLine (view version) " info
+    40 3  ."  e: edit (resume editing) " info
+    40 4  ."  h: help (view this screen) " info
+    40 5  ."  n: toggle visible newlines " info '(' scn{putc}
+          scn{special} ..cVIS_NEWLINE scn{putc} scn{norm} ')' scn{putc}
+    40 6  ."  t: toggle TALL Mode (24/43 rows)[1] " info
+    40 7  ."  w: toggle WIDE Mode (80/132 columns)[1] " info
+    40 8  ."  i: import text (if available)[2] " info
+    40 9  ."  x: export text (no choice of file)[3] " info
+    40 10  ."  s: save (no choice of file)[4] " info
+    40 11 ."  q: quit without saving " info
+    40 12 ." [1] Never use modes larger than your " info
+    40 13 ." screen size. Minimum 80x24. Do not alter " info
+    40 14 ." screen size while FreeLine is running. " info
+    40 15 ." [2] Text is imported from the standard " info
+    40 16 ." import stream (eg std.imp) once only. " info
+    40 17 ." [3] Text is exported to the standard " info
+    40 18 ." export stream (eg std.exp) which is " info
+    40 19 ." erased when FreeLine starts. " info
+    40 20 ." [4] Text is saved to the standard block " info
+    40 21 ." device and loads when FreeLine starts. " info
+    40 22 ." To work on a different text, replace " info
+    40 23 ." that device (eg std.blk) while " info
+    40 24 ." Freeputer is not running. " info scn{norm}
+  ;
+
+  \ Display string k at x y on the screen.
+  \ This word is only intended for use by the Help screen and similar
+  \ informational screens, not for rendering the primary text.
+  : info ( x y k -- ) tor scn{pos} scn{puts} ;
+
+  \ Display an informational screen, which will persist until the user
+  \ presses any key, and invoke function f to populate the screen content.
+  : infoScreen ( f -- )
+    scn{saveAll} scn{hideCursor} scn{cls}
+    invoke
+    in{awaitAnyKey}
+    scn{cls} renderScreen
+    scn{showCursor} scn{restoreAll}
+  ;
+
+  \ Clear the status message row [bottom row of screen]
+  : clearStatus ( -- ) ##rows @ scn{cln} ;
+
+  \ Show a status message k on status line of screen after invoking
+  \ function f which sets the desired temporary screen mode for that message.
+  \ NOTE: This is an example of functional programming in Freelang.
+  : statusMsg ( k f -- )
+    scn{saveAll}                      \ Save current screen state
+    scn{norm}                         \ Use norm screen state
+    invoke                            \ Invoke specified mode function f
+    clearStatus 1 ##rows @ scn{pos} scn{puts} \ Clr status line then show msg
+    scn{restoreAll}                   \ Restore previous screen state
+  ;
+
+  \ Show a quiet message k on status line of screen
+  : minorMsg ( k -- ) scn{::minorMode} statusMsg ;
+
+  \ Show a moderately highlighted message k on status line of screen
+  : moderateMsg ( k -- ) scn{::moderateMode} statusMsg ;
+
+  \ Show an info message k on status line of screen
+  : infoMsg ( k -- ) scn{::infoMode} statusMsg ;
+
+  \ Show a pretty message k (nice colour or similar) on status line of screen
+  : prettyMsg ( k -- ) scn{::prettyMode} statusMsg ;
+
+  \ Show a success message k on status line of screen
+  : successMsg ( k -- ) scn{::successMode} statusMsg ;
+
+  \ Show an error message k on status line of screen
+  : errorMsg ( k -- ) scn{::errorMode} statusMsg ;
+
+  \ Show an warning message k on status line of screen
+  : warningMsg ( k -- ) scn{::warningMode} statusMsg ;
+
+  \ Add character c to the text at pCursor, either inserting or overwriting
+  \ according to the current value of the insert? switch.
+  \ Return FAILURE if insufficient space, otherwise SUCCESS.
+  : addChar ( c -- SUCCESS/FAILURE )
+    ##insert? @ {..TRUE} go== :insert
+    ( overwrite: )
+      placeChar go :render
+    insert:
+      insertChar
+    render:
+      {..FAILURE} go[==] :end \ Neither render nor move cursor if failed
+        renderRest
+        step
+      exceededScn? {..TRUE} go!= :noKick
+        kickScreen editModeMsg ret
+      noKick:
+        scn{curs}
+      end:
+  ;
+
+  \ Same as addChar but without any rendering.
+  \ This word is intended for use by import not by regular text entry.
+  \ Return FAILURE if insufficient space, otherwise SUCCESS.
+  : silentAddChar ( c -- SUCCESS/FAILURE )
+    ##insert? @ {..TRUE} go== :insert
+    ( overwrite: )
+      placeChar go :end
+    insert:
+      insertChar
+    end:
+      ##pCursor sys{vINC}
+  ;
+
+  \ Kick over to the next screen during input because the character
+  \   that has just been inputted should appear as the first char of next scn
+  : kickScreen ( -- )
+    ##pStartScn @ ##pPrevScn !          \ Remember this screen as prev screen
+    ##pCursor @ ##pStartScn !           \ Make current text cursor scn start
+    {..NO_VALUE} ##pNextScn !           \ Erase ptr to next screen
+    scn{cls} scn{home} renderScreen     \ This will recalc ptr to next screen
+  ;
+
+  \ Navigate left one character
+  : navLeft ( -- )
+    atStartTxt? {..TRUE} go== :end          \ Do nothing if at start of txt
+      atStartLine? {..TRUE} go== :end       \ Do nothing if at start of line
+        ##pCursor sys{vDEC}                 \ Decrement text cursor
+        scn{xy} swap dec swap scn{seek}     \ Move screen cursor
+    end:
+  ;
+
+  \ Navigate right one character
+  : navRight ( -- )
+    atEndTxt? {..TRUE} go== :end                \ Do nothing if at end of text
+      atEndLine? {..TRUE} go== :end             \ Do nothing if at end of line
+      ##pCursor sys{vINC}                       \ Increment text cursor
+      scn{xy} swap inc swap scn{seek}           \ Move screen cursor
+    end:
+  ;
+
+  \ Return the address a in the model which corresponds to the first character
+  \   of the previous screen or, if there is no previous screen, NO_VALUE
+  : prevScreen ( -- a )
+    ##pStartScn @ ##pTxt @ go<= :noPrevScn \ Already on 1st screen?
+    ##pStartScn @ decw                 \ ( a ) [ ]
+    ##rows @ dec                       \ ( a i ) [ ] i = row countdown limit
+    ##cols @ spush              \ ( a i ) [ j=columns ] j = col countdn limit
+    walkBack:                          \ ( a i ) [ j ]
+      over ##pTxt @ go< :underflow     \ ( a i ) [ j ] Underflow protection
+      go[<=0] :beyond \ ( a i ) [ j ] Gone lower than start of prev screen?
+      swap decw swap                   \ ( a- i ) [ j ]
+      over @                           \ ( a- i c ) [ j ]
+      ..cNEWLINE go== :prevline        \ ( a- i ) [ j ]
+        \ We walked back to a char which is not a newline
+        spop dec hold                  \ ( a- i j- ) [ j- ]
+        go==0 :prevline                \ ( a- i ) [ j- ] Full line of chars?
+          go :walkBack                 \ ( a- i ) [ j- ]
+        prevline:                      \ ( a- i ) [ j- ]
+          \ We walked back to the last char of the previous line
+          dec spop drop ##cols @ spush \ ( a- i- ) [ j=columns ]
+          go :walkBack                 \ ( a- i- ) [ j=columns ]
+    beyond:                            \ ( a- i ) [ j ]
+      \ We have walked back to char just BEFORE the start of the prev screen
+      spop drop2 incw                  \ ( a ) [ ] Now a is START of prev scn
+      ret                              \ ( a ) [ ] Return addr of prev screen
+    underflow:                         \ ( a i ) [ j ]
+      \ We hit underflow protection (a before start of text)
+      spop drop3 ##pTxt @ ret        \ ( ) [ ] Return start of txt as prev scn
+    noPrevScn:                       \ ( ) [ ]
+      \ There is no previous screen
+      {..NO_VALUE}                   \ ( ) [ ] Return NO_VALUE as prev scn
+  ;
+
+  \ Return TRUE if at the 1st char of current screen, otherwise FALSE
+  : atStartScn? ( -- B )
+    atFirstRow? {..FALSE} go== :no
+      atStartLine? {..FALSE} go== :no
+        {..TRUE} ret
+    no:
+      {..FALSE}
+  ;
+
+  \ Return TRUE if the the insert, which just occurred, exceeded the screen
+  \   and therefore we should show the following screen.
+  \   Otherwise return FALSE.
+  : exceededScn? ( -- )
+    scn{##y} @ ##rows @ go< :no {..TRUE} ret no: {..FALSE} ;
+
+  \ Navigate to the beginning of the current line, or, if already
+  \   there, navigate up to the start of the previous line
+  \   [unless the previous line is on the previous screen,
+  \   in which case go to its end]
+  : navUp ( -- )
+    atStartTxt? {..TRUE} go== :end \ Do nothing if already at start of text
+      atStartScn? {..FALSE} go== :notPagingUp
+          \ We are at the 1st char of current screen, so pageUp
+          pageUp
+          ::navDownLine ##rows @ decw sys{times}
+            navDownLine navDownLine
+          go :end
+      notPagingUp:
+        seekStartPrevLine
+    end:
+  ;
+
+  \ Navigate to the end of the NEXT line
+  \   given the current location of pCursor.
+  : navDownLine ( -- )
+    atEndLine? {..TRUE} go== :once navDown once: navDown
+ ;
+
+  \ Seek the start of the previous line
+  \   given the current location of pCursor
+  : seekStartPrevLine ( -- )
+      \ To find the start of the previous line we will recursively call
+      \   nextLineStarts, beginning at current top of screen
+      scn{..X} scn{..Y} ##pStartScn @ hold3  \ ( x y a ) [ x y a ]
+      recurse:
+        nextLineStarts                       \ ( x2 y2 a2 ) [ x y a ]
+        dup ##pCursor @ go>= :enough
+                                  \ Stop when at or beyond current txt cursor
+        spop3 drop3 hold3                    \ ( x2 y2 a2 ) [ x2 y2 a2 ]
+        go :recurse                          \ ( x2 y2 a2 ) [ x2 y2 a2 ]
+      enough: \ Use the previous coordinates from the software stack
+        drop3 spop3 \ ( x y a) [ ] The coordinates of the start of prev line
+        ##pCursor ! \ Update the text cursor
+        scn{seek}   \ Move screen cursor
+  ;
+
+  \ Navigate to the end of the current line, or, if already
+  \   there, navigate down to the end of the next line
+  \   [unless the next line is on the next screen,
+  \   in which case go to its start]
+  : navDown ( -- )
+    atEndLine? {..TRUE} go== :nextLine
+      navLineEnd ret
+    nextLine:
+      atLastRow? {..TRUE} go== :pageDown
+       navNextline navLineEnd ret
+      pageDown:
+        pageDown
+  ;
+
+  \ Render the next screen of text and home the cursor.
+  \ Do nothing if there is no next screen.
+  : pageDown ( -- )
+    ##pNextScn @ {..NO_VALUE} go== :end     \ Do nothing if no next screen
+      ##pStartScn @ ##pPrevScn !            \ Remember screen as prev screen
+      ##pNextScn @ ##pStartScn !            \ Reframe to start of next screen
+      ##pNextScn @ ##pCursor !              \ Place text cursor there too
+      {..NO_VALUE} ##pNextScn !             \ Erase value of ptr to next scn
+      scn{cls} renderScreen                 \ Render the next screen
+    end:
+  ;
+
+  \ Render the previous screen of text and home the cursor.
+  \ Do nothing if there is no previous screen.
+  : pageUp ( -- )
+    ##pPrevScn @ {..NO_VALUE} go== :end     \ Do nothing if no prev screen
+      ##pStartScn @ ##pNextScn !            \ Remember screen as next screen
+      ##pPrevScn @ ##pStartScn !            \ Reframe to start of prev screen
+      ##pPrevScn @ ##pCursor !              \ Place text cursor there too
+      prevScreen ##pPrevScn !               \ Calculate new prev screen start
+      scn{cls} renderScreen                 \ Render the next screen
+    end:
+  ;
+
+  \ Move to the start of the next line
+  : navNextline ( -- )
+      scn{xy} ##pCursor @      ( x y a )  \ Current position
+      nextLineStarts nip nip   ( a2 ) \ WARNING: May be beyond end of text!
+      ##pStop @ go[>=] :no     ( a2 ) \ Do nothing if already on final line
+        ##pCursor !            ( ) \ Move text cursor forward correctly
+        1 scn{##y} @ inc scn{seek}
+        ret                    ( ) \ Move screen cursor
+    no: drop
+  ;
+
+  \ Move to the end of the current line
+  : navLineEnd ( -- )
+    atEndLine? {..TRUE} go== :end \ Do nothing if already at line end
+      scn{hideCursor}
+      righting:
+        navRight
+        ##pCursor @@ ..cNEWLINE go== :movedToLineEnd  \ Reached a newline char
+          scn{##x} @ ##cols @ go>= :movedToLineEnd    \ Reached rightmost col
+            ##pCursor @ ##pStop @ go>= :movedToLineEnd \ Reached end of text
+        go :righting
+      movedToLineEnd:
+        scn{showCursor}
+    end:
+        ret
+  ;
+
+  \ Calculate address a2 in the model which corresponds to the first character
+  \   of the next row on the screen, given that screen location x y
+  \   corresponds to address a1 from which we want to calculate;
+  \   if a1 is on the final line of the text, a2 will be beyond pStop.
+  \   Also return x2 y2, the screen coordinates of start of the next line.
+  \   WARNING: x y a1 must be correct to obtain correct a2!
+  \   IMPORTANT: a2 will be AFTER end of text if there is no next line!
+  : nextLineStarts ( x y a1 -- x2 y2 a2 )
+    spush dup tor spop              \ ( Y x y a ) Y = original y as passed in
+    navigating:                     \ ( Y x y a )
+    ##pStop @ go[>=] :done          \ ( Y x y a ) Stop if at end of text
+      hold @ insVector          \ ( Y x y ) [ a ] Would-be x y if did navRight
+        spop incw spush             \ ( Y x y ) [ a+ ] Increment address
+        leap go[>] :done2       \ ( Y x y ) [ a+ ] Have we reached next row?
+          spop go :navigating       \ ( Y x y a+ )     If not, keep walking
+    done2:                          \ ( Y x y ) [ a ]
+      spop                          \ ( Y x y a )
+    done:                           \ ( Y x y a )
+      spush3 drop spop3             \ ( x y a )
+  ;
+
+  \ Render one whole screen starting at pStartScn in the model and
+  \ send screen cursor home. One whole screen does NOT inlude the final row
+  \ of the screen since that is a status row for displaying messages.
+  : renderScreen ( -- )
+    ##pStartScn @                   \ ( a=pStartScn )
+    scn{hideCursor}                 \ ( a )
+      scn{home} scn{xy} spush2      \ ( a ) [ x y ]
+    rendering:                      \ ( a ) [ x y ]
+      ##pStop @ go[>=] :partial     \ ( a ) [ x y ]
+      [@]                           \ ( a c ) [ x y ]
+      spop2 leap                    \ ( a c x y c ) [ ]
+      insVector spush2              \ ( a c ) [ x2 y2 ]
+        scn{curs}
+        ..cNEWLINE go[!=] :notNewline
+            optNewline scn{cle}
+        notNewline:
+          scn{putc} speek2
+          scn{seek}                   \ ( a ) [ x2 y2 ]
+          incw                        \ ( a+ ) [ x2 y2 ]
+          speek ##rows @ go>= :beyond \ ( a+ ) [ x2 y2 ] Would exceed screen?
+          go :rendering               \ ( a+ ) [ x2 y2 ]
+    beyond:                           \ ( a ) [ x y ]
+      \ We are done. The whole screen has been rendered. Address a represents
+      \   the address of what would be the first char of next screen
+      \   so we save it here for use in pagination later.
+      ##pNextScn !                  \ ( ) [ x y ]
+      spop2 drop2                   \ ( ) [ ]
+      go :end                       \ ( ) [ ]
+    partial:                        \ ( a ) [ x y ]
+      \ We are done. Only a partial screen has been rendered because the
+      \   end of the text lies within the first screen. There is therefore no
+      \   next screen so set pNextScn to NO_VALUE.
+      {..NO_VALUE} ##pNextScn !     \ ( a ) [ x y ]
+      spop2 drop3                   \ ( ) [ ]
+    end:                            \ ( ) [ ]
+      scn{cle} scn{home} scn{showCursor} \ ( ) [ ]
+  ;
+
+  \ If visNewlines? is FALSE do nothing, otherwise render a visible symbol
+  \   to represent a newline char on the screen without repositioning cursor
+  : optNewline ( -- )
+    ##visNewlines? @ {..TRUE} go!= :end
+      ..cVIS_NEWLINE scn{saveAttrs} scn{special} scn{putc} scn{restoreAttrs}
+    end:
+  ;
+
+  \ Render the character at pCursor
+  : renderNext ( -- ) ##pCursor @ 1 render ;
+
+  \ Render a space character at the current screen cursor location
+  : blankAtCursor ( -- ) scn{curs} scn{space} scn{curs} ;
+
+  \ Render from the character at pCursor till the end of the screen
+  : renderRest ( -- )
+    scn{svCursor} ##pCursor @ renderOnwards scn{clz} scn{unsvCursor}
+  ;
+
+  \ Render from address a in the model to the end of the screen.
+  \ WARNING: Does not check the validity of a!
+  : renderOnwards ( a -- ) dup ##pStop @ swap - sys{wds} render ;
+
+  \ Render z characters from address a in the model.
+  \ WARNING: Screen cursor position must be saved beforehand and unsaved
+  \            afterwards otherwise rendering will advance the cursor.
+  \ WARNING: Does not check validity of a and z!
+  \ NOTE: Rendering will stop upon reaching the end of the screen.
+  : render ( a z -- )
+    scn{hideCursor}                   \ ( a z )
+      scn{xy} spush2                  \ ( a z ) [ x y ]
+    rendering:                        \ ( a z ) [ x y ]
+        speek ##rows @ go>= :end      \ ( a z ) [ x y ] Hit end of screen?
+        go[<=0] :end                  \ ( a z ) [ x y ] Rendered z chars?
+        swap [@]                      \ ( z a c ) [ x y ]
+        spop2 leap                    \ ( z a c x y c ) [ ]
+        insVector spush2              \ ( z a c ) [ x2 y2 ]
+        scn{curs}
+        ..cNEWLINE go[!=] :notNewline
+          optNewline scn{cle}
+        notNewline:
+          scn{putc} speek2
+          scn{seek}                   \ ( z a ) [ x2 y2 ]
+          incw swap dec               \ ( a+ z- ) [ x2 y2 ]
+          go :rendering               \ ( a+ z- ) [ x2 y2 ]
+    end:                              \ ( a z ) [ x y ]
+      spop2 drop4                     \ ( ) [ ]
+      scn{cle} scn{showCursor}        \ ( ) [ ]
+  ;
+
+  \ Gracefully shut down the text editor
+  : finish ( -- ) scn{norm} scn{cls} ;
+
+  \ Save the text to block device.
+  \ WARNING: This will overwrite data beyond the original block
+  \   if editing has increased the size of the text!
+  : save ( -- )
+    ##zTxt @ ##pFblk @ blkdev{resize} \ Resize block to txt size
+    ##pFblk @ blkdev{strip} ##pTxt @ zWords blkdev{save} drop \ Save
+  ;
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+  \ Return TRUE if at the start of a line, otherwise FALSE
+  : atStartLine? ( -- B )
+    scn{##x} @ 1 go== :yes               \ At leftmost column of screen?
+      atStartTxt? {..TRUE} go== :yes     \ At start of text?
+      {..FALSE} ret
+    yes:
+      {..TRUE} ;
+
+  \ Return TRUE if at the end of a line, otherwise FALSE
+  : atEndLine? ( -- B )
+    scn{##x} @ ##cols @ go== :yes        \ At rightmost column of screen?
+      ##pCursor @@ ..cNEWLINE go== :yes  \ At newline char?
+      atEndTxt? {..TRUE} go== :yes       \ At end of text?
+      {..FALSE} ret
+    yes:
+      {..TRUE}
+  ;
+
+  \ Return TRUE if pCursor at or before start of txt, otherwise FALSE
+  : atStartTxt? ( -- B )
+    ##pCursor @ ##pTxt @ go<= :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ Return TRUE if pCursor at or beyond end of txt, otherwise FALSE
+  : atEndTxt? ( -- B )
+    ##pCursor @ ##pStop @ go>= :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ Return TRUE if text empty, otherwise FALSE
+  : txtEmpty? ( -- B ) ##zTxt @ go<=0 :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ Return TRUE if text memory is completely full, otherwise FALSE
+  : txtFull? ( -- B )
+    ##zTxt @ ..TXTSPACE go>= :yes {..FALSE} ret yes: {..TRUE} troff ;
+
+  \ Return TRUE if screen cursor at first row of screen, otherwise FALSE
+  : atFirstRow? scn{##y} @ 1 go== :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ Return TRUE if screen cursor at or beyond the last row of screen
+  \ used for normal text display, otherwise FALSE. Note: The second-last row
+  \ is the last row used for normal text display, since the bottom row of
+  \ the screen is used for status messages.
+  : atLastRow? scn{##y} @ ##rows @ dec go>= :yes {..FALSE} ret yes: {..TRUE} ;
+
+  \ If at screen position x1,y1 and char c were inserted, calculate subsequent
+  \   screen position x2, y2 which screen cursor would have after that insert.
+  \   Do not account for scrolling; that is, y2 can be > rows
+  : insVector ( x1 y1 c -- x2 y2 )
+      ..cNEWLINE go== :newline
+        swap ##cols @ go[==] :eol
+          inc swap ret          ( x1+1 y1 )
+        eol:
+          drop 1 swap inc ret   ( 1 y1+1 )
+      newline:
+        inc swap drop 1 swap    ( 1 y1+1 )
+  ;
+
+  \ Delete char just before pCursor but do not delete beyond start of line
+  : backDeleteChar ( -- )
+    txtEmpty? {..TRUE} go== :end  \ Nothing to do if text already empty
+    atStartTxt? {..TRUE} go== :end \ Nothing to do if already at start of txt
+    atStartLine? {..TRUE} go== :end \ Nothing to do if already at start of txt
+      ##pCursor sys{vDEC}            \ Decrement the text cursor
+      scn{##x} sys{vDec} scn{svCursor} \ Screen cursor left
+      shuntdn
+      ##pStop sys{vDEC}
+      ##zTxt sys{vDEC}
+    end:
+  ;
+
+  \ Delete char at pCursor
+  : deleteChar ( -- )
+    txtEmpty? {..TRUE} go== :end    \ Nothing to do if text already empty
+    atEndTxt? {..TRUE} go== :end    \ Nothing to do if already at end of text
+      shuntdn
+      ##pStop sys{vDEC}
+      ##zTxt sys{vDEC}
+    end:
+  ;
+
+  \ Delete the entire text
+  : deleteAll ( -- ) ##pTxt @ ##pStop ! ##pTxt @ ##pCursor ! 0 ##zTxt ! ;
+
+  \ Increment pCursor to point at the next character in the model
+  \   and reposition the screen cursor accordingly.
+  \ WARNING: Does no overflow checking!
+  : step ( -- )
+    scn{xy}                     \ ( x y   ) Current screen cursor position
+    ##pCursor @@                \ ( x y c ) Char at pCursor
+    insVector scn{seek}         \ ( ) Move screen cursor appropriately
+    scn{svCursor}               \ ( )   and have the screen remember this
+    ##pCursor sys{vINC}         \ ( ) Move text pCursor past c
+  ;
+
+  \ Insert char at pCursor in the text, shunting higher text upwards
+  \   so that existing text is not overwritten.
+  \ Return FAILURE if insufficient space, otherwise SUCCESS.
+  : insertChar ( c -- SUCCESS/FAILURE )
+    atEndTxt? {..TRUE} go== :justPlaceChar \ placeChar itself handles appends
+    txtFull? {..TRUE} go== :insufficientSpace
+      shuntup placeChar
+      ##zTxt sys{vINC}        \ Record increased size of text
+      ##pStop sys{vINC}       \ Increment ptr to text stop by 1 word
+      ret
+    insufficientSpace:
+      drop {..FAILURE} ret
+    justPlaceChar:
+      placeChar
+  ;
+
+  \ Place char c at pCursor in the text, REPLACING any character there.
+  \   This results in an increased size of the text only if pCursor is beyond
+  \   the present highest character of the text.
+  \ Return FAILURE if insufficient space, otherwise SUCCESS.
+  : placeChar ( c -- SUCCESS/FAILURE )
+    ##pCursor @ ##txtspace go[<] :illegalPosition \ Overflow protection
+    ##pStop @ go[>] :illegalPosition              \ Overflow protection
+    ##pStop @ go[<] :place                        \ No size increase
+      txtFull? {..TRUE} go== :insufficientSpace
+        \ Char will be appended to text
+        ##zTxt sys{vINC}        \ Record increased size of text
+        ##pStop sys{vINC}       \ Increment ptr to text stop by 1 word
+        go :place
+    illegalPosition:
+      halt                      \ Unforeseen bug so halt
+    insufficientSpace:          ( c @pCursor )
+      drop2 {..FAILURE} ret
+    place:                      ( c @pCursor )
+      ! {..SUCCESS}             \ Place char
+  ;
+
+  \ Shunt the text down one character at pCursor so as to delete that char.
+  \ WARNING: Does no overflow checking!
+  : shuntdn ( -- ) -1 nshunt ;
+
+  \ Shunt the text up one character at pCursor to prepare for insertion.
+  \ WARNING: Does no overflow checking!
+  : shuntup ( -- ) 1 nshunt ;
+
+  \ Shunt the text a distance of n characters at pCursor.
+  \ The direction of the shunt is up if n is POSITIVE, down if n is negative.
+  \ WARNING: Does no overflow checking!
+  : nshunt ( n -- )
+    go[==0] :end                              \ Nothing to do if n==0
+    go[>0] :up
+  ( down: )
+      neg dup ( +n +n )
+      ##pStop @ ##pCursor @ - sys{wds} swap - \ numWords of text to be shunted
+      swap sys{bytes} ##pCursor @ +           \ from: pCursor+n
+      ##pCursor @ move                        \ to: pCursor, move
+      go :end
+    up:       ( n )
+      spush   \ ( ) [ n ]
+      ##pStop @ ##pCursor @ - sys{wds} neg    \ -numWords of txt to be shunted
+      ##pStop @ decw dup spop sys{bytes} +
+        move  \ From top char to top char + n, move
+    end:
+  ;
+
+  \ Returns the size of the text in words
+  : zWords ( -- n ) ##zTxt @ sys{wds} ;
+
+  \ DEBUGGING: trace string message followed by details of text in memory
+  : dbgTxt ( z -- ) dbg{newline}
+    ##pTxt @ ##zTxt @ sys{wds} dbg{infochar} dbgMetrics
+  ;
+
+  \ DEBUGGING: trace string message followed by snapshot and editor metrics
+  : dbgInfo ( z -- ) dbg{print} dbg{snapshot} dbgMetrics ;
+
+  \ DEBUGGING: trace some editor metrics
+  : dbgMetrics ( -- )
+    ." pCursor: " ##pCursor dbg{infovar}
+    ." pStop: " ##pStop dbg{infovar}
+    ." zTxt: " ##zTxt dbg{infovar}
+    ." x: " scn{##x} dbg{infovar}
+    ." y: " scn{##y} dbg{infovar}
+    dbg{newline}
+  ;
+
+}FreeLine
+
+\ ============================================================================
+\                              UTF-8 LIBRARY
+\
+\     The use of this library ensures there is no tight coupling
+\   between the editor and the use of UTF-8 character encoding by
+\   its input devices.
+\
+\ ============================================================================
+utf8{
+  \ WARNING: These values are arbitrary and might be changed in future.
+  \          Therefore reference the constant NAMES not the values!
+  EMPTY. -1 INVALID. -2
+
+\  _EOS. 5 \ Apparent character returned by Linux
+
+  \ Read between 1 and 4 bytes until either:
+  \ (a) a valid UTF-8 character is decoded and returned; or
+  \ (b) an I/O error occurs [or hit end of stream] so .EMPTY is returned; or
+  \ (c) an invalid byte is encountered so .INVALID is returned.
+  \ The supplied function f must read 1 byte from the desired
+  \   stream device or return NO_VALUE if for any reason it cannot read
+  \   [see imp{readb} for an example of a suitable such function].
+  \ WARNING: be sure the function f does exactly the above and nothing else!
+  \             It will be invoked multiple times!
+  \ WARNING: only mimimal validity checking of bytes read is done, so
+  \   if the input is not valid UTF-8 the result may be garbage.
+  \ MIN32BIT: Will not work if Freeputer word size is smaller than 32 bits
+  \   [which should never be the case but noted here as a courtesy]
+  \ NOTE: This is an example of functional programming in Freelang
+  : read ( f -- c )
+    dup invoke {..NO_VALUE} go[==] :fail    \ Read 1st byte of char
+      isUTF8single? {..TRUE} go== :single
+      isUTF8double? {..TRUE} go== :double
+      isUTF8triple? {..TRUE} go== :triple
+      isUTF8quad? {..TRUE} go== :quad
+      drop2 go :invalid \ Hit bad 1st byte of char
+      quad:   \ byte is the first of a 4-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 4th byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 24 << |
+      go :success
+      triple: \ byte is the first of a 3-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+      go :success
+      double: \ byte is the first of a 2-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+      go :success
+      single: go :success \ byte is a 1-byte UTF=8 char
+      badByte: drop2 go :invalid \ Hit bad 2nd, 3rd or 4th byte of char
+    fail: drop2 ..EMPTY ret \ I/O error or end of stream [nothing to read]
+    invalid: ..INVALID ret \ Invalid char
+    success: nip \ Discard f and return c
+  ;
+
+  \ The binary values used for parsing UTF-8 are shown commented out below.
+  \ As the self-hosted compiler only supports decimal literals in source code
+  \ [not binary or hexadecimal ones] these have for now been converted
+  \ into decimal equivalents below. TODO Support binary and hex literals.
+(
+  _UTF8_single_mask. 0b10000000
+  _UTF8_2x_byte_mask. 0b11100000 _UTF8_2x_byte_start. 0b11000000
+  _UTF8_3x_byte_mask. 0b11110000 _UTF8_3x_byte_start. 0b11100000
+  _UTF8_4x_byte_mask. 0b11111000 _UTF8_4x_byte_start. 0b11110000
+  _UTF8_subseq_mask. 0b11000000  _UTF8_subseq_start. 0b10000000
+)
+  _UTF8_single_mask. 128
+  _UTF8_2x_byte_mask. 224 _UTF8_2x_byte_start. 192
+  _UTF8_3x_byte_mask. 240 _UTF8_3x_byte_start. 224
+  _UTF8_4x_byte_mask. 248 _UTF8_4x_byte_start. 240
+  _UTF8_subseq_mask. 192  _UTF8_subseq_start. 128
+
+
+  \ Returns TRUE. if byte b has the correct format to be a single-byte
+  \ character in UTF-8, otherwise FALSE.
+  : isUTF8single? ( b -- b B )
+    dup .._UTF8_single_mask & go==0 :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a two-byte character in UTF-8, otherwise FALSE.
+  : isUTF8double? ( b -- b B )
+    dup .._UTF8_2x_byte_mask &
+    .._UTF8_2x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a three-byte character in UTF-8, otherwise FALSE.
+  : isUTF8triple? ( b -- b B )
+    dup .._UTF8_3x_byte_mask &
+    .._UTF8_3x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a four-byte character in UTF-8, otherwise FALSE.
+  : isUTF8quad? ( b -- b B )
+    dup .._UTF8_4x_byte_mask &
+    .._UTF8_4x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the second or
+  \ subseqent byte of a multibyte UTF-8 character, otherwise FALSE.
+  : isUTF8subseq? ( b -- b B )
+    dup .._UTF8_subseq_mask &
+    .._UTF8_subseq_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+}utf8
+
+\ ============================================================================
+\                              IMPORT DEVICE
+\
+\     The use of this import device ensures there is no tight coupling
+\   between the editor and the device used for import.
+\
+\ ============================================================================
+imp{
+
+  \ Returns a character from stdimp assuming UTF-8 encoding
+  \  or utf8{..EMPTY} or utf8{..INVALID} [see utf8{read} for details]
+  : readChar ( -- c ) ::readb utf8{read} ;
+
+  \ Attempt to read a single byte and return that byte if the read
+  \ succeeded otherwise return {..NO_VALUE}. Possible reasons for NO_VALUE
+  \ include an I/O error or simply reaching end of stream.
+  : readb ( -- b/NO_VALUE )
+    {..STDIMP} rchan
+    readorb :readFailed
+      .._MIN_CHAR go[<] :apparentEOS
+      go :end
+    apparentEOS:
+      drop
+    readFailed:
+      {..NO_VALUE}
+    end:
+      {..STDIN} rchan
+  ;
+
+  \ Any character code less than this apparently can signal
+  \   EOF/EOS on Linux, and exactly which character code
+  \   (eg 5, 6 or 7) seems to vary unpredictably.
+  _MIN_CHAR. 10
+
+}imp
+
+\ ============================================================================
+\                              EXPORT DEVICE
+\
+\     The use of this export device ensures there is no tight coupling
+\   between the editor and the device used for export.
+\
+\ ============================================================================
+exp{
+
+  cNEWLINE. 10
+
+  \ Export z bytes starting at address a in system memory,
+  \   writing them out to the std.exp export device, but do not export
+  \   (that is, skip) any byte having a value of 0. This means of
+  \   export is intended to crudely preserve whatever character encoding
+  \   happened to have been used during text input by the user.
+  : export ( a z -- )
+    {..STDEXP} wchan          \ ( a z ) Change to stdexp channel for exporting
+    exporting:                \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            writorb ::wfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :exporting       \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2 {..STDOUT} wchan  \ ( ) Change back to stdout channel
+  ;
+
+  \ Traps
+  wfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}exp
+
+\ ============================================================================
+\                               INPUT DEVICE
+\
+\     The use of this input device ensures there is no tight coupling
+\   between the editor itself [that is, the model] and the device used
+\   for input. This particular implementation of in is for an ANSI compatible
+\   terminal and is suitable for use within a Linux console configured by:
+\                               stty raw -echo
+\
+\   IMPORTANT: This implementation assumes your console is set to UTF-8
+\   character encoding and might not work correctly otherwise.
+\
+\ ============================================================================
+in{
+
+  \ PUBLIC:  Negative 'command code' constants for reference by calling code.
+  \ WARNING: These values are arbitrary and might be changed in future.
+  \          Therefore reference the constant NAMES not the values!
+  kESC. -27   kRET.  -13   kBKSPC. -8      kDEL.  -127   kQUIT. -113
+  kUP.  -65   kDOWN. -66   kRIGHT. -67     kLEFT.  -68   kINS.  -82
+  kPDOWN. -81 kPUP. -73    kEDIT. -101     kSAVE. -115   kHELP. -104
+  kABOUT. -97 kVISN. -110  kTALL. -116     kWIDE. -119
+  kEXPORT. -120  kIMPORT. -105
+
+  \ PRIVATE: positive 'control codes' [these are the words that a Linux
+  \          console SET TO UTF-8 CHARACTER ENCODING supplies when the
+  \          user presses the relevant key, as interpreted by the READOR
+  \          instruction of the FVM that reads 1 word at a time]
+  _ESC.  27   _RET.     13    _BKSPC. 127  _QUIT.   'q'  _SEMICOLON.  ';'
+  _SEQ. '['   _c1.      '1'   _c2.    '2'  _c3.     '3'
+  _c5.  '5'   _c6.      '6'
+  _UP.  'A'   _DOWN.    'B'   _RIGHT. 'C'  _LEFT.   'D'
+  _TILDE. '~' _EDIT.    'e'   _SAVE.  's'  _HELP.   'h'  _ABOUT.   'a'
+  _VISN. 'n'  _TALL.    't'   _WIDE.  'w'
+  _EXPORT.   'x'  _IMPORT.   'i'
+  _MIN_CHAR. 10 \ Any character code less than this apparently can signal
+                \   EOF/EOS on Linux, and exactly which character code
+                \   (eg 5, 6 or 7) seems to vary unpredictably.
+
+  \ Await a keypress then return the positive character code if the keypress
+  \   corresponds to an ordinary character or a negative command code if the
+  \   keypress should be interpreted as a command
+  : key ( -- n )
+      ::readb utf8{read}
+
+      utf8{..EMPTY} go[==] :tryAgain
+      utf8{..INVALID} go[==] :tryAgain
+        .._ESC go[==] :esc
+        .._RET go[==] :enter
+        .._BKSPC go[==] :bkspc
+        ret \ Return positive character code
+      tryAgain:
+        \ The attempt to convert incoming bytes into a valid UTF-8 char
+        \   failed for some reason so go back and wait for another key press.
+        \   This should almost never happen unless your terminal emulator
+        \   is set to some character encoding other than UTF-8.
+        drop go ::key
+      esc: drop ..kESC ret
+      enter: drop ..kRET ret
+      bkspc: drop ..kBKSPC ret
+  ;
+
+  \ Attempt to read a single byte and return that byte if the read
+  \ succeeded otherwise return {..NO_VALUE}. Possible reasons for NO_VALUE
+  \ include an I/O error or simply reaching end of stream.
+  : readb ( -- b/NO_VALUE )
+    readorb :readFailed
+      .._MIN_CHAR go[<] :apparentEOS
+      go :end
+    apparentEOS:
+      drop
+    readFailed:
+      {..NO_VALUE}
+    end:
+  ;
+
+  \ Do nothing except wait till a key is pressed then return
+  : awaitAnyKey ( -- ) reador ::rfail drop ;
+
+  \ Accept and decode escape sequence and convert to a command code n.
+  \   Such a command code is always a negative integer.
+  \   Call this word AFTER drop initial escape char.
+  : handleEscapeSequence ( -- n )
+      decode:
+        readorb ::rfail
+        .._SEQ go[==] :seq                 \ start of esc sequence
+        .._EDIT go[==] :edit               \ command: Edit [resume editing]
+        .._ABOUT go[==] :info              \ command: About
+        .._HELP go[==] :help               \ command: Help
+        .._VISN go[==] :visn               \ cmd: toggle Newline visibility
+        .._TALL go[==] :tall               \ command: toggle Tall Mode
+        .._WIDE go[==] :wide               \ command: toggle Wide Mode
+        .._IMPORT go[==] :import           \ command: Import
+        .._EXPORT go[==] :export           \ command: Export
+        .._SAVE go[==] :save               \ command: Save
+        .._QUIT go[==] :quit               \ command: Quit
+        drop                               \ Ignore any other key
+      go :decode
+        edit: drop ..kEDIT ret
+        help: drop ..kHELP ret
+        visn: drop ..kVISN ret
+        info: drop ..kABOUT ret
+        tall: drop ..kTALL ret
+        wide: drop ..kWIDE ret
+        import: drop ..kIMPORT ret
+        export: drop ..kEXPORT ret
+        save: drop ..kSAVE ret
+        quit: drop ..kQUIT ret
+        navLeft: drop ..kLEFT ret
+        navRight: drop ..kRIGHT ret
+        navUp: drop ..kUP ret
+        navDown: drop ..kDOWN ret
+        delete: drop ..kDEL ret
+        ins: drop ..kINS ret
+        pageDown: drop ..kPDOWN ret
+        pageUp: drop ..kPUP ret
+        seq: \ Escape sequences...
+          drop
+          readorb ::rfail
+            .._c2 go[==] :_c2
+            .._c3 go[==] :_c3
+            .._c5 go[==] :_c5
+            .._c6 go[==] :_c6
+            .._LEFT go[==] :navLeft
+            .._RIGHT go[==] :navRight
+            .._UP go[==] :navUp
+            .._DOWN go[==] :navDown
+            drop
+          go :decode
+        _c2:
+          drop
+          readorb ::rfail
+            .._TILDE go[==] :ins
+            drop
+          go :decode
+        _c3:
+          drop
+          readorb ::rfail
+            .._TILDE go[==] :delete
+            drop
+          go :decode
+        _c5:
+          drop
+          readorb ::rfail
+            .._TILDE go[==] :pageUp
+            drop
+          go :decode
+        _c6:
+          drop
+          readorb ::rfail
+            .._TILDE go[==] :pageDown
+            drop
+          go :decode
+  ;
+
+  \ Traps
+  rfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}in
+
+\ ============================================================================
+\                                 DISPLAY
+\
+\     The use of this display device ensures there is no tight coupling
+\   between the editor itself [that is, the model] and the device used
+\   for display [that is, the view]. This implementation of scn is written
+\   for an ANSI compatible terminal and is suitable for use within a
+\   Linux console configured by: stty raw -echo
+\
+\ ============================================================================
+scn{
+
+  cols# 4                     \ Current number of columns in screen
+  rows# 4                     \ Current number of rows in screen
+  X. 1  x# 4                  \ Home and current column of screen cursor
+  Y. 1  y# 4                  \ Home and current row of screen cursor
+  cESC. 27 cNEWLINE. 10       \ Some commonly used character codes
+  cRET. 13 cSPACE. 32         \    [not intended to be public]
+  savX# 4  savY# 4            \ Used by saveCursor and unsaveCursor
+  \ The following are for saveAttrs and restoreAttrs:
+  fMode# 4                    \ Function which produced current mode
+  xfMode# 4                   \ Saved previous value of fMode
+  fColour# 4                  \ Function which produced current colour
+  xfColour# 4                 \ Saved previous value of fColour
+
+  \ Initialize and clear the screen
+  : init ( columns rows -- )
+    norm saveAttrs ##rows ! ##cols ! ..X ##x ! ..Y ##y ! svCursor cls home ;
+
+  \ Clear from the cursor to the end of the line
+  : cle ( -- ) ..cESC putb '[' putb 'K' putb ;
+
+  \ Clear the entire line at the specified row
+  : cln ( row -- ) 1 swap pos cle curs ;
+
+  \ Clear the screen
+  : cls ( -- ) end ..cESC putb '[' putb '1' putb 'J' putb curs ;
+
+  \ Clear from the cursor to the end of the screen
+  : clz ( -- ) ..cESC putb '[' putb 'J' putb curs ;
+
+  \ Save current cursor position
+  : svCursor ( -- ) ##x @ ##savX ! ##y @ ##savY ! ;
+
+  \ Restore cursor position from most recent saveCursor
+  : unsvCursor ( -- ) ##savX @ ##x ! ##savY @ ##y ! curs ;
+
+  \ Send cursor to home position and remember this
+  : home ( -- ) ..X ..Y seek ;
+
+  \ Send cursor to home position without remembering this
+  : tmpHome ( -- ) ..X ..Y pos ;
+
+  \ Position cursor at its current location as recorded in x and y
+  : curs ( -- ) ##x @ ##y @ pos ;
+
+  \ Send cursor to the bottom right corner of screen without remembering this
+  : end ( -- ) ##cols @ ##rows @ pos ;
+
+  \ Position cursor at row x, column y of screen and remember this
+  : seek ( x y -- ) dup2 ##y ! ##x ! pos ;
+
+  \ Position cursor at row x, column y of screen without remembering this
+  : pos ( x y -- ) ..cESC putb '[' putb putd ';' putb putd 'H' putb ;
+
+  \ Return the current cursor position
+  : xy ( -- x y ) ##x @ ##y @ ;
+
+  \ Write a single byte to current cursor position, except if the
+  \   byte is 0 in which case do nothing
+  : putb ( c -- ) go[==0] :zero writorb ::wfail ret zero: drop ;
+
+  \ Write character to current cursor position
+  \ NOTE: This is the primary means by which the screen should be written to
+  \       and it should be used after seek or pos to manage positioning.
+  \       The use of putc is preferable to putd, puts and print.
+  : putc ( c -- )
+    dup 255 & putb           ( c )  \ = dup 0xff & putb
+    dup 8  >> 255 & putb     ( c )  \ = dup 8  >> 0xff & putb
+    dup 16 >> 255 & putb     ( c )  \ = dup 16 >> 0xff & putb
+        24 >> 255 & putb     ( c )  \ =     24 >> 0xff & putb
+  ;
+
+  \ Write decimal integer to current screen position
+  \ WARNING: No smart rendering [might not respect screen size]
+  : putd ( n -- )
+    sys{deci} put: go[<=0] :end dec spush putb spop go :put end: drop ;
+
+  \ Write the string at k to the current screen position but do not exceed
+  \ block size in words as indicated at k and stop if a 0 is encountered
+  \ WARNING: No smart rendering [might not respect screen size]
+  : puts ( k -- ) [@] begin: go[<=0] :end swap incw [@] go[==0] :end
+      putc swap dec go :begin end: drop2 ;
+
+  \ Move to the start of the next line by printing appropriate newline char/s
+  \ WARNING: No smart rendering [might not respect screen size]
+  \ NOTE: The use of pos or seek is normally preferable
+  : nextline ( -- ) ..cNEWLINE putb ..cRET putb ;
+
+  \ Like puts but then moves to start of next line [without remembering]
+  \ WARNING: No smart rendering [might not respect screen size]
+  : print ( k -- ) puts nextline ;
+
+  \ Render a space character at the current cursor location
+  \ WARNING: No smart rendering [might not respect screen size]
+  : space ( -- ) ..cSPACE putb ;
+
+  \ Make cursor invisible
+  : hideCursor ( -- ) ..cESC putb '[' putb '?' putb 25 putd 'l' putb ;
+
+  \ Make cursor visible (the default)
+  : showCursor ( -- ) ..cESC putb '[' putb '?' putb 25 putd 'h' putb ;
+
+  \ Save current attibutes to be restored later
+  : saveAttrs ( -- ) saveMode saveColour ;
+
+  \ Save current mode later to be restored
+  : saveMode ( -- ) ##fMode ##xfMode sys{vAssign} ;
+
+  \ Save current colour later to be restored
+  : saveColour ( -- ) ##fColour ##xfColour sys{vAssign} ;
+
+  \ Save cursor positio=n, mode, colour and attributes
+  : saveAll ( -- ) saveMode saveColour saveAttrs svCursor ;
+
+  \ Restore cursor position, mode, colour and attributes from last saveAll
+  : restoreAll ( -- ) restoreMode restoreColour restoreAttrs unsvCursor ;
+
+  \ Restore attibutes previously saved
+  : restoreAttrs ( -- ) restoreMode restoreColour ;
+
+  \ Restore mode previously saved
+  : restoreMode ##xfMode @ invoke ;
+
+  \ Restore colour previously saved
+  : restoreColour ##xfColour @ invoke ;
+
+  \ Enter mode for displaying pleasant [but not distracting] messages
+  : happyMode _green ;
+
+  \ Enter mode for displaying success messages
+  : successMode _green _inv ;
+
+  \ Enter mode for displaying info messages
+  : infoMode _yellow _inv ;
+
+  \ Enter mode for minor [not distracting] messages
+  : minorMode _white _dim ;
+
+  \ Enter mode for moderate highlighting [without implying a warning or error]
+  : moderateMode _white _inv ;
+
+  \ Enter mode for displaying warning messages
+  : warningMode _cyan _inv ;
+
+  \ Enter mode for displaying error messages
+  : errorMode _red _inv ;
+
+  \ Enter mode for displaying pretty messages (nice colour or similar)
+  : prettyMode _bright _blue _inv ;
+
+  \ PRIVATE WORD: Background colour black (only option for now)
+  : _blackBkgnd ( -- ) 40 _mode ;
+
+  \ PRIVATE WORD: Foreground colour white
+  : _white ( -- ) ::_white ##fColour ! 37 _mode ;
+
+  \ PRIVATE WORD: Foreground colour green
+  : _green ( -- ) ::_green ##fColour ! 32 _mode ;
+
+  \ PRIVATE WORD: Foreground colour yellow
+  : _yellow ( -- ) ::_yellow ##fColour ! 33 _mode ;
+
+  \ PRIVATE WORD: Foreground colour blue
+  : _blue ( -- ) ::_blue ##fColour ! 34 _mode ;
+
+  \ PRIVATE WORD: Foreground colour cyan
+  : _cyan ( -- ) ::_cyan ##fColour ! 36 _mode ;
+
+  \ PRIVATE WORD: Foreground colour magenta
+  : _magenta ( -- ) ::_magenta ##fColour ! 35 _mode ;
+
+  \ PRIVATE WORD: Foreground colour red
+  : _red ( -- ) ::_red ##fColour ! 31 _mode ;
+
+  \ PRIVATE WORD: Foreground colour black
+  : _black ( -- ) ::_black ##fColour ! 30 _mode ;
+
+  \ PRIVATE WORD: Enter text identified by mode number
+  : _mode ( n -- ) ..cESC putb '[' putb putd 'm' putb ;
+
+  \ PRIVATE WORD: Enter normal text mode (no special character attributes)
+  : _norm ( -- ) ::_norm ##fMode ! ..cESC putb '[' putb 'm' putb _blackBkgnd ;
+
+  \ PRIVATE WORD: Enter bright (not dim) text mode
+  : _bright ( -- ) ::_bright ##fMode ! 1 _mode ;
+
+  \ PRIVATE WORD: Enter dim (less bright) text mode
+  : _dim ( -- ) ::_dim ##fMode ! 2 _mode ;
+
+  \ PRIVATE WORD: Enter inverse (reverse video) text mode
+  : _inv ( -- ) ::_inv ##fMode ! 7 _mode ;
+
+  \ Enter mode for displaying normal text
+  : norm ( -- ) _norm _white ;
+
+  \ Enter mode for displaying special characters
+  \   which would normally be invisible
+  : special ( -- ) _norm _magenta ;
+
+  \ Traps
+  wfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}scn
+\ ============================================================================
+\                                 SYSTEM
+\                      Some very commonly used words
+\ ============================================================================
+sys{
+
+  \ Return number of bytes contained within n words
+  : bytes ( n -- numBytes ) {..WORD} * ;
+
+  \ Convert n to z decimal chars placed on the data stack in reverse order
+  : deci ( n -- c1..* z )
+      -2147483648 go[==] :negIntMax
+      0 ( n z=0 ) swap go[>=0] :positive
+      ( negative: ) '-' spush swap inc spush -1 * go :digits
+        positive:   '+' spush swap spush
+      digits: 10 /% '0' + swap spop inc spush go[>0] :digits drop
+      ( handleSign: ) spop spop '+' go[==] :ignoreSign
+        ( showSign: ) swap ret ( c1..* '-' z )
+        ignoreSign:   drop     ( c1..*  z    )
+        ret
+      negIntMax:              \ ( n ) [ ]
+        drop '8'              \ ( '8' ) [ ]
+        214748364 deci drop   \ Recurse ( '8' '4' ... '2' ) [ ]
+        '-' 11                \ ( '8' '4' ... '2' '-' 11 ) [ ]
+  ;
+
+  \ Increment n1 and n2 by size of a word in bytes
+  : INC2 ( n1 n2 -- n1+WS n2+WS ) spush incw spop incw ;
+
+  \ If n1 is less than 1 then return 1 otherwise return n1.
+  : floor1 ( n1 -- n2 ) 1 go[<] :one ret one: drop 1 ;
+
+  \ Assign the value of v1 to v2, in other words v2 := v1
+  : vAssign ( v1 v2 -- ) swap @ swap ! ;
+
+  \ Decrement the value of a variable by 1
+  : vDec ( v -- ) [@] dec swap ! ;
+
+  \ Decrement the value of a variable by the size of a word in bytes
+  : vDEC ( v -- ) [@] decw swap ! ;
+
+  \ Increment the value of a variable by the size of a word in bytes
+  : vINC ( v -- ) [@] incw swap ! ;
+
+  \ Execute f function n times (function must not disrupt data stack )
+  : times ( f n -- ) once: go[<=0] :end spush [invoke] spop dec go :once
+    end: drop2 ;
+
+  \ If variable v is FALSE then make it TRUE otherwise make it FALSE
+  : vToggle ( v -- )
+    [@] {..FALSE} go== :true {..FALSE} swap ! ret true: {..TRUE} swap ! ;
+
+  \ Return number of whole words contained within n bytes
+  : wds ( n -- numWholeWords ) {..WORD} / ;
+
+}sys
+
+\ ============================================================================
+\                               BLOCK DEVICE
+\
+\       By Freelang convention, a 'block' [in memory or in a block device]
+\     always has the following structure:
+\
+\                   [[bk][k][x           ][iWALL]]
+\
+\             Symbol    Description
+\                bk   : a word containing the opcode iDATA
+\                 k   : a word specifying the number of words in the strip
+\                 x   : known as the 'strip', this is 0 or more words of data
+\               iWALL : a word containing the opcode iWALL [that is, 0]
+\
+\       The opcodes iDATA and iWALL serve as overflow protection since the
+\     FVM immediately halts upon encountering an iDATA, iWALL or iHALT opcode.
+\     Overflow protection is fundamental in Freeputer. The Freelang compiler
+\     precedes all Freelang word definitions with iWALL [that is, 0].
+\
+\     Note: the use of "blocks" as a data format is not mandatory.
+\     Block devices can store data in any format whatsoever.
+\
+\ ============================================================================
+blkdev{
+
+  iDATA. 103   iWALL. 0        \ opcodes contained in the structure of a block
+
+  \ Load data from block device into system memory.
+  \ Get numWords from blkAddrFrom and load them to memAddrTo onwards
+  \   then return the address of the word after the last word loaded in memory
+  : load ( memAddrTo blkAddrFrom numWords -- memAddrStop )
+      leap spush over spush     \ ( to from z ) [ to from ]
+      loading:                  \ ( to from z ) [ to from ]
+        go[<=0] :end dec tor    \ ( z- to from ) [ to from ]
+          getor ::gfail         \ ( z- to c ) [ to from ]
+          swap !                \ ( z- ) [ to from ]
+          spop2                 \ ( z- to from ) [ ]
+          sys{INC2} hold2 rot   \ ( to+WS from+WS z-) [ to+WS from+WS ]
+          go :loading
+      end:                      \ ( to from z ) [ to from ]
+          drop3 spop2 drop ;    \ ( to ) [ ]
+
+  \ Save data from system memory into block device.
+  \ Put numWords from memAddrFrom to blkAddr onwards
+  \  then return the addr of the word after the last word put to block device.
+  \   WARNING: This does no overflow checking and does not update block size.
+  : save ( blkAddrTo memAddrFrom numWords -- blkAddrStop )
+      leap spush over spush     \ ( to from z ) [ to from ]
+      loading:                  \ ( to from z ) [ to from ]
+        go[<=0] :end dec tor    \ ( z- to from ) [ to from ]
+          @                     \ ( z- to c ) [ to from ]
+          swap putor ::pfail    \ ( z- ) [ to from ]
+          spop2                 \ ( z- to from ) [ ]
+          sys{INC2} hold2 rot   \ ( to+WS from+WS z-) [ to+WS from+WS ]
+          go :loading
+      end:                      \ ( to from z ) [ to from ]
+          drop3 spop2 drop ;    \ ( to ) [ ]
+  ;
+
+  \ Return the size of block at bk in block device.
+  \ That is, return the size of the strip within that block.
+  \ Note: the phrase "block size" normally means the size of a block's strip.
+  \ WARNING: This assumes a valid block exists at bk!
+  : size ( bk -- z ) incw getor ::gfail ;
+
+  \ Without doing any zero-filling, and without doing any validation,
+  \  write an initial iDATA cell and a final iWALL cell of what is assumed
+  \  to be a block in block device at bk, and update its size cell to have
+  \  the supplied value z [bytes]. The existing iWALL cell is not removed
+  \   and any data within the new size of the block is retained.
+  \ WARNING: This could overwrite data beyond the original block!
+  : resize ( z bk -- )
+      over go>=0 :do
+        drop2 ret
+      do:
+        hold2                         \ ( z bk ) [ bk z ]
+        ..iDATA over putor ::pfail    \ Write initial iDATA cell
+        incw putor ::pfail            \ Write z into size cell
+        ..iWALL spop spop             \ ( iWALL z bk ) [ ]
+        inc2w + putor ::pfail         \ Write final iWALL cell
+  ;
+
+  \ Return address x of strip of block in block device at bk
+  : strip ( bk -- x ) inc2w ;
+
+  \ Traps
+  gfail: pfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}blkdev
+
+\ ============================================================================
+\                                DEBUGGING
+\
+\     Here, debugging output is written to stdtrc not stdout and uses the
+\   tracor instruction rather than the writor instruction. This simple
+\   implementation only handles basic ASCII chars properly.
+\
+\ ============================================================================
+
+dbg{
+
+  cNEWLINE. 10 cSPACE. 32     \ Some common character codes
+  cMAXCHAR. 126               \ Maximum character code treated as printable
+
+  \ Trace details of memory in character format as z words from addr a
+  : CHARDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @ putc incw swap dec
+        go ::CHARDUMP
+    end: drop2
+  ;
+
+  \ Trace the string message at k to stdtrc then CHARDUMP and snapshot
+  : infochar ( k a z )
+    newline rot puts newline '[' putc CHARDUMP ']' putc newline snapshot ;
+
+  \ Trace the string message at k to stdtrc then snapshot
+  : infosnap ( k ) newline puts snapshot ;
+
+  \ Trace the string message at k to stdtrc then decimal value of v
+  : infovar ( k v ) swap puts @ putd space ;
+
+  \ Trace details of memory in decimal format as z words from addr a
+  : MEMDUMP ( a z -- )
+    go[<=0] :end
+        swap dup @ putd space incw swap dec
+        go ::MEMDUMP
+    end: drop2
+  ;
+
+  \ Write newline to stdtrc
+  : newline ( -- ) ..cNEWLINE putc ;
+
+  \ Same as puts but followed by a newline
+  : print ( k -- ) puts newline ;
+
+  \ Same as putd but followed by a newline
+  : printd ( k -- ) putd newline ;
+
+  \ Write character to stdtrc (or a dot if character not printable)
+  : putc ( c -- )
+      ..cNEWLINE go[==] :ok
+      ..cMAXCHAR go[>] :putdot
+      ..cSPACE go[<] :putdot
+      go :ok
+        putdot: drop '.'
+      ok: tracor ::tfail
+  ;
+
+  \ Write decimal integer to stdtrc
+  : putd ( n -- )
+    sys{deci} put: go[<=0] :end dec spush tracor ::tfail spop go :put
+    end: drop
+  ;
+
+  \ Write the string at k to stdtrc but:
+  \   (a) do not exceed block size in words as indicated at k
+  : puts ( k -- ) [@] begin: go[<=0] :end swap incw [@] go[==0] :end2
+      tracor ::tfail swap dec go :begin end2: drop end: drop2 ;
+
+  \ Write a space to stdtrc
+  : space ( -- ) ..cSPACE putc ;
+
+  \ Send a single line of FVM trace information to stdtrc
+  : snapshot ( -- ) tron troff ;
+
+  \ Traps
+  tfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}dbg
+
+\ ============================================================================
+\                             FREELANG GLOBALS
+\ ============================================================================
+FALSE. 0 TRUE. 1 NO_VALUE. -1 SUCCESS. 0 FAILURE. 1 PARTIAL. 2
+WORD. 4           \ The size of a word in bytes [always 32 bits wide]
+TWO_WORDS. 8      \ The size of two adjacent words in bytes
+STDIMP. 2         \ Stream device number of stdimp
+STDIN. 1          \ Stream device number of stdin
+STDOUT. -1        \ Stream device number of stdout
+STDEXP. -2        \ Stream device number of stdexp
+
