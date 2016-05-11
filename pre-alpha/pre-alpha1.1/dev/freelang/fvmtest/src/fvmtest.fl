@@ -7,11 +7,12 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160506:2049
-Version:    pre-alpha-0.0.0.13
+Updated:    20160511:1458
+Version:    pre-alpha-0.0.0.14 for FVM 1.1
 
-            [TODO: Update to reflect FVM Lite and FVM Heavy sizings
-             including the new standard stack depths of 256 elements.]
+            [TODO: Update to reflect FVM Lite and FVM Heavy sizings.
+             The increased stack depth of 256 has already been accounted for.
+             This suite is now passing on FVMC_HEAVY_LINUX_FVMTEST.]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -205,8 +206,8 @@ To run this test suite on Linux:
   upon start up [so that applications do not accumulate gigantic trace logs].
   Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
   ========================================================================== )
-(
-slotFloor 16777216    \ This must equal FVM ROM size
+
+slotFloor 16777216    \ For FVM Heavy
 
 fvmtest{
 
@@ -215,9 +216,9 @@ ROM_SIZE.    16777216 \ FVM ROM size [bytes]
 RAM_SIZE.    16777216 \ FVM RAM size [bytes]
 MAP_SIZE.    0        \ FVM MAP size [bytes]
 STDBLK_SIZE. 16777216 \ FVM STDBLK size [bytes]
-MAX_DEPTH_DS. 32      \ FVM max depth of data stack
-MAX_DEPTH_SS. 32      \ FVM max depth of software stack
-MAX_DEPTH_RS. 32      \ FVM max depth of return stack
+MAX_DEPTH_DS. 256     \ FVM max depth of data stack
+MAX_DEPTH_SS. 256     \ FVM max depth of software stack
+MAX_DEPTH_RS. 256     \ FVM max depth of return stack
 
 \ And all sizes below must be multiples of 4:
 MOVEX.  100000  \ Amount of memory to use in testMOVE etc [bytes]
@@ -227,7 +228,7 @@ slotA#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
-)
+
 \ ============================================================================
 \                  End of DEFAULT CONFIGURATION
 \ ============================================================================
@@ -278,7 +279,7 @@ MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
   the FVM nicely [such as on the Arduino Mega 2560].
 
   ========================================================================== )
-
+(
 slotFloor 126976      \ This must equal FVM ROM size
 
 fvmtest{
@@ -300,7 +301,7 @@ slotA#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
-
+)
 \ ============================================================================
 \             End of MINI ARDUINO CONFIGURATION
 \ ============================================================================
@@ -363,7 +364,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ some of these tests involve I/O.
   : runAllTests
     \ Tests for each instruction in the FVM instruction set:
- ::testWALL       ." testWALL             " expectTrap \ 0 bytes [0 restarts]
+    ::testWALL       ." testWALL             " expectTrap \ 0 bytes [0 restarts]
     ::testLIT        ." testLIT              " expectTrap
     ::testCALL       ." testCALL             " expectTraps
     ::testJMP        ." testJMP              " expectTraps
@@ -608,6 +609,41 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   : lit99 99 ; \ Puts 99 on DS
   : willReturnTo rpop dup rpush ; \ Copies current return address to top of DS
 
+  \ Make the data stack entirely full with integers 1..256.
+  \ Note: this is currently hardcoded to assume MAX_DEPTH_DS is 256.
+  : fillDs ( -- 1 2 3 ... 254 255 256 )
+    1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
+    17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
+    33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48
+    49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64
+    65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80
+    81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96
+    97  98  99  100 101 102 103 104 105 106 107 108 109 110 111 112
+    113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128
+    129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144
+    145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160
+    161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176
+    177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192
+    193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208
+    209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224
+    225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240
+    241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256
+  ;
+
+  \ Make the software stack almost full with integers 252..1.
+  \ Note: this is currently hardcoded to assume MAX_DEPTH_DS and
+  \       MAX_DEPTH_SS are both 256.
+  : almostFillSs \ ( 1..252 -- ) [ -- 252..1 ]
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4 spush4
+    spush4 spush4 spush4 spush4 spush4 spush4 spush4
+  ;
+
 \ ============================================================================
 \                               TESTS
 \ ============================================================================
@@ -644,9 +680,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :overLIT  verifyTrapDsOverflow  \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overLIT:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overLIT:   fillDs
                1 tfail \ trapDsOverflow
   ;
 
@@ -1378,9 +1412,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underZOOM: 1 2 3 zoom tfail \ trapDsUnderflow
-    overZOOM:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overZOOM:  fillDs
                zoom tfail \ trapDsOverflow
   ;
 
@@ -1622,9 +1654,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underOVER: 1 over tfail \ trapDsUnderflow
-    overOVER:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overOVER:  fillDs
                over tfail \ trapDsOverflow
   ;
 
@@ -1673,9 +1703,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underLEAP: 1 2 leap tfail \ trapDsUnderflow
-    overLEAP:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overLEAP:  fillDs
                leap tfail \ trapDsOverflow
   ;
 
@@ -1708,9 +1736,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underTUCK: 1 tuck tfail \ trapDsUnderflow
-    overTUCK:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overTUCK:  fillDs
                tuck tfail \ trapDsOverflow
   ;
 
@@ -1759,9 +1785,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :overRPOP  verifyTrapDsOverflow  \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overRPOP:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overRPOP:  fillDs
                1 rpush rpop tfail \ trapDsOverflow
   ;
 
@@ -1829,9 +1853,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underDUP: dup tfail \ trapDsUnderflow
-    overDUP:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overDUP:   fillDs
                dup tfail \ trapDsOverflow
   ;
 
@@ -1851,9 +1873,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underDUP2: 1 dup2 tfail \ trapDsUnderflow
-    overDUP2:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31
+    overDUP2:  fillDs drop
                dup2 tfail \ trapDsOverflow
   ;
 
@@ -1874,9 +1894,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underDUP3: 1 2 dup3 tfail \ trapDsUnderflow
-    overDUP3:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30
+    overDUP3:  fillDs drop2
                dup3 tfail \ trapDsOverflow
   ;
 
@@ -1898,9 +1916,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underDUP4: 1 2 3 dup4 tfail \ trapDsUnderflow
-    overDUP4:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29
+    overDUP4:  fillDs drop3
                dup4 tfail \ trapDsOverflow
   ;
 
@@ -1919,11 +1935,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underHOLD: hold tfail \ trapDsUnderflow
-    overHOLD:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush4
+    overHOLD:   fillDs
+               almostFillSs spush4
                1 hold tfail \ trapSsOverflow
   ;
 
@@ -1943,11 +1956,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underHOLD2: 1 hold2 tfail \ trapDsUnderflow
-    overHOLD2: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush3
+    overHOLD2: fillDs drop
+               almostFillSs spush3
                1 2 hold2 tfail \ trapSsOverflow
   ;
 
@@ -1969,11 +1979,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     underHOLD3: 1 2 hold3 tfail \ trapDsUnderflow
 
-    overHOLD3: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush2
+    overHOLD3: fillDs drop2
+               almostFillSs spush2
                1 2 3 hold3 tfail \ trapSsOverflow
   ;
 
@@ -1995,11 +2002,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underHOLD4: 1 2 3 hold4 tfail \ trapDsUnderflow
-    overHOLD4: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush
+    overHOLD4: fillDs drop3
+               almostFillSs spush
                1 2 3 4 hold4 tfail \ trapSsOverflow
   ;
 
@@ -2018,9 +2022,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPEEK: speek tfail \ trapDsUnderflow
-    overSPEEK: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overSPEEK: fillDs
                1 spush speek tfail \ trapSsOverflow
   ;
 
@@ -2041,9 +2043,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPEEK2: 1 spush speek2 tfail \ trapDsUnderflow
-    overSPEEK2: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31
+    overSPEEK2: fillDs drop
                1 2 spush2 speek2 tfail \ trapSsOverflow
   ;
 
@@ -2065,9 +2065,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPEEK3: 1 2 spush2 speek3 tfail \ trapDsUnderflow
-    overSPEEK3: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30
+    overSPEEK3: fillDs drop2
                1 2 3 spush3 speek3 tfail \ trapSsOverflow
   ;
 
@@ -2090,9 +2088,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPEEK4: 1 2 3 spush3 speek4 tfail \ trapDsUnderflow
-    overSPEEK4: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29
+    overSPEEK4: fillDs drop3
                1 2 3 4 spush4 speek4 tfail \ trapSsOverflow
   ;
 
@@ -2110,11 +2106,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPUSH: spush tfail \ trapDsUnderflow
-    overSPUSH: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush4
+    overSPUSH: fillDs
+               almostFillSs spush4
                1 spush tfail \ trapSsOverflow
   ;
 
@@ -2132,11 +2125,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPUSH2: 1 spush2 tfail \ trapDsUnderflow
-    overSPUSH2: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush3
+    overSPUSH2: fillDs drop
+               almostFillSs spush3
                1 2 spush2 tfail \ trapSsOverflow
   ;
 
@@ -2154,11 +2144,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPUSH3: 1 2 spush3 tfail \ trapDsUnderflow
-    overSPUSH3: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush2
+    overSPUSH3: fillDs drop2
+               almostFillSs spush2
                1 2 3 spush3 tfail \ trapSsOverflow
   ;
 
@@ -2176,11 +2163,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPUSH4: 1 2 3 spush4 tfail \ trapDsUnderflow
-    overSPUSH4: 1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29
-               spush4 spush4 spush4 spush4
-               spush4 spush4 spush4 spush
+    overSPUSH4: fillDs drop3
+               almostFillSs spush
                1 2 3 4 spush4 tfail \ trapSsOverflow
   ;
 
@@ -2198,9 +2182,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPOP: spop tfail \ trapDsUnderflow
-    overSPOP:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overSPOP:  fillDs
                1 spush spop tfail \ trapSsOverflow
   ;
 
@@ -2219,9 +2201,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPOP2: 1 spop2 tfail \ trapDsUnderflow
-    overSPOP2:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overSPOP2:  fillDs
                1 2 spush2 spop2 tfail \ trapSsOverflow
   ;
 
@@ -2240,9 +2220,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPOP3: 1 2 spop3 tfail \ trapDsUnderflow
-    overSPOP3:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overSPOP3:  fillDs
                1 2 3 spush3 spop3 tfail \ trapSsOverflow
   ;
 
@@ -2261,9 +2239,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ret
     \ Labels for use by verifyTrap
     underSPOP4: 1 2 3 spop4 tfail \ trapDsUnderflow
-    overSPOP4:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overSPOP4:  fillDs
                1 2 3 4 spush4 spop4 tfail \ trapSsOverflow
   ;
 
@@ -2371,9 +2347,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :memhighLOAD verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overLOAD:   fillDs
                ##testvar @ tfail     \ trapDsOverflow
     memlowLOAD:  -1 @ tfail          \ trapMemBounds
     memhighLOAD: ..ADDR_BUST @ tfail \ trapMemBounds
@@ -2410,9 +2384,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :memhighRLOAD verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overRLOAD:  1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overRLOAD:  fillDs
                ##testvar [@] tfail      \ trapDsOverflow
     memlowRLOAD:  -1 [@] tfail          \ trapMemBounds
     memhighRLOAD: ..ADDR_BUST [@] tfail \ trapMemBounds
@@ -2437,9 +2409,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :memhighLOADB verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overLOADB:   fillDs
                ##testvar @b tfail      \ trapDsOverflow
     memlowLOADB:  -1 @b tfail          \ trapMemBounds
     memhighLOADB: ..ADDR_BUST @b tfail \ trapMemBounds
@@ -2491,9 +2461,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     :memhighRLOADB verifyTrapMemBounds \ Should trap
     ret
     \ Labels for use by verifyTrap
-    overRLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overRLOADB:   fillDs
                ##testvar [@b] tfail       \ trapDsOverflow
     memlowRLOADB:  -1 [@b] tfail          \ trapMemBounds
     memhighRLOADB: ..ADDR_BUST [@b] tfail \ trapMemBounds
@@ -2514,9 +2482,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
     ret
     \ Labels for use by verifyTrap
-    overPLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overPLOAD:   fillDs
                ##pTestvar @@ tfail                            \ trapDsOverflow
     pMemlowPLOAD:  -1 @@ tfail                                 \ trapMemBounds
     pMemhighPLOAD: ..ADDR_BUST @@ tfail                        \ trapMemBounds
@@ -2565,9 +2531,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
     ret
     \ Labels for use by verifyTrap
-    overRPLOAD:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overRPLOAD:   fillDs
                ##pTestvar [@@] tfail                      \ trapDsOverflow
     pMemlowRPLOAD:  -1 [@@] tfail                         \ trapMemBounds
     pMemhighRPLOAD: ..ADDR_BUST [@@] tfail                \ trapMemBounds
@@ -2591,9 +2555,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
     ret
     \ Labels for use by verifyTrap
-    overPLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overPLOADB:   fillDs
                ##pTestvar @@b tfail                      \ trapDsOverflow
     pMemlowPLOADB:  -1 @@b tfail                         \ trapMemBounds
     pMemhighPLOADB: ..ADDR_BUST @@b tfail                \ trapMemBounds
@@ -2643,9 +2605,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ##testvar ##pTestvar ! \ Reset pTestvar pointer to point at testvar
     ret
     \ Labels for use by verifyTrap
-    overRPLOADB:   1  2  3  4  5  6  7  8  9  10 11 12
-               13 14 15 16 17 18 19 20 21 22 23 24
-               25 26 27 28 29 30 31 32
+    overRPLOADB:   fillDs
                ##pTestvar [@@b] tfail                       \ trapDsOverflow
     pMemlowRPLOADB:  -1 [@@b] tfail                         \ trapMemBounds
     pMemhighRPLOADB: ..ADDR_BUST [@@b] tfail                \ trapMemBounds
