@@ -7,10 +7,10 @@
 # unlike FVM Heavy, does not have enough ROM to run the whole fvmtest
 # test suite at once. See 'fvmtest.fl' for details of the suite.
 # 
-# Copyright © Robert Gollagher 2015
+# Copyright © Robert Gollagher 2016
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20160511
-# Updated:    20160512:0030
+# Updated:    20160512:0056
 # Version:    pre-alpha-0.0.0.1 for FVM 1.1
 # 
 # This program is free software: you can redistribute it and/or modify
