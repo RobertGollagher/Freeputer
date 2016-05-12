@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160512:1201
-Version:    pre-alpha-0.0.0.16 for FVM 1.1
+Updated:    20160512:1419
+Version:    pre-alpha-0.0.0.17 for FVM 1.1
 
             [TODO: Update to reflect FVM Lite and FVM Heavy sizings.
              The increased stack depth of 256 has already been accounted for.
@@ -206,7 +206,7 @@ To run this test suite on Linux:
   upon start up [so that applications do not accumulate gigantic trace logs].
   Note: 'fvm16-16MB-sr-append' is suitable for running these tests.
   ========================================================================== )
-
+(
 slotFloor 16777216    \ For FVM Heavy
 
 fvmtest{
@@ -228,7 +228,7 @@ slotA#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400000  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
-
+)
 \ ============================================================================
 \                     End of FVM HEAVY CONFIGURATION
 \ ============================================================================
@@ -237,7 +237,7 @@ MOVEY.   90000  \ An even multiple of 4, approximately 9/10ths of MOVEX
                           FVM LITE CONFIGURATION
                     Suitable for an FVM Lite instance.
   ========================================================================== )
-(
+
 slotFloor 16384       \ For FVM Lite
 
 fvmtest{
@@ -259,7 +259,7 @@ slotA#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotB#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 slotC#  400  \ A slot of size MOVEX words [must be MOVEX*4] [bytes]
 MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
-)
+
 \ ============================================================================
 \                     End of FVM LITE CONFIGURATION
 \ ============================================================================
@@ -306,22 +306,31 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ." OK     : ( ) [ ] { n } as expected " dbg{print}
 
     ." OK     : All tests passed " dbg{print}
+
 ((( XTFVMLITE===
   ." WARNING: PARTIAL RUN (NOT WHOLE FVMTEST SUITE) "
       dbg{print}
 ===XTFVMLITE )))
-((( XT_S1_FVMLITE===
-  ." RAN    : XT_S1_FVMLITE "
-      dbg{print}
-===XT_S1_FVMLITE )))
-((( XT_S2_FVMLITE===
-  ." RAN    : XT_S2_FVMLITE "
-      dbg{print}
-===XT_S2_FVMLITE )))
-((( XT_S3_FVMLITE===
-  ." RAN    : XT_S3_FVMLITE "
-      dbg{print}
-===XT_S3_FVMLITE )))
+
+(((
+
+  \ XT_S1_FVMLITE===
+    ." RAN    : XT_S1_FVMLITE "
+        dbg{print}
+  \ ===XT_S1_FVMLITE
+
+  \ XT_S2_FVMLITE===
+    ." RAN    : XT_S2_FVMLITE "
+        dbg{print}
+  \ ===XT_S2_FVMLITE
+
+  \ XT_S3_FVMLITE===
+    ." RAN    : XT_S3_FVMLITE "
+        dbg{print}
+  \ ===XT_S3_FVMLITE
+
+)))
+
     dbg{newline}
   ;
 
@@ -338,18 +347,25 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ some of these tests involve I/O.
   : runAllTests
     \ Tests for each instruction in the FVM instruction set:
+\ ((( XTFVMLITE---
+\ XT_S1_FVMLITE===
     ::testWALL       ." testWALL             " expectTrap \ 0 bytes [0 restarts]
     ::testLIT        ." testLIT              " expectTrap
     ::testCALL       ." testCALL             " expectTraps
     ::testJMP        ." testJMP              " expectTraps
+\ ===XT_S1_FVMLITE
+\ XT_S2_FVMLITE===
     ::testBRGZ       ." testBRGZ             " expectTraps
     ::testBRGEZ      ." testBRGEZ            " expectTraps
     ::testBRZ        ." testBRZ              " expectTraps
     ::testBRNZ       ." testBRNZ             " expectTraps
+\ ===XT_S2_FVMLITE
+\ XT_S3_FVMLITE===
     ::testBRLEZ      ." testBRLEZ            " expectTraps
     ::testBRLZ       ." testBRLZ             " expectTraps
     ::testBRG        ." testBRG              " expectTraps
     ::testBRGE       ." testBRGE             " expectTraps
+\ ===XT_S3_FVMLITE
     ::testBRE        ." testBRE              " expectTraps
     ::testBRNE       ." testBRNE             " expectTraps
     ::testBRLE       ." testBRLE             " expectTraps
@@ -507,6 +523,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testDATA       ." testDATA             " expectTrap
     \ Other tests:
     ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap  \ 20876 bytes [34 restarts]
+\ ---XTFVMLITE )))
   ;
 
   \ Trace the supplied string msg, then invoke unit test function f,
@@ -621,6 +638,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
 \ ============================================================================
 \                               TESTS
 \ ============================================================================
+\ ((( XTFVMLITE---
+\ XT_S1_FVMLITE===
   \ Test opcode 0 WALL
   : testWALL
     \ Verify trapWall occurs as it should:
@@ -712,7 +731,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toBustJMP: go 2147483644 jfail         \ trapPcOverflow, addr too high
     toNeg1JMP: go -1 jfail                 \ trapPcOverflow, addr negative
   ;
-
+\ ===XT_S1_FVMLITE
+\ XT_S2_FVMLITE===
   \ Test opcode 4 BRGZ
   : testBRGZ
     1 go[>0] :pass1
@@ -786,6 +806,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toNeg1BRNZ: 1 go[!=0] -1 bfail         \ trapPcOverflow, addr negative
     toBustBRNZ: 1 go[!=0] 2147483644 bfail \ trapPcOverflow, addr too high
   ;
+\ ===XT_S2_FVMLITE
+\ XT_S3_FVMLITE===
   \ Test opcode 8 BRLEZ
   : testBRLEZ
     -1 go[<=0] :pass1
@@ -859,7 +881,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toNeg1BRGE: 1 0 go[>=] -1 bfail         \ trapPcOverflow, addr negative
     toBustBRGE: 1 0 go[>=] 2147483644 bfail \ trapPcOverflow, addr too high
   ;
-
+\ ===XT_S3_FVMLITE
   \ Test opcode 12 BRE
   : testBRE
     1 0 go[==] :fail1
@@ -3381,7 +3403,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ jump to the word having the value 256 within this data block
   hitIllegalOpcode:
     data 1 256 ===
-    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line! 
+    ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line!
+\ ---XTFVMLITE )))
 \ ============================================================================
 \                             DECLARATIONS
 \ ============================================================================
@@ -3410,19 +3433,24 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
 
 \ ((( XTFVMLITE---
   EXPECTED_RESETS. 241  \ Exact number of soft resets expected by test suite
-\ XTFVMLITE--- )))
+\ ---XTFVMLITE )))
 
-((( XT_S1_FVMLITE===
-  EXPECTED_RESETS. 13
-===XT_S1_FVMLITE )))
+(((
 
-((( XT_S2_FVMLITE===
-  EXPECTED_RESETS. 13
-===XT_S2_FVMLITE )))
+  \ XT_S1_FVMLITE===
+    EXPECTED_RESETS. 5
+  \ ===XT_S1_FVMLITE
 
-((( XT_S3_FVMLITE===
-  EXPECTED_RESETS. 13
-===XT_S3_FVMLITE )))
+  \ XT_S2_FVMLITE===
+    EXPECTED_RESETS. 7
+  \ ===XT_S2_FVMLITE
+
+  \ XT_S3_FVMLITE===
+    EXPECTED_RESETS. 7
+  \ ===XT_S3_FVMLITE
+
+)))
+
 
   MAX_RESETS. 400       \ Limit to guard against infinite loop of resets!
   expectedEcode# 4      \ The currently expected FVM exit code
