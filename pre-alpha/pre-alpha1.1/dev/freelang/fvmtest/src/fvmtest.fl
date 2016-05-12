@@ -7,8 +7,8 @@ Unit tests for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150723
-Updated:    20160512:1419
-Version:    pre-alpha-0.0.0.17 for FVM 1.1
+Updated:    20160512:1557
+Version:    pre-alpha-0.0.0.18 for FVM 1.1
 
             [TODO: Update to reflect FVM Lite and FVM Heavy sizings.
              The increased stack depth of 256 has already been accounted for.
@@ -329,6 +329,116 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
         dbg{print}
   \ ===XT_S3_FVMLITE
 
+  \ XT_S4_FVMLITE===
+    ." RAN    : XT_S4_FVMLITE "
+        dbg{print}
+  \ ===XT_S4_FVMLITE
+
+  \ XT_S5_FVMLITE===
+    ." RAN    : XT_S5_FVMLITE "
+        dbg{print}
+  \ ===XT_S5_FVMLITE
+
+  \ XT_S6_FVMLITE===
+    ." RAN    : XT_S6_FVMLITE "
+        dbg{print}
+  \ ===XT_S6_FVMLITE
+
+  \ XT_S7_FVMLITE===
+    ." RAN    : XT_S7_FVMLITE "
+        dbg{print}
+  \ ===XT_S7_FVMLITE
+
+  \ XT_S8_FVMLITE===
+    ." RAN    : XT_S8_FVMLITE "
+        dbg{print}
+  \ ===XT_S8_FVMLITE
+
+  \ XT_S9_FVMLITE===
+    ." RAN    : XT_S9_FVMLITE "
+        dbg{print}
+  \ ===XT_S9_FVMLITE
+
+  \ XT_S10_FVMLITE===
+    ." RAN    : XT_S10_FVMLITE "
+        dbg{print}
+  \ ===XT_S10_FVMLITE
+
+  \ XT_S11_FVMLITE===
+    ." RAN    : XT_S11_FVMLITE "
+        dbg{print}
+  \ ===XT_S11_FVMLITE
+
+  \ XT_S12_FVMLITE===
+    ." RAN    : XT_S12_FVMLITE "
+        dbg{print}
+  \ ===XT_S12_FVMLITE
+
+  \ XT_S13_FVMLITE===
+    ." RAN    : XT_S13_FVMLITE "
+        dbg{print}
+  \ ===XT_S13_FVMLITE
+
+  \ XT_S14_FVMLITE===
+    ." RAN    : XT_S14_FVMLITE "
+        dbg{print}
+  \ ===XT_S14_FVMLITE
+
+  \ XT_S15_FVMLITE===
+    ." RAN    : XT_S15_FVMLITE "
+        dbg{print}
+  \ ===XT_S15_FVMLITE
+
+  \ XT_S16_FVMLITE===
+    ." RAN    : XT_S16_FVMLITE "
+        dbg{print}
+  \ ===XT_S16_FVMLITE
+
+  \ XT_S17_FVMLITE===
+    ." RAN    : XT_S17_FVMLITE "
+        dbg{print}
+  \ ===XT_S17_FVMLITE
+
+  \ XT_S18_FVMLITE===
+    ." RAN    : XT_S18_FVMLITE "
+        dbg{print}
+  \ ===XT_S18_FVMLITE
+
+  \ XT_S19_FVMLITE===
+    ." RAN    : XT_S19_FVMLITE "
+        dbg{print}
+  \ ===XT_S19_FVMLITE
+
+  \ XT_S20_FVMLITE===
+    ." RAN    : XT_S20_FVMLITE "
+        dbg{print}
+  \ ===XT_S20_FVMLITE
+
+  \ XT_S21_FVMLITE===
+    ." RAN    : XT_S21_FVMLITE "
+        dbg{print}
+  \ ===XT_S21_FVMLITE
+
+  \ XT_S22_FVMLITE===
+    ." RAN    : XT_S22_FVMLITE "
+        dbg{print}
+  \ ===XT_S22_FVMLITE
+
+  \ XT_S23_FVMLITE===
+    ." RAN    : XT_S23_FVMLITE "
+        dbg{print}
+  \ ===XT_S23_FVMLITE
+
+  \ XT_S24_FVMLITE===
+    ." RAN    : XT_S24_FVMLITE "
+        dbg{print}
+  \ ===XT_S24_FVMLITE
+
+  \ XT_S25_FVMLITE===
+    ." RAN    : XT_S25_FVMLITE "
+        dbg{print}
+  \ ===XT_S25_FVMLITE
+
 )))
 
     dbg{newline}
@@ -366,36 +476,47 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testBRG        ." testBRG              " expectTraps
     ::testBRGE       ." testBRGE             " expectTraps
 \ ===XT_S3_FVMLITE
+\ XT_S4_FVMLITE===
     ::testBRE        ." testBRE              " expectTraps
     ::testBRNE       ." testBRNE             " expectTraps
     ::testBRLE       ." testBRLE             " expectTraps
     ::testBRL        ." testBRL              " expectTraps
     ::testJGZ        ." testJGZ              " expectTraps
     ::testJGEZ       ." testJGEZ             " expectTraps
+\ ===XT_S4_FVMLITE
+\ XT_S5_FVMLITE===
     ::testJZ         ." testJZ               " expectTraps
     ::testJNZ        ." testJNZ              " expectTraps
     ::testJLEZ       ." testJLEZ             " expectTraps
     ::testJLZ        ." testJLZ              " expectTraps
     ::testJG         ." testJG               " expectTraps
     ::testJGE        ." testJGE              " expectTraps
+\ ===XT_S5_FVMLITE
+\ XT_S6_FVMLITE===
     ::testJE         ." testJE               " expectTraps
     ::testJNE        ." testJNE              " expectTraps
     ::testJLE        ." testJLE              " expectTraps
     ::testJL         ." testJL               " expectTraps
     ::testREADOR     ." testREADOR           " test
     ::testWRITOR     ." testWRITOR           " test
+\ ===XT_S6_FVMLITE
+\ XT_S7_FVMLITE===
     ::testTRACOR     ." testTRACOR    " test \ Intentionally shorter
     ::testGETOR      ." testGETOR            " test
     ::testPUTOR      ." testPUTOR            " test
     ::testREADORB    ." testREADORB          " test
     ::testWRITORB    ." testWRITORB          " test
     ::testTRACORB    ." testTRACORB   " test \ Intentionally shorter
+\ ===XT_S7_FVMLITE
+\ XT_S8_FVMLITE===
     ::testGETORB     ." testGETORB           " test
     ::testPUTORB     ." testPUTORB           " test
     ::testMATH       ." testMATH             " expectTraps
     ::testTRAP       ." testTRAP             " expectTraps
     ::testDIE        ." testDIE              " untested \ 29272 bytes [62 restarts]
     ::testREAD       ." testREAD             " test
+\ ===XT_S8_FVMLITE
+\ XT_S9_FVMLITE===
     ::testWRITE      ." testWRITE            " test
     ::testGET        ." testGET              " test
     ::testPUT        ." testPUT              " test
@@ -404,6 +525,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testRCHANN     ." testRCHANN           " test
     ::testWCHANN     ." testWCHANN           " test
     ::testGCHANN     ." testGCHANN           " test
+\ ===XT_S9_FVMLITE
+\ XT_S10_FVMLITE===
     ::testPCHANN     ." testPCHANN           " test
     ::testPC         ." testPC               " test
     ::testRDJMP      ." testRDJMP            " expectTraps
@@ -412,6 +535,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testROT4       ." testROT4             " expectTrap
     ::testEXIT       ." testEXIT             " test
     ::testDCALL      ." testDCALL            " expectTraps
+\ ===XT_S10_FVMLITE
+\ XT_S11_FVMLITE===
     ::testRDCALL     ." testRDCALL           " expectTraps
     ::testDJMP       ." testDJMP             " expectTraps
     ::testSWAP       ." testSWAP             " expectTrap
@@ -420,6 +545,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testTOR        ." testTOR              " expectTrap
     ::testLEAP       ." testLEAP             " expectTraps
     ::testNIP        ." testNIP              " expectTrap
+\ ===XT_S11_FVMLITE
+\ XT_S12_FVMLITE===
     ::testTUCK       ." testTUCK             " expectTraps
     ::testREV        ." testREV              " expectTrap
     ::testRPUSH      ." testRPUSH            " expectTrap
@@ -428,6 +555,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testDROP2      ." testDROP2            " expectTrap
     ::testDROP3      ." testDROP3            " expectTrap
     ::testDROP4      ." testDROP4            " expectTrap
+\ ===XT_S12_FVMLITE
+\ XT_S13_FVMLITE===
     ::testDUP        ." testDUP              " expectTraps
     ::testDUP2       ." testDUP2             " expectTraps
     ::testDUP3       ." testDUP3             " expectTraps
@@ -436,6 +565,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testHOLD2      ." testHOLD2            " expectTrap
     ::testHOLD3      ." testHOLD3            " expectTrap
     ::testHOLD4      ." testHOLD4            " expectTrap \ 21304 bytes [45 restarts]
+\ ===XT_S13_FVMLITE
+\ XT_S14_FVMLITE===
     ::testSPEEK      ." testSPEEK            " expectTraps
     ::testSPEEK2     ." testSPEEK2           " expectTraps
     ::testSPEEK3     ." testSPEEK3           " expectTraps
@@ -444,6 +575,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testSPUSH2     ." testSPUSH2           " expectTraps
     ::testSPUSH3     ." testSPUSH3           " expectTraps
     ::testSPUSH4     ." testSPUSH4           " expectTraps
+\ ===XT_S14_FVMLITE
+\ XT_S15_FVMLITE===
     ::testSPOP       ." testSPOP             " expectTraps
     ::testSPOP2      ." testSPOP2            " expectTraps
     ::testSPOP3      ." testSPOP3            " expectTraps
@@ -454,42 +587,58 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testINC        ." testINC              " expectTrap
     ::testINCW       ." testINCW             " expectTrap
     ::testINC2W      ." testINC2W            " expectTrap
+\ ===XT_S15_FVMLITE
+\ XT_S16_FVMLITE===
     ::testLOAD       ." testLOAD             " expectTraps
     ::testSTORE      ." testSTORE            " expectTraps
     ::testRLOAD      ." testRLOAD            " expectTraps
     ::testLOADB      ." testLOADB            " expectTraps
+\ ===XT_S16_FVMLITE
+\ XT_S17_FVMLITE===
     ::testSTOREB     ." testSTOREB           " expectTraps
     ::testRLOADB     ." testRLOADB           " expectTraps
     ::testPLOAD      ." testPLOAD            " expectTraps
     ::testPSTORE     ." testPSTORE           " expectTraps
+\ ===XT_S17_FVMLITE
+\ XT_S18_FVMLITE===
     ::testRPLOAD     ." testRPLOAD           " expectTraps
     ::testPLOADB     ." testPLOADB           " expectTraps
     ::testPSTOREB    ." testPSTOREB          " expectTraps
     ::testRPLOADB    ." testRPLOADB          " expectTraps
+\ ===XT_S18_FVMLITE
+\ XT_S19_FVMLITE===
     ::testADD        ." testADD              " expectTraps
     ::testSUB        ." testSUB              " expectTraps
     ::testMUL        ." testMUL              " expectTraps
     ::testDIV        ." testDIV              " expectTraps
     ::testMOD        ." testMOD              " expectTraps
     ::testDIVMOD     ." testDIVMOD           " expectTraps
+\ ===XT_S19_FVMLITE
+\ XT_S20_FVMLITE===
     ::testRADD       ." testRADD             " expectTraps
     ::testRSUB       ." testRSUB             " expectTraps
     ::testRMUL       ." testRMUL             " expectTraps
     ::testRDIV       ." testRDIV             " expectTraps \ 28080 bytes [97 restarts]
     ::testRMOD       ." testRMOD             " expectTraps
     ::testRDIVMOD    ." testRDIVMOD          " expectTraps
+\ ===XT_S20_FVMLITE
+\ XT_S21_FVMLITE===
     ::testNEG        ." testNEG              " expectTrap
     ::testABS        ." testABS              " expectTrap
     ::testAND        ." testAND              " expectTrap
     ::testOR         ." testOR               " expectTrap
     ::testXOR        ." testXOR              " expectTrap
     ::testRAND       ." testRAND             " expectTrap
+\ ===XT_S21_FVMLITE
+\ XT_S22_FVMLITE===
     ::testROR        ." testROR              " expectTrap
     ::testRXOR       ." testRXOR             " expectTrap
     ::testSHL        ." testSHL              " expectTrap
     ::testSHR        ." testSHR              " expectTrap
     ::testRSHL       ." testRSHL             " expectTrap
     ::testRSHR       ." testRSHR             " expectTrap
+\ ===XT_S22_FVMLITE
+\ XT_S23_FVMLITE===
     ::testMOVE       ." testMOVE             " expectTraps
     ::testFILL       ." testFILL             " expectTraps
     ::testFIND       ." testFIND             " expectTraps
@@ -498,6 +647,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testFILLB      ." testFILLB            " expectTraps
     ::testFINDB      ." testFINDB            " expectTraps
     ::testMATCHB     ." testMATCHB           " expectTraps
+\ ===XT_S23_FVMLITE
+\ XT_S24_FVMLITE===
     ::testHOMIO      ." testHOMIO            " test
     ::testRCHAN      ." testRCHAN            " test
     ::testWCHAN      ." testWCHAN            " test
@@ -510,6 +661,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testMAP        ." testMAP              " test
     ::testSTDBLK     ." testSTDBLK           " test
     ::testDS         ." testDS               " test
+\ ===XT_S24_FVMLITE
+\ XT_S25_FVMLITE===
     ::testSS         ." testSS               " test
     ::testRS         ." testRS               " test
     ::testDSN        ." testDSN              " test
@@ -523,6 +676,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     ::testDATA       ." testDATA             " expectTrap
     \ Other tests:
     ::testIllegalOpcode     ." testIllegalOpcode    " expectTrap  \ 20876 bytes [34 restarts]
+\ ===XT_S25_FVMLITE
 \ ---XTFVMLITE )))
   ;
 
@@ -882,6 +1036,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toBustBRGE: 1 0 go[>=] 2147483644 bfail \ trapPcOverflow, addr too high
   ;
 \ ===XT_S3_FVMLITE
+\ XT_S4_FVMLITE===
   \ Test opcode 12 BRE
   : testBRE
     1 0 go[==] :fail1
@@ -990,7 +1145,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toNeg1JGEZ: 1 go>=0 -1 jfail         \ trapPcOverflow, addr negative
     toBustJGEZ: 1 go>=0 2147483644 jfail \ trapPcOverflow, addr too high
   ;
-
+\ ===XT_S4_FVMLITE
+\ XT_S5_FVMLITE===
   \ Test opcode 18: JZ
   : testJZ
     1 go==0 :fail1
@@ -1101,7 +1257,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toNeg1JGE: 1 0 go> -1 jfail         \ trapPcOverflow, addr negative
     toBustJGE: 1 0 go> 2147483644 jfail \ trapPcOverflow, addr too high
   ;
-
+\ ===XT_S5_FVMLITE
+\ XT_S6_FVMLITE===
   \ Test opcode 24 JE
   : testJE
     1 0 go== :fail1
@@ -1198,7 +1355,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
       ret
     fail: ." WRITOR attempt failed " fail
   ;
-
+\ ===XT_S6_FVMLITE
+\ XT_S7_FVMLITE===
   \ Test opcode 30 TRACOR
   : testTRACOR
     \ Write "ABCD : " to stdtrc as UTF-8
@@ -1263,7 +1421,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
       ret
     fail: ." TRACORB attempt failed " fail
   ;
-
+\ ===XT_S7_FVMLITE
+\ XT_S8_FVMLITE===
   \ Test opcode 36 GETORB
   : testGETORB
     \ Verify that addresses 0 to 3 in stdblk all contain byte value 0
@@ -1360,7 +1519,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     read? {..STDBLK} {..FALSE} assert{eq}
     read? {..STDOUT} {..FALSE} assert{eq}
   ;
-
+\ ===XT_S8_FVMLITE
+\ XT_S9_FVMLITE===
   \ Test opcode 42 WRITE
   : testWRITE
     write? {..STDOUT} {..TRUE} assert{eq}
@@ -1431,7 +1591,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     {..STDBLK} gchan                     \ Specify stdblk as get channel
     {..STDBLK} gchan? assert{eq}
   ;
-
+\ ===XT_S9_FVMLITE
+\ XT_S10_FVMLITE===
   \ Test opcode 138 PCHANN
   : testPCHANN
     1234567890 pchan                     \ Specify huge ID as put channel
@@ -1566,7 +1727,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     toBustDCALL: 2147483644 invoke bfail  \ trapPcOverflow, addr too high
     toNeg1DCALL: -1 invoke bfail          \ trapPcOverflow, addr negative
   ;
-
+\ ===XT_S10_FVMLITE
+\ XT_S11_FVMLITE===
   \ Test opcode 147 RDCALL
   : testRDCALL
     \ See comments in DCALL. The difference between RDCALL and DCALL is
@@ -1712,7 +1874,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     underNIP: 1 nip tfail \ trapDsUnderflow
   ;
-
+\ ===XT_S11_FVMLITE
+\ XT_S12_FVMLITE===
   \ Test opcode 155 TUCK
   : testTUCK
     1 2 3 4         ( 1 2 3 4   )
@@ -1829,7 +1992,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     underDROP4: 1 2 3 drop4 tfail \ trapDsUnderflow
   ;
-
+\ ===XT_S12_FVMLITE
+\ XT_S13_FVMLITE===
   \ Test opcode 163 DUP
   : testDUP
     1 2 3 4               ( 1 2 3 4   )
@@ -1998,7 +2162,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
                almostFillSs spush
                1 2 3 4 hold4 tfail \ trapSsOverflow
   ;
-
+\ ===XT_S13_FVMLITE
+\ XT_S14_FVMLITE===
   \ Test opcode 171 SPEEK
   : testSPEEK
     1 2 3 4             \ ( 1 2 3 4 )
@@ -2159,7 +2324,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
                almostFillSs spush
                1 2 3 4 spush4 tfail \ trapSsOverflow
   ;
-
+\ ===XT_S14_FVMLITE
+\ XT_S15_FVMLITE===
   \ Test opcode 179 SPOP
   : testSPOP
     1 2 3 4             \ ( 1 2 3 4 )
@@ -2300,7 +2466,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     overINC2W: ..INT_MAX 7 - inc2w tfail  \ trapMathOverflow
   ;
-
+\ ===XT_S15_FVMLITE
+\ XT_S16_FVMLITE===
   \ Test opcode 189 LOAD
   : testLOAD                       \ Freelang "@" means LOAD
     ##testvar @ 0 assert{eq}       \ Note: FVM zero-fills RAM on start up
@@ -2406,7 +2573,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     memlowLOADB:  -1 @b tfail          \ trapMemBounds
     memhighLOADB: ..ADDR_BUST @b tfail \ trapMemBounds
   ;
-
+\ ===XT_S16_FVMLITE
+\ XT_S17_FVMLITE===
   \ Test opcode 193 STOREB
   \ Note: byte values (unlike word values) should always be stored
   \ as positive since the concept of a negative number in Freeputer is
@@ -2504,7 +2672,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     memhighPSTORE:
       ..ADDR_BUST ##pTestvar ! 1 ##pTestvar @! tfail  \ trapMemBounds
   ;
-
+\ ===XT_S17_FVMLITE
+\ XT_S18_FVMLITE===
   \ Test opcode 197 RPLOAD
   : testRPLOAD                     \ Freelang "[@@]" means RPLOAD
     ##pTestvar [@@]                \ ( ptr=pTestvar wordValue=@testvar )
@@ -2605,7 +2774,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     memhighRPLOADB:
       ..ADDR_BUST ##pTestvar ! ##pTestvar [@@b] tfail       \ trapMemBounds
   ;
-
+\ ===XT_S18_FVMLITE
+\ XT_S19_FVMLITE===
   \ Test opcode 201 ADD ( n1 n2 -- n1+n2 )
   : testADD
      3  7 +  10 assert{eq}
@@ -2715,7 +2885,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     zeroDIVMOD: 1 0 /% tfail                 \ verifyTrapDivideByZero
     overDIVMODneg: ..NEG_INT_MAX -1 /% tfail \ trapMathOverflow
   ;
-
+\ ===XT_S19_FVMLITE
+\ XT_S20_FVMLITE===
   \ Test opcode 207 RADD ( n1 n2 -- n1 n2+n1 )
   : testRADD
      3  7 [+]  10 assert{eq}
@@ -2830,7 +3001,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     zeroRDIVMOD: 0 1 [/%] tfail                 \ verifyTrapDivideByZero
     overRDIVMODneg: -1 ..NEG_INT_MAX [/%] tfail \ trapMathOverflow
   ;
-
+\ ===XT_S20_FVMLITE
+\ XT_S21_FVMLITE===
   \ Test opcode 213 NEG
   : testNEG
     ..INT_MAX neg ..INT_MAX -1 * assert{eq}
@@ -2911,7 +3083,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     underRAND: 1 [&] tfail            \ trapDsUnderflow
   ;
-
+\ ===XT_S21_FVMLITE
+\ XT_S22_FVMLITE===
   \ Test opcode 219 ROR
   \ Note: ROR preserves both operands not just the first
   : testROR ( n1 n2 -- n1 n2 n2|n1 )
@@ -2994,7 +3167,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     \ Labels for use by verifyTrap
     xsRSHR: 1 32 [>>] tfail             \ trapXsBitshift
   ;
-
+\ ===XT_S22_FVMLITE
+\ XT_S23_FVMLITE===
   \ Test opcode 225 MOVE ( numWords src dest -- )
   \ Note: numWords can meaningfully be negative but not tested here
   : testMOVE
@@ -3199,7 +3373,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
     memlowMATCHB:  ..MOVEX ##slotA -1 matchb tfail          \ trapMemBounds
     memhighMATCHB: ..MOVEX ##slotA ..ADDR_BUST matchb tfail \ trapMemBounds
   ;
-
+\ ===XT_S23_FVMLITE
+\ XT_S24_FVMLITE===
   \ Test opcode 233 HOMIO
   : testHOMIO
     {..STDEXP} wchan                     \ Change to stdexp write channel
@@ -3285,7 +3460,8 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   : testDS
     ds? ..MAX_DEPTH_DS assert{eq}
   ;
-
+\ ===XT_S24_FVMLITE
+\ XT_S25_FVMLITE===
   \ Test opcode 245 SS
   : testSS
     ss? ..MAX_DEPTH_SS assert{eq}
@@ -3404,6 +3580,7 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   hitIllegalOpcode:
     data 1 256 ===
     ." trapIllegalOpcode did not occur " fail \ unlikely to hit this line!
+\ ===XT_S25_FVMLITE
 \ ---XTFVMLITE )))
 \ ============================================================================
 \                             DECLARATIONS
@@ -3448,6 +3625,99 @@ MOVEY.   88  \ An even multiple of 4, approximately 9/10ths of MOVEX
   \ XT_S3_FVMLITE===
     EXPECTED_RESETS. 7
   \ ===XT_S3_FVMLITE
+
+  \ XT_S4_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S4_FVMLITE
+
+  \ XT_S5_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S5_FVMLITE
+
+  \ XT_S6_FVMLITE===
+    EXPECTED_RESETS. 7
+  \ ===XT_S6_FVMLITE
+
+  \ XT_S7_FVMLITE===
+    EXPECTED_RESETS. -1
+  \ ===XT_S7_FVMLITE
+
+  \ XT_S8_FVMLITE===
+    EXPECTED_RESETS. 8
+  \ ===XT_S8_FVMLITE
+
+  \ XT_S9_FVMLITE===
+    EXPECTED_RESETS. 1
+  \ ===XT_S9_FVMLITE
+
+  \ XT_S10_FVMLITE===
+    EXPECTED_RESETS. 6
+  \ ===XT_S10_FVMLITE
+
+  \ XT_S11_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S11_FVMLITE
+
+  \ XT_S12_FVMLITE===
+    EXPECTED_RESETS. 8
+  \ ===XT_S12_FVMLITE
+
+  \ XT_S13_FVMLITE===
+    EXPECTED_RESETS. 15
+  \ ===XT_S13_FVMLITE
+
+  \ XT_S14_FVMLITE===
+    EXPECTED_RESETS. 15
+  \ ===XT_S14_FVMLITE
+
+  \ XT_S15_FVMLITE===
+    EXPECTED_RESETS. 13
+  \ ===XT_S15_FVMLITE
+
+  \ XT_S16_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S16_FVMLITE
+
+  \ XT_S17_FVMLITE===
+    EXPECTED_RESETS. 15
+  \ ===XT_S17_FVMLITE
+
+  \ XT_S18_FVMLITE===
+    EXPECTED_RESETS. 19
+  \ ===XT_S18_FVMLITE
+
+  \ XT_S19_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S19_FVMLITE
+
+  \ XT_S20_FVMLITE===
+    EXPECTED_RESETS. 11
+  \ ===XT_S20_FVMLITE
+
+  \ XT_S21_FVMLITE===
+    EXPECTED_RESETS. 5
+  \ ===XT_S21_FVMLITE
+
+  \ XT_S22_FVMLITE===
+    EXPECTED_RESETS. 9
+  \ ===XT_S22_FVMLITE
+
+  \ 23 FAILED! FIXME
+  \ XT_S23_FVMLITE===
+    EXPECTED_RESETS. 15
+  \ ===XT_S23_FVMLITE
+
+  \ XT_S24_FVMLITE===
+    EXPECTED_RESETS. -1
+  \ ===XT_S24_FVMLITE
+
+  \ XT_S25_FVMLITE===
+    EXPECTED_RESETS. 2
+  \ ===XT_S25_FVMLITE
+
+  \ Note: total of above 25 subsets is 223 restarts (rightly or wrongly;
+  \ without further analysis it is not immediately clear if that is good).
+  \ The meaning of -1 is of course 0 restarts.
 
 )))
 
