@@ -15,40 +15,43 @@
 </ul>
 <h2 id="where-can-i-learn-more">Where can I learn more?</h2>
 <p>For an introduction to Freeputer, including a Quick Start tutorial, see <a href="archive/1.0/README.md">README.md</a> or <a href="archive/1.0/README.html">README.html</a>.</p>
-<p>To learn Freeputer you should use the provided <a href="archive/1.0">Freeputer 1.0</a> archive (equivalent to the git tag <strong>fpv1.0.0.2</strong>) since that is the version for which the Quick Start tutorial was written. Using Freeputer 1.0 will teach you the basic principles of Freeputer and Freelang while avoiding unnecessary complexity.</p>
+<p>To learn Freeputer you should use the provided <a href="archive/1.0">Freeputer 1.0</a> archive (equivalent to the git tag <strong>fpv1.0.0.2</strong>) since that is the version for which the Quick Start tutorial was written. Using Freeputer 1.0 will teach you the basic principles of Freeputer and Freelang while avoiding unnecessary complexity.</p>
 <p>See also <a href="#other-resources">Other Resources</a> below.</p>
 <h2 id="whats-the-latest-news">What's the latest news?</h2>
-<p>Freeputer 1.1 is coming!</p>
-<p>Expected as an alpha release by mid-2016, it should include:</p>
+<p>Freeputer 1.1 is coming!</p>
+<p>Expected as an alpha release by late-2016, it should include:</p>
 <ul>
 <li>an FVM 1.1, with <strong>additional instructions</strong></li>
 <li>continued support for targeting <strong>x86</strong> or <strong>gcc</strong> or <strong>Linux</strong> or <strong>Java</strong></li>
 <li>new optional support for <strong>Arduino</strong> (ARM) and <strong>chipKIT</strong> (PIC32) boards via the Arduino IDE</li>
 <li>new optional support for an extraordinarily portable textual user-interface (<strong>the tape</strong>)</li>
-<li>new optional standard FVM sizings: <strong>Freeputer Lite</strong> and <strong>Freeputer Heavy</strong><br />
+<li>new optional standard FVM sizes: <strong>Freeputer Lite</strong> and <strong>Freeputer Heavy</strong><br />
 both with <strong>greater stack depth: 256 elements</strong> instead of 32 elements</li>
 <li>stand-alone Freeputer Lite with PS/2 keyboard and LCD display</li>
 <li>updated Freelang compilers (flc and flx) and decompiler (fld)</li>
 <li>appropriately updated fvmtest test suite</li>
 </ul>
-<p>Most of the above has already been successfully spiked.</p>
-<p><strong>Freeputer Lite</strong> (aka <strong>FVM Lite</strong>) will standardize the size of small Freeputer 1.1 instances, facilitating the virtualization and reuse of small software modules of standard size. FVM Lite will have 16 KiB of FVM RAM, 16 KiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: <em>modular not monolithic</em>. Comfortable hardware minimums are 32 KiB RAM and 128 KiB flash; at least 64 KiB RAM is preferred for FVM virtualization entirely in RAM. Arduino Due and chipKIT Max32 are therefore good choices. Large applications will in future be <em>composed</em> of FVM Lite instances.</p>
-<p><strong>Freeputer Heavy</strong> (aka <strong>FVM Heavy</strong>) will standardize the size of large Freeputer 1.1 instances. FVM Heavy will have 16 MiB of FVM RAM, 16 MiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. However, it is recommended that FVM Heavy should only be used when neither a single FVM Lite instance nor a cluster of FVM Lite instances could reasonably be used.</p>
-<p>Freeputer 1.1 is fundamentally about <strong>greater hardware freedom.</strong> That the same small software module can easily be run on a microcontroller or on a powerful server demonstrates true freedom and protects your investment in writing that software.</p>
+<p>Most of the above has already been successfully spiked. Please note that (due to other professional commitments) the expected release date for the alpha release of Freeputer 1.1 has been pushed back from mid-2016 to late-2016. In the meantime you can use <a href="archive/1.0">Freeputer 1.0</a>; it is stable and fully functional.</p>
+<p><strong>Freeputer Lite</strong> (aka <strong>FVM Lite</strong>) will standardize the size of small Freeputer 1.1 instances, facilitating the virtualization and reuse of small software modules of standard size. FVM Lite will have 16 KiB of FVM RAM, 16 KiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: <em>modular not monolithic</em>. Comfortable hardware minimums are 32 KiB RAM and 128 KiB flash; at least 64 KiB RAM is preferred for FVM virtualization entirely in RAM. Arduino Due and chipKIT Max32 are therefore good choices. Large applications will in future be <em>composed</em> of FVM Lite instances.</p>
+<p><strong>Freeputer Heavy</strong> (aka <strong>FVM Heavy</strong>) will standardize the size of large Freeputer 1.1 instances. FVM Heavy will have 16 MiB of FVM RAM, 16 MiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. However, it is recommended that FVM Heavy should only be used when neither a single FVM Lite instance nor a cluster of FVM Lite instances could reasonably be used.</p>
+<p><em>You do not have to use the new standard FVM sizes</em> (FVM Lite, FVM Heavy). Freeputer 1.1 will still support using arbitrary FVM sizes, as tiny or as huge as you want, just as Freeputer 1.0 does. However, the adoption of these standard FVM sizes is recommended so as to maximize hardware portability, software modularity and software reuse. Remember that Freeputer is designed to be easy to run on bare metal (without any operating system) and to be future-proof such that it will be easy to port Freeputer to a wide variety of future hardware long after current hardware no longer exists. Adopting modest standard FVM sizes greatly facilitates the software-reuse goal: <em>Write once, run forever.</em></p>
+<p>Freeputer 1.1 is fundamentally about <strong>greater hardware freedom.</strong> That the same small software module can easily be run on a microcontroller or on a powerful server protects your investment in writing that software.</p>
 <h2 id="so-wheres-the-code">So where's the code?</h2>
-<p>The complete Freeputer 1.0 code is in the <a href="archive/1.0" class="uri">archive/1.0</a> folder (git tag <strong>fpv1.0.0.2</strong>). The Freeputer 1.1 code isn't online yet; you will gradually see some of it start to appear in the pre-alpha folder as work proceeds.</p>
+<p>The complete Freeputer 1.0 code is in the <a href="archive/1.0" class="uri">archive/1.0</a> folder (git tag <strong>fpv1.0.0.2</strong>).</p>
+<p>The Freeputer 1.1 code isn't fully online yet. You can follow its progress in the <a href="pre-alpha/pre-alpha1.1">pre-alpha1.1</a> folder.</p>
 <h2 id="other-resources">Other Resources</h2>
 <ul>
 <li>The official Freeputer website: <a href="http://www.freeputer.net">www.freeputer.net</a></li>
 <li>The Freeputer <a href="https://github.com/RobertGollagher/Freeputer">GitHub</a> and <a href="https://bitbucket.org/RobertGollagher/freeputer/src">BitBucket</a> git repositories</li>
-<li><a href="http://www.concatenative.org/wiki/view/Freelang">Freelang</a> at concatenative.org</li>
-<li><a href="https://bitbucket.org/sts-q/freeputer/src">Freelang syntax highlighting</a> for Emacs (thanks sts-q)</li>
+<li><a href="http://www.concatenative.org/wiki/view/Freelang"><strong>Freelang</strong></a> at concatenative.org</li>
+<li><a href="https://bitbucket.org/sts-q/freeputer/src"><strong>Freelang</strong> syntax highlighting</a> for Emacs, see <code>freelang-mode.el</code> (thanks sts-q)</li>
+<li><a href="https://bitbucket.org/sts-q/freeputer/src"><strong>Rabbit</strong></a>, an implementation of the <a href="https://en.wikipedia.org/wiki/Joy_%28programming_language%29"><strong>Joy</strong></a> language that runs on Freeputer (thanks sts-q)</li>
 </ul>
 <hr />
 <p>Copyright © Robert Gollagher 2016</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was first published on 11 March 2016.<br />
-This document was last updated on 9 May 2016 at 23:11.<br />
+This document was last updated on 5 July 2016 at 14:49.<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" alt="" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
