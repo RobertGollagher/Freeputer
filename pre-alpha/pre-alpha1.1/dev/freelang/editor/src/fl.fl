@@ -9,8 +9,8 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150503
-Updated:    20160511:1309
-Version:    pre-alpha 0.0.0.1 for FVM 1.1 [Appears ready]
+Updated:    20160707:2326
+Version:    pre-alpha 0.0.0.2 for FVM 1.1 [Appears ready]
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1171,7 +1171,7 @@ imp{
   \ Any character code less than this apparently can signal
   \   EOF/EOS on Linux, and exactly which character code
   \   (eg 5, 6 or 7) seems to vary unpredictably.
-  _MIN_CHAR. 10
+  _MIN_CHAR. 9 \ TODO this is wrongly 10 in FVM 1.0 'fl.fl' so excluding tabs
 
 }imp
 
