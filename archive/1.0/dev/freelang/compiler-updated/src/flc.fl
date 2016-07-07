@@ -10,8 +10,8 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150516
-Updated:    20150807:1731
-Version:    1.0.0.0 for FVM 1.0
+Updated:    20160707:1513
+Version:    1.0.0.1 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,6 +25,41 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Note regarding 'flc.fl' 1.0.0.1
+===============================
+
+This version 1.0.0.1 of 'flc.fl' for FVM 1.0 corrects bugs found in
+     version 1.0.0.0 of 'flc.fl' for FVM 1.0.
+
+Other than these comments, only 3 lines of 'flc.fl' source code differ
+between the two versions. They contain the comment: \ Version 1.0.0.1 fix.
+
+The changes fix bugs related to the detection of duplicate declarations
+of words, labels, slots, constants and named strings in Freelang source code.
+That detection was silently malfunctioning in version 1.0.0.0 of flc,
+with two consequences: illegal duplicate declarations were being allowed
+by the flc compiler; and the flc compiler was raising error messages
+regarding duplicate declarations that did not in fact exist, such as...
+
+  365:Label already exists corresponding to word:print
+
+...when the Freelang source code being compiled did not in fact contain a
+label called print: in addition to a word called print and therefore
+compilation should have succeeded without error.
+
+The workaround for these bugs was to use 'flx.rb' instead of 'flc.fl'
+to compile the Freelang source code in question. These changes make such
+a workaround unnecessary. Simply use the 1.0.0.1 version of flc.
+
+These changes however have NOT BEEN EXTENSIVELY TESTED because Freeputer
+development effort has moved on from Freeputer 1.0 to Freeputer 1.1,
+which will have a more recent version of the flc compiler.
+
+This version 1.0.0.1 of 'flc.fl' for FVM 1.0 is hereby provided
+as a courtesy to those who are using Freeputer 1.0. Since it has not been
+extensively tested you should only use it if you are experiencing bugs
+of the kind described above and if you do not wish to use flx.
 
 )
 
@@ -43,7 +78,7 @@ slotFloor 16777216 \ Lowest RAM address to be used by compiled compiler.
 \ ============================================================================
 flc{
 
-  VERSION$ ." flc.fl compiler version 1.0.0.0 for FVM 1.0 "
+  VERSION$ ." flc.fl compiler version 1.0.0.1 for FVM 1.0 "
 
   init compile info finish quit \ Algorithm
 
@@ -3135,7 +3170,7 @@ ptab{
       speek go<=0 :noMatch                \ ( N W name p ) [ i ]
       matchRecord? {..TRUE} go== :matched \ ( N W name p ) [ i ]
         \ Advance pointer p to start of next declaration
-        dup sys{pINC}
+        dup sys{p2INC}  \ Version 1.0.0.1 fix. Was sys{pINC} in flc 1.0.0.0
         spop dec spush  \ Decrement decl counter
         go :nextDecl
     matched:                              \ ( N W name p ) [ i ]
@@ -3220,7 +3255,7 @@ ptab{
       speek go<=0 :noMatch                \ ( N W name p ) [ i ]
       matchRecord? {..TRUE} go== :matched \ ( N W name p ) [ i ]
         \ Advance pointer p to start of next string declaration
-        dup advStrMaxLen dup sys{pINC}
+        dup advStrMaxLen dup sys{p2INC}  \ Version 1.0.0.1 fix. Was sys{pINC}
         spop dec spush  \ Decrement decl counter
         go :nextDecl
     matched:                              \ ( N W name p ) [ i ]
@@ -3241,7 +3276,7 @@ ptab{
       speek go<=0 :noMatch                \ ( N name p ) [ i ]
       matchWord? {..TRUE} go== :matched   \ ( N name p ) [ i ]
         \ Advance pointer p to start of next word declaration
-        dup sys{pINC}
+        dup sys{p2INC}  \ Version 1.0.0.1 fix. Was sys{pINC}
         spop dec spush  \ Decrement decl counter
         go :nextDecl
     matched:                              \ ( N name p ) [ i ]
