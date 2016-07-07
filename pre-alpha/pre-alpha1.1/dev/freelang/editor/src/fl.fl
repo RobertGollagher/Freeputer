@@ -9,7 +9,7 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150503
-Updated:    20160707:2326
+Updated:    20160707:2331
 Version:    pre-alpha 0.0.0.2 for FVM 1.1 [Appears ready]
 
 This program is free software: you can redistribute it and/or modify
@@ -388,7 +388,7 @@ FreeLine{
     ." along with this program. If not, see <http://www.gnu.org/licenses/>. "
       scn{print}
     scn{nextline} scn{norm}
-    ." FreeLine pre-alpha 0.0.0.1 for FVM 1.1 " scn{print}
+    ." FreeLine pre-alpha 0.0.0.2 for FVM 1.1 " scn{print}
     ." Author : Robert Gollagher   robert.gollagher@freeputer.net " scn{print}
     ." Created:  3 May 2015 " scn{print}
     ." Updated: 11 May 2016 " scn{print}
