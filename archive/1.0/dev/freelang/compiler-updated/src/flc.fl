@@ -10,8 +10,8 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150516
-Updated:    20160707:1513
-Version:    1.0.0.1 for FVM 1.0
+Updated:    20160707:2226
+Version:    1.0.0.2 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,6 +25,13 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Note regarding 'flc.fl' 1.0.0.2
+===============================
+
+In addition to the changes noted below, this version fixes a bug
+whereby the presence of a tab character in Freelang source code was
+causing the reading of that source code to be terminated.
 
 Note regarding 'flc.fl' 1.0.0.1
 ===============================
@@ -1957,7 +1964,7 @@ insrc{
   \ Any character code less than this apparently can signal
   \   EOF/EOS on Linux, and exactly which character code
   \   (eg 5, 6 or 7) seems to vary unpredictably.
-  _MIN_CHAR. 10
+  _MIN_CHAR. 9 \ Version 1.0.0.2 fix. Was 10 but needs to be 9 to allow tabs.
 
   \ Halt
   : quit ( -- ) halt ;
