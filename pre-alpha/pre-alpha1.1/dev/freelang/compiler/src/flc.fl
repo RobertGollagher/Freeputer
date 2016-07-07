@@ -10,8 +10,8 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015, 2016
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150516
-Updated:    20160707:2107
-Version:    pre-alpha-0.0.0.4 for FVM 1.1 [broken intentionally for timing]
+Updated:    20160707:2110
+Version:    pre-alpha-0.0.0.5 for FVM 1.1
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,24 +76,8 @@ slotFloor 126976 \ 65536 \ 16777216 \ Lowest RAM address to be used by compiled 
 \ ============================================================================
 flc{
 
-  VERSION$ ." flc.fl compiler version pre-alpha-0.0.0.4 for FVM 1.1 "
-'X' writorb :dbgend
-." init... " dbg{puts}
-'A' writorb :dbgend
-  init 
-." compile... " dbg{puts}
-'B' writorb :dbgend
-compile 
-." info... " dbg{puts}
-'C' writorb :dbgend
-info 
-." finish... " dbg{puts}
-'D' writorb :dbgend
-finish 
-." quit... " dbg{puts}
-'E' writorb :dbgend
-dbgend:
-quit \ Algorithm
+  VERSION$ ." flc.fl compiler version pre-alpha-0.0.0.5 for FVM 1.1 "
+  init compile info finish quit \ Algorithm
 
   NAM_MAX_LEN.    32          \ Max length of names [words]
   NAM_MAX_NAKED_LEN. 30       \ " " " " not including .#$: markers
@@ -175,7 +159,6 @@ quit \ Algorithm
 
   \ Initialize the compiler
   : init ( -- )
-'0' writorb ::dbgend \ FIXME DELETE ME
     1 ##lineNum !                          \ Init the line counter
     {..FALSE} ##readyToIncLineNum !        \ Init flag to false
     ..TOK_MAX_LEN ##tokBuf blk{init} drop  \ Initialize the token buffer
@@ -195,9 +178,7 @@ quit \ Algorithm
     0 ##nComplexInstrs !
     0 ##nDataCells !
     0 ##nStrCells !
-'1' writorb ::dbgend \ FIXME DELETE ME
     pmodel{init}                      \ Init the program model
-'2' writorb ::dbgend \ FIXME DELETE ME
     {..FALSE} ##inComment? !          \ We are not in an ordinary comment
     {..FALSE} ##inLineComment? !      \ We are not in a line comment
     {..FALSE} ##inBlockComment? !     \ We are not in a block comment
@@ -213,25 +194,18 @@ quit \ Algorithm
     \ NOTE: The capacities below are arbitrary. You may change them here to
     \ whatever you need providing they fit in ptab{##tablespace}.
     ptab{init}                            \ Begin ptab initialization
-'3' writorb ::dbgend \ FIXME DELETE ME
     500 5000 ptab{initWords}              \ Init words table space
       {..FALSE} go== :fail
-'4' writorb ::dbgend \ FIXME DELETE ME
     1000 2000 ptab{initLabels}            \ Init labels table space
       {..FALSE} go== :fail
-'5' writorb ::dbgend \ FIXME DELETE ME
     300 2000 ptab{initSlots}              \ Init slots table space
       {..FALSE} go== :fail
-'6' writorb ::dbgend \ FIXME DELETE ME
     500 3000 ptab{initConsts}             \ Init constants table space
       {..FALSE} go== :fail
-'7' writorb ::dbgend \ FIXME DELETE ME
     1000 2000 ptab{initStrs}              \ Init named strings table space
       {..FALSE} go== :fail
-'8' writorb ::dbgend \ FIXME DELETE ME
     1000 ptab{initAnonStrs}               \ Init anonymous strings table space
       {..FALSE} go== :fail
-'9' writorb ::dbgend \ FIXME DELETE ME
     \ Program table initialization is now complete
   ( success: )
       ret \ Compiler successfully initialized
@@ -271,21 +245,13 @@ quit \ Algorithm
   \ although the pass is merely over the ptab not the source code.
   : populate ( -- )
       writeiWALL \ Put iWALL at program end [overflow protection]
-'a' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateLabelRefs}
-'b' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateConstRefs}
-'c' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateSlotDecls}
-'d' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateSlotRefs}
-'e' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateWordRefs}
-'f' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateStrRefs}
-'g' writorb ::dbgend \ FIXME DELETE ME
       ptab{populateAnonStrRefs}
-'h' writorb ::dbgend \ FIXME DELETE ME
   ;
 
   \ Read, parse and process all the tokens in the source code one by one.
@@ -311,7 +277,6 @@ quit \ Algorithm
        {..NO_VALUE} go!= :notLineEnd       \ Reached end of a line?
           handleLineEnd
      notLineEnd:
-'T' writorb ::dbgend \ FIXME DELETE ME
       parseBlockCommentEnd      \ End of block comment?
       parseCommentEnd           \ End of ordinary comment?
       nextWithinComment         \ Already within any kind of commnt?
