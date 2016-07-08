@@ -10,8 +10,8 @@ for the Freeputer Virtual Machine
 Copyright © Robert Gollagher 2015
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20150516
-Updated:    20160707:2316
-Version:    1.0.0.2 for FVM 1.0
+Updated:    20160708:1414
+Version:    1.0.0.3 for FVM 1.0
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,6 +25,41 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Note regarding 'flc.fl' 1.0.0.3
+===============================
+
+In addition to the changes noted below, this version increases the
+maximum number of word declarations from 500 to 600 and the maximum
+number of label declarations from 1000 to 1200. This serves as an example
+of how you can increase the capacity of the compiler.
+
+Please note:
+
+1. Larger increases would probably also require you to increase other
+   settings as noted in the CONFIGURATION section below. Furthermore, you
+   might have to run the compiler in a larger FVM instance if you
+   wish to make larger increases to the compiler capacity.
+
+2. If you need to compile really large programs you can either do as
+   noted in point 1. above or you can simply use 'flx.rb' instead.
+
+   However, you should be aware that there can be slight differences
+   between the compiled binary Freeputer programs produced by
+   the 'flc.fl' and 'flx.rb' Freelang compilers. Many of these are
+   noted in the 'flx.rb' source code. In addition please note that
+   you should never use a semicolon except to end a word definition;
+   you should not immediately precede a semicolon by ret since
+   the compiler automatically inserts a ret where it sees
+   a semicolon; you should never use strings longer than 80 characters;
+   you should never enclose a core word in braces such as {dsn?}
+   since such a reference is only intended for words declared in your
+   source code and not for the core words of the FVM instruction set.
+   Failure to follow these best practices may result in your
+   Freelang program only compiling with 'flx.rb' but not with 'flc.fl'
+   or may result in the two compilers producing slightly different
+   complied binary Freeputer programs. This advice is for Freeputer 1.0.
+   Future versions of Freeputer might eliminate these differences.
 
 Note regarding 'flc.fl' 1.0.0.2
 ===============================
@@ -85,7 +120,7 @@ slotFloor 16777216 \ Lowest RAM address to be used by compiled compiler.
 \ ============================================================================
 flc{
 
-  VERSION$ ." flc.fl compiler version 1.0.0.2 for FVM 1.0 "
+  VERSION$ ." flc.fl compiler version 1.0.0.3 for FVM 1.0 "
 
   init compile info finish quit \ Algorithm
 
@@ -205,9 +240,9 @@ flc{
     \ NOTE: The capacities below are arbitrary. You may change them here to
     \ whatever you need providing they fit in ptab{##tablespace}.
     ptab{init}                            \ Begin ptab initialization
-    500 5000 ptab{initWords}              \ Init words table space
+    600 5000 ptab{initWords}              \ Init words table space
       {..FALSE} go== :fail
-    1000 2000 ptab{initLabels}            \ Init labels table space
+    1200 2000 ptab{initLabels}            \ Init labels table space
       {..FALSE} go== :fail
     300 2000 ptab{initSlots}              \ Init slots table space
       {..FALSE} go== :fail
