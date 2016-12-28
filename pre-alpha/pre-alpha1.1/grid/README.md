@@ -38,13 +38,13 @@ The optional characteristics of the standard grid are:
 
 Wherever reasonably possible, you should aim to make your programs usable even when a standard grid does not support these optional characteristics. That is, when 'zero commands' for changing the current foreground and background colours have no effect and/or when the grid can only display 7-bit ASCII or only a small subset of Unicode characters. For most programs these optional characteristics should be seen as enhancements rather than as mandatory requirements for usability. There are obvious exceptions to this rule, such as when language requirements demand extensive Unicode support or when colour is an essential part of an application. When a highly sophisticated user interface is needed it may be better to use the standard grid for control purposes and render an additional second user interface using technology more sophisticated than that of the simple, portable standard grid.
 
-## Non-standard grids
+## Non-standard Grids
 
 The most common form of non-standard grid is that which is in every way the same as a standard grid except that its logical size is smaller or larger, up to a convenient maximum of 255 columns by 255 rows (65025 cells).
 
 The standard grid of 40 columns by 15 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.
 
-For Freeputer, it is strongly recommended that if you are going to write programs to use non-standard grids, those programs should also be usable on a standard grid.
+For Freeputer, it is strongly recommended that programs written for non-standard grids should also be usable on a standard grid.
 
 ## Beyond Freeputer
 
@@ -58,7 +58,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 28 December 2016.  
-This document was last updated on 28 December 2016 at 00:01.  
+This document was last updated on 28 December 2016 at 11:17.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 The official Freeputer website is [freeputer.net](http://www.freeputer.net).
