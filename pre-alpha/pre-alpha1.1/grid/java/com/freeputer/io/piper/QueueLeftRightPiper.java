@@ -7,13 +7,12 @@ License: GNU General Public License Version 3 or any later version
 Author : Robert Gollagher  robert.gollagher@freeputer.net
 Created: 20161228
 Updated: 20161228
-Version: pre-alpha-0.0.0.1
+Version: pre-alpha-0.0.0.2
 
 =========================================================================== */
 
 package com.freeputer.io.piper;
 
-import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -22,7 +21,7 @@ public class QueueLeftRightPiper implements LeftRightPiper {
   private final Piper leftPiper;
   private final Piper rightPiper;
 
-  public QueueLeftRightPiper() throws IOException {
+  public QueueLeftRightPiper() {
     LinkedBlockingQueue<Byte> leftToRight = 
         new LinkedBlockingQueue<Byte>(1024);
     LinkedBlockingQueue<Byte> rightToLeft =
@@ -47,7 +46,7 @@ public class QueueLeftRightPiper implements LeftRightPiper {
     private final BlockingQueue<Byte> receiver;
 
     public QueuePiper(LinkedBlockingQueue<Byte> sender,
-        LinkedBlockingQueue<Byte> receiver) throws IOException {
+        LinkedBlockingQueue<Byte> receiver) {
       this.sender = sender;
       this.receiver = receiver;
     }
