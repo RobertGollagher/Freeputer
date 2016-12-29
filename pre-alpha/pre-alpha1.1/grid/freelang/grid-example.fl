@@ -1,0 +1,485 @@
+(
+
+Copyright © 2016, Robert Gollagher.
+SPDX-License-Identifier: GPL-3.0+
+
+License: GNU General Public License Version 3 or any later version
+Program: grid-example.fl, an example of how to drive a standard grid
+Author : Robert Gollagher  robert.gollagher@freeputer.net
+Created: 20161228
+Updated: 20161230-0131
+Version: pre-alpha-0.0.0.1
+
+WARNING: THIS IS PRE-ALPHA SOFTWARE. It is inherently experimental
+in nature, is likely to greatly change before alpha release or to never
+make it to alpha release, and may well be incomplete, unstable and
+unreliable. That is, it is considered to be suitable only for
+experimentation and nothing more.
+
+===========================================================================
+
+This is a quick example of how to drive a Freeputer standard grid,
+which is the recommended default TUI [textual user interface] for Freeputer.
+In this example, when the user hits the 'q' key it causes us to switch
+into command mode, from where the user can command a number of things
+such as clearing the screen [by 'j'] or navigating [by the arrow keys
+or 'w' 's' 'a' 'd'] or changing foreground colour [by '1' to '7']
+or changing background colour [by '!' to '&'] or hiding gridlines [by 'g']
+or showing gridlines [by 'G'] or hiding the cursor [by 'c'] or
+showing the cursor [by 'C'] and then switching back into input mode
+by hitting 'q' again. Note that this means to type the letter q the user
+has to hit the 'q' key twice. Most of this is just an arbitrary demo
+and not intended as the long-term way the grid will function.
+
+The basic way to plot characters on the grid is to send:
+
+1 byte for column
+1 byte for row
+1 to 4 bytes for a UTF-8 character
+
+Sending 0 0 0 causes the screen to be cleared.
+
+You can paste into the grid, including UTF-8 characters such as
+Chinese characters, and this grid-example.fl supports that. However,
+you must be careful not to paste the letter 'q' as it would cause
+this grid-example.fl program to switch into command mode rather
+than, as you would desire, displaying your pasted text.
+
+To try out this example, compile this grid-example.fl into rom.fp in
+the usual way [using flx.rb or using flc] and then place it in a directory
+containing all the usual necessary files for an FVM (std.imp, std.trc,
+std.blk and so on] and then invoke Grid.java from that directory so
+that when Grid.java instantiates an FVM instance within its JVM
+that FVM instance will use this local rom.fp containing the
+compiled grid-example.fl program.
+
+You must kill the Grid.java process with Ctrl-C to fully exit.
+Closing the grid window does not yet cause a full exit.
+
+Watch this space. Better examples and better instructions are expected
+in the first quarter of 2017. Unfortunately the author currently has to
+stop work on Freeputer for a while due to other commitments.
+
+Note: if you want to plot a multi-byte UTF-8 character to the grid from
+a Freelang program such as grid-example.fl [rather than just pasting such
+characters into the grid at runtime] then you must use flc not flx.rb
+to compile your Freelang program. This is because unfortunately there
+is currently a bug in flx.rb such that it compiles strings as UTF-32
+rather than as UTF-8, and the grid cannot understand UTF-32.
+
+Note: there is a bug in Grid.java causing incorrect cursor positioning when
+gridlines are not visible. This will be fixed in due course. There is also
+another bug with text position becoming incorrect after pasting wide
+characters into the grid. This bug will be fixed in due course by reinstating
+the wide and narrow modes of grid operation that were recently
+deleted from Grid.java, which deletion caused this bug.
+
+=========================================================================== )
+
+slotFloor 16384
+cs{Init}
+cs{xAct}
+halt
+
+ cs{
+
+cSP. 32
+COLS. 40 col# 4
+ROWS. 15 row# 4
+INP. 0 CMD. 1 CMD2. 2 mode# 4
+vcsr# 4
+vgrid# 4
+chr# 4
+wide# 4
+
+: Init ( -- ) Home Inp xCurs 0 setWide
+ ( xNoGrid ) ;
+
+: xAct ( -- ) \ Interact with user
+ loop:
+getVcsr go==0 :noCsr
+xCurs
+ noCsr:
+ximp{readChar}
+utf8{..EMPTY} go[==] :error
+utf8{..INVALID} go[==] :error
+
+ getMode go>0 :cmd
+'q' go[==] :toCmd
+8 go[==] :bkspc
+10 go[==] :cr
+13 go[==] :cr
+127 go[==] :del
+xAdd go :loop
+ fail: ret
+ del: drop xRub Forw go ::xAct
+ bkspc: drop Back xRub go ::xAct
+ cr: drop Down HomeCol go ::xAct
+ toCmd: drop Cmd go ::xAct
+ error: halt
+
+ cmd:
+'q' go[==] :q
+..CMD2 setMode
+'c' go[==] :c
+'C' go[==] :C
+'g' go[==] :g
+'G' go[==] :G
+'n' go[==] :narrow
+'m' go[==] :wide
+'w' go[==] :up
+'s' go[==] :down
+'a' go[==] :left
+'d' go[==] :right
+'j' go[==] :clear
+'0' go[==] :black
+'1' go[==] :red
+'2' go[==] :green
+'3' go[==] :yellow
+'4' go[==] :blue
+'5' go[==] :magenta
+'6' go[==] :cyan
+'7' go[==] :grey
+')' go[==] :bblack
+'!' go[==] :bred
+'@' go[==] :bgreen
+'#' go[==] :byellow
+'$' go[==] :bblue
+'%' go[==] :bmagenta
+'^' go[==] :bcyan
+'&' go[==] :bgrey
+
+( xBadCmd ) drop go ::xAct
+ up: drop Up go ::xAct
+ down: drop Down go ::xAct
+ left: drop getWide go==0 :nrwl
+Left nrwl: Left go ::xAct
+ right: drop getWide go==0 :nrwr
+Right nrwr: Right go ::xAct
+ clear: drop xCls go ::xAct
+ c: drop xNoCurs go ::xAct
+ C: drop xCurs go ::xAct
+ g: drop xNoGrid go ::xAct
+ G: drop xGrid go ::xAct
+ wide: drop xWide go ::xAct
+ narrow: drop xNarrow go ::xAct
+ black: xBlack go ::xAct
+ red: xRed go ::xAct
+ green: xGreen go ::xAct
+ yellow: xYellow go ::xAct
+ blue: xBlue go ::xAct
+ magenta: xMagenta go ::xAct
+ cyan: xCyan go ::xAct
+ grey: xGrey go ::xAct
+ bblack: xBblack go ::xAct
+ bred: xBred go ::xAct
+ bgreen: xBgreen go ::xAct
+ byellow: xByellow go ::xAct
+ bblue: xBblue go ::xAct
+ bmagenta: xBmagenta go ::xAct
+ bcyan: xBcyan go ::xAct
+ bgrey: xBgrey go ::xAct
+
+ q: getMode ..CMD2 go== :toInp
+ xAdd Inp go ::xAct
+ toInp: drop Inp go ::xAct
+;
+
+: xBlack ( ) 0 xColor ;
+: xRed ( ) 1 xColor ;
+: xGreen ( ) 2 xColor ;
+: xYellow ( ) 3 xColor ;
+: xBlue ( ) 4 xColor ;
+: xMagenta ( ) 5 xColor ;
+: xCyan ( ) 6 xColor ;
+: xGrey ( ) 7 xColor ;
+: xBblack ( ) 0 xBColor ;
+: xBred ( ) 1 xBColor ;
+: xBgreen ( ) 2 xBColor ;
+: xByellow ( ) 3 xBColor ;
+: xBblue ( ) 4 xBColor ;
+: xBmagenta ( ) 5 xBColor ;
+: xBcyan ( ) 6 xBColor ;
+: xBgrey ( ) 7 xBColor ;
+
+: xColor ( n -- ) 1 0 xWrb3 ;
+: xBColor ( n -- ) 2 0 xWrb3 ;
+: getChr ( -- c ) ##chr @ ;
+: setChr ( c -- ) ##chr ! ;
+: getVgrid ( ) ##vgrid @ ;
+: setVgrid ( ) ##vgrid ! ;
+: xGrid ( ) 1 setVgrid 5 0 0 xWrb3 ;
+: xNoGrid ( ) 0 setVgrid 4 0 0 xWrb3 ;
+: getVcsr ( ) ##vcsr @ ;
+: setVcsr ( ) ##vcsr ! ;
+: xCurs ( ) 1 setVcsr 1 xShow ;
+: xNoCurs ( ) 0 setVcsr 1 0 0 xWrb3 ;
+: xBadCmd ( ) drop 'X' xAdd ;
+: Inp ( ) ..INP setMode ;
+: Cmd ( ) ..CMD setMode ;
+: Cmd2 ( ) ..CMD2 setMode ;
+: getMode ( ) ##mode @ ;
+: setMode ( ) ##mode ! ;
+: xA ( ) 'A' xAdd ;
+: xB ( ) 'B' xAdd ;
+: xPr ( s -- )
+[@] ::xStrc swap times drop ;
+: xPrn ( s -- ) xPr Nl ;
+: xStrc incw [@b] xAdd ;
+: xRub ( -- ) ..cSP xShow ;
+: xSpc ( -- ) ..cSP xAdd ;
+: getWide ( -- n ) ##wide @ ;
+: setWide ( n -- ) ##wide ! ;
+: getRow ( -- n ) ##row @ ;
+: setRow ( n -- ) ##row ! ;
+: getCol ( -- n ) ##col @ ;
+: setCol ( n -- ) ##col ! ;
+: getLoc ( -- n n ) getRow getCol ;
+: setLoc ( n n -- ) setRow setCol ;
+: xLoc ( ) getLoc xWrb2 ;
+: xAdd ( c -- ) xShow Forw ;
+\ : xShow ( c -- ) getLoc xWrb3 ;
+
+\ For UTF-8
+: xShow ( c -- ) setChr getLoc xWrb2 ##chr 4 exp{export} ;
+
+: xWrb ( b -- ) writorb :a a: ;
+: xWrb2 ( b b -- ) xWrb xWrb ;
+: xWrb3 ( b b b -- ) xWrb xWrb xWrb ;
+: xCls ( -- ) xClr Home ;
+: xClr ( -- ) 0 0 0 xWrb3 ;
+: xWide ( -- ) 1 setWide 2 0 0 xWrb3 ;
+: xNarrow ( -- ) 0 setWide 3 0 0 xWrb3 ;
+: HomeRow ( -- ) 1 ##row ! ;
+: HomeCol ( -- ) 1 ##col ! ;
+: Home ( -- ) HomeRow HomeCol ;
+: Nl ( -- ) Down HomeRow ;
+: Down nxtRow setRow ;
+: Up prvRow setRow ;
+: Right nxtCol setCol ;
+: Left prvCol setCol ;
+
+: Forw getWide go==0 :nrw Forw1 nrw: Forw1 ;
+: Back getWide go==0 :nrw Back1 nrw: Back1 ;
+
+: Forw1 Right getCol 1 go!= :a Down a: ;
+: Back1 Left getCol ..COLS go< :a Up a: ;
+
+: nxtCol ( -- n ) ..COLS ##col nxtSeq ;
+: nxtRow ( -- n ) ..ROWS ##row nxtSeq ;
+: prvCol ( -- n ) ..COLS ##col prvSeq ;
+: prvRow ( -- n ) ..ROWS ##row prvSeq ;
+: nxtSeq ( max # -- n ) @ swap % inc ;
+: prvSeq ( max # -- n )
+@ dec go[<=0] :a nip ret a: drop ;
+
+\ Send single UTF-8 character
+\ (wont work with >1 char in string)
+: xUTF8 ( s -- )
+xLoc
+    [@] 4 * swap incw swap 
+    writing:
+      go[<=0] :end
+        dec swap tron [@b] troff
+          go[==0] :skip
+            tron xWrb troff
+            go :next
+        skip:
+          drop
+        next:
+          inc swap
+          go :writing
+    end:
+      drop2
+Forw
+;
+
+: times ( f n -- ) a: go[<=0] :b
+spush dup spush invoke spop spop
+dec go :a b: drop2 ;
+
+  }cs
+
+
+\ ============================================================================
+\                              UTF-8 LIBRARY
+\
+\     The use of this library ensures there is no tight coupling
+\   between the editor and the use of UTF-8 character encoding by
+\   its input devices.
+\
+\ ============================================================================
+utf8{
+  \ WARNING: These values are arbitrary and might be changed in future.
+  \          Therefore reference the constant NAMES not the values!
+  EMPTY. -1 INVALID. -2
+
+\  _EOS. 5 \ Apparent character returned by Linux
+
+  \ Read between 1 and 4 bytes until either:
+  \ (a) a valid UTF-8 character is decoded and returned; or
+  \ (b) an I/O error occurs [or hit end of stream] so .EMPTY is returned; or
+  \ (c) an invalid byte is encountered so .INVALID is returned.
+  \ The supplied function f must read 1 byte from the desired
+  \   stream device or return NO_VALUE if for any reason it cannot read
+  \   [see imp{readb} for an example of a suitable such function].
+  \ WARNING: be sure the function f does exactly the above and nothing else!
+  \             It will be invoked multiple times!
+  \ WARNING: only mimimal validity checking of bytes read is done, so
+  \   if the input is not valid UTF-8 the result may be garbage.
+  \ MIN32BIT: Will not work if Freeputer word size is smaller than 32 bits
+  \   [which should never be the case but noted here as a courtesy]
+  \ NOTE: This is an example of functional programming in Freelang
+  : read ( f -- c )
+    dup invoke {..NO_VALUE} go[==] :fail    \ Read 1st byte of char
+      isUTF8single? {..TRUE} go== :single
+      isUTF8double? {..TRUE} go== :double
+      isUTF8triple? {..TRUE} go== :triple
+      isUTF8quad? {..TRUE} go== :quad
+      drop2 go :invalid \ Hit bad 1st byte of char
+      quad:   \ byte is the first of a 4-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 4th byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 24 << |
+      go :success
+      triple: \ byte is the first of a 3-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 3rd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte 16 << |
+      go :success
+      double: \ byte is the first of a 2-byte UTF-8 char
+        over invoke {..NO_VALUE} go[==] :fail    \ Read 2nd byte of char
+          isUTF8subseq? {..FALSE} go== :badByte  8 << |
+      go :success
+      single: go :success \ byte is a 1-byte UTF=8 char
+      badByte: drop2 go :invalid \ Hit bad 2nd, 3rd or 4th byte of char
+    fail: drop2 ..EMPTY ret \ I/O error or end of stream [nothing to read]
+    invalid: ..INVALID ret \ Invalid char
+    success: nip \ Discard f and return c
+  ;
+
+  \ The binary values used for parsing UTF-8 are shown commented out below.
+  \ As the self-hosted compiler only supports decimal literals in source code
+  \ [not binary or hexadecimal ones] these have for now been converted
+  \ into decimal equivalents below. TODO Support binary and hex literals.
+(
+  _UTF8_single_mask. 0b10000000
+  _UTF8_2x_byte_mask. 0b11100000 _UTF8_2x_byte_start. 0b11000000
+  _UTF8_3x_byte_mask. 0b11110000 _UTF8_3x_byte_start. 0b11100000
+  _UTF8_4x_byte_mask. 0b11111000 _UTF8_4x_byte_start. 0b11110000
+  _UTF8_subseq_mask. 0b11000000  _UTF8_subseq_start. 0b10000000
+)
+  _UTF8_single_mask. 128
+  _UTF8_2x_byte_mask. 224 _UTF8_2x_byte_start. 192
+  _UTF8_3x_byte_mask. 240 _UTF8_3x_byte_start. 224
+  _UTF8_4x_byte_mask. 248 _UTF8_4x_byte_start. 240
+  _UTF8_subseq_mask. 192  _UTF8_subseq_start. 128
+
+
+  \ Returns TRUE. if byte b has the correct format to be a single-byte
+  \ character in UTF-8, otherwise FALSE.
+  : isUTF8single? ( b -- b B )
+    dup .._UTF8_single_mask & go==0 :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a two-byte character in UTF-8, otherwise FALSE.
+  : isUTF8double? ( b -- b B )
+    dup .._UTF8_2x_byte_mask &
+    .._UTF8_2x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a three-byte character in UTF-8, otherwise FALSE.
+  : isUTF8triple? ( b -- b B )
+    dup .._UTF8_3x_byte_mask &
+    .._UTF8_3x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the first byte
+  \ of a four-byte character in UTF-8, otherwise FALSE.
+  : isUTF8quad? ( b -- b B )
+    dup .._UTF8_4x_byte_mask &
+    .._UTF8_4x_byte_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+  \ Returns TRUE. if byte b has the correct format to be the second or
+  \ subseqent byte of a multibyte UTF-8 character, otherwise FALSE.
+  : isUTF8subseq? ( b -- b B )
+    dup .._UTF8_subseq_mask &
+    .._UTF8_subseq_start go== :yes {..FALSE} ret yes: {..TRUE}
+  ;
+
+}utf8
+
+\ ============================================================================
+\                              IMPORT DEVICE
+\
+\     The use of this import device ensures there is no tight coupling
+\   between the editor and the device used for import.
+\
+\ ============================================================================
+ximp{
+
+  \ Returns a character assuming UTF-8 encoding
+  \  or utf8{..EMPTY} or utf8{..INVALID} [see utf8{read} for details]
+  : readChar ( -- c ) ::readb utf8{read} ;
+
+  \ Attempt to read a single byte and return that byte if the read
+  \ succeeded otherwise return {..NO_VALUE}.
+  : readb ( -- b/NO_VALUE )
+    readorb :readFailed ret
+    readFailed:
+      {..NO_VALUE}
+  ;
+
+}ximp
+
+\ ============================================================================
+\                              EXPORT DEVICE
+\
+\     The use of this export device ensures there is no tight coupling
+\   between the editor and the device used for export.
+\
+\ ============================================================================
+exp{
+
+  cNEWLINE. 10
+
+  \ Export z bytes starting at address a in system memory,
+  \   writing them out to the std.exp export device, but do not export
+  \   (that is, skip) any byte having a value of 0. This means of
+  \   export is intended to crudely preserve whatever character encoding
+  \   happened to have been used during text input by the user.
+  : export ( a z -- )
+    exporting:                \ ( a z )
+      go[<=0] :end            \ ( a z )
+        dec swap [@b]         \ ( z- a b )
+          go[==0] :skip       \ ( z- a b )
+            writorb ::wfail   \ ( z- a )
+            go :next          \ ( z- a )
+        skip:                 \ ( z- a b )
+          drop                \ ( z- a )
+        next:                 \ ( z- a )
+          inc swap            \ ( a+ z- )
+          go :exporting       \ ( a+ z- )
+    end:                      \ ( a z )
+      drop2                   \ ( )
+  ;
+
+  \ Traps
+  wfail: quit
+
+  \ Halt
+  : quit ( -- ) halt ;
+
+}exp
+\ ============================================================================
+
+FALSE. 0 TRUE. 1 NO_VALUE. -1 SUCCESS. 0 FAILURE. 1 PARTIAL. 2
+
+
