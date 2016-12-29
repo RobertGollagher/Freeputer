@@ -1,12 +1,14 @@
 /*
                         FREEPUTER VIRTUAL MACHINE
 
+Copyright © 2016, Robert Gollagher.
+SPDX-License-Identifier: GPL-3.0+
+
 Program:    FVM.java
-Copyright © Robert Gollagher 2015
-Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1219
-Version:    pre-alpha-0.1.1.0 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1225
+Version:    pre-alpha-0.1.1.1 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -61,18 +63,6 @@ memory allocated to your JRE depending on how many FVM instances you wish
 to instantiate and how much system memory each FVM instance uses.
 For example, increase JRE heap size with -Xms and -Xmx.
 See http://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html
-
-PLATFORMS: This 'FVM.java' code is known to run on the following platforms.
-It should also run on numerous devices that support Java 6 or higher.
-
-  (1) Java 6 (OpenJDK) on 32-bit x86 Linux (Debian 7.8)
-      running on Intel i5 CPU (typical desktop computer)
-  (2) Java 8 (Oracle)  on 32-bit x86 Linux (Debian 7.8)
-      running on Intel i5 CPU (typical desktop computer)
-  (3) Java 8 (Oracle)  on 32-bit ARM Linux (Raspbian GNU/Linux 7)
-      running on ARM11 CPU (Raspberry Pi Rev2 Model B, 512MB RAM)
-  (4) Java 8 (Oracle)  on 64-bit Windows 8
-      running on Microsoft Surface Pro 3 (tablet)
 
 =========================================================================== */
 
