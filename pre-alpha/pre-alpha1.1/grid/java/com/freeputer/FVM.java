@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1234
-Version:    pre-alpha-0.1.1.2 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1237+
+Version:    pre-alpha-0.1.1.3 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -68,11 +68,11 @@ See http://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html
 
 package com.freeputer;
 
+import com.freeputer.io.piper.Piper;
+import com.freeputer.io.piper.StreamPiper;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -307,7 +307,26 @@ public class FVM implements Runnable {
   public FVM() {
     this(0x4000, 0x4000, null, false, false);
   }
-  
+
+  /**
+   * Constructs a small unidentified FVM instance with no stdblk capacity
+   * and using the specified Piper to connect stdinStream and stdoutStream.
+   * 
+   * @param inoutPiper
+   *            the Piper to be used to connect stdinStream and stdoutStream;
+   *            if null, stdin and stdout will be used via a StreamPiper
+   *
+   * <pre>
+   * Constructs a small VM instance having:
+   *   16 kB RAM, 16 kB ROM, 0-sized stdblk, no memory-mapped devices.
+   * Typically designated as:
+   *   fvm16_0kB
+   * </pre>
+   */
+  public FVM(Piper inoutPiper) { // TODO inoutPiper for other constructors
+    this(0x4000, 0x4000, null, false, false, inoutPiper);
+  }
+
   /**
    * Constructs a small identified FVM instance with no stdblk capacity.
    *
@@ -390,11 +409,48 @@ public class FVM implements Runnable {
   public FVM(int arbitraryMemorySize, int stdblkSize, Integer fvmID,
       boolean appendStdtrc, boolean softResetOnTrap)
       throws IllegalArgumentException {
+    this(arbitraryMemorySize, stdblkSize, fvmID, appendStdtrc,
+        softResetOnTrap, null);
+  }
+  /**
+   * Constructs an FVM instance with the specified sizing and configuration
+   * and having no memory-mapped devices.
+   *
+   * @param arbitraryMemorySize
+   *            size of ROM in bytes and size of RAM in bytes
+   * @param stdblkSize
+   *            size of stdblk in bytes (the 'std.blk' file)
+   * @param fvmID
+   *            the ID for this FVM instance (or null if unidentified)
+   * @param appendStdtrc
+   *            if true, stdtrc will append not truncate upon FVM restart
+   * @param softResetOnTrap
+   *            if true, the FVM will soft reset instead of halt upon a trap
+   * @param inoutPiper
+   *            the Piper to be used to connect stdinStream and stdoutStream;
+   *            if null, stdin and stdout will be used via a StreamPiper
+   * @throws IllegalArgumentException
+   *            if arbitraryMemorySize is 0 or not a power of 2 or not an even multiple of word size;
+   *            if stdblk size is not either 0 or a power of 2 and an even multiple of word size.
+   */
+  public FVM(int arbitraryMemorySize, int stdblkSize, Integer fvmID,
+      boolean appendStdtrc, boolean softResetOnTrap, Piper inoutPiper)
+      throws IllegalArgumentException {
 
     this.fvmID = fvmID;
     this.appendStdtrc = appendStdtrc;
     this.softResetOnTrap = softResetOnTrap;
-    
+
+    if (inoutPiper == null) {
+      try {
+        this.inoutPiper = new StreamPiper(System.in, System.out);
+      } catch (IOException e) {
+        // FIXME IllegalStateException would be better here and add to Javadoc
+        throw new IllegalArgumentException(e); 
+      }
+    } else {
+      this.inoutPiper = inoutPiper;
+    }
 
     // To conform to the conventions of the reference implementation
     // the values of ARBITRARY_MEMORY_SIZE and STDBLK_SIZE *should* be
@@ -416,7 +472,7 @@ public class FVM implements Runnable {
     	      throw new IllegalArgumentException(
     	         "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");
     	}
-    } // --------------------------------------------------------------------- 
+    } // ---------------------------------------------------------------------
 
     // Validate specified stdblkSize: ----------------------------------------
     if (stdblkSize == 0) { // FIXME test and refactor this
@@ -562,8 +618,9 @@ public class FVM implements Runnable {
   private FileChannel stdimpChannel; // File handle for stdimp file
 
   // Java version declares these explicitly
-  private InputStream stdinStream; // File handle for stdinp file
-  private OutputStream stdoutStream; // File handle for stdout file
+  private Piper inoutPiper;
+	private Piper stdinStream; // Piper representing stdin
+	private Piper stdoutStream; // Piper representing stdout
 
   private int rsp; // Return stack pointer
   private int rsStop = MAX_DEPTH_RS; // rs index that bookends its start
@@ -1695,22 +1752,22 @@ public class FVM implements Runnable {
 
   /* Open stdin */
   private final void openStdin() {
-    stdinStream = System.in;
+    stdinStream = inoutPiper;
   }
 
   /* Close stdin */
   private final void closeStdin() {
-    // nothing to do here unless stdinStream is not System.in
+    stdinStream.close();
   }
 
   /* Open stdin */
   private final void openStdout() {
-    stdoutStream = System.out;
+    stdoutStream = inoutPiper;
   }
 
   /* Close stdin */
   private final void closeStdout() {
-    // nothing to do here unless stdoutStream is not System.out
+    stdoutStream.close();
   }
 
   // =========================================================================
@@ -2015,10 +2072,17 @@ public class FVM implements Runnable {
     switch (rchannel) {
     case STDIN:
       try {
-        if (stdinStream.read(readBuf.array()) == -1) {
-          branch(); // end of stream
-          return;
-        }
+//        if (stdinStream.read(readBuf.array()) == -1) {
+//          branch(); // end of stream
+//          return;
+//        }
+
+
+        // FIXME: this is wrong, it's an implementation of readorb not reador.
+        // Also, a check for error needs to be added and branch upon error.
+    	  readBuf.putInt(0, (byte)stdinStream.receive());
+
+
         rA = readBuf.getInt(0);
         pushDs();
         dontBranch();
@@ -2052,12 +2116,20 @@ public class FVM implements Runnable {
     readbBuf.clear(); // reset the buffer
     switch (rchannel) {
     case STDIN:
+
+
+        // FIXME: a check for error needs to be added and branch upon error.
+      	readbBuf.put(0, (byte)stdinStream.receive());
+        rA = readbBuf.get(0);
+        rA = rA & 0x000000ff; // FIXME this is an inelegant workaround
+
+
       try {
-        rA = stdinStream.read(); // Always gives 0 to 255 (or -1 if EOS)
-        if (rA == -1) {
-          branch(); // end of stream
-          return;
-        }
+//        rA = stdinStream.read(); // Always gives 0 to 255 (or -1 if EOS)
+//        if (rA == -1) {
+//          branch(); // end of stream
+//          return;
+//        }
         pushDs();
         dontBranch();
         return;
@@ -2092,7 +2164,18 @@ public class FVM implements Runnable {
       writeBuf.clear(); // Reset the buf
       writeBuf.putInt(0, rA);
       try {
-        stdoutStream.write(writeBuf.array());
+//        stdoutStream.write(writeBuf.array());
+
+
+        // FIXME: a check for error needs to be added and branch upon error.
+        // Also, check that byte order is correct here.
+        byte[] bytes = writeBuf.array();
+    	  stdoutStream.send(bytes[0]);
+    	  stdoutStream.send(bytes[1]);
+    	  stdoutStream.send(bytes[2]);
+    	  stdoutStream.send(bytes[3]);
+
+
       } catch (Exception e) {
         branch(); // write failed
         return;
@@ -2124,7 +2207,14 @@ public class FVM implements Runnable {
       writebBuf.clear(); // Reset the buf
       writebBuf.put(0, (byte) rA); // Value to be written is now in writeBuf
       try {
-        stdoutStream.write(writebBuf.array());
+//        stdoutStream.write(writebBuf.array());
+
+
+        // FIXME: a check for error needs to be added and branch upon error.
+        // Also, check that we are correctly sending byte not int here.
+        stdoutStream.send(writebBuf.get(0));
+
+
       } catch (Exception e) {
         branch(); // write failed
         return;
@@ -4647,6 +4737,8 @@ public class FVM implements Runnable {
   public static void main(String[] args) {
 
   // Uncomment only 1 of the next 4 lines
+  //   (Note: optionally a Piper can be passed into the constructor
+  //         to communicate by means other than System.in and System.out)
   // FVM fvm = FVM.getFvmtestInstance();           // For running fvmtest suite
   // FVM fvm = new FVM(0x01000000,0);              // For fvm16_0MB
   // FVM fvm = new FVM(0x01000000,0x01000000);     // For fvm16_16MB
