@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1334
-Version:    pre-alpha-0.1.1.5 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1350
+Version:    pre-alpha-0.1.1.7 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -308,11 +308,7 @@ public class FVM implements Runnable {
 
   /**
    * Constructs a small unidentified FVM instance with no stdblk capacity
-   * and using the specified Piper to connect stdinStream and stdoutStream.
-   * 
-   * @param inoutPiper
-   *            the Piper to be used to connect stdinStream and stdoutStream;
-   *            if null, stdin and stdout will be used via a StreamPiper
+   * and using the specified Piper to act as stdin and stdout.
    *
    * <pre>
    * Constructs a small VM instance having:
@@ -320,6 +316,10 @@ public class FVM implements Runnable {
    * Typically designated as:
    *   fvm16_0kB
    * </pre>
+   *
+   * @param inoutPiper
+   *            the Piper to be used to act as stdin and stdout;
+   *            if null, stdin and stdout will be used via a StreamPiper
    */
   public FVM(Piper inoutPiper) { // TODO inoutPiper for other constructors
     this(0x4000, 0x4000, null, false, false, inoutPiper);
@@ -425,7 +425,7 @@ public class FVM implements Runnable {
    * @param softResetOnTrap
    *            if true, the FVM will soft reset instead of halt upon a trap
    * @param inoutPiper
-   *            the Piper to be used to connect stdinStream and stdoutStream;
+   *            the Piper to be used to act as stdin and stdout;
    *            if null, stdin and stdout will be used via a StreamPiper
    * @throws IllegalArgumentException
    *            if arbitraryMemorySize is 0 or not a power of 2 or not an even multiple of word size;
