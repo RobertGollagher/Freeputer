@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1225
-Version:    pre-alpha-0.1.1.1 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1234
+Version:    pre-alpha-0.1.1.2 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -83,14 +83,14 @@ import java.nio.channels.FileChannel;
  * <p>
  * Class <code>FVM</code> implements the Freeputer Virtual Machine 1.0.
  * </p>
- * 
+ *
  * <h2>WARNING</h2>
  * <p>
  * This is alpha software (see source code for details).
  * </p>
- * 
+ *
  * <h2>INTRODUCTION</h2>
- * 
+ *
  * <p>
  * The Freeputer Virtual Machine (FVM) is primarily intended to be
  * implemented in assembly language. It is not hard to do so; indeed it is
@@ -100,14 +100,14 @@ import java.nio.channels.FileChannel;
  * of the FVM 1.0 is written in x86 assembly language for 32-bit Linux.
  * See 'dev/fvm/x86/src/fvm.s'. It is stable betaware.
  * </p>
- * 
+ *
  * <p>
  * There is now also a portable C implementation of the FVM 1.0.
  * See 'dev/fvm/c/src/fvm.c'. It is a little larger and somewhat slower than the
  * reference implementation but is portable and should run on most
  * devices that gcc can target. It is alpha software.
  * </p>
- * 
+ *
  * <p>
  * A Java FVM implementation should <i>not</i> be your first resort. This Java
  * implementation is about 5 times slower than the reference implementation
@@ -118,16 +118,16 @@ import java.nio.channels.FileChannel;
  * software modules in a larger Java application (rather than
  * communicating with them remotely as distributed services).
  * </p>
- * 
+ *
  * <p>
  * Before using this Java FVM implementation you should read the
  * 'README.html' file in the Freeputer project root directory for a comprehesive
  * introduction to the Freeputer platform. You should do the Quick Start
  * tutorial therein using the reference implementation.
  * </p>
- * 
+ *
  * <h2>USAGE IN JAVA</h2>
- * 
+ *
  * <p>
  * The examples below show a few of the many ways that FVM instances
  * can be created and run. They correspond to
@@ -141,11 +141,11 @@ import java.nio.channels.FileChannel;
  * by adding your own constructor and/or slightly modifying the
  * "SYSTEM RESET" section of this class.
  * </p>
- * 
+ *
  * <h3>To create an FVM instance:</h3>
  *
  * <pre><code>
- * // Create a small FVM with 16 kB ROM, 16 kB RAM and a zero-sized stdblk 
+ * // Create a small FVM with 16 kB ROM, 16 kB RAM and a zero-sized stdblk
  * FVM fvm16_0kB = new FVM();
  *
  * // Create an FVM with 16 MB ROM, 16 MB RAM and a zero-sized stdblk
@@ -160,7 +160,7 @@ import java.nio.channels.FileChannel;
  * // rather than halt when a trap occurs.
  * FVM fvm16_16MB-sr-append = FVM.getFvmtestInstance();
  * </code></pre>
- * 
+ *
  * <h3>To run FVM instances synchronously:</h3>
  *
  * <pre><code>
@@ -173,21 +173,21 @@ import java.nio.channels.FileChannel;
  * // Run them sequentially:
  * fvm1.run();
  * fvm1.getSystemExitCode(); // 0 indicates success
- * 
+ *
  * fvm2.run();
  * fvm2.getSystemExitCode(); // 0 indicates success
- * 
+ *
  * fvm3.run();
  * fvm3.getSystemExitCode(); // 0 indicates success
- * 
+ *
  * fvm4.run();
  * fvm4.getSystemExitCode(); // 0 indicates success
  * </code></pre>
- * 
+ *
  * <p>
  * <b>Important:</b>
  * For the runs to succeed the following local files must exist:</p>
- * 
+ *
  * <pre><code>
  * rom.fp1   rom.fp2    rom.fp3    rom.fp4
  * std.blk1  std.blk2   std.blk3   std.blk4
@@ -200,7 +200,7 @@ import java.nio.channels.FileChannel;
  * 'std.imp' file represents a standard import device (here an empty file).
  * See <b>DEPLOYMENT</b> below.
  * </p>
- * 
+ *
  * <h3>To run FVM instances asynchronously:</h3>
  *
  * <pre><code>
@@ -209,7 +209,7 @@ import java.nio.channels.FileChannel;
  * FVM fvm2 = new FVM(2);
  * FVM fvm3 = new FVM(3);
  * FVM fvm4 = new FVM(4);
- * 
+ *
  * // Run them concurrently:
  * new Thread(fvm1).start();
  * new Thread(fvm2).start();
@@ -222,16 +222,16 @@ import java.nio.channels.FileChannel;
  * fvm3.getSystemExitCode(); // null = still running, 0 = success
  * fvm4.getSystemExitCode(); // null = still running, 0 = success
  * </code></pre>
- * 
+ *
  * <p><b>Important note:</b>
  * This FVM implementation simply uses <code>System.in</code>
  * and <code>System.out</code> for Freeputer stdin and stdout. This is
  * <i>not appropriate</i> for running co-located FVM instances concurrently
  * <i>unless</i> you intend them to asynchronously share those streams.
  * </p>
- * 
+ *
  * <h2>DEPLOYMENT</h2>
- * 
+ *
  * <p>
  * To successfully run an FVM instance the following must exist:
  * </p>
@@ -253,9 +253,9 @@ import java.nio.channels.FileChannel;
  * then those files must each be suffixed accordingly (e.g.
  * 'rom.fp1', 'std.blk1' and 'std.imp1').
  * </p>
- * 
+ *
  * <h2>FURTHER INFORMATION</h2>
- * 
+ *
  * <p>
  * For further information please see:
  * </p>
@@ -265,7 +265,7 @@ import java.nio.channels.FileChannel;
  * <li>the extensive comments in the C implementation ('dev/fvm/c/src/com/freeputer/fvm.c')</li>
  * <li>the 'README.html' in the Freeputer project root directory</li>
  * </ul>
- * 
+ *
  * @author Robert Gollagher
  * @version 0.1.0.4 alpha for FVM 1.0
  *
@@ -282,12 +282,12 @@ public class FVM implements Runnable {
 
   /**
    * <p>Gets the fvmID of this FVM instance.</p>
-   * 
+   *
    * <p>Note: the fvmID is not part of the implied FVM 1.0 platform standard.
    * It is simply a convenient means by which this Java implementation
    * can instantiate multiple FVM instances and identify the system
    * resources associated with each instance.</p>
-   * 
+   *
    * @return the fvmID this FVM instance was instantiated with
    */
   public Integer getFvmID() {
@@ -317,7 +317,7 @@ public class FVM implements Runnable {
    * Typically designated as:
    *   fvm16_0kB
    * </pre>
-   * 
+   *
    * @param fvmID
    *            the ID for this FVM instance (or null if unidentified)
    */
@@ -328,7 +328,7 @@ public class FVM implements Runnable {
   /**
    * Constructs an unidentified FVM instance with the specified sizing and
    * having no memory-mapped devices.
-   * 
+   *
    * @param arbitraryMemorySize
    *            size of ROM in bytes and size of RAM in bytes
    * @param stdblkSize
@@ -344,7 +344,7 @@ public class FVM implements Runnable {
   /**
    * Constructs an FVM instance with the specified sizing and having no
    * memory-mapped devices.
-   * 
+   *
    * @param arbitraryMemorySize
    *            size of ROM in bytes and size of RAM in bytes
    * @param stdblkSize
@@ -362,7 +362,7 @@ public class FVM implements Runnable {
   /**
    * Convenience method for instantiating an FVM correctly sized and
    * configured to run the fvmtest suite.
-   * 
+   *
    * @return an FVM ready to use to run the fvmtest suite.
    */
   public static final FVM getFvmtestInstance() {
@@ -372,7 +372,7 @@ public class FVM implements Runnable {
   /**
    * Constructs an FVM instance with the specified sizing and configuration
    * and having no memory-mapped devices.
-   * 
+   *
    * @param arbitraryMemorySize
    *            size of ROM in bytes and size of RAM in bytes
    * @param stdblkSize
@@ -395,14 +395,14 @@ public class FVM implements Runnable {
     this.appendStdtrc = appendStdtrc;
     this.softResetOnTrap = softResetOnTrap;
     
-    
+
     // To conform to the conventions of the reference implementation
     // the values of ARBITRARY_MEMORY_SIZE and STDBLK_SIZE *should* be
     // powers of 2 (easy for other implementations to support)
     // and *must* be even multiples of WORD_SIZE.
     // Note: STDBLK_SIZE can also be 0.
 
-    
+
     // Validate specified arbitraryMemorySize: -------------------------------
     if (arbitraryMemorySize == 0) { // FIXME test and refactor this
     	throw new IllegalArgumentException(
@@ -414,10 +414,10 @@ public class FVM implements Runnable {
     		  // Specified arbitraryMemorySize is valid so do nothing here
     	} else {
     	      throw new IllegalArgumentException(
-    	         "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");    		
+    	         "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");
     	}
     } // --------------------------------------------------------------------- 
-    
+
     // Validate specified stdblkSize: ----------------------------------------
     if (stdblkSize == 0) { // FIXME test and refactor this
       STDBLK_SIZE = 0; // stdblk size can legally be 0
@@ -428,7 +428,7 @@ public class FVM implements Runnable {
     		  STDBLK_SIZE = stdblkSize; // Specified stdblkSize is valid
     	} else {
     	      throw new IllegalArgumentException(
-    	         "stdblkSize must be 0 or a multiple of 4 and a power of 2");    		
+    	         "stdblkSize must be 0 or a multiple of 4 and a power of 2");
     	}
     } // ---------------------------------------------------------------------
 
@@ -4237,7 +4237,7 @@ public class FVM implements Runnable {
 
   /**
    * Gets the <code>systemExitCode</code> for this FVM instance.
-   * 
+   *
    * A null <code>systemExitCode</code> indicates that the FVM instance has not yet
    * completed its run. 0 indicates success. A non-zero value indicates failure.
    * See the "TRAPS" section of this source code for those failure codes.
@@ -4254,7 +4254,7 @@ public class FVM implements Runnable {
    * FVM fvm = new FVM();
    * fvm.run();
    * </code></pre>
-   * 
+   *
    * <p>To run asynchronously use:</p>
    * <pre><code>
    * FVM fvm = new FVM();
@@ -4641,7 +4641,7 @@ public class FVM implements Runnable {
    * Modify this method to experiment with creating and running
    * more sophisticated FVM instances synchronoulsy or asynchronously.
    * </p>
-   * 
+   *
    * @param args (not used)
    */
   public static void main(String[] args) {
