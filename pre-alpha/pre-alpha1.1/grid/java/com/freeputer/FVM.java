@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1237+
-Version:    pre-alpha-0.1.1.3 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1320
+Version:    pre-alpha-0.1.1.4 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -618,9 +618,9 @@ public class FVM implements Runnable {
   private FileChannel stdimpChannel; // File handle for stdimp file
 
   // Java version declares these explicitly
-  private Piper inoutPiper;
-	private Piper stdinStream; // Piper representing stdin
-	private Piper stdoutStream; // Piper representing stdout
+  private Piper inoutPiper; // Piper used for both stdinPiper and stdoutPiper
+	private Piper stdinPiper; // Piper representing stdin (was stdinStream)
+	private Piper stdoutPiper; // Piper representing stdout (was stdoutStream)
 
   private int rsp; // Return stack pointer
   private int rsStop = MAX_DEPTH_RS; // rs index that bookends its start
@@ -1752,22 +1752,22 @@ public class FVM implements Runnable {
 
   /* Open stdin */
   private final void openStdin() {
-    stdinStream = inoutPiper;
+    stdinPiper = inoutPiper;
   }
 
   /* Close stdin */
   private final void closeStdin() {
-    stdinStream.close();
+    stdinPiper.close();
   }
 
   /* Open stdin */
   private final void openStdout() {
-    stdoutStream = inoutPiper;
+    stdoutPiper = inoutPiper;
   }
 
   /* Close stdin */
   private final void closeStdout() {
-    stdoutStream.close();
+    stdoutPiper.close();
   }
 
   // =========================================================================
@@ -2080,7 +2080,7 @@ public class FVM implements Runnable {
 
         // FIXME: this is wrong, it's an implementation of readorb not reador.
         // Also, a check for error needs to be added and branch upon error.
-    	  readBuf.putInt(0, (byte)stdinStream.receive());
+    	  readBuf.putInt(0, (byte)stdinPiper.receive());
 
 
         rA = readBuf.getInt(0);
@@ -2119,7 +2119,7 @@ public class FVM implements Runnable {
 
 
         // FIXME: a check for error needs to be added and branch upon error.
-      	readbBuf.put(0, (byte)stdinStream.receive());
+      	readbBuf.put(0, (byte)stdinPiper.receive());
         rA = readbBuf.get(0);
         rA = rA & 0x000000ff; // FIXME this is an inelegant workaround
 
@@ -2170,10 +2170,10 @@ public class FVM implements Runnable {
         // FIXME: a check for error needs to be added and branch upon error.
         // Also, check that byte order is correct here.
         byte[] bytes = writeBuf.array();
-    	  stdoutStream.send(bytes[0]);
-    	  stdoutStream.send(bytes[1]);
-    	  stdoutStream.send(bytes[2]);
-    	  stdoutStream.send(bytes[3]);
+    	  stdoutPiper.send(bytes[0]);
+    	  stdoutPiper.send(bytes[1]);
+    	  stdoutPiper.send(bytes[2]);
+    	  stdoutPiper.send(bytes[3]);
 
 
       } catch (Exception e) {
@@ -2212,7 +2212,7 @@ public class FVM implements Runnable {
 
         // FIXME: a check for error needs to be added and branch upon error.
         // Also, check that we are correctly sending byte not int here.
-        stdoutStream.send(writebBuf.get(0));
+        stdoutPiper.send(writebBuf.get(0));
 
 
       } catch (Exception e) {
@@ -4399,10 +4399,10 @@ public class FVM implements Runnable {
     if (stdtrcChannel != null) {
       closeStdtrc(); // Close stdtrc
     }
-    if (stdoutStream != null) {
+    if (stdoutPiper != null) {
       closeStdout(); // Close stdin, Java version is explicit here
     }
-    if (stdinStream != null) {
+    if (stdinPiper != null) {
       closeStdin(); // Close stdout, Java version is explicit here
     }
 
@@ -4689,8 +4689,8 @@ public class FVM implements Runnable {
     stdimpChannel = null;
 
     // Java version makes these explicit
-    stdinStream = null;
-    stdoutStream = null;
+    stdinPiper = null;
+    stdoutPiper = null;
 
     // pcTmp = 0;
 
