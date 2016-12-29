@@ -48,7 +48,7 @@ WARNING: The performance of this Java implementation is relatively poor.
 It is generally about 5 times slower than the reference implementation.
 Furthermore, the size of a Java FVM implementation (including the size of
 the underlying JRE) is typically measured in megabytes whereas the size of
-the reference implementation is measured in kilogytes. In other words,
+the reference implementation is measured in kilobytes. In other words,
 a Java implementation might well be 5 times slower and 1000 times larger
 than the reference implementation, not to mention have far greater
 runtime memory requirements. Nevertheless it is sometimes convenient and
@@ -84,7 +84,7 @@ import java.nio.channels.FileChannel;
  *
  * <h2>WARNING</h2>
  * <p>
- * This is alpha software (see source code for details).
+ * This is PRE-ALPHA software (see source code for details).
  * </p>
  *
  * <h2>INTRODUCTION</h2>
