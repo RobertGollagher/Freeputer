@@ -38,6 +38,18 @@ The optional characteristics of the standard grid are:
 
 Wherever reasonably possible, you should aim to make your programs usable even when a standard grid does not support these optional characteristics. That is, when 'zero commands' for changing the current foreground and background colours have no effect and/or when the grid can only display 7-bit ASCII or only a small subset of Unicode characters. For most programs these optional characteristics should be seen as enhancements rather than as mandatory requirements for usability. There are obvious exceptions to this rule, such as when language requirements demand extensive Unicode support or when colour is an essential part of an application. When a highly sophisticated user interface is needed it may be better to use the standard grid for control purposes and render an additional second user interface using technology more sophisticated than that of the simple, portable standard grid.
 
+## Screenshots
+
+These screenshots are of grids implemented in JavaFX (see `Grid.java`) and running on Linux.
+
+![A standard grid with Unicode and colour support](img/grid.png "A standard grid with Unicode and colour support")
+
+![A monochrome 7-bit ASCII standard grid](img/grid3.png "A monochrome 7-bit ASCII standard grid")
+
+![A monochrome 7-bit ASCII standard grid with visible gridlines and cursor](img/grid2.png "A monochrome 7-bit ASCII standard grid with visible gridlines and cursor")
+
+![Portion of a grid showing alignment of narrow and wide characters](img/grid4.png "Portion of a grid showing alignment of narrow and wide characters")
+
 ## Non-standard Grids
 
 The most common form of non-standard grid is that which is in every way the same as a standard grid except that its logical size is smaller or larger, up to a convenient maximum of 255 columns by 255 rows (65025 cells).
@@ -58,7 +70,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 28 December 2016.  
-This document was last updated on 28 December 2016 at 11:17.  
+This document was last updated on 30 December 2016 at 03:12.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 The official Freeputer website is [freeputer.net](http://www.freeputer.net).

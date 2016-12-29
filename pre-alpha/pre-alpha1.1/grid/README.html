@@ -31,6 +31,24 @@
 <li>its physical size may be smaller than its logical size.</li>
 </ul>
 <p>Wherever reasonably possible, you should aim to make your programs usable even when a standard grid does not support these optional characteristics. That is, when 'zero commands' for changing the current foreground and background colours have no effect and/or when the grid can only display 7-bit ASCII or only a small subset of Unicode characters. For most programs these optional characteristics should be seen as enhancements rather than as mandatory requirements for usability. There are obvious exceptions to this rule, such as when language requirements demand extensive Unicode support or when colour is an essential part of an application. When a highly sophisticated user interface is needed it may be better to use the standard grid for control purposes and render an additional second user interface using technology more sophisticated than that of the simple, portable standard grid.</p>
+<h2 id="screenshots">Screenshots</h2>
+<p>These screenshots are of grids implemented in JavaFX (see <code>Grid.java</code>) and running on Linux.</p>
+<div class="figure">
+<img src="img/grid.png" title="A standard grid with Unicode and colour support" alt="A standard grid with Unicode and colour support" />
+<p class="caption">A standard grid with Unicode and colour support</p>
+</div>
+<div class="figure">
+<img src="img/grid3.png" title="A monochrome 7-bit ASCII standard grid" alt="A monochrome 7-bit ASCII standard grid" />
+<p class="caption">A monochrome 7-bit ASCII standard grid</p>
+</div>
+<div class="figure">
+<img src="img/grid2.png" title="A monochrome 7-bit ASCII standard grid with visible gridlines and cursor" alt="A monochrome 7-bit ASCII standard grid with visible gridlines and cursor" />
+<p class="caption">A monochrome 7-bit ASCII standard grid with visible gridlines and cursor</p>
+</div>
+<div class="figure">
+<img src="img/grid4.png" title="Portion of a grid showing alignment of narrow and wide characters" alt="Portion of a grid showing alignment of narrow and wide characters" />
+<p class="caption">Portion of a grid showing alignment of narrow and wide characters</p>
+</div>
 <h2 id="non-standard-grids">Non-standard Grids</h2>
 <p>The most common form of non-standard grid is that which is in every way the same as a standard grid except that its logical size is smaller or larger, up to a convenient maximum of 255 columns by 255 rows (65025 cells).</p>
 <p>The standard grid of 40 columns by 15 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.</p>
