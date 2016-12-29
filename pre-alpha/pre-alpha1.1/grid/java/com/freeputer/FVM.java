@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1320
-Version:    pre-alpha-0.1.1.4 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1334
+Version:    pre-alpha-0.1.1.5 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,13 +31,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ==============================================================================
 
-WARNING: This is alpha software. It is somewhat incomplete and
-relatively unreliable. For a more complete and more reliable implementation
-of an FVM 1.0 please use the x86 assembly language implementation
-found in 'dev/fvm/x86/src/fvm.s'. That is the reference implementation.
-Where the behaviour of this implementation differs from that of
-the reference implementation, the behaviour of the reference implementation
-(unless obviously a bug) should be taken to be the correct behaviour.
+WARNING: THIS IS PRE-ALPHA SOFTWARE. It is inherently experimental
+in nature, is likely to greatly change before alpha release or to never
+make it to alpha release, and may well be incomplete, unstable and
+unreliable. That is, it is considered to be suitable only for
+experimentation and nothing more.
 
 WARNING: Due to constraints on development time, the arithmetic operations
 in this implementation have not yet been fully tested and are probably
