@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    FVM.java
 Author :    Robert Gollagher  robert.gollagher@freeputer.net
 Created:    20150906
-Updated:    201601229:1350
-Version:    pre-alpha-0.1.1.7 (based on 0.1.0.4 alpha for FVM 1.0)
+Updated:    201601229:1620
+Version:    pre-alpha-0.1.1.8 (based on 0.1.0.4 alpha for FVM 1.0)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -459,31 +459,31 @@ public class FVM implements Runnable {
 
     // Validate specified arbitraryMemorySize: -------------------------------
     if (arbitraryMemorySize == 0) { // FIXME test and refactor this
-    	throw new IllegalArgumentException(
-   	         "arbitraryMemorySize must be > 0");
+      throw new IllegalArgumentException(
+             "arbitraryMemorySize must be > 0");
     } else {
-    	if ((arbitraryMemorySize>=WORD_SIZE) // must be at least WORD_SIZE
-    		&& ((arbitraryMemorySize % WORD_SIZE) == 0) // and a multiple of WORD_SIZE
-    		&& ((arbitraryMemorySize & (arbitraryMemorySize-1)) == 0)) { // and a power of 2
-    		  // Specified arbitraryMemorySize is valid so do nothing here
-    	} else {
-    	      throw new IllegalArgumentException(
-    	         "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");
-    	}
+      if ((arbitraryMemorySize>=WORD_SIZE) // must be at least WORD_SIZE
+        && ((arbitraryMemorySize % WORD_SIZE) == 0) // and a multiple of WORD_SIZE
+        && ((arbitraryMemorySize & (arbitraryMemorySize-1)) == 0)) { // and a power of 2
+          // Specified arbitraryMemorySize is valid so do nothing here
+      } else {
+            throw new IllegalArgumentException(
+               "arbitraryMemorySize must be > 0 and a multiple of 4 and a power of 2");
+      }
     } // ---------------------------------------------------------------------
 
     // Validate specified stdblkSize: ----------------------------------------
     if (stdblkSize == 0) { // FIXME test and refactor this
       STDBLK_SIZE = 0; // stdblk size can legally be 0
     } else {
-    	if ((stdblkSize>=WORD_SIZE) // must be at least WORD_SIZE
-    		&& ((stdblkSize % WORD_SIZE) == 0) // and a multiple of WORD_SIZE
-    		&& ((stdblkSize & (stdblkSize-1)) == 0)) { // and a power of 2
-    		  STDBLK_SIZE = stdblkSize; // Specified stdblkSize is valid
-    	} else {
-    	      throw new IllegalArgumentException(
-    	         "stdblkSize must be 0 or a multiple of 4 and a power of 2");
-    	}
+      if ((stdblkSize>=WORD_SIZE) // must be at least WORD_SIZE
+        && ((stdblkSize % WORD_SIZE) == 0) // and a multiple of WORD_SIZE
+        && ((stdblkSize & (stdblkSize-1)) == 0)) { // and a power of 2
+          STDBLK_SIZE = stdblkSize; // Specified stdblkSize is valid
+      } else {
+            throw new IllegalArgumentException(
+               "stdblkSize must be 0 or a multiple of 4 and a power of 2");
+      }
     } // ---------------------------------------------------------------------
 
     // This VM implementation happens to make ROM and RAM the same size
@@ -617,8 +617,8 @@ public class FVM implements Runnable {
 
   // Java version declares these explicitly
   private Piper inoutPiper; // Piper used for both stdinPiper and stdoutPiper
-	private Piper stdinPiper; // Piper representing stdin (was stdinStream)
-	private Piper stdoutPiper; // Piper representing stdout (was stdoutStream)
+  private Piper stdinPiper; // Piper representing stdin (was stdinStream)
+  private Piper stdoutPiper; // Piper representing stdout (was stdoutStream)
 
   private int rsp; // Return stack pointer
   private int rsStop = MAX_DEPTH_RS; // rs index that bookends its start
@@ -1633,14 +1633,14 @@ public class FVM implements Runnable {
   //--------------------------------------------------------------------------
   /*
   //--------------------------------------------------------------------------
-   private static final int COUNTER = 10; 		// 2147483647;
+   private static final int COUNTER = 10;     // 2147483647;
    private static final int PROGRAM_SIZE = 7;
    // Count down from COUNTER to 0
    private static final int[] itProg = {
-	   iLIT,COUNTER,
-	   iDEC, 			// countdown:
-	   iBRGZ, 8, 		// branch to byte address of countdown label
-	   iDROP, iHALT };
+     iLIT,COUNTER,
+     iDEC,       // countdown:
+     iBRGZ, 8,     // branch to byte address of countdown label
+     iDROP, iHALT };
   // -------------------------------------------------------------------------
   */
   // =========================================================================
@@ -2078,7 +2078,7 @@ public class FVM implements Runnable {
 
         // FIXME: this is wrong, it's an implementation of readorb not reador.
         // Also, a check for error needs to be added and branch upon error.
-    	  readBuf.putInt(0, (byte)stdinPiper.receive());
+        readBuf.putInt(0, (byte)stdinPiper.receive());
 
 
         rA = readBuf.getInt(0);
@@ -2117,7 +2117,7 @@ public class FVM implements Runnable {
 
 
         // FIXME: a check for error needs to be added and branch upon error.
-      	readbBuf.put(0, (byte)stdinPiper.receive());
+        readbBuf.put(0, (byte)stdinPiper.receive());
         rA = readbBuf.get(0);
         rA = rA & 0x000000ff; // FIXME this is an inelegant workaround
 
@@ -2168,10 +2168,10 @@ public class FVM implements Runnable {
         // FIXME: a check for error needs to be added and branch upon error.
         // Also, check that byte order is correct here.
         byte[] bytes = writeBuf.array();
-    	  stdoutPiper.send(bytes[0]);
-    	  stdoutPiper.send(bytes[1]);
-    	  stdoutPiper.send(bytes[2]);
-    	  stdoutPiper.send(bytes[3]);
+        stdoutPiper.send(bytes[0]);
+        stdoutPiper.send(bytes[1]);
+        stdoutPiper.send(bytes[2]);
+        stdoutPiper.send(bytes[3]);
 
 
       } catch (Exception e) {
@@ -4284,10 +4284,10 @@ public class FVM implements Runnable {
    //  (see "EXAMPLE OF INDIRECT THREADED PROGRAM" section above).
    // This is an (unusual) alternative to systemLoadProgram below.
    // -----------------------------------------------------------------------
-	  // Copy program into system memory
-	  for( int i=0 ; i < PROGRAM_SIZE; i++) {
-		  memory.putInt((i*WORD_SIZE), itProg[i]);
-	  };
+    // Copy program into system memory
+    for( int i=0 ; i < PROGRAM_SIZE; i++) {
+      memory.putInt((i*WORD_SIZE), itProg[i]);
+    };
    // -----------------------------------------------------------------------
   }
 */
@@ -4295,7 +4295,7 @@ public class FVM implements Runnable {
   private final void systemLoadProgram() {
     // Uncomment systemLoadProgram logic to load program from ROM file (as usual).
     // This is an alternative to (the much more unusual) systemCopyProgram above.
-	// -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
     openRom();
     try {
       int nRead = 0;
@@ -4370,8 +4370,8 @@ public class FVM implements Runnable {
               // Otherwise the FVM has reset, keepRunning is true,
               // and we now restart so as to run again.
 
-        	  // Only uncomment the next line when debugging the FVM
-        	  //e.printStackTrace();
+            // Only uncomment the next line when debugging the FVM
+            //e.printStackTrace();
           }
         }
     } catch (IllegalStateException e) {
@@ -4741,19 +4741,19 @@ public class FVM implements Runnable {
   // FVM fvm = new FVM(0x01000000,0);              // For fvm16_0MB
   // FVM fvm = new FVM(0x01000000,0x01000000);     // For fvm16_16MB
      FVM fvm = new FVM();                          // For fvm16_0kB
-	 fvm.run();
-	 Integer outcome = fvm.getSystemExitCode();
-	 System.exit(outcome);
+   fvm.run();
+   Integer outcome = fvm.getSystemExitCode();
+   System.exit(outcome);
 
 
-	// Note: when running any FVM instance there must be locally present
-	// at least an appropriate 'rom.fp' (containing the Freelang program to
-	// be run by your FVM instance) and a suitable 'std.blk' and 'std.imp'
+  // Note: when running any FVM instance there must be locally present
+  // at least an appropriate 'rom.fp' (containing the Freelang program to
+  // be run by your FVM instance) and a suitable 'std.blk' and 'std.imp'
 
-	// Note: when running the fvmtest suite there must be locally present
-	// a 'rom.fp' (containing the compiled fvmtest program itself) and
-	// the exact versions of 'std.blk', 'std.imp' and 'std.in.tst' expected
-	// by fvmtest. For details see: 'dev/freelang/fvmtest/src/fvmtest.fl'
+  // Note: when running the fvmtest suite there must be locally present
+  // a 'rom.fp' (containing the compiled fvmtest program itself) and
+  // the exact versions of 'std.blk', 'std.imp' and 'std.in.tst' expected
+  // by fvmtest. For details see: 'dev/freelang/fvmtest/src/fvmtest.fl'
   }
 
   // =========================================================================
