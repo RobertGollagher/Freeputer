@@ -30,7 +30,7 @@ See also [Other Resources](#other-resources) below.
 
 Freeputer&nbsp;1.1 is coming!
 
-Expected as an alpha release by early 2017, it should include:
+Expected as an alpha release sometime in 2017, it should include:
 
 * an FVM 1.1, with **additional instructions**
 * continued support for targeting **x86** or **gcc** or **Linux** or **Java**
@@ -42,7 +42,7 @@ both with **greater stack depth: 256 elements** instead of 32 elements
 * updated Freelang compilers (flc and flx) and decompiler (fld)
 * appropriately updated fvmtest test suite
 
-Most of the above has already been successfully spiked. Please note that (due to other professional commitments) the expected release date for the alpha release of Freeputer&nbsp;1.1 has been pushed back further from mid-2016 to early 2017. In the meantime you can use [Freeputer&nbsp;1.0](archive/1.0); it is stable and fully functional.
+Most of the above has already been successfully spiked. Please note that (due to other personal and professional commitments) the expected release date for the alpha release of Freeputer&nbsp;1.1 has been pushed back further from mid-2016 to sometime in 2017. Rest assured that although progress may be very intermittent and very slow during 2017, the project most definitely has not been abandoned. In the meantime you can use [Freeputer&nbsp;1.0](archive/1.0); it is stable and fully functional.
 
 **Freeputer Lite** (aka **FVM Lite**) will standardize the size of small Freeputer&nbsp;1.1 instances, facilitating the virtualization and reuse of small software modules of standard size. FVM Lite will have 16&nbsp;KiB of FVM RAM, 16&nbsp;KiB of FVM ROM and stack depths of 256 elements each for data stack, software stack and return stack. This is in accordance with the Freeputer design philosophy: *modular not monolithic*. Comfortable hardware minimums are 32&nbsp;KiB RAM and 128&nbsp;KiB flash; at least 64&nbsp;KiB RAM is preferred for FVM virtualization entirely in RAM. Arduino Due and chipKIT Max32 are therefore good choices. Large applications will in future be *composed* of FVM Lite instances.
 
@@ -73,7 +73,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 28 December 2016 at 00:21.  
+This document was last updated on 28 January 2017 at 16:28.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
