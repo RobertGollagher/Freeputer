@@ -7,8 +7,8 @@ License: GNU General Public License Version 3 or any later version
 Program: Grid.java, an early experimental Freeputer Grid implementation
 Author : Robert Gollagher  robert.gollagher@freeputer.net
 Created: 20161228
-Updated: 20161230-0014
-Version: pre-alpha-0.0.0.1
+Updated: 20170128-1445
+Version: pre-alpha-0.0.0.2
 
 WARNING: THIS IS PRE-ALPHA SOFTWARE. It is inherently experimental
 in nature, is likely to greatly change before alpha release or to never
@@ -67,7 +67,7 @@ import javafx.stage.Stage;
 public class Grid extends Application {
 
   public static final int STDGRID_COLS = 40;
-  public static final int STDGRID_ROWS = 15;
+  public static final int STDGRID_ROWS = 12;
   public static final int DEFAULT_FONT_SIZE = 24;
   public static final String DEFAULT_FONT_NAME = "Monospaced Regular";
   public static final boolean ENFORCE_MIN_TILE_BOUNDS = false;

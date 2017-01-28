@@ -14,7 +14,7 @@ The mandatory characteristics of the standard grid are:
 
 - it uses a fixed-width font;
 - it can display all 7-bit ASCII characters;
-- its logical size is exactly 40 columns by 15 rows (600 cells);
+- its logical size is exactly 40 columns by 12 rows (480 cells);
 - column is specified by a single byte;
 - row is specified by a single byte;
 - a character is displayed by specifying column, row, then UTF-8 code;
@@ -23,7 +23,7 @@ The mandatory characteristics of the standard grid are:
 - full-width characters (such as '好') occupy exactly 2 columns (2 cells);
 - full-width characters should only be added to odd-numbered columns;
 - columns are numbered 1 to 40 (left to right);
-- rows are numbered 1 to 15 (top to bottom);
+- rows are numbered 1 to 12 (top to bottom);
 - column 0 is reserved for 'zero commands';
 - row 0 is reserved for 'zero commands';
 - 'zero commands' exist (e.g. clear screen: row=0, column=0, char=0);
@@ -42,19 +42,17 @@ Wherever reasonably possible, you should aim to make your programs usable even w
 
 These screenshots are of grids implemented in JavaFX (see `Grid.java`) and running on Linux.
 
-![A standard grid with Unicode and colour support](img/grid.png "A standard grid with Unicode and colour support")
+![A minimal standard grid (with gridlines visible)](img/grid.png "A minimal standard grid (with gridlines visible)")
 
-![A monochrome 7-bit ASCII standard grid](img/grid3.png "A monochrome 7-bit ASCII standard grid")
+![A minimal standard grid (with gridlines hidden)](img/grid2.png "A minimal standard grid (with gridlines hidden)")
 
-![A monochrome 7-bit ASCII standard grid with visible gridlines and cursor](img/grid2.png "A monochrome 7-bit ASCII standard grid with visible gridlines and cursor")
-
-![Portion of a grid showing alignment of narrow and wide characters](img/grid4.png "Portion of a grid showing alignment of narrow and wide characters")
+![A maximal standard grid with Unicode and colour support](img/grid4.png "A maximal standard grid with Unicode and colour support")
 
 ## Non-standard Grids
 
 The most common form of non-standard grid is that which is in every way the same as a standard grid except that its logical size is smaller or larger, up to a convenient maximum of 255 columns by 255 rows (65025 cells).
 
-The standard grid of 40 columns by 15 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.
+The standard grid of 40 columns by 12 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.
 
 For Freeputer, it is strongly recommended that programs written for non-standard grids should also be usable on a standard grid.
 
@@ -70,7 +68,7 @@ Copyright © Robert Gollagher 2016
 
 This document was written by Robert Gollagher.  
 This document was first published on 28 December 2016.  
-This document was last updated on 30 December 2016 at 03:12.  
+This document was last updated on 28 January 2017 at 15:13.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 The official Freeputer website is [freeputer.net](http://www.freeputer.net).

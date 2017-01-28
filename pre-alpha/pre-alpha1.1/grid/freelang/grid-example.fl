@@ -7,8 +7,8 @@ License: GNU General Public License Version 3 or any later version
 Program: grid-example.fl, an example of how to drive a standard grid
 Author : Robert Gollagher  robert.gollagher@freeputer.net
 Created: 20161228
-Updated: 20161230-0131
-Version: pre-alpha-0.0.0.1
+Updated: 20170128-1445
+Version: pre-alpha-0.0.0.2
 
 WARNING: THIS IS PRE-ALPHA SOFTWARE. It is inherently experimental
 in nature, is likely to greatly change before alpha release or to never
@@ -85,7 +85,7 @@ halt
 
 cSP. 32
 COLS. 40 col# 4
-ROWS. 15 row# 4
+ROWS. 12 row# 4
 INP. 0 CMD. 1 CMD2. 2 mode# 4
 vcsr# 4
 vgrid# 4

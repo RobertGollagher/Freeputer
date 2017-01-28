@@ -8,7 +8,7 @@
 <ul>
 <li>it uses a fixed-width font;</li>
 <li>it can display all 7-bit ASCII characters;</li>
-<li>its logical size is exactly 40 columns by 15 rows (600 cells);</li>
+<li>its logical size is exactly 40 columns by 12 rows (480 cells);</li>
 <li>column is specified by a single byte;</li>
 <li>row is specified by a single byte;</li>
 <li>a character is displayed by specifying column, row, then UTF-8 code;</li>
@@ -17,7 +17,7 @@
 <li>full-width characters (such as '好') occupy exactly 2 columns (2 cells);</li>
 <li>full-width characters should only be added to odd-numbered columns;</li>
 <li>columns are numbered 1 to 40 (left to right);</li>
-<li>rows are numbered 1 to 15 (top to bottom);</li>
+<li>rows are numbered 1 to 12 (top to bottom);</li>
 <li>column 0 is reserved for 'zero commands';</li>
 <li>row 0 is reserved for 'zero commands';</li>
 <li>'zero commands' exist (e.g. clear screen: row=0, column=0, char=0);</li>
@@ -34,24 +34,20 @@
 <h2 id="screenshots">Screenshots</h2>
 <p>These screenshots are of grids implemented in JavaFX (see <code>Grid.java</code>) and running on Linux.</p>
 <div class="figure">
-<img src="img/grid.png" title="A standard grid with Unicode and colour support" alt="A standard grid with Unicode and colour support" />
-<p class="caption">A standard grid with Unicode and colour support</p>
+<img src="img/grid.png" title="A minimal standard grid (with gridlines visible)" alt="A minimal standard grid (with gridlines visible)" />
+<p class="caption">A minimal standard grid (with gridlines visible)</p>
 </div>
 <div class="figure">
-<img src="img/grid3.png" title="A monochrome 7-bit ASCII standard grid" alt="A monochrome 7-bit ASCII standard grid" />
-<p class="caption">A monochrome 7-bit ASCII standard grid</p>
+<img src="img/grid2.png" title="A minimal standard grid (with gridlines hidden)" alt="A minimal standard grid (with gridlines hidden)" />
+<p class="caption">A minimal standard grid (with gridlines hidden)</p>
 </div>
 <div class="figure">
-<img src="img/grid2.png" title="A monochrome 7-bit ASCII standard grid with visible gridlines and cursor" alt="A monochrome 7-bit ASCII standard grid with visible gridlines and cursor" />
-<p class="caption">A monochrome 7-bit ASCII standard grid with visible gridlines and cursor</p>
-</div>
-<div class="figure">
-<img src="img/grid4.png" title="Portion of a grid showing alignment of narrow and wide characters" alt="Portion of a grid showing alignment of narrow and wide characters" />
-<p class="caption">Portion of a grid showing alignment of narrow and wide characters</p>
+<img src="img/grid4.png" title="A maximal standard grid with Unicode and colour support" alt="A maximal standard grid with Unicode and colour support" />
+<p class="caption">A maximal standard grid with Unicode and colour support</p>
 </div>
 <h2 id="non-standard-grids">Non-standard Grids</h2>
 <p>The most common form of non-standard grid is that which is in every way the same as a standard grid except that its logical size is smaller or larger, up to a convenient maximum of 255 columns by 255 rows (65025 cells).</p>
-<p>The standard grid of 40 columns by 15 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.</p>
+<p>The standard grid of 40 columns by 12 rows is the recommended default user interface for Freeputer. This size is small enough to be easy to implement on simple devices without requiring an operating system, and small enough to be useful on mobile devices, yet large enough to be useful on powerful desktop computers and large enough to be used for some text editing and some software development. This size has also been carefully chosen so as to encourage simplicity but without being simplistic. Please remember that the standard grid is not intended to be the only user interface for Freeputer but rather the default user interface. It is expected to be normal to have multiple user interfaces connected to a Freeputer instance simultaneously; for example, you might issue commands in the standard grid that drive a highly sophisticated graphical user interface in a web browser or in a window using hardware graphics acceleration, all connected to your Freeputer instance.</p>
 <p>For Freeputer, it is strongly recommended that programs written for non-standard grids should also be usable on a standard grid.</p>
 <h2 id="beyond-freeputer">Beyond Freeputer</h2>
 <p>Grids are a much simpler, easier and more portable alternative to ncurses and ANSI terminal emulators for creating textual user interfaces and it is easy to use grids from any programming language, either locally or remotely.</p>
@@ -60,7 +56,7 @@
 <p>Copyright © Robert Gollagher 2016</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was first published on 28 December 2016.<br />
-This document was last updated on 28 December 2016 at 11:17.<br />
+This document was last updated on 28 January 2017 at 15:13.<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.</p>
 <hr />
