@@ -17,9 +17,9 @@ Freeputer ( ) \[ \] { } smaller simpler better
 
 Freeputer&nbsp;2.0 will be ***much easier to implement***, making it even more portable. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***.
 
-Freeputer&nbsp;2.0 will also continue to supporting targeting x86, gcc, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE.
+Freeputer&nbsp;2.0 will continue to support targeting x86, gcc, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE.
 
-Freeputer&nbsp;2.0 also ***adds excellent robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve its excellent correctness, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining excellent correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
+Freeputer&nbsp;2.0 ***adds excellent robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve its excellent correctness, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining excellent correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
 
 Freeputer&nbsp;2.0 has a smaller standard address space than Freeputer&nbsp;1.0. Keeping it small achieves excellent correctness and excellent robustness *at the same time*, in a manner which is portable *and* simpler and easier to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
 
@@ -52,7 +52,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 5 March 2017 at 23:27.  
+This document was last updated on 6 March 2017 at 01:01.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
