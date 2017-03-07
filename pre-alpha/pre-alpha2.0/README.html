@@ -33,7 +33,7 @@
 <li><strong>Complex instructions</strong> also have a second word: a signed 32-bit <em>literal</em>.</li>
 <li>Out-of-range address literals trigger <strong>branch on failure</strong>.</li>
 <li>The VM has <strong>3 stacks</strong>: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).</li>
-<li>Each rs element contains unsigned 8-bit <em>metadata</em> above an unsigned 24-bit <em>failure address</em>.</li>
+<li>Each rs element contains unsigned 8-bit <em>metadata</em> above an unsigned 24-bit <em>return address</em>.</li>
 <li>All I/O is <strong>memory mapped</strong> in banks of cells (and bank 0 is system memory).</li>
 <li>A cell must support using either the @ or ! instruction at least once.</li>
 <li>A <em>read-only</em> cell is one which only supports the @ instruction.</li>
@@ -50,7 +50,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 7 March 2017 at 02:23.<br />
+This document was last updated on 7 March 2017 at 14:46.<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

@@ -43,7 +43,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
 1. Out-of-range address literals trigger **branch on failure**.
 1. The VM has **3 stacks**: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).
-1. Each rs element contains unsigned 8-bit *metadata* above an unsigned 24-bit *failure address*.
+1. Each rs element contains unsigned 8-bit *metadata* above an unsigned 24-bit *return address*.
 1. All I/O is **memory mapped** in banks of cells (and bank 0 is system memory).
 1. A cell must support using either the @ or ! instruction at least once.
 1. A *read-only* cell is one which only supports the @ instruction.
@@ -63,7 +63,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 7 March 2017 at 02:23.  
+This document was last updated on 7 March 2017 at 14:46.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
