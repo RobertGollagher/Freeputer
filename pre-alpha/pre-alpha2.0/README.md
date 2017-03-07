@@ -49,6 +49,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. A *read-only* cell is one which only supports the @ instruction.
 1. A *write-only* cell is one which only supports the ! instruction.
 1. A *read/write* cell is one which supports both the @ and ! instructions.
+1. An unsupported I/O instruction triggers **branch on failure**.
 1. A *volatile* cell is one whose value can change spontaneously at runtime.
 1. A *faithful* cell is one whose value cannot change spontaneously at runtime.
 1. A *volatile* bank is one containing at least one volatile cell.
@@ -63,7 +64,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 7 March 2017 at 14:46.  
+This document was last updated on 7 March 2017 at 15:03.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
