@@ -36,26 +36,27 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. Inability to call a subroutine is treated as **subroutine failure**.
 1. An illegal instruction causes **subroutine failure**.
 1. A naked illegal instruction causes **VM failure**.
-1. Addressing is **absolute** and **word-indexed**.
-1. Program space is **24 unsigned bits** (words 0 to 16777215 = 64 MiB).
+1. Addressing is **absolute** and **word-indexed** (1 cell = 1 word).
+1. Address space is **256 banks of 64 MiB** (16777216 cells) each.
+1. Program space is **24 unsigned bits** (the entire 64 MiB of bank 0).
 1. Words are **32 signed bits** (little endian, two's complement).
 1. **Simple instructions** are 1 word: an unsigned 24-bit *failure address* above an unsigned 8-bit *opcode*.
 1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
-1. Out-of-range address literals trigger **branch on failure**.
 1. The VM has **3 stacks**: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).
 1. Each rs element contains unsigned 8-bit *metadata* above an unsigned 24-bit *return address*.
-1. All I/O is **memory mapped** in banks of cells (and bank 0 is system memory).
-1. A cell must support using either the @ or ! instruction at least once.
+1. All I/O is **memory mapped** and unsupported I/O triggers **branch on failure**.
 1. A *read-only* cell is one which only supports the @ instruction.
 1. A *write-only* cell is one which only supports the ! instruction.
 1. A *read/write* cell is one which supports both the @ and ! instructions.
-1. An unsupported I/O instruction triggers **branch on failure**.
+1. An *unplumbed* cell is one which supports neither the @ instruction nor the ! instruction.
 1. A *volatile* cell is one whose value can change spontaneously at runtime.
 1. A *faithful* cell is one whose value cannot change spontaneously at runtime.
 1. A *volatile* bank is one containing at least one volatile cell.
 1. A *faithful* bank (such as bank 0) is one containing no volatile cells.
-1. A block device is represented by a faithful bank.
-1. Streams reside in a volatile bank.
+1. A block device is represented by a *faithful* bank.
+1. Streams reside in a *volatile* bank.
+1. All cells of bank 0 are *faithful* and either *read-only* or *read/write*.
+1. All or most cells of other banks may well be *unplumbed*.
 
 
 ---
@@ -64,7 +65,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 7 March 2017 at 15:03.  
+This document was last updated on 8 March 2017 at 13:11.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
