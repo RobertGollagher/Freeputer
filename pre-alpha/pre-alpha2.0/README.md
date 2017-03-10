@@ -37,7 +37,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. An illegal instruction causes **subroutine failure**.
 1. A naked illegal instruction causes **VM failure**.
 1. Addressing is **absolute** and **word-indexed** (1 cell = 1 word).
-1. *Address space* is **32 signed bits** (the 8 GiB from word -2147483648 to word 2147483647).
+1. *Address space* is **32 signed bits** (the 16 GiB from word -2147483648 to word 2147483647).
 1. *Address space* consists of 5 *zones* (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK. 
 1. *Program space* (the PRG *zone*) is **24 unsigned bits** (the 64 MiB from word 0 to word 16777215).
 1. The VM can be implemented on **powerful servers** using physical memory.
@@ -141,7 +141,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 10 March 2017 at 15:28  
+This document was last updated on 10 March 2017 at 15:43  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
