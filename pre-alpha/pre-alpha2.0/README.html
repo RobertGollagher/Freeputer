@@ -11,13 +11,13 @@
 <li>VM <strong>small</strong>.</li>
 </ol>
 <h2 id="benefits">Benefits</h2>
-<p>Freeputer 2.0 will be <strong><em>much easier to implement</em></strong>, making it even more portable. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>.</p>
-<p>Freeputer 2.0 will continue to support targeting x86, gcc, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE.</p>
+<p>Freeputer 2.0 will be <strong><em>much easier to implement</em></strong>, making it even more portable. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>.</p>
+<p>Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in a web browser or on a microcontroller!</p>
 <p>Freeputer 2.0 <strong><em>adds excellent robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve its excellent correctness, the design of Freeputer 2.0 is more robust in that it keeps running while maintaining excellent correctness. It achieves this by <em>branching on failure</em> rather than <em>trapping on failure</em>.</p>
-<p>Freeputer 2.0 has a smaller standard address space than Freeputer 1.0. Keeping it small achieves excellent correctness and excellent robustness <em>at the same time</em>, in a manner which is portable <em>and</em> simpler and easier to implement. This is why the motto of Freeputer 2.0 is: <strong><em>smaller simpler better</em></strong>.</p>
+<p>Freeputer 2.0 has a larger <em>address space</em> but a smaller <em>program space</em> than Freeputer 1.0. Having a smaller <em>program space</em> allows the achievement of excellent correctness and excellent robustness <em>at the same time</em>, in a manner which is portable <em>and</em> simpler and easier to implement. This is why the motto of Freeputer 2.0 is: <strong><em>smaller simpler better</em></strong>.</p>
 <h2 id="migration">Migration</h2>
 <p>Freeputer 1.0 and 2.0 are <strong><em>quite similar but not binary compatible</em></strong>. The instruction set and its bytecode has been changed somewhat. However, existing Freelang 1.0 programs could probably be modified and recompiled as Freelang 2.0 programs for Freeputer 2.0 <strong><em>without great difficulty</em></strong>.</p>
-<h2 id="design">Design</h2>
+<h2 id="proposed-design">Proposed Design</h2>
 <ol style="list-style-type: decimal">
 <li>The VM is <strong>correct without trapping</strong>.</li>
 <li>Its termination results in <strong>success or failure</strong> (0 or 1).</li>
@@ -27,48 +27,148 @@
 <li>An illegal instruction causes <strong>subroutine failure</strong>.</li>
 <li>A naked illegal instruction causes <strong>VM failure</strong>.</li>
 <li>Addressing is <strong>absolute</strong> and <strong>word-indexed</strong> (1 cell = 1 word).</li>
-<li>Address space is <strong>256 banks of 64 MiB</strong> (16777216 cells) each.</li>
-<li>Program space is <strong>24 unsigned bits</strong> (the entire 64 MiB of bank 0).</li>
+<li><em>Address space</em> is <strong>32 signed bits</strong> (the 8 GiB from word -2147483648 to word 2147483647).</li>
+<li><em>Address space</em> consists of 5 <em>zones</em> (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK.</li>
+<li><em>Program space</em> (the PRG <em>zone</em>) is <strong>24 unsigned bits</strong> (the 64 MiB from word 0 to word 16777215).</li>
+<li>The VM can be implemented on <strong>powerful servers</strong> using physical memory.</li>
+<li>The VM can be implemented on <strong>small microcontrollers</strong> using mainly logical memory.</li>
 <li>Words are <strong>32 signed bits</strong> (little endian, two's complement).</li>
 <li><strong>Simple instructions</strong> are 1 word: an unsigned 24-bit <em>failure address</em> above an unsigned 8-bit <em>opcode</em>.</li>
 <li><strong>Complex instructions</strong> also have a second word: a signed 32-bit <em>literal</em>.</li>
 <li>The VM has <strong>3 stacks</strong>: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).</li>
 <li>Each rs element contains unsigned 8-bit <em>metadata</em> above an unsigned 24-bit <em>return address</em>.</li>
+<li>Each stack has a maximum depth of <strong>256 elements</strong>.</li>
 <li>All I/O is <strong>non-blocking</strong> and unavailable I/O triggers <strong>branch on failure</strong>.</li>
 <li>All I/O is <strong>memory mapped</strong> and unsupported I/O triggers <strong>branch on failure</strong>.</li>
 <li>A <em>read-only cell</em> is one which only supports the @ instruction.</li>
 <li>A <em>write-only cell</em> is one which only supports the ! instruction.</li>
 <li>A <em>read/write cell</em> is one which supports both the @ and ! instructions.</li>
+<li>A <em>plumbed cell</em> is one which supports at least one of the @ or ! instructions.</li>
+<li>A <em>fully plumbed zone</em> is one containing only <em>plumbed cells</em>. PRG is always a <em>fully plumbed zone</em>.</li>
 <li>An <em>unplumbed cell</em> is one which supports neither the @ instruction nor the ! instruction.</li>
-<li>All or most cells of most banks (except bank 0) may well be <em>unplumbed</em>.</li>
-<li>A <em>volatile cell</em> is a <em>write-only cell</em> or a cell whose value can change spontaneously at runtime.</li>
+<li>A <em>partially plumbed zone</em> is one containing <em>plumbed cells</em> and <em>unplumbed cells</em>.</li>
+<li>An <em>unplumbed zone</em> is one in which all cells are <em>unplumbed</em>.</li>
+<li>A <em>volatile cell</em> is either a <em>write-only cell</em> or a cell whose value can change spontaneously at runtime.</li>
 <li>A <em>faithful cell</em> faithfully holds stored data; its value cannot change spontaneously at runtime.</li>
-<li>A <em>faithful bank</em> (such as bank 0) is one containing only <em>faithful cells</em> and no <em>volatile cells</em>.</li>
-<li>A <em>faithful bank</em> neither causes nor is affected by side-effects at runtime.</li>
-<li>Thus a <em>faithful bank</em> is a module which simply extends <strong>VM memory or storage</strong>.</li>
-<li>A <em>volatile bank</em> (such as bank 255) is any bank which contains at least one <em>volatile cell</em>.</li>
-<li>Any use of the @ or ! instructions in a <em>volatile bank</em> may cause side-effects:
+<li>A <em>faithful zone</em> is one containing no <em>volatile cells</em>.</li>
+<li>A <em>faithful zone</em> neither causes nor is affected by side-effects at runtime.</li>
+<li>A <em>volatile zone</em> is any zone which contains at least one <em>volatile cell</em>.</li>
+<li>Any use of the @ or ! instructions in a <em>volatile zone</em> may cause side-effects:
 <ul>
-<li>directly in the <em>volatile bank</em> itself;</li>
-<li>in any external systems with which it communicates;</li>
-<li>indirectly in any <em>volatile bank</em> via external systems.</li>
+<li>directly in the <em>volatile zone</em> itself; and</li>
+<li>in any external systems with which it communicates; and</li>
+<li>indirectly in any <em>volatile zone</em> via external systems.</li>
 </ul></li>
-<li>The nature of any such side-effects is defined by:
+<li>The nature of any such side-effects is determined by:
 <ul>
-<li>the nature of the <em>volatile bank</em> itself; and</li>
+<li>the nature of the <em>volatile zone</em> itself; and</li>
 <li>the nature of any relevant external systems; and</li>
-<li>the nature of any <em>volatile banks</em> with which relevant external systems communicate.</li>
+<li>the nature of any <em>volatile zones</em> with which relevant external systems communicate.</li>
 </ul></li>
-<li>Thus a <em>volatile bank</em> is essentially a module which extends <strong>VM functionality</strong>.</li>
-<li>Banks 0 to 127 are <em>faithful banks</em>:
+<li><strong>All zones which begin at or above cell 0 are faithful zones</strong>:
 <ul>
-<li><strong>Bank 0</strong> is reserved for program space.</li>
+<li><strong>PRG</strong> is the 64 MiB from cell 0 to cell 16777215 (<code>0xffffff</code>).
+<ul>
+<li>PRG is for <em>program space</em>.</li>
+<li>PRG is always a <em>fully plumbed zone</em>.</li>
+<li>PRG must entirely consist of one of the following:
+<ul>
+<li><em>read-only cells</em> (ROM); or</li>
+<li><em>read/write cells</em> (RAM); or</li>
+<li><em>read-only cells</em> followed by <em>read/write cells</em> (ROM then RAM).</li>
 </ul></li>
-<li>Banks 128 to 255 are <em>volatile banks</em>:
+<li>For a large application, PRG may require megabytes of physical memory.</li>
+<li>For a small application, PRG may require less than a kilobyte of physical memory.</li>
+</ul></li>
+<li><strong>MEM</strong> is the 960 MiB from cell 16777216 (<code>0x1000000</code>) to cell 1073741823 (<code>0x3fffffff</code>).
 <ul>
-<li><strong>Bank 255</strong> is reserved for standard streams.
+<li>MEM is for RAM.</li>
+<li>MEM must entirely consist of one of the following:
 <ul>
-<li>Standard streams <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> are mapped to @ and ! of cell 0 in bank 255.</li>
+<li><em>unplumbed cells</em>; or</li>
+<li><em>read/write cells</em> (RAM); or</li>
+<li><em>read/write cells</em> (RAM) followed by <em>unplumbed cells</em>.</li>
+</ul></li>
+<li>If MEM is an <em>unplumbed zone</em> then it requires no physical RAM at all.</li>
+<li>Note: a VM may provide access to additional RAM via VOL.</li>
+</ul></li>
+<li><strong>BLK</strong> is the 1024 MiB from cell 1073741824 (<code>0x40000000</code>) to cell 2147483647 (<code>0x7fffffff</code>).
+<ul>
+<li>BLK is for persistent storage (retained between runtimes).</li>
+<li>BLK must entirely consist of one of the following:
+<ul>
+<li><em>unplumbed cells</em>; or</li>
+<li><em>read/write cells</em> (persistent storage); or</li>
+<li><em>read/write cells</em> (persistent storage) followed by <em>unplumbed cells</em>.</li>
+</ul></li>
+<li>If BLK is an <em>unplumbed zone</em> then it requires no physical persistent storage at all.</li>
+<li>Note: a VM may provide access to additional persistent storage via VOL.</li>
+</ul></li>
+</ul></li>
+<li><strong>All zones which end below cell 0 are volatile zones</strong>:
+<ul>
+<li><strong>SYS</strong> is the 64 MiB from cell -1 (<code>0xffffffff</code>) to cell -16777216 (<code>0xff000000</code>).
+<ul>
+<li>SYS is reserved for system use. It provides standard system services to the VM:
+<ul>
+<li>the streams <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> accessible as a <em>volatile read/write cell</em>.</li>
+<li>the ability to query the 4 values which define <em>faithful VM size</em>:
+<ol style="list-style-type: decimal">
+<li>the <strong>address of the first cell of RAM</strong> (called <code>RAMa</code>):
+<ul>
+<li>this will be between 0 and 16777215 if PRG contains RAM; otherwise</li>
+<li>this will be 16777216 if MEM contains RAM; otherwise</li>
+<li>this will be -1.</li>
+</ul></li>
+<li>the <strong>address of the last cell of RAM</strong> (called <code>RAMz</code>):
+<ul>
+<li>this will be between 16777216 and 1073741823 if MEM contains RAM; otherwise</li>
+<li>this will be between 0 and 16777215 if PRG contains RAM; otherwise</li>
+<li>this will be -1.</li>
+</ul></li>
+<li>the <strong>address of the last <em>plumbed cell</em> of BLK</strong> (called <code>BLKz</code>):
+<ul>
+<li>this will be -1 if BLK is an <em>unplumbed zone</em>; otherwise</li>
+<li>this will be between 1073741824 and 2147483647.</li>
+</ul></li>
+<li>the <strong>address of the last <em>plumbed cell</em> of VOL</strong> (called <code>VOLz</code>):
+<ul>
+<li>this will be -1 if VOL is an <em>unplumbed zone</em>; otherwise</li>
+<li>this will be between -16777217 and -2147483648.</li>
+</ul></li>
+</ol></li>
+</ul></li>
+<li>SYS is largely <em>unplumbed</em> and for itself requires very little physical memory.</li>
+</ul></li>
+<li><strong>VOL</strong> is the 1984 MiB from cell -16777217 (<code>0xfeffffff</code>) to cell -2147483648 (<code>0x80000000</code>).
+<ul>
+<li>The default implementation of VOL is as an <em>unplumbed zone</em> which does nothing and requires no resources.</li>
+<li>VM implementors may add custom functionality within VOL in a reasonable and modular manner.</li>
+<li>VOL is a <em>volatile zone</em> in which memory-mapped devices could be added to:
+<ul>
+<li>extend the connectivity of the VM; and/or</li>
+<li>extend the I/O capabilities of the VM; and/or</li>
+<li>extend the storage capabilities of the VM; and/or</li>
+<li>extend the functionality of the VM; and all</li>
+<li>to a virtually limitless extent.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li><strong>Examples of VM sizings:</strong>
+<ul>
+<li>For a small microcontroller (to run a small program not using BLK):
+<ul>
+<li>1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
+<ul>
+<li><code>RAMa</code> 16777216, <code>RAMz</code> 16778239, <code>BLKz</code> -1, <code>VOLz</code> -1</li>
+</ul></li>
+</ul></li>
+<li>For a powerful server (to run that same program or a much larger program):
+<ul>
+<li>1 GiB of RAM (the whole of PRG and MEM); 1 GiB of BLK:
+<ul>
+<li><code>RAMa</code> 0, <code>RAMz</code> 1073741823, <code>BLKz</code> 2147483647, <code>VOLz</code> -1</li>
+</ul></li>
 </ul></li>
 </ul></li>
 </ol>
@@ -76,7 +176,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 8 March 2017 at 23:20<br />
+This document was last updated on 10 March 2017 at 15:28<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
