@@ -102,8 +102,8 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
         - SYS is reserved for system use. It provides standard system services to the VM:
             - the optional trace stream **`stdtrc`** as the *volatile write-only cell* -2 (`0xfffffffe`).
             - the optional data streams **`stdin`** and **`stdout`** as the *volatile read/write cell* -4 (`0xfffffffc`);
-            - the optional standard user-interface streams **`grdin`** and **`grdout`** as the *volatile read/write cell* -6 (`0xfffffffa`).
-            - the optional non-standard user-interface streams **`usrin`** and **`usrout`** as the *volatile read/write cell* -8 (`0xfffffff8`).
+            - the optional standard UI streams **`grdin`** and **`grdout`** as the *volatile read/write cell* -6 (`0xfffffffa`).
+            - the optional non-standard UI streams **`usrin`** and **`usrout`** as the *volatile read/write cell* -8 (`0xfffffff8`).
             - the ability to query the 4 values which define *faithful VM size*:
                 1. the **address of the first cell of RAM** (called `RAMa`):
                     - this will be between 0 and 16777215 if PRG contains RAM; otherwise
@@ -131,8 +131,8 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - extend the functionality of the VM; and all
             - to a virtually limitless extent.
 1. **Data streams:**
-    - The **`stdin`** and **`stdout`** streams, if available, are primarily intended for use as data streams not user-interface streams.
-    - Using **`stdin`** and **`stdout`** as data streams allows VM instances to easily be chained together as a processing pipeline.
+    - The **`stdin`** and **`stdout`** streams, if available, are intended for use as data streams not user-interface streams.
+    - Using **`stdin`** and **`stdout`** as data streams allows VM instances to be chained together as a processing pipeline.
     - The nature, behaviour and effect of the **`stdin`** and **`stdout`** streams may vary from environment to environment.
     - The trace stream **`stdtrc`**, if available, provides accurate trace information when tracing is enabled.
     - The information provided by **`stdtrc`** may reasonably differ between VM implementations.
@@ -158,7 +158,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 18 March 2017 at 20:14  
+This document was last updated on 18 March 2017 at 20:21  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
