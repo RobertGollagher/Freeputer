@@ -65,7 +65,7 @@
 <li>the nature of any relevant external systems; and</li>
 <li>the nature of any <em>volatile zones</em> with which relevant external systems communicate.</li>
 </ul></li>
-<li><strong>All zones which begin at or above cell 0 are faithful zones</strong>:
+<li><strong>All zones which begin at or above cell 0 are faithful zones:</strong>
 <ul>
 <li><strong>PRG</strong> is the 64 MiB from cell 0 to cell 16777215 (<code>0xffffff</code>).
 <ul>
@@ -105,13 +105,16 @@
 <li>Note: a VM may provide access to additional persistent storage via VOL.</li>
 </ul></li>
 </ul></li>
-<li><strong>All zones which end below cell 0 are volatile zones</strong>:
+<li><strong>All zones which end below cell 0 are volatile zones:</strong>
 <ul>
 <li><strong>SYS</strong> is the 64 MiB from cell -1 (<code>0xffffffff</code>) to cell -16777216 (<code>0xff000000</code>).
 <ul>
 <li>SYS is reserved for system use. It provides standard system services to the VM:
 <ul>
-<li>the streams <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> accessible as a <em>volatile read/write cell</em>.</li>
+<li>the optional trace stream <strong><code>stdtrc</code></strong> as the <em>volatile write-only cell</em> -2 (<code>0xfffffffe</code>).</li>
+<li>the optional data streams <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as the <em>volatile read/write cell</em> -4 (<code>0xfffffffc</code>);</li>
+<li>the optional standard user-interface streams <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> as the <em>volatile read/write cell</em> -6 (<code>0xfffffffa</code>).</li>
+<li>the optional non-standard user-interface streams <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> as the <em>volatile read/write cell</em> -8 (<code>0xfffffff8</code>).</li>
 <li>the ability to query the 4 values which define <em>faithful VM size</em>:
 <ol style="list-style-type: decimal">
 <li>the <strong>address of the first cell of RAM</strong> (called <code>RAMa</code>):
@@ -139,6 +142,7 @@
 </ol></li>
 </ul></li>
 <li>SYS is largely <em>unplumbed</em> and for itself requires very little physical memory.</li>
+<li>SYS contains the cell -1 (<code>0xffffffff</code>) which is always <em>unplumbed</em>.</li>
 </ul></li>
 <li><strong>VOL</strong> is the 1984 MiB from cell -16777217 (<code>0xfeffffff</code>) to cell -2147483648 (<code>0x80000000</code>).
 <ul>
@@ -153,6 +157,23 @@
 <li>to a virtually limitless extent.</li>
 </ul></li>
 </ul></li>
+</ul></li>
+<li><strong>Data streams:</strong>
+<ul>
+<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available, are primarily intended for use as data streams not user-interface streams.</li>
+<li>Using <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as data streams allows VM instances to easily be chained together as a processing pipeline.</li>
+<li>The nature, behaviour and effect of the <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams may vary from environment to environment.</li>
+<li>The trace stream <strong><code>stdtrc</code></strong>, if available, provides accurate trace information when tracing is enabled.</li>
+<li>The information provided by <strong><code>stdtrc</code></strong> may reasonably differ between VM implementations.</li>
+<li>Note: a VM may provide access to additional data streams via VOL.</li>
+</ul></li>
+<li><strong>User interfaces:</strong>
+<ul>
+<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available, may represent any user interface whatsoever.</li>
+<li>The nature, behaviour and effect of the <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams may vary from environment to environment.</li>
+<li>The <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams, if available, represent the standard textual user interface known as the grid.</li>
+<li>The logical behaviour of the <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams is identical in all environments.</li>
+<li>Note: a VM may provide access to additional user interfaces via VOL.</li>
 </ul></li>
 <li><strong>Examples of VM sizings:</strong>
 <ul>
@@ -176,7 +197,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 10 March 2017 at 15:43<br />
+This document was last updated on 18 March 2017 at 20:14<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

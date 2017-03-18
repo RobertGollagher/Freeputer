@@ -71,7 +71,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - the nature of the *volatile zone* itself; and
     - the nature of any relevant external systems; and
     - the nature of any *volatile zones* with which relevant external systems communicate.
-1. **All zones which begin at or above cell 0 are faithful zones**:
+1. **All zones which begin at or above cell 0 are faithful zones:**
     - **PRG** is the 64 MiB from cell 0 to cell 16777215 (`0xffffff`).
         - PRG is for *program space*.
         - PRG is always a *fully plumbed zone*.
@@ -97,10 +97,13 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - *read/write cells* (persistent storage) followed by *unplumbed cells*.
         - If BLK is an *unplumbed zone* then it requires no physical persistent storage at all.
         - Note: a VM may provide access to additional persistent storage via VOL.
-1. **All zones which end below cell 0 are volatile zones**:
+1. **All zones which end below cell 0 are volatile zones:**
     - **SYS** is the 64 MiB from cell -1 (`0xffffffff`) to cell -16777216 (`0xff000000`).
         - SYS is reserved for system use. It provides standard system services to the VM:
-            - the streams **`stdin`** and **`stdout`** accessible as a *volatile read/write cell*.
+            - the optional trace stream **`stdtrc`** as the *volatile write-only cell* -2 (`0xfffffffe`).
+            - the optional data streams **`stdin`** and **`stdout`** as the *volatile read/write cell* -4 (`0xfffffffc`);
+            - the optional standard user-interface streams **`grdin`** and **`grdout`** as the *volatile read/write cell* -6 (`0xfffffffa`).
+            - the optional non-standard user-interface streams **`usrin`** and **`usrout`** as the *volatile read/write cell* -8 (`0xfffffff8`).
             - the ability to query the 4 values which define *faithful VM size*:
                 1. the **address of the first cell of RAM** (called `RAMa`):
                     - this will be between 0 and 16777215 if PRG contains RAM; otherwise
@@ -117,6 +120,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
                     - this will be -1 if VOL is an *unplumbed zone*; otherwise
                     - this will be between -16777217 and -2147483648.
         - SYS is largely *unplumbed* and for itself requires very little physical memory.
+        - SYS contains the cell -1 (`0xffffffff`) which is always *unplumbed*.
     - **VOL** is the 1984 MiB from cell -16777217 (`0xfeffffff`) to cell -2147483648 (`0x80000000`).
         - The default implementation of VOL is as an *unplumbed zone* which does nothing and requires no resources.
         - VM implementors may add custom functionality within VOL in a reasonable and modular manner.
@@ -126,6 +130,19 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - extend the storage capabilities of the VM; and/or
             - extend the functionality of the VM; and all
             - to a virtually limitless extent.
+1. **Data streams:**
+    - The **`stdin`** and **`stdout`** streams, if available, are primarily intended for use as data streams not user-interface streams.
+    - Using **`stdin`** and **`stdout`** as data streams allows VM instances to easily be chained together as a processing pipeline.
+    - The nature, behaviour and effect of the **`stdin`** and **`stdout`** streams may vary from environment to environment.
+    - The trace stream **`stdtrc`**, if available, provides accurate trace information when tracing is enabled.
+    - The information provided by **`stdtrc`** may reasonably differ between VM implementations.
+    - Note: a VM may provide access to additional data streams via VOL.
+1. **User interfaces:**
+    - The **`usrin`** and **`usrout`** streams, if available, may represent any user interface whatsoever.
+    - The nature, behaviour and effect of the **`usrin`** and **`usrout`** streams may vary from environment to environment.
+    - The **`grdin`** and **`grdout`** streams, if available, represent the standard textual user interface known as the grid.
+    - The logical behaviour of the **`grdin`** and **`grdout`** streams is identical in all environments.
+    - Note: a VM may provide access to additional user interfaces via VOL.
 1. **Examples of VM sizings:**
     - For a small microcontroller (to run a small program not using BLK):
         - 1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
@@ -141,7 +158,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 10 March 2017 at 15:43  
+This document was last updated on 18 March 2017 at 20:14  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
