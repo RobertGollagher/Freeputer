@@ -90,7 +90,7 @@
 <li><em>read/write cells</em> (RAM) followed by <em>unplumbed cells</em>.</li>
 </ul></li>
 <li>If MEM is an <em>unplumbed zone</em> then it requires no physical RAM at all.</li>
-<li>Note: a VM may provide access to additional RAM via VOL.</li>
+<li>Note: a VM may provide additional RAM via VOL.</li>
 </ul></li>
 <li><strong>BLK</strong> is the 1024 MiB from cell 1073741824 (<code>0x40000000</code>) to cell 2147483647 (<code>0x7fffffff</code>).
 <ul>
@@ -102,7 +102,7 @@
 <li><em>read/write cells</em> (persistent storage) followed by <em>unplumbed cells</em>.</li>
 </ul></li>
 <li>If BLK is an <em>unplumbed zone</em> then it requires no physical persistent storage at all.</li>
-<li>Note: a VM may provide access to additional persistent storage via VOL.</li>
+<li>Note: a VM may provide additional persistent storage via VOL.</li>
 </ul></li>
 </ul></li>
 <li><strong>All zones which end below cell 0 are volatile zones:</strong>
@@ -160,20 +160,55 @@
 </ul></li>
 <li><strong>Data streams:</strong>
 <ul>
-<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available, are intended for use as data streams not user-interface streams.</li>
+<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available, are intended for use as data streams (not for user interaction).</li>
 <li>Using <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as data streams allows VM instances to be chained together as a processing pipeline.</li>
+<li>Using <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as data streams allows modular systems to be created by composition of VM instances.</li>
 <li>The nature, behaviour and effect of the <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams may vary from environment to environment.</li>
 <li>The trace stream <strong><code>stdtrc</code></strong>, if available, provides accurate trace information when tracing is enabled.</li>
 <li>The information provided by <strong><code>stdtrc</code></strong> may reasonably differ between VM implementations.</li>
-<li>Note: a VM may provide access to additional data streams via VOL.</li>
+<li>Note: a VM may provide additional data streams via VOL.</li>
 </ul></li>
 <li><strong>User interfaces:</strong>
 <ul>
-<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available, may represent any user interface whatsoever.</li>
+<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available, must represent some kind of user interface.</li>
+<li>The user interface represented by <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> can be highly sophisticated and customized.</li>
 <li>The nature, behaviour and effect of the <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams may vary from environment to environment.</li>
 <li>The <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams, if available, represent the standard textual user interface known as the grid.</li>
-<li>The logical behaviour of the <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams is identical in all environments.</li>
-<li>Note: a VM may provide access to additional user interfaces via VOL.</li>
+<li>The logical behaviour of the <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams does not vary between environments.</li>
+<li>It is best practice never to use <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> to interact with the user.</li>
+<li>Note: a VM may provide additional user interfaces via VOL.</li>
+</ul></li>
+<li><strong>If the VM is running as an process:</strong>
+<ul>
+<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available:
+<ul>
+<li><em>may be connected to stdin and stdout of the VM process</em>; or</li>
+<li><em>may instead be reasonably connected to named pipes or other conduits.</em></li>
+</ul></li>
+<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available:
+<ul>
+<li><em>may directly drive a custom user interface bundled in the VM process</em>; or</li>
+<li><em>may (instead of <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong>) be interactively connected to stdin and stdout of the VM process</em>; or</li>
+<li><em>may be reasonably connected to a custom user interface via named pipes or other conduits.</em></li>
+</ul></li>
+<li>The <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams, if available:
+<ul>
+<li><em>may directly drive a grid implementation bundled in the VM process</em>; or</li>
+<li><em>may be reasonably connected to a grid via named pipes or other conduits.</em></li>
+</ul></li>
+<li>It is best practice to use a grid (via <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong>) for all command-line interaction.
+<ul>
+<li>In that case, <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> may simply be connected to stdin and stdout of the VM process.</li>
+</ul></li>
+<li>Less desirable is terminal interaction via <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> connected to stdin and stdout of the VM process.
+<ul>
+<li>In that case, <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> would reasonably be connected to named pipes or other conduits.</li>
+</ul></li>
+<li>Terminal interaction should not be done via <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> directly.
+<ul>
+<li>This is because <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> are intended for use as data streams.</li>
+</ul></li>
+<li>Note: the VM design requires neither file system nor operating system.</li>
 </ul></li>
 <li><strong>Examples of VM sizings:</strong>
 <ul>
@@ -197,7 +232,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 18 March 2017 at 20:21<br />
+This document was last updated on 19 March 2017 at 14:54<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

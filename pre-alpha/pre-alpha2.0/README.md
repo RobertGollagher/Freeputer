@@ -88,7 +88,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - *read/write cells* (RAM); or
             - *read/write cells* (RAM) followed by *unplumbed cells*.
         - If MEM is an *unplumbed zone* then it requires no physical RAM at all.
-        - Note: a VM may provide access to additional RAM via VOL.
+        - Note: a VM may provide additional RAM via VOL.
     - **BLK** is the 1024 MiB from cell 1073741824 (`0x40000000`) to cell 2147483647 (`0x7fffffff`).
         - BLK is for persistent storage (retained between runtimes).
         - BLK must entirely consist of one of the following:
@@ -96,7 +96,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - *read/write cells* (persistent storage); or
             - *read/write cells* (persistent storage) followed by *unplumbed cells*.
         - If BLK is an *unplumbed zone* then it requires no physical persistent storage at all.
-        - Note: a VM may provide access to additional persistent storage via VOL.
+        - Note: a VM may provide additional persistent storage via VOL.
 1. **All zones which end below cell 0 are volatile zones:**
     - **SYS** is the 64 MiB from cell -1 (`0xffffffff`) to cell -16777216 (`0xff000000`).
         - SYS is reserved for system use. It provides standard system services to the VM:
@@ -131,18 +131,39 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - extend the functionality of the VM; and all
             - to a virtually limitless extent.
 1. **Data streams:**
-    - The **`stdin`** and **`stdout`** streams, if available, are intended for use as data streams not user-interface streams.
+    - The **`stdin`** and **`stdout`** streams, if available, are intended for use as data streams (not for user interaction).
     - Using **`stdin`** and **`stdout`** as data streams allows VM instances to be chained together as a processing pipeline.
+    - Using **`stdin`** and **`stdout`** as data streams allows modular systems to be created by composition of VM instances.
     - The nature, behaviour and effect of the **`stdin`** and **`stdout`** streams may vary from environment to environment.
     - The trace stream **`stdtrc`**, if available, provides accurate trace information when tracing is enabled.
     - The information provided by **`stdtrc`** may reasonably differ between VM implementations.
-    - Note: a VM may provide access to additional data streams via VOL.
+    - Note: a VM may provide additional data streams via VOL.
 1. **User interfaces:**
-    - The **`usrin`** and **`usrout`** streams, if available, may represent any user interface whatsoever.
+    - The **`usrin`** and **`usrout`** streams, if available, must represent some kind of user interface.
+    - The user interface represented by **`usrin`** and **`usrout`** can be highly sophisticated and customized.
     - The nature, behaviour and effect of the **`usrin`** and **`usrout`** streams may vary from environment to environment.
     - The **`grdin`** and **`grdout`** streams, if available, represent the standard textual user interface known as the grid.
-    - The logical behaviour of the **`grdin`** and **`grdout`** streams is identical in all environments.
-    - Note: a VM may provide access to additional user interfaces via VOL.
+    - The logical behaviour of the **`grdin`** and **`grdout`** streams does not vary between environments.
+    - It is best practice never to use **`stdin`** and **`stdout`** to interact with the user.
+    - Note: a VM may provide additional user interfaces via VOL.
+1. **If the VM is running as an process:**
+      - The **`stdin`** and **`stdout`** streams, if available:
+          - *may be connected to stdin and stdout of the VM process*; or
+          - *may instead be reasonably connected to named pipes or other conduits.*
+      - The **`usrin`** and **`usrout`** streams, if available:
+          - *may directly drive a custom user interface bundled in the VM process*; or
+          - *may (instead of **`stdin`** and **`stdout`**) be interactively connected to stdin and stdout of the VM process*; or
+          - *may be reasonably connected to a custom user interface via named pipes or other conduits.*
+      - The **`grdin`** and **`grdout`** streams, if available:
+          - *may directly drive a grid implementation bundled in the VM process*; or
+          - *may be reasonably connected to a grid via named pipes or other conduits.*
+      - It is best practice to use a grid (via **`grdin`** and **`grdout`**) for all command-line interaction.
+          - In that case, **`stdin`** and **`stdout`** may simply be connected to stdin and stdout of the VM process.
+      - Less desirable is terminal interaction via **`usrin`** and **`usrout`** connected to stdin and stdout of the VM process.
+          - In that case, **`stdin`** and **`stdout`** would reasonably be connected to named pipes or other conduits.
+      - Terminal interaction should not be done via **`stdin`** and **`stdout`** directly.
+          - This is because **`stdin`** and **`stdout`** are intended for use as data streams.
+      - Note: the VM design requires neither file system nor operating system.
 1. **Examples of VM sizings:**
     - For a small microcontroller (to run a small program not using BLK):
         - 1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
@@ -158,7 +179,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 18 March 2017 at 20:21  
+This document was last updated on 19 March 2017 at 14:54  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
