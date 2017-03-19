@@ -21,6 +21,8 @@ Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. T
 
 Freeputer&nbsp;2.0 ***adds excellent robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve its excellent correctness, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining excellent correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
 
+Freeputer&nbsp;2.0 has ***improved I/O*** compared to Freeputer&nbsp;1.0 (now simpler, more standardized, more flexible, more discrete, more powerful and easier to extend). All I/O is now memory-mapped and achieved by the @ and ! instructions alone.
+
 Freeputer&nbsp;2.0 has a larger *address space* but a smaller *program space* than Freeputer&nbsp;1.0. Having a smaller *program space* allows the achievement of excellent correctness and excellent robustness *at the same time*, in a manner which is portable *and* simpler and easier to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
 
 ## Migration
@@ -100,7 +102,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. **All zones which end below cell 0 are volatile zones:**
     - **SYS** is the 64 MiB from cell -1 (`0xffffffff`) to cell -16777216 (`0xff000000`).
         - SYS is reserved for system use. It provides standard system services to the VM:
-            - the optional trace stream **`stdtrc`** as the *volatile write-only cell* -2 (`0xfffffffe`).
+            - the optional log stream **`stdlog`** as the *volatile write-only cell* -2 (`0xfffffffe`).
             - the optional data streams **`stdin`** and **`stdout`** as the *volatile read/write cell* -4 (`0xfffffffc`);
             - the optional standard UI streams **`grdin`** and **`grdout`** as the *volatile read/write cell* -6 (`0xfffffffa`).
             - the optional non-standard UI streams **`usrin`** and **`usrout`** as the *volatile read/write cell* -8 (`0xfffffff8`).
@@ -135,8 +137,10 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - Using **`stdin`** and **`stdout`** as data streams allows VM instances to be chained together as a processing pipeline.
     - Using **`stdin`** and **`stdout`** as data streams allows modular systems to be created by composition of VM instances.
     - The nature, behaviour and effect of the **`stdin`** and **`stdout`** streams may vary from environment to environment.
-    - The trace stream **`stdtrc`**, if available, provides accurate trace information when tracing is enabled.
+    - The log stream **`stdlog`**, if available, allows Freeputer programs to log information when logging is enabled.
+    - The trace stream **`stdtrc`**, if available, outputs accurate trace information when tracing is enabled.
     - The information provided by **`stdtrc`** may reasonably differ between VM implementations.
+    - There is no means for a Freeputer program to itself write to the **`stdtrc`** stream.
     - Note: a VM may provide additional data streams via VOL.
 1. **User interfaces:**
     - The **`usrin`** and **`usrout`** streams, if available, must represent some kind of user interface.
@@ -149,14 +153,14 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. **If the VM is running as an process:**
       - The **`stdin`** and **`stdout`** streams, if available:
           - *may be connected to stdin and stdout of the VM process*; or
-          - *may instead be reasonably connected to named pipes or other conduits.*
+          - *may instead reasonably be connected to named pipes or other conduits.*
       - The **`usrin`** and **`usrout`** streams, if available:
           - *may directly drive a custom user interface bundled in the VM process*; or
           - *may (instead of **`stdin`** and **`stdout`**) be interactively connected to stdin and stdout of the VM process*; or
-          - *may be reasonably connected to a custom user interface via named pipes or other conduits.*
+          - *may reasonably be connected to a custom user interface via named pipes or other conduits.*
       - The **`grdin`** and **`grdout`** streams, if available:
           - *may directly drive a grid implementation bundled in the VM process*; or
-          - *may be reasonably connected to a grid via named pipes or other conduits.*
+          - *may reasonably be connected to a grid via named pipes or other conduits.*
       - It is best practice to use a grid (via **`grdin`** and **`grdout`**) for all command-line interaction.
           - In that case, **`stdin`** and **`stdout`** may simply be connected to stdin and stdout of the VM process.
       - Less desirable is terminal interaction via **`usrin`** and **`usrout`** connected to stdin and stdout of the VM process.
@@ -179,7 +183,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 19 March 2017 at 14:54  
+This document was last updated on 19 March 2017 at 15:42  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
