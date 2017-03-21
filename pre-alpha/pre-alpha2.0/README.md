@@ -83,7 +83,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - *read-only cells* followed by *read/write cells* (ROM then RAM).
         - For a large application, PRG may require megabytes of physical memory.
         - For a small application, PRG may require less than a kilobyte of physical memory.
-    - **MEM** is the 960 MiB from cell 16777216 (`0x1000000`) to cell 1073741823 (`0x3fffffff`).
+    - **MEM** is the 4032 MiB from cell 16777216 (`0x1000000`) to cell 1073741823 (`0x3fffffff`).
         - MEM is for RAM.
         - MEM must entirely consist of one of the following:
             - *unplumbed cells*; or
@@ -91,7 +91,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
             - *read/write cells* (RAM) followed by *unplumbed cells*.
         - If MEM is an *unplumbed zone* then it requires no physical RAM at all.
         - Note: a VM may provide additional RAM via VOL.
-    - **BLK** is the 1024 MiB from cell 1073741824 (`0x40000000`) to cell 2147483647 (`0x7fffffff`).
+    - **BLK** is the 4 GiB from cell 1073741824 (`0x40000000`) to cell 2147483647 (`0x7fffffff`).
         - BLK is for persistent storage (retained between runtimes).
         - BLK must entirely consist of one of the following:
             - *unplumbed cells*; or
@@ -123,7 +123,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
                     - this will be between -16777217 and -2147483648.
         - SYS is largely *unplumbed* and for itself requires very little physical memory.
         - SYS contains the cell -1 (`0xffffffff`) which is always *unplumbed*.
-    - **VOL** is the 1984 MiB from cell -16777217 (`0xfeffffff`) to cell -2147483648 (`0x80000000`).
+    - **VOL** is the 8128 MiB from cell -16777217 (`0xfeffffff`) to cell -2147483648 (`0x80000000`).
         - The default implementation of VOL is as an *unplumbed zone* which does nothing and requires no resources.
         - VM implementors may add custom functionality within VOL in a reasonable and modular manner.
         - VOL is a *volatile zone* in which memory-mapped devices could be added to:
@@ -171,9 +171,9 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. **Examples of VM sizings:**
     - For a small microcontroller (to run a small program not using BLK):
         - 1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
-            - `RAMa` 16777216, `RAMz` 16778239, `BLKz` -1, `VOLz` -1
+            - `RAMa` 16777216, `RAMz` 16777471, `BLKz` -1, `VOLz` -1
     - For a powerful server (to run that same program or a much larger program):
-        - 1 GiB of RAM (the whole of PRG and MEM); 1 GiB of BLK:
+        - 4 GiB of RAM (the whole of PRG and MEM); 4 GiB of BLK:
             - `RAMa` 0, `RAMz` 1073741823, `BLKz` 2147483647, `VOLz` -1
 
 
@@ -183,7 +183,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 19 March 2017 at 15:42  
+This document was last updated on 23 March 2017 at 22:10  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

@@ -81,7 +81,7 @@
 <li>For a large application, PRG may require megabytes of physical memory.</li>
 <li>For a small application, PRG may require less than a kilobyte of physical memory.</li>
 </ul></li>
-<li><strong>MEM</strong> is the 960 MiB from cell 16777216 (<code>0x1000000</code>) to cell 1073741823 (<code>0x3fffffff</code>).
+<li><strong>MEM</strong> is the 4032 MiB from cell 16777216 (<code>0x1000000</code>) to cell 1073741823 (<code>0x3fffffff</code>).
 <ul>
 <li>MEM is for RAM.</li>
 <li>MEM must entirely consist of one of the following:
@@ -93,7 +93,7 @@
 <li>If MEM is an <em>unplumbed zone</em> then it requires no physical RAM at all.</li>
 <li>Note: a VM may provide additional RAM via VOL.</li>
 </ul></li>
-<li><strong>BLK</strong> is the 1024 MiB from cell 1073741824 (<code>0x40000000</code>) to cell 2147483647 (<code>0x7fffffff</code>).
+<li><strong>BLK</strong> is the 4 GiB from cell 1073741824 (<code>0x40000000</code>) to cell 2147483647 (<code>0x7fffffff</code>).
 <ul>
 <li>BLK is for persistent storage (retained between runtimes).</li>
 <li>BLK must entirely consist of one of the following:
@@ -145,7 +145,7 @@
 <li>SYS is largely <em>unplumbed</em> and for itself requires very little physical memory.</li>
 <li>SYS contains the cell -1 (<code>0xffffffff</code>) which is always <em>unplumbed</em>.</li>
 </ul></li>
-<li><strong>VOL</strong> is the 1984 MiB from cell -16777217 (<code>0xfeffffff</code>) to cell -2147483648 (<code>0x80000000</code>).
+<li><strong>VOL</strong> is the 8128 MiB from cell -16777217 (<code>0xfeffffff</code>) to cell -2147483648 (<code>0x80000000</code>).
 <ul>
 <li>The default implementation of VOL is as an <em>unplumbed zone</em> which does nothing and requires no resources.</li>
 <li>VM implementors may add custom functionality within VOL in a reasonable and modular manner.</li>
@@ -219,12 +219,12 @@
 <ul>
 <li>1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
 <ul>
-<li><code>RAMa</code> 16777216, <code>RAMz</code> 16778239, <code>BLKz</code> -1, <code>VOLz</code> -1</li>
+<li><code>RAMa</code> 16777216, <code>RAMz</code> 16777471, <code>BLKz</code> -1, <code>VOLz</code> -1</li>
 </ul></li>
 </ul></li>
 <li>For a powerful server (to run that same program or a much larger program):
 <ul>
-<li>1 GiB of RAM (the whole of PRG and MEM); 1 GiB of BLK:
+<li>4 GiB of RAM (the whole of PRG and MEM); 4 GiB of BLK:
 <ul>
 <li><code>RAMa</code> 0, <code>RAMz</code> 1073741823, <code>BLKz</code> 2147483647, <code>VOLz</code> -1</li>
 </ul></li>
@@ -235,7 +235,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 19 March 2017 at 15:42<br />
+This document was last updated on 23 March 2017 at 22:10<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
