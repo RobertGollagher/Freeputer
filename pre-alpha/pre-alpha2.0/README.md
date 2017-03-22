@@ -175,6 +175,15 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - For a powerful server (to run that same program or a much larger program):
         - 4 GiB of RAM (the whole of PRG and MEM); 4 GiB of BLK:
             - `RAMa` 0, `RAMz` 1073741823, `BLKz` 2147483647, `VOLz` -1
+1. **Granular @ and ! instructions**:
+    - To facilitate word-indexed addressing the load/store instructions are:
+        - @ = load from word at cell
+        - @b1 = load from least-signficant byte of word at cell
+        - @b2, @b3, @b4 = load from other bytes of word at cell
+        - ! = store to word at cell
+        - !b1 = store to least-signficant byte of word at cell
+        - !b2, !b3, !b4 = store to other bytes of word at cell
+
 
 
 ---
@@ -183,7 +192,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 23 March 2017 at 22:10  
+This document was last updated on 23 March 2017 at 06:30  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
