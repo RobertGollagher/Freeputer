@@ -27,7 +27,7 @@ Freeputer&nbsp;2.0 has a larger *address space* but a smaller *program space* th
 
 ## Migration
 
-Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. The instruction set and its bytecode has been changed somewhat. However, existing Freelang&nbsp;1.0 programs could probably be modified and recompiled as Freelang 2.0 programs for Freeputer&nbsp;2.0 ***without great difficulty***.
+Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. The instruction set and its bytecode has been changed somewhat. Converting Freelang&nbsp;1.0 programs to Freelang 2.0 programs for Freeputer&nbsp;2.0 can be done with ***some difficulty***.
 
 ## Proposed Design
 
@@ -175,14 +175,14 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - For a powerful server (to run that same program or a much larger program):
         - 4 GiB of RAM (the whole of PRG and MEM); 4 GiB of BLK:
             - `RAMa` 0, `RAMz` 1073741823, `BLKz` 2147483647, `VOLz` -1
-1. **Granular @ and ! instructions**:
-    - To facilitate word-indexed addressing the load/store instructions are:
-        - @ = load from word at cell
-        - @b1 = load from least-signficant byte of word at cell
-        - @b2, @b3, @b4 = load from other bytes of word at cell
-        - ! = store to word at cell
-        - !b1 = store to least-signficant byte of word at cell
-        - !b2, !b3, !b4 = store to other bytes of word at cell
+1. **Load and store is wordwise:**
+    - The only load and store instructions are @ and !
+    - That is, all loads and all stores are nominally of whole words not individual bytes.
+    - To compensate for this, fast 'bytewise' logical operators facilitate byte manipulation.
+1. **Some I/O is bytewise:**
+    - Some volatile cells are dedicated to byte transfer of their least significant byte.
+    - These always include the SYS cells for **`stdlog`**, **`stdin`**, **`stdout`**, **`grdin`**, **`grdout`**, **`usrin`** and **`usrout`**.
+    - The other bytes of such cells are unaffected by @ and ! and are always zero.
 
 
 
@@ -192,7 +192,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 23 March 2017 at 06:30  
+This document was last updated on 25 March 2017 at 16:37  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
