@@ -242,12 +242,46 @@
 <li>These always include the SYS cells for <strong><code>stdlog</code></strong>, <strong><code>stdin</code></strong>, <strong><code>stdout</code></strong>, <strong><code>grdin</code></strong>, <strong><code>grdout</code></strong>, <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong>.</li>
 <li>The other bytes of such cells are unaffected by @ and ! and are always zero.</li>
 </ul></li>
+<li><strong>Stack Assertions:</strong>
+<ul>
+<li>There is a minimal set of fast stack-assertion instructions that branch on failure if:
+<ul>
+<li>there is not a minimum of free space (1,2,3 or 4 cells) available on the data stack;</li>
+<li>there is not a minimum amount of data (1,2,3 or 4 elements) present on the data stack.</li>
+</ul></li>
+<li>This minimal set of stack assertions exists to:
+<ul>
+<li>allow programs to quickly deduce the cause of subsequent instruction failures;</li>
+<li>allow programs to quickly branch when stack state is inappropriate.</li>
+</ul></li>
+<li>This minimal set is logically sufficient.</li>
+</ul></li>
+<li><strong>Plumbed Assertions:</strong>
+<ul>
+<li>There is a minimal set of safe plumbed-assertion instructions that branch on failure if:
+<ul>
+<li>a cell will certainly never (during this runtime) support the @ instruction;</li>
+<li>a cell will certainly never (during this runtime) support the ! instruction.</li>
+</ul></li>
+<li>These plumbed assertions cause no side-effects whatsoever.</li>
+</ul></li>
+<li><strong>Instruction set:</strong>
+<ul>
+<li>The instruction set for Freeputer 2.0:
+<ul>
+<li>has not yet been <em>fully</em> decided upon;</li>
+<li>will be broadly similar to that of Freeputer 1.0;</li>
+<li>is likely to omit several very CISC-like instructions.</li>
+</ul></li>
+<li>The prototype will use an experimental subset of proposed instructions.</li>
+<li>The prototype will at first have very few instructions as its implementation gradually proceeds.</li>
+</ul></li>
 </ol>
 <hr />
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 25 March 2017 at 16:37<br />
+This document was last updated on 26 March 2017 at 01:18<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

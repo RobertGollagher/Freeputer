@@ -183,7 +183,26 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - Some volatile cells are dedicated to byte transfer of their least significant byte.
     - These always include the SYS cells for **`stdlog`**, **`stdin`**, **`stdout`**, **`grdin`**, **`grdout`**, **`usrin`** and **`usrout`**.
     - The other bytes of such cells are unaffected by @ and ! and are always zero.
-
+1. **Stack Assertions:**
+    - There is a minimal set of fast stack-assertion instructions that branch on failure if:
+        - there is not a minimum of free space (1,2,3 or 4 cells) available on the data stack;
+        - there is not a minimum amount of data (1,2,3 or 4 elements) present on the data stack.
+    - This minimal set of stack assertions exists to:
+        - allow programs to quickly deduce the cause of subsequent instruction failures;
+        - allow programs to quickly branch when stack state is inappropriate.
+    - This minimal set is logically sufficient.
+1. **Plumbed Assertions:**
+    - There is a minimal set of safe plumbed-assertion instructions that branch on failure if:
+        - a cell will certainly never (during this runtime) support the @ instruction;
+        - a cell will certainly never (during this runtime) support the ! instruction.
+    - These plumbed assertions cause no side-effects whatsoever.
+1. **Instruction set:**
+    - The instruction set for Freeputer 2.0:
+        - has not yet been *fully* decided upon;
+        - will be broadly similar to that of Freeputer 1.0;
+        - is likely to omit several very CISC-like instructions.
+    - The prototype will use an experimental subset of proposed instructions.
+    - The prototype will at first have very few instructions as its implementation gradually proceeds.
 
 
 ---
@@ -192,7 +211,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 25 March 2017 at 16:37  
+This document was last updated on 26 March 2017 at 01:18  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
