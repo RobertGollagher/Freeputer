@@ -5,8 +5,8 @@
  * File:       fvm.css
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170330-1829
- * Version:    pre-alpha-0.0.0.1 for FVM 2.0
+ * Updated:    20170330-1842
+ * Version:    pre-alpha-0.0.0.2 for FVM 2.0
 */
 
 @CHARSET "UTF-8";
@@ -16,33 +16,33 @@ body {
 }
 
 h2 {
-	color: gray;
+  color: gray;
 }
 
 .fvmWarning {
-	color: red;
+  color: red;
 }
 
 .fvmDiv {
   background-color: #222222;
-	color: gray;
-	height: 100%;
-	margin-left: 20px;
-	margin-right: 20px;
-	width: 90%;
+  color: gray;
+  height: 100%;
+  margin-left: 20px;
+  margin-right: 20px;
+  width: 90%;
 }
 
 .fvmOut {
-	background-color: black;
-	color: white;
-	height: 100%;
+  background-color: black;
+  color: white;
+  height: 100%;
   overflow-x: scroll;
   overflow-y: scroll;
   vertical-align: text-top;
-	width: 50%;
+  width: 50%;
 }
 
 .fvmMaxed {
-	height: 100%;
-	width: 100%;
+  height: 100%;
+  width: 100%;
 }

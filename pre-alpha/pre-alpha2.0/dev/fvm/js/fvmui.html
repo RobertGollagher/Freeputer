@@ -4,9 +4,9 @@
  * 
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
- * Created:    20170330
- * Updated:    20170330
- * Version:    pre-alpha-0.0.0.0 for FVM 2.0
+ * Created:    20170303
+ * Updated:    20170330-1842
+ * Version:    pre-alpha-0.0.0.2 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -54,85 +54,85 @@ function modFVMUI_init() { 'use strict';
 </head>
 
 <body>
-	<div class="fvmDiv">
-		<h2>Freeputer Virtual Machine</h2>
-		<table class="fvmMaxed">
- 			<tr>
-				<td>     
+  <div class="fvmDiv">
+    <h2>Freeputer Virtual Machine</h2>
+    <table class="fvmMaxed">
+       <tr>
+        <td>     
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run();"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
           <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.0 for FVM 2.0. See console for stdtrc.
-				</td>
-			</tr>
- 			<tr>
-				<td>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<table class="fvmMaxed">
-						<tr>
-							<td>
-								<b>stdout</b>
-							</td>
-						</tr>
-						<tr>
-							<td class="fvmOut">
-									<pre><code><span id="fvmStdout"></code></pre>
-							</td>
-						</tr>
-					</table>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<table class="fvmMaxed">
-						<tr>
-							<td>
-								<b>usrout</b>
-							</td>
-						</tr>
-						<tr>
-							<td class="fvmOut">
-									<pre><code><span id="fvmUsrout"></code></pre>
-							</td>
-						</tr>
-					</table>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<table class="fvmMaxed">
-						<tr>
-							<td>
-								<b>grdout</b>
-							</td>
-						</tr>
-						<tr>
-							<td class="fvmOut">
-									<pre><code><span id="fvmGrdout"></code></pre>
-							</td>
-						</tr>
-					</table>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<table class="fvmMaxed">
-						<tr>
-							<td>
-								<b>stdlog</b>
-							</td>
-						</tr>
-						<tr>
-							<td class="fvmOut">
-									<pre><code><span id="fvmStdlog"></code></pre>
-							</td>
-						</tr>
-					</table>
-				</td>
-			</tr>
-		</table>
-	</div>
+        </td>
+      </tr>
+       <tr>
+        <td>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>stdout</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut">
+                  <pre><code><span id="fvmStdout"></span></code></pre>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>usrout</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut">
+                  <pre><code><span id="fvmUsrout"></span></code></pre>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>grdout</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut">
+                  <pre><code><span id="fvmGrdout"></span></code></pre>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>stdlog</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut">
+                  <pre><code><span id="fvmStdlog"></span></code></pre>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
 </body>
 </html>
