@@ -1,0 +1,138 @@
+<!--
+ * Copyright © 2017, Robert Gollagher.
+ * SPDX-License-Identifier: GPL-3.0+
+ * 
+ * File:       fvmui.html
+ * Author :    Robert Gollagher   robert.gollagher@freeputer.net
+ * Created:    20170330
+ * Updated:    20170330
+ * Version:    pre-alpha-0.0.0.0 for FVM 2.0
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>FVM</title>
+<meta charset="UTF-8">
+<script src="fvm2.js"></script>
+<script>
+window.onload = function() {
+  modFVMUI = modFVMUI_init();
+};
+
+// Module modFVMUI connects this UI to an FVM provided by modFVM.
+var modFVMUI;
+function modFVMUI_init() { 'use strict';
+
+  var fvmStdout = document.getElementById('fvmStdout');
+  var fvmUsrout = document.getElementById('fvmUsrout');
+  var fvmGrdout = document.getElementById('fvmGrdout');
+  var fvmStdlog = document.getElementById('fvmStdlog');
+
+  function clear() {
+    fvmStdout.textContent = '';
+    fvmUsrout.textContent = '';
+    fvmGrdout.textContent = '';
+    fvmStdlog.textContent = '';
+  };
+
+  function run() {
+    function fnStdout(msg) {fvmStdout.textContent+=msg};
+    function fnUsrout(msg) {fvmUsrout.textContent+=msg};
+    function fnGrdout(msg) {fvmGrdout.textContent+=msg};
+    function fnLog(msg) {fvmStdlog.textContent+=msg};
+    function fnTrc(msg) {console.log(msg);}
+    modFVM.makeFVM(fnStdout, fnUsrout, fnGrdout, fnLog, fnTrc).run();
+  };
+
+  return {
+    clear: clear,
+    run : run
+  };
+}; // modFVMUI
+</script>
+<link rel="stylesheet" type="text/css" href="fvm.css">
+</head>
+
+<body>
+	<div class="fvmDiv">
+		<h2>Freeputer Virtual Machine</h2>
+		<table class="fvmMaxed">
+ 			<tr>
+				<td>     
+          <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run();"/>
+          <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.0 for FVM 2.0. See console for stdtrc.
+				</td>
+			</tr>
+ 			<tr>
+				<td>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table class="fvmMaxed">
+						<tr>
+							<td>
+								<b>stdout</b>
+							</td>
+						</tr>
+						<tr>
+							<td class="fvmOut">
+									<pre><code><span id="fvmStdout"></code></pre>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table class="fvmMaxed">
+						<tr>
+							<td>
+								<b>usrout</b>
+							</td>
+						</tr>
+						<tr>
+							<td class="fvmOut">
+									<pre><code><span id="fvmUsrout"></code></pre>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table class="fvmMaxed">
+						<tr>
+							<td>
+								<b>grdout</b>
+							</td>
+						</tr>
+						<tr>
+							<td class="fvmOut">
+									<pre><code><span id="fvmGrdout"></code></pre>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table class="fvmMaxed">
+						<tr>
+							<td>
+								<b>stdlog</b>
+							</td>
+						</tr>
+						<tr>
+							<td class="fvmOut">
+									<pre><code><span id="fvmStdlog"></code></pre>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</div>
+</body>
+</html>

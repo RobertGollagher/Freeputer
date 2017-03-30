@@ -1,0 +1,48 @@
+/*
+ * Copyright © 2017, Robert Gollagher.
+ * SPDX-License-Identifier: GPL-3.0+
+ * 
+ * File:       fvm.css
+ * Author :    Robert Gollagher   robert.gollagher@freeputer.net
+ * Created:    20170303
+ * Updated:    20170330-1829
+ * Version:    pre-alpha-0.0.0.1 for FVM 2.0
+*/
+
+@CHARSET "UTF-8";
+
+body {
+  background-color: #222222;
+}
+
+h2 {
+	color: gray;
+}
+
+.fvmWarning {
+	color: red;
+}
+
+.fvmDiv {
+  background-color: #222222;
+	color: gray;
+	height: 100%;
+	margin-left: 20px;
+	margin-right: 20px;
+	width: 90%;
+}
+
+.fvmOut {
+	background-color: black;
+	color: white;
+	height: 100%;
+  overflow-x: scroll;
+  overflow-y: scroll;
+  vertical-align: text-top;
+	width: 50%;
+}
+
+.fvmMaxed {
+	height: 100%;
+	width: 100%;
+}
