@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170330-1852
- * Version:    pre-alpha-0.0.0.3 for FVM 2.0
+ * Updated:    20170401-0943
+ * Version:    pre-alpha-0.0.0.5 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -28,12 +28,12 @@
 var modFVM = (function () { 'use strict';
 
   class FVM {
-    constructor(fnStdout, fnUsrout, fnGrdout, fnLog, fnTrc) {
-      this.fnStdout = fnStdout;
-      this.fnUsrout = fnUsrout;
-      this.fnGrdout = fnGrdout;
-      this.fnLog = fnLog;
-      this.fnTrc = fnTrc;
+    constructor(config) {
+      this.fnStdout = config.fnStdout;
+      this.fnUsrout = config.fnUsrout;
+      this.fnGrdout = config.fnGrdout;
+      this.fnLog = config.fnLog;
+      this.fnTrc = config.fnTrc;
     };
 
     run() {
@@ -41,10 +41,23 @@ var modFVM = (function () { 'use strict';
     };
   }
 
+  class Config {
+    constructor() {
+      this.fnStdout = null;
+      this.fnUsrout = null;
+      this.fnGrdout = null;
+      this.fnLog = null;
+      this.fnTrc = null;
+    };
+  }
+
   return {
-    makeFVM: function(fnStdout, fnUsrout, fnGrdout, fnLog, fnTrc) {
-      return  new FVM(fnStdout, fnUsrout, fnGrdout, fnLog, fnTrc);
-    }
+    makeFVM: function(config) {
+      return new FVM(config);
+    },
+    makeConfig: function() {
+      return new Config();
+    } 
   };
 
 })(); // modFVM

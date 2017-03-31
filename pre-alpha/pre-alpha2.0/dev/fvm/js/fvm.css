@@ -5,8 +5,8 @@
  * File:       fvm.css
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170330-1852
- * Version:    pre-alpha-0.0.0.3 for FVM 2.0
+ * Updated:    20170401-0943
+ * Version:    pre-alpha-0.0.0.5 for FVM 2.0
 */
 
 @CHARSET "UTF-8";
@@ -35,9 +35,6 @@ h2 {
 .fvmOut {
   background-color: black;
   color: white;
-  height: 100%;
-  vertical-align: text-top;
-  width: 50%;
 }
 
 .fvmMaxed {
