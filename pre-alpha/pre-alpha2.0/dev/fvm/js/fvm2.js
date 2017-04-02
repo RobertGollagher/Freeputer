@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170402-1231
- * Version:    pre-alpha-0.0.0.7 for FVM 2.0
+ * Updated:    20170402-2200
+ * Version:    pre-alpha-0.0.0.8 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -46,38 +46,38 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1;
   const SIMPLE = 64;
   const MNEMS = [
-    'wall','','call','','','','','', // 0 COMPLEX
-    '','','','','','','','', // 8
-    '','','','','','','','', // 16
-    '','','','','','','','', // 24
-    '','','','','','','','', // 32
-    '','','','','','','','', // 40
-    '','','','','','','','', // 48
-    '','','','','','','','', // 56
-    '','','','','','','','', // 64 SIMPLE
-    '','','','','','','','', // 72
-    '','','','','','','','', // 80
-    '','','','','','','','', // 88
-    '','','','','','','','', // 96
-    '','','','','','','','', // 104
-    '','','','','','','','', // 112
-    '','','','','','','','', // 120
-    '','','','','','','','', // 128
-    '','','','','','','','', // 136
-    '','ret ','','','','','','', // 144
-    '','','','','','','','', // 152
-    '','','','','','','','', // 160
-    '','','','','','','','', // 168
-    '','','','','','','','', // 176
-    '','','','','','','','', // 184
-    '','','','','','','','', // 192
-    '','','','','','','','', // 200
-    '','','','','','','','', // 208
-    '','','','','','','','', // 216
-    '','','','','','','','', // 224
-    '','','','','','','','', // 232
-    '','','','','','','','', // 240
-    '','','','','','','','halt', // 248
+    'wall','    ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 8
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 16
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 24
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 32
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 40
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 48
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 56
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 64 SIMPLE
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 72
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 80
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 88
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 96
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 104
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 112
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 120
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 128
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 136
+    '    ','ret ','    ','    ','    ','    ','    ','    ', // 144
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 152
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 160
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 168
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 176
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 184
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 192
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 200
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 208
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 216
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 224
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 232
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 240
+    '    ','    ','    ','    ','    ','    ','    ','halt', // 248
   ];
 
   const iWALL = 0|0;
@@ -109,6 +109,7 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
+      this.fs = new Stack(this); // TODO (or 64-bit rs) (is this worth it?)
     };
 
     run() {
@@ -117,7 +118,7 @@ var modFVM = (function () { 'use strict';
       var instr, failAddr, opcode, lit;
       while (this.running) {
         instr = this.wordAtPc();
-        failAddr = instr & 0xffffff00;
+        failAddr = (instr & 0xffffff00) >> 8;
         opcode = instr & 0x000000ff;
         if (this.tracing) {
           if (opcode < SIMPLE) {
@@ -134,10 +135,12 @@ var modFVM = (function () { 'use strict';
             break;
           case iCALL:
             this.rs.doPush(this.pc+1);
+            this.fs.doPush(failAddr);
             this.pc = this.wordAtPc();
             break;
           case iEXIT:
             this.pc = this.rs.doPop();
+            this.fs.doPop();
             break;
           case iHALT:
             this.succeed();
@@ -167,16 +170,22 @@ var modFVM = (function () { 'use strict';
 
     fail() {
       if (this.rs.used() == 0) {
-        this.exitCode = FAILURE;
-        this.running = false;
-        this.fnTrc('VM failure');
-        return;
+        this.failVm();
       } else {
-        this.fnTrc('Subroutine failure');
-        this.pc = this.rs.doPop();
-        // FIXME NEXT: (1) add return metadata; (2) add branch on failed call
-        return;
+        this.failSub();
       }
+    }
+
+    failVm() {
+      this.exitCode = FAILURE;
+      this.running = false;
+      this.fnTrc('VM failure');
+    }
+
+    failSub() {
+      this.fnTrc('Subroutine failure');
+      this.rs.doPop();
+      this.pc = this.fs.doPop();
     }
 
     succeed() {
@@ -186,13 +195,14 @@ var modFVM = (function () { 'use strict';
 
     trace(pc,failAddr,opcode,lit) {
       this.fnTrc(modFmt.hex8(this.pc) + ' ' + 
-                 modFmt.hex6(failAddr>>8) + ':' +
+                 modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ' +
                  modFmt.hex8(lit) + ' ( ' +
                  this.ds + ')[ ' +
                  this.ss + ']{ ' +
-                 this.rs + '}')
+                 this.rs + '}{ ' +
+                 this.fs + '}');
     }
   }
 
@@ -200,7 +210,7 @@ var modFVM = (function () { 'use strict';
     constructor() {
       // FIMXE program hardcoded for intial development
       this.program = [
-        iCALL, // 00
+        iCALL | 0x00000f00, // 00
         0x00000008, // 01
         iCALL, // 02
         0x00000009, // 03
