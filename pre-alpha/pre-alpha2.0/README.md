@@ -48,7 +48,6 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. **Simple instructions** are 1 word: an unsigned 24-bit *failure address* above an unsigned 8-bit *opcode*.
 1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
 1. The VM has **3 stacks**: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).
-1. Each rs element contains unsigned 8-bit *metadata* above an unsigned 24-bit *return address*.
 1. Each stack has a maximum depth of **256 elements**.
 1. All I/O is **non-blocking** and unavailable I/O triggers **branch on failure**.
 1. All I/O is **memory mapped** and unsupported I/O triggers **branch on failure**.
@@ -211,7 +210,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 26 March 2017 at 01:18  
+This document was last updated on 2 April 2017 at 18:51  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
