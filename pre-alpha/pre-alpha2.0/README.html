@@ -22,10 +22,6 @@
 <ol style="list-style-type: decimal">
 <li>The VM is <strong>correct without trapping</strong>.</li>
 <li>Its termination results in <strong>success or failure</strong> (0 or 1).</li>
-<li>All instructions and all stack operations <strong>branch on failure</strong>.</li>
-<li>Each element on the return stack records <strong>subroutine success or failure</strong>.</li>
-<li>Inability to call a subroutine is treated as <strong>subroutine failure</strong>.</li>
-<li>An illegal instruction causes <strong>subroutine failure</strong>.</li>
 <li>A naked illegal instruction causes <strong>VM failure</strong>.</li>
 <li>Addressing is <strong>absolute</strong> and <strong>word-indexed</strong> (1 cell = 1 word).</li>
 <li><em>Address space</em> is <strong>32 signed bits</strong> (the 16 GiB from word -2147483648 to word 2147483647).</li>
@@ -36,8 +32,11 @@
 <li>Words are <strong>32 signed bits</strong> (little endian, two's complement).</li>
 <li><strong>Simple instructions</strong> are 1 word: an unsigned 24-bit <em>failure address</em> above an unsigned 8-bit <em>opcode</em>.</li>
 <li><strong>Complex instructions</strong> also have a second word: a signed 32-bit <em>literal</em>.</li>
-<li>The VM has <strong>3 stacks</strong>: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).</li>
+<li>The VM has <strong>3 stacks</strong> of words: a data stack (ds), a software stack (ss) and a return stack (rs).</li>
 <li>Each stack has a maximum depth of <strong>256 elements</strong>.</li>
+<li>Inability to call a subroutine (call failure due to rs full) triggers <strong>branch on failure</strong>.</li>
+<li>Inability to return from a subroutine (return failure due to rs empty) triggers <strong>branch on failure</strong>.</li>
+<li>There is no special concept of subroutine failure other than call failure and return failure.</li>
 <li>All I/O is <strong>non-blocking</strong> and unavailable I/O triggers <strong>branch on failure</strong>.</li>
 <li>All I/O is <strong>memory mapped</strong> and unsupported I/O triggers <strong>branch on failure</strong>.</li>
 <li>A <em>read-only cell</em> is one which only supports the @ instruction.</li>
@@ -280,7 +279,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 2 April 2017 at 18:51<br />
+This document was last updated on 4 April 2017 at 2020+<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

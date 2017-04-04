@@ -33,10 +33,6 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 
 1. The VM is **correct without trapping**.
 1. Its termination results in **success or failure** (0 or 1).
-1. All instructions and all stack operations **branch on failure**.
-1. Each element on the return stack records **subroutine success or failure**.
-1. Inability to call a subroutine is treated as **subroutine failure**.
-1. An illegal instruction causes **subroutine failure**.
 1. A naked illegal instruction causes **VM failure**.
 1. Addressing is **absolute** and **word-indexed** (1 cell = 1 word).
 1. *Address space* is **32 signed bits** (the 16 GiB from word -2147483648 to word 2147483647).
@@ -47,8 +43,11 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. Words are **32 signed bits** (little endian, two's complement).
 1. **Simple instructions** are 1 word: an unsigned 24-bit *failure address* above an unsigned 8-bit *opcode*.
 1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
-1. The VM has **3 stacks**: a data stack (ds) of words, a software stack (ss) of words, and a return stack (rs).
+1. The VM has **3 stacks** of words: a data stack (ds), a software stack (ss) and a return stack (rs).
 1. Each stack has a maximum depth of **256 elements**.
+1. Inability to call a subroutine (call failure due to rs full) triggers **branch on failure**.
+1. Inability to return from a subroutine (return failure due to rs empty) triggers **branch on failure**.
+1. There is no special concept of subroutine failure other than call failure and return failure.
 1. All I/O is **non-blocking** and unavailable I/O triggers **branch on failure**.
 1. All I/O is **memory mapped** and unsupported I/O triggers **branch on failure**.
 1. A *read-only cell* is one which only supports the @ instruction.
@@ -210,7 +209,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 2 April 2017 at 18:51  
+This document was last updated on 4 April 2017 at 2020+  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
