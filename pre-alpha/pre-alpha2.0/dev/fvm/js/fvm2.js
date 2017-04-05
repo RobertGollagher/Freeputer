@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170402-2200
- * Version:    pre-alpha-0.0.0.8 for FVM 2.0
+ * Updated:    20170405-2335
+ * Version:    pre-alpha-0.0.0.9 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -46,7 +46,7 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1;
   const SIMPLE = 64;
   const MNEMS = [
-    'wall','    ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
+    'fail','    ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -80,7 +80,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','halt', // 248
   ];
 
-  const iWALL = 0|0;
+  const iFAIL = 0|0;
   const iLIT = 1|0;
   const iCALL = 2|0;
   const iEXIT = 145|0;
@@ -109,7 +109,6 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
-      this.fs = new Stack(this); // TODO (or 64-bit rs) (is this worth it?)
     };
 
     run() {
@@ -130,17 +129,15 @@ var modFVM = (function () { 'use strict';
         }
         this.pc++;
         switch (opcode) {
-          case iWALL:
+          case iFAIL:
             this.fail();
             break;
           case iCALL:
             this.rs.doPush(this.pc+1);
-            this.fs.doPush(failAddr);
             this.pc = this.wordAtPc();
             break;
           case iEXIT:
             this.pc = this.rs.doPop();
-            this.fs.doPop();
             break;
           case iHALT:
             this.succeed();
@@ -169,28 +166,15 @@ var modFVM = (function () { 'use strict';
     }
 
     fail() {
-      if (this.rs.used() == 0) {
-        this.failVm();
-      } else {
-        this.failSub();
-      }
-    }
-
-    failVm() {
       this.exitCode = FAILURE;
       this.running = false;
       this.fnTrc('VM failure');
     }
 
-    failSub() {
-      this.fnTrc('Subroutine failure');
-      this.rs.doPop();
-      this.pc = this.fs.doPop();
-    }
-
     succeed() {
       this.exitCode = SUCCESS;
       this.running = false;
+      this.fnTrc('VM success');
     }
 
     trace(pc,failAddr,opcode,lit) {
@@ -201,8 +185,7 @@ var modFVM = (function () { 'use strict';
                  modFmt.hex8(lit) + ' ( ' +
                  this.ds + ')[ ' +
                  this.ss + ']{ ' +
-                 this.rs + '}{ ' +
-                 this.fs + '}');
+                 this.rs + '}');
     }
   }
 

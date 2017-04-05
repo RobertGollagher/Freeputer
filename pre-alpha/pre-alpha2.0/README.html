@@ -22,7 +22,24 @@
 <ol style="list-style-type: decimal">
 <li>The VM is <strong>correct without trapping</strong>.</li>
 <li>Its termination results in <strong>success or failure</strong> (0 or 1).</li>
-<li>A naked illegal instruction causes <strong>VM failure</strong>.</li>
+<li>The only cause of VM success is:
+<ol style="list-style-type: decimal">
+<li>The halt opcode (0xff).</li>
+</ol></li>
+<li>The only causes of VM failure are:
+<ol style="list-style-type: decimal">
+<li>The fail opcode (0x00);</li>
+<li>Any illegal opcode;</li>
+<li>Platform failure.</li>
+</ol></li>
+<li>All opcodes <strong>branch on failure</strong> except: halt (0xff); fail (0x00); any illegal opcode.</li>
+<li>The following opcodes cause immediate VM termination regardless of any fail address:
+<ol style="list-style-type: decimal">
+<li>The halt opcode (0xff);</li>
+<li>The fail opcode (0x00);</li>
+<li>Any illegal opcode.</li>
+</ol></li>
+<li>Failure is rare and means the run <strong>cannot be trusted</strong>.</li>
 <li>Addressing is <strong>absolute</strong> and <strong>word-indexed</strong> (1 cell = 1 word).</li>
 <li><em>Address space</em> is <strong>32 signed bits</strong> (the 16 GiB from word -2147483648 to word 2147483647).</li>
 <li><em>Address space</em> consists of 5 <em>zones</em> (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK.</li>
@@ -279,7 +296,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 4 April 2017 at 2020+<br />
+This document was last updated on 5 April 2017 at 23:35<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
