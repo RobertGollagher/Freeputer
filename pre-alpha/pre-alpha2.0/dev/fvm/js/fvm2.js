@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170405-2335
- * Version:    pre-alpha-0.0.0.9 for FVM 2.0
+ * Updated:    20170408-1604
+ * Version:    pre-alpha-0.0.0.10 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -27,7 +27,7 @@
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
-  const PRGb = 0;
+  const PRGb = 0x000000;
   const PRGt = 0xffffff;
   const MEMb = 0x1000000;
   const MEMt = 0x3fffffff;
@@ -42,11 +42,13 @@ var modFVM = (function () { 'use strict';
   const STACK_ELEMS = 256;
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
-  const SUCCESS = 0;
-  const FAILURE = 1;
+  const INT_MAX =  2147483647;
+  const INT_MIN = -2147483648;
+  const SUCCESS = 0|0;
+  const FAILURE = 1|0;
   const SIMPLE = 64;
   const MNEMS = [
-    'fail','    ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
+    'fail','lit ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -71,7 +73,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 176
     '    ','    ','    ','    ','    ','    ','    ','    ', // 184
     '    ','    ','    ','    ','    ','    ','    ','    ', // 192
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 200
+    '    ','+   ','-   ','    ','    ','    ','    ','    ', // 200
     '    ','    ','    ','    ','    ','    ','    ','    ', // 208
     '    ','    ','    ','    ','    ','    ','    ','    ', // 216
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
@@ -84,6 +86,8 @@ var modFVM = (function () { 'use strict';
   const iLIT = 1|0;
   const iCALL = 2|0;
   const iEXIT = 145|0;
+  const iADD = 201|0;
+  const iSUB = 202|0;
   const iHALT = 255|0;
 
   class FVM {
@@ -115,12 +119,13 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('FVM run...');
       this.running = true;
       var instr, failAddr, opcode, lit;
+
       while (this.running) {
         instr = this.wordAtPc();
         failAddr = (instr & 0xffffff00) >> 8;
         opcode = instr & 0x000000ff;
         if (this.tracing) {
-          if (opcode < SIMPLE) {
+          if (opcode < SIMPLE && opcode != iFAIL) {
             lit = this.prgWord(this.pc+1);
           } else {
             lit = '';
@@ -128,34 +133,48 @@ var modFVM = (function () { 'use strict';
           this.trace(this.pc,failAddr,opcode,lit); 
         }
         this.pc++;
-        switch (opcode) {
-          case iFAIL:
-            this.fail();
-            break;
-          case iCALL:
-            this.rs.doPush(this.pc+1);
-            this.pc = this.wordAtPc();
-            break;
-          case iEXIT:
-            this.pc = this.rs.doPop();
-            break;
-          case iHALT:
-            this.succeed();
-            break;
-          default:
-            this.fnTrc('Illegal instruction: 0x' + modFmt.hex2(opcode));
-            this.fail();
-            break;
+        try {
+          switch (opcode) {
+            case iFAIL:
+              this.fail();
+              break;
+            case iLIT:
+              this.ds.doPush(this.wordAtPc());
+              this.pc++;
+              break;
+            case iCALL:
+              this.rs.doPush(this.pc+1);
+              this.pc = this.wordAtPc();
+              break;
+            case iEXIT:
+              this.pc = this.rs.doPop();
+              break;
+            case iADD:
+              this.ds.apply2((a,b) => a+b);
+              break;
+            case iSUB:
+              this.ds.apply2((a,b) => a-b);
+              break;
+            case iHALT:
+              this.succeed();
+              break;
+            default:
+              this.fnTrc('Illegal instruction: 0x' + modFmt.hex2(opcode));
+              this.fail();
+              break;
+          }
+        } catch(e) {
+          if (e != FAILURE) {
+            throw e;
+          }
+          this.pc = failAddr;
         }
       }
       this.fnTrc('FVM ran. Exit code: ' + this.exitCode);
     };
 
     wordAtPc() {
-      if (this.pc >= 0 && this.pc < this.PRGe) {
-        return this.prg.getUint32(this.pc<<WORD_PWR, true);
-      }
-      return 0;
+      return this.prgWord(this.pc);
     }
 
     prgWord(addr) {
@@ -178,7 +197,7 @@ var modFVM = (function () { 'use strict';
     }
 
     trace(pc,failAddr,opcode,lit) {
-      this.fnTrc(modFmt.hex8(this.pc) + ' ' + 
+      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ' +
@@ -193,21 +212,21 @@ var modFVM = (function () { 'use strict';
     constructor() {
       // FIMXE program hardcoded for intial development
       this.program = [
-        iCALL | 0x00000f00, // 00
-        0x00000008, // 01
-        iCALL, // 02
-        0x00000009, // 03
-        iHALT, // 04
-        iHALT, // 05
-        iHALT, // 06
-        iHALT, // 07
-        iEXIT, // 08
-        iEXIT, // 09
+        iLIT, // 00
+        0, // 01
+        iLIT, // 02
+        1, // 03
+        iSUB | 0x00000e00, // 04
+        iLIT, // 05
+        2, // 06
+        iADD | 0x00000e00, // 07
+        iHALT, // 08
+        iHALT, // 09
         iHALT, // 0a
         iHALT, // 0b
         iHALT, // 0c
         iHALT, // 0d
-        iHALT, // 0e
+        iFAIL, // 0e
         iHALT // 0f
       ]
       this.RAMa = -1;
@@ -244,7 +263,7 @@ var modFVM = (function () { 'use strict';
       if (this.sp >= WORD_BYTES) {
         this.sp = (this.sp-WORD_BYTES);
       } else {
-        this.fvm.fail(); // overflow
+        throw FAILURE; // overflow
         return;
       }
       this.elems.setInt32(this.sp, i, true);
@@ -256,7 +275,7 @@ var modFVM = (function () { 'use strict';
         this.sp += WORD_BYTES;
         return elem;
       } else {
-        this.fvm.fail(); // underflow
+        throw FAILURE; // underflow
       }
     }
 
@@ -264,14 +283,32 @@ var modFVM = (function () { 'use strict';
       if (this.sp <= this.SP_ONE) {
         return elem = this.elems.getInt32(this.sp, true);
       } else {
-        this.fvm.fail(); // underflow
+        throw FAILURE; // underflow
       }
     }
+
+    apply1(f) {
+      var a = this.doPop();
+      this.doPush(this.verify(f(a)));
+    }
+
+    apply2(f) {
+      var b = this.doPop();
+      var a = this.doPop();
+      this.doPush(this.verify(f(a,b)));
+    }
+
+    verify(i) {
+      if (i < INT_MIN || i > INT_MAX) {
+        throw FAILURE;
+      }
+      return i;
+    }  
 
     toString() {
       var str = '';
       for (var i = STACK_1; i >= this.sp; i-=WORD_BYTES) {
-        str = str + modFmt.hex8(this.elems.getInt32(i, true)) + ' ';        
+        str = str + modFmt.hex8(this.elems.getUint32(i, true)) + ' ';        
       }
       return str;
     }
