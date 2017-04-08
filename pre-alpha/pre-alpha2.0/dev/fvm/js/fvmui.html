@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170408-1604
- * Version:    pre-alpha-0.0.0.10 for FVM 2.0
+ * Updated:    20170408-2046
+ * Version:    pre-alpha-0.0.0.11 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -39,11 +39,12 @@ function modFVMUI_init() { 'use strict';
 
   function run() {
     var cf = modFVM.makeConfig();
-    cf.fnStdout = x => {fvmStdout.textContent+=x};
-    cf.fnUsrout = x => {fvmUsrout.textContent+=x};
-    cf.fnGrdout = x => {fvmGrdout.textContent+=x};
-    cf.fnLog = x => {fvmStdlog.textContent+=x};
-    cf.fnTrc = x => {console.log(x)};
+    var chr = x => String.fromCharCode(x);
+    cf.fnStdout = x => fvmStdout.textContent+=chr(x);
+    cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
+    cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
+    cf.fnLog = x => fvmStdlog.textContent+=chr(x);
+    cf.fnTrc = x => console.log(x);
     modFVM.makeFVM(cf).run();
   };
 
@@ -64,11 +65,27 @@ function modFVMUI_init() { 'use strict';
         <td>     
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.10 for FVM 2.0. See console for stdtrc.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.11 for FVM 2.0. See console for stdtrc.
         </td>
       </tr>
        <tr>
         <td>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>stdlog</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut">
+                  <pre><code><span id="fvmStdlog"></span></code></pre>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
       <tr>
@@ -82,22 +99,6 @@ function modFVMUI_init() { 'use strict';
             <tr>
               <td class="fvmOut">
                   <pre><code><span id="fvmStdout"></span></code></pre>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
-            <tr>
-              <td>
-                <b>usrout</b>
-              </td>
-            </tr>
-            <tr>
-              <td class="fvmOut">
-                  <pre><code><span id="fvmUsrout"></span></code></pre>
               </td>
             </tr>
           </table>
@@ -124,12 +125,12 @@ function modFVMUI_init() { 'use strict';
           <table class="fvmMaxed">
             <tr>
               <td>
-                <b>stdlog</b>
+                <b>usrout</b>
               </td>
             </tr>
             <tr>
               <td class="fvmOut">
-                  <pre><code><span id="fvmStdlog"></span></code></pre>
+                  <pre><code><span id="fvmUsrout"></span></code></pre>
               </td>
             </tr>
           </table>

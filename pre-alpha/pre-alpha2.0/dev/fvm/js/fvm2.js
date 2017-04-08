@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170408-1604
- * Version:    pre-alpha-0.0.0.10 for FVM 2.0
+ * Updated:    20170408-2046
+ * Version:    pre-alpha-0.0.0.11 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -44,9 +44,15 @@ var modFVM = (function () { 'use strict';
   const STACK_1 = STACK_BYTES - WORD_BYTES;
   const INT_MAX =  2147483647;
   const INT_MIN = -2147483648;
+  const MSP = 0xffffff00;
+  const LSB = 0x000000ff;
   const SUCCESS = 0|0;
   const FAILURE = 1|0;
   const SIMPLE = 64;
+  const STDLOG = -2;
+  const STDOUT = -4;
+  const GRDOUT = -6;
+  const USROUT = -8;
   const MNEMS = [
     'fail','lit ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
@@ -71,7 +77,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 160
     '    ','    ','    ','    ','    ','    ','    ','    ', // 168
     '    ','    ','    ','    ','    ','    ','    ','    ', // 176
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 184
+    '    ','    ','    ','    ','    ','    ','!   ','    ', // 184
     '    ','    ','    ','    ','    ','    ','    ','    ', // 192
     '    ','+   ','-   ','    ','    ','    ','    ','    ', // 200
     '    ','    ','    ','    ','    ','    ','    ','    ', // 208
@@ -87,6 +93,7 @@ var modFVM = (function () { 'use strict';
   const iCALL = 2|0;
   const iEXIT = 145|0;
   const iADD = 201|0;
+  const iSTORE = 190|0;
   const iSUB = 202|0;
   const iHALT = 255|0;
 
@@ -122,8 +129,8 @@ var modFVM = (function () { 'use strict';
 
       while (this.running) {
         instr = this.wordAtPc();
-        failAddr = (instr & 0xffffff00) >> 8;
-        opcode = instr & 0x000000ff;
+        failAddr = (instr & MSP) >> 8;
+        opcode = instr & LSB;
         if (this.tracing) {
           if (opcode < SIMPLE && opcode != iFAIL) {
             lit = this.prgWord(this.pc+1);
@@ -149,6 +156,28 @@ var modFVM = (function () { 'use strict';
             case iEXIT:
               this.pc = this.rs.doPop();
               break;
+            case iSTORE:
+              // FIXME incomplete implementation
+              var addr = this.ds.doPop();
+              var val = this.ds.doPop();
+              switch (addr) {
+                case STDLOG:
+                  this.lsb(this.fnLog,val);
+                  break;
+                case STDOUT:
+                  this.lsb(this.fnStdout,val);
+                  break;
+                case GRDOUT:
+                  this.lsb(this.fnGrdout,val);
+                  break;
+                case USROUT:
+                  this.lsb(this.fnUsrout,val);
+                  break;
+                default:
+                  throw FAILURE;
+                break;
+              }
+              break;
             case iADD:
               this.ds.apply2((a,b) => a+b);
               break;
@@ -172,6 +201,10 @@ var modFVM = (function () { 'use strict';
       }
       this.fnTrc('FVM ran. Exit code: ' + this.exitCode);
     };
+
+    lsb(f,x) {
+      f(x&LSB);
+    }
 
     wordAtPc() {
       return this.prgWord(this.pc);
@@ -211,23 +244,43 @@ var modFVM = (function () { 'use strict';
   class Config {
     constructor() {
       // FIMXE program hardcoded for intial development
+      var F_ADDR = 0x00001e00;
+      var S_ADDR = 0x00001e00;
+      var C_ADDR = 0x00002000;
       this.program = [
         iLIT, // 00
         0, // 01
         iLIT, // 02
         1, // 03
-        iSUB | 0x00000e00, // 04
+        iSUB | F_ADDR, // 04
         iLIT, // 05
-        2, // 06
-        iADD | 0x00000e00, // 07
-        iHALT, // 08
-        iHALT, // 09
-        iHALT, // 0a
-        iHALT, // 0b
-        iHALT, // 0c
-        iHALT, // 0d
-        iFAIL, // 0e
-        iHALT // 0f
+        66, // 06
+        iADD | F_ADDR, // 07
+        iLIT, // 08
+        STDLOG, // 09
+        iSTORE | F_ADDR, // 0a
+        iLIT, // 0b
+        66, // 0c
+        iLIT, // 0d
+        STDOUT, // 0e
+        iSTORE | F_ADDR, // 0f
+        iLIT, // 10
+        67, // 11
+        iLIT, // 12
+        GRDOUT, // 13
+        iSTORE | F_ADDR, // 14
+        iLIT, // 15
+        68, // 16
+        iLIT, // 17
+        USROUT, // 18
+        iSTORE | F_ADDR, // 19
+        iHALT, // 1a
+        iHALT, // 1b
+        iCALL | F_ADDR, // 1c TODO change to iJMP
+        C_ADDR, // 1d
+        iFAIL, // 1e F_ADDR
+        iHALT, // 1f S_ADDR
+        iHALT // 20 C_ADDR
       ]
       this.RAMa = -1;
       this.RAMz = -1;
