@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170408-2046
- * Version:    pre-alpha-0.0.0.11 for FVM 2.0
+ * Updated:    20170430-2022
+ * Version:    pre-alpha-0.0.0.12 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -28,6 +28,7 @@ function modFVMUI_init() { 'use strict';
   var fvmUsrout = elem('fvmUsrout');
   var fvmGrdout = elem('fvmGrdout');
   var fvmStdlog = elem('fvmStdlog');
+  var fvmStdtrc = elem('fvmStdtrc');
 
   function clear() {
     var clr = x => {x.textContent = ''};
@@ -35,6 +36,7 @@ function modFVMUI_init() { 'use strict';
     clr(fvmUsrout);
     clr(fvmGrdout);
     clr(fvmStdlog);
+    clr(fvmStdtrc);
   };
 
   function run() {
@@ -44,7 +46,7 @@ function modFVMUI_init() { 'use strict';
     cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
-    cf.fnTrc = x => console.log(x);
+    cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
     modFVM.makeFVM(cf).run();
   };
 
@@ -65,7 +67,7 @@ function modFVMUI_init() { 'use strict';
         <td>     
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.11 for FVM 2.0. See console for stdtrc.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.12 for FVM 2.0.
         </td>
       </tr>
        <tr>
@@ -81,7 +83,7 @@ function modFVMUI_init() { 'use strict';
               </td>
             </tr>
             <tr>
-              <td class="fvmOut">
+              <td class="fvmOut fvmSmall fvmScroll">
                   <pre><code><span id="fvmStdlog"></span></code></pre>
               </td>
             </tr>
@@ -97,7 +99,7 @@ function modFVMUI_init() { 'use strict';
               </td>
             </tr>
             <tr>
-              <td class="fvmOut">
+              <td class="fvmOut fvmSmall fvmScroll">
                   <pre><code><span id="fvmStdout"></span></code></pre>
               </td>
             </tr>
@@ -113,7 +115,7 @@ function modFVMUI_init() { 'use strict';
               </td>
             </tr>
             <tr>
-              <td class="fvmOut">
+              <td class="fvmOut fvmSmall fvmScroll">
                   <pre><code><span id="fvmGrdout"></span></code></pre>
               </td>
             </tr>
@@ -129,8 +131,24 @@ function modFVMUI_init() { 'use strict';
               </td>
             </tr>
             <tr>
-              <td class="fvmOut">
+              <td class="fvmOut fvmSmall fvmScroll">
                   <pre><code><span id="fvmUsrout"></span></code></pre>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>stdtrc</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut fvmMed fvmScroll">
+                  <pre><code><span id="fvmStdtrc"></span></code></pre>
               </td>
             </tr>
           </table>
