@@ -1,0 +1,31 @@
+(
+prg
+===
+
+This is an unstable Freelang program being used for iterative experimentation
+in the development of the JavaScript prototype of the FVM 2.0.
+
+It can be compiled by...
+
+  ./mk.sh prg.fl
+
+...to produce 'prgBase64.js' for use by 'fvmui.html'.
+
+Copyright © 2017, Robert Gollagher.
+SPDX-License-Identifier: GPL-3.0+
+
+Program:    prg.fl
+Author :    Robert Gollagher   robert.gollagher@freeputer.net
+Created:    20170513
+Updated:    20170513+
+Version:    unstable
+
+===========================================================================
+
+WARNING: This is pre-alpha software and as such may well be incomplete,
+unstable and unreliable. It is considered to be suitable only for
+experimentation and nothing more.
+
+=========================================================================== )
+
+1 2 + halt
