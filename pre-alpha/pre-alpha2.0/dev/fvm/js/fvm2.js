@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170513-1405
- * Version:    pre-alpha-0.0.0.13 for FVM 2.0
+ * Updated:    20170513-1450
+ * Version:    pre-alpha-0.0.0.14 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -238,11 +238,11 @@ var modFVM = (function () { 'use strict';
   }
 
   class Config {
-    constructor() {
+    constructor(prg) {
       var F_ADDR = 0x00001e00;
       var S_ADDR = 0x00001e00;
       var C_ADDR = 0x00002000;
-      this.program = null; // FIXME
+      this.program = prg;
       this.RAMa = -1;
       this.RAMz = -1;
       this.BLKz = -1;
@@ -332,8 +332,8 @@ var modFVM = (function () { 'use strict';
     makeFVM: function(config) {
       return new FVM(config);
     },
-    makeConfig: function() {
-      return new Config();
+    makeConfig: function(prg) {
+      return new Config(prg);
     } 
   };
 

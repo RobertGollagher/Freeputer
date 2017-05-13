@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170513-1405
- * Version:    pre-alpha-0.0.0.13 for FVM 2.0
+ * Updated:    20170513-1450
+ * Version:    pre-alpha-0.0.0.14 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -14,14 +14,16 @@
 <title>FVM</title>
 <meta charset="UTF-8">
 <script src="fvm2.js"></script>
+<script src="prgBase64.js"></script>
 <script>
 window.onload = function() {
-  modFVMUI = modFVMUI_init();
+  var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
+  modFVMUI = modFVMUI_init(prg);
 };
 
 // Module modFVMUI connects this UI to an FVM provided by modFVM.
 var modFVMUI;
-function modFVMUI_init() { 'use strict';
+function modFVMUI_init(prg) { 'use strict';
 
   var elem = x => document.getElementById(x);
   var fvmStdout = elem('fvmStdout');
@@ -40,17 +42,13 @@ function modFVMUI_init() { 'use strict';
   };
 
   function run() {
-    var cf = modFVM.makeConfig();
+    var cf = modFVM.makeConfig(prg);
     var chr = x => String.fromCharCode(x);
     cf.fnStdout = x => fvmStdout.textContent+=chr(x);
     cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
     cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
-
-    var prg64 = "AQAAAAEAAAABAAAAAgAAAMkAAAD+AAAAAAAAAA==";
-
-    cf.program = Uint8Array.from(atob(prg64), c => c.charCodeAt(0)).buffer;
     modFVM.makeFVM(cf).run();
   };
 
@@ -71,7 +69,7 @@ function modFVMUI_init() { 'use strict';
         <td>     
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.12 for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.14 for FVM 2.0.
         </td>
       </tr>
        <tr>
