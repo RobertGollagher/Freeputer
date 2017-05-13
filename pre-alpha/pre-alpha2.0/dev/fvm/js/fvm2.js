@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170430-2022
- * Version:    pre-alpha-0.0.0.12 for FVM 2.0
+ * Updated:    20170513-1405
+ * Version:    pre-alpha-0.0.0.13 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -53,7 +53,7 @@ var modFVM = (function () { 'use strict';
   const STDOUT = -4;
   const GRDOUT = -6;
   const USROUT = -8;
-  const MNEMS = [
+  const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
     'fail','lit ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
@@ -85,7 +85,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
     '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','    ','    ','    ','    ','halt', // 248
+    '    ','    ','    ','    ','    ','    ','halt','    ', // 248
   ];
 
   const iFAIL = 0|0;
@@ -95,7 +95,7 @@ var modFVM = (function () { 'use strict';
   const iADD = 201|0;
   const iSTORE = 190|0;
   const iSUB = 202|0;
-  const iHALT = 255|0;
+  const iHALT = 254|0;
 
   class FVM {
     constructor(config) {
@@ -111,12 +111,8 @@ var modFVM = (function () { 'use strict';
       this.fnGrdout = config.fnGrdout;
       this.fnLog = config.fnLog;
       this.fnTrc = config.fnTrc;
-      this.program = config.program;
-      this.PRGe = this.program.length;
-      this.prg = new DataView(new ArrayBuffer(this.PRGe<<WORD_PWR));
-      for (var i=0; i < this.PRGe; i++) {
-        this.prg.setInt32(i<<WORD_PWR, this.program[i], true);
-      }
+      this.PRGe = config.program.byteLength;
+      this.prg = new DataView(config.program);
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
@@ -243,45 +239,10 @@ var modFVM = (function () { 'use strict';
 
   class Config {
     constructor() {
-      // FIMXE program hardcoded for intial development
       var F_ADDR = 0x00001e00;
       var S_ADDR = 0x00001e00;
       var C_ADDR = 0x00002000;
-      this.program = [
-        iLIT, // 00
-        0, // 01
-        iLIT, // 02
-        1, // 03
-        iSUB | F_ADDR, // 04
-        iLIT, // 05
-        66, // 06
-        iADD | F_ADDR, // 07
-        iLIT, // 08
-        STDLOG, // 09
-        iSTORE | F_ADDR, // 0a
-        iLIT, // 0b
-        66, // 0c
-        iLIT, // 0d
-        STDOUT, // 0e
-        iSTORE | F_ADDR, // 0f
-        iLIT, // 10
-        67, // 11
-        iLIT, // 12
-        GRDOUT, // 13
-        iSTORE | F_ADDR, // 14
-        iLIT, // 15
-        68, // 16
-        iLIT, // 17
-        USROUT, // 18
-        iSTORE | F_ADDR, // 19
-        iHALT, // 1a
-        iHALT, // 1b
-        iCALL | F_ADDR, // 1c TODO change to iJMP
-        C_ADDR, // 1d
-        iFAIL, // 1e F_ADDR
-        iHALT, // 1f S_ADDR
-        iHALT // 20 C_ADDR
-      ]
+      this.program = null; // FIXME
       this.RAMa = -1;
       this.RAMz = -1;
       this.BLKz = -1;

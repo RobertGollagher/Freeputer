@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170430-2022
- * Version:    pre-alpha-0.0.0.12 for FVM 2.0
+ * Updated:    20170513-1405
+ * Version:    pre-alpha-0.0.0.13 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -47,6 +47,10 @@ function modFVMUI_init() { 'use strict';
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
     cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
+
+    var prg64 = "AQAAAAEAAAABAAAAAgAAAMkAAAD+AAAAAAAAAA==";
+
+    cf.program = Uint8Array.from(atob(prg64), c => c.charCodeAt(0)).buffer;
     modFVM.makeFVM(cf).run();
   };
 
