@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.0 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.1 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.0 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170513:1743
-# Version:    pre-alpha-0.0.0.0 for FVM 2.0
+# Updated:    20170514-0023
+# Version:    pre-alpha-0.0.0.2 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,6 +68,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.0 for FVM 2.0"
 # on the pre-alpha-0.0.0.1 for FVM 1.1. This hacked version is
 # being used to generate binaries to be run on the JavaScript prototype
 # of FVM 2.0 currently in development (see 'fvmui.html' and 'fvm2.js').
+#
+# TODO Needs refactoring for DRY
 #
 # ============================================================================
 # Instructions
@@ -531,6 +533,9 @@ $iSet = [
 
 # Some FVM instructions (must tally with the above)
 ILIT = 1
+ICALL = 2
+IEXIT = 145
+IWALL = 0
 IHIGHEST_COMPLEX_OPCODE = 44 # Higher opcodes are simple not complex instrs
                              #   (or illegal if not > ILOWEST_SIMPLE_OPCODE)
 ILOWEST_SIMPLE_OPCODE = 133  # This and higher opcodes are simple instrs
@@ -659,6 +664,7 @@ inStrLiteral = false # between ." and "
 expectingStrConstValue = false
 inData = false
 expectingSlotFloorValue = false
+expectingOnFailValue = false
 anonStr = false
 
 # Variables
@@ -672,6 +678,11 @@ currSlotDeclKey = ""
 # Accumulators and floors
 slotPointer = 0 # Slot allocation pushes this pointer higher in RAM
 slotFloor = nil # slotPointer starts at slotFloor in RAM
+
+# Support for branch on failure (new in FVM 2.0)
+declaredFailAddr = 0 # To be used as declared failure address until next redefined
+$effectiveFailAddr = 0 # To be used as effective failure address now
+# FIXME compiler preferably should disallow onFail outside size of program itself
 
 # Hashes
 labelDecls = Hash.new()
@@ -717,8 +728,40 @@ opcodeReturn = [$iSet.find_index("ret")].pack("l<") # opcode for "return"
 opcodeWall = [$iSet.find_index("===")].pack("l<")   # opcode for "wall"
 opcodeData = [$iSet.find_index("data")].pack("l<")  # opcode for "data"
 
+def writeLit(onFail)
+  writeCell(ILIT, onFail)
+  $effectiveFailAddr = 0
+end
+
+def writeCall(onFail)
+  writeCell(ICALL, onFail)
+  $effectiveFailAddr = 0
+end
+
+def writeReturn(onFail)
+  writeCell(IEXIT, onFail)
+end
+
+def writeWall()
+  writeCell(IWALL, 0)
+end
+
+def writeData(onFail)
+  writeCell(IDATA, onFail)
+  $effectiveFailAddr = 0
+end
+
+def asCell(lastPos)
+  return lastPos / 4
+end
+
+def debugOpcode(opcode, onFail)
+  ([(opcode | onFail << 8)].pack("l<")).bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
+end
+
 # Write program cell to binary output file
-def writeCell(cellValue) # Do not call this with a nil cellValue
+def writeCell(cellValue, onFail) # Do not call this with a nil cellValue
+  cellValue = cellValue | (onFail << 8)
   cellBinary = [cellValue].pack("l<") # Convert to little-endian 32-bit int
   $outputFile.write(cellBinary)
   return cellBinary
@@ -834,6 +877,31 @@ sourceFile.each_with_index do | line, lineNum0 |
     debugPrefixBinary = ""                    # Just for debugging (1 = lit)
     debugPostfixBinary = ""                   # Just for debugging (addr)
     wordNspace = currNspace # Any change to wordNspace lasts for 1 token only
+    # ========================================================================
+    # Deal with onFail definition ============================================
+    if (!inStrLiteral and (token == "onFail")) then
+        expectingOnFailValue = true
+        next
+    end
+    if (expectingOnFailValue) then
+      if (/(\A[-\+]?[0-9]{1,10}\z)/ =~ token) then
+        # Value is decimal numeric literal
+        declaredFailAddr = token.to_i
+        if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
+        expectingOnFailValue = false
+        next
+      elsif (/(\A0x[a-f0-9]{1,8}\z)/ =~ token) then
+        # Value is hexadecimal numeric literal (starting with 0x)
+        declaredFailAddr = token.to_i(16)
+        if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
+        expectingOnFailValue = false
+        next
+      else
+        $syntaxError = true
+      printf("%d Invalid size of onFail declaration: %s\n", lineNum, token)
+        break
+      end
+    end
     # ========================================================================
     # Deal with slotFloor definition =========================================
     if (!inStrLiteral and (token == "slotFloor")) then
@@ -1058,7 +1126,7 @@ sourceFile.each_with_index do | line, lineNum0 |
               break
           else
             numWordDecls += 1
-            wordDecls[[token,currNspace]]= lastPos # Store addr of wd decl
+            wordDecls[[token,currNspace]]= asCell(lastPos) # Store addr of wd decl
             expectingWordName = false
             wordDeclName = token
             # Now we will also automatically create a label for the new word
@@ -1073,7 +1141,7 @@ sourceFile.each_with_index do | line, lineNum0 |
               else  # Store addr of label decl to match the new word
                     #   (automatic label will not be local to word)
                 numLabelDecls += 1
-                labelDecls[[token[0..-1],"",currNspace]] = lastPos
+                labelDecls[[token[0..-1],"",currNspace]] = asCell(lastPos)
               end
             next
           end
@@ -1086,11 +1154,11 @@ sourceFile.each_with_index do | line, lineNum0 |
       elsif (token == tokenWordDeclEnd ) then
            # we hit end of word declaration, will immediately add a return
           numSimpleInstrs += 1
-          $outputFile.write(opcodeReturn)
+          writeReturn(declaredFailAddr)
           # Just for debugging the compiler
-          printf($debugFile,"%11s to %3d: return (", token, currentPos)
-    opcodeReturn.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
-            printf($debugFile,")\n")
+          printf($debugFile,"%11s to %3d: return (", token, asCell(currentPos))
+          debugOpcode(IEXIT, declaredFailAddr);
+          printf($debugFile,")\n")
           currentPos += WORD_SIZE
           inWordDecl = false
           wordDeclName = ""
@@ -1109,9 +1177,9 @@ sourceFile.each_with_index do | line, lineNum0 |
             numSimpleInstrs += 1
             $outputFile.write(opcodeWall)
             # Just for debugging the compiler
-            printf($debugFile,"%11s to %3d: === (", token, currentPos)
-      opcodeWall.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
-              printf($debugFile,")\n")
+            printf($debugFile,"%11s to %3d: === (", token, asCell(currentPos))
+            debugOpcode(IWALL, 0);
+            printf($debugFile,")\n")
             currentPos += WORD_SIZE
         inWordDecl = true
         expectingWordName = true
@@ -1136,10 +1204,10 @@ sourceFile.each_with_index do | line, lineNum0 |
         else
           # n needs to be expanded to "lit" followed by n
           numComplexInstrs += 1
-          $outputFile.write(opcodeLit)
+          writeLit(declaredFailAddr)
           currentPos += WORD_SIZE * 2
           debugPrefixStr = "lit"
-          debugPrefixBinary = opcodeLit
+          debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
         end
       # ----------------------------------------------------------------------
       elsif (/(\A[-\+]?[0-9]+\z)/ =~ token) then
@@ -1160,10 +1228,10 @@ sourceFile.each_with_index do | line, lineNum0 |
         else
           # n needs to be expanded to "lit" followed by n
           numComplexInstrs += 1
-          $outputFile.write(opcodeLit)
+          writeLit(declaredFailAddr)
           currentPos += WORD_SIZE * 2
           debugPrefixStr = "lit"
-          debugPrefixBinary = opcodeLit
+          debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
         end
       # ----------------------------------------------------------------------
       elsif (/(\A0b[0-1]{1,32}\z)/ =~ token) then # A,z = start,end of string
@@ -1178,10 +1246,10 @@ sourceFile.each_with_index do | line, lineNum0 |
         else
           # n needs to be expanded to "lit" followed by n
           numComplexInstrs += 1
-          $outputFile.write(opcodeLit)
+          writeLit(declaredFailAddr)
           currentPos += WORD_SIZE * 2
           debugPrefixStr = "lit"
-          debugPrefixBinary = opcodeLit
+          debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
         end
       # ----------------------------------------------------------------------
       elsif (/('.')/ =~ token) then
@@ -1203,10 +1271,10 @@ sourceFile.each_with_index do | line, lineNum0 |
           else
             # n needs to be expanded to "lit" followed by c
             numComplexInstrs += 1
-            $outputFile.write(opcodeLit)
+            writeLit(declaredFailAddr)
             currentPos += WORD_SIZE * 2
             debugPrefixStr = "lit"
-            debugPrefixBinary = opcodeLit
+            debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
           end
         end
       else
@@ -1221,10 +1289,10 @@ sourceFile.each_with_index do | line, lineNum0 |
             #   label declaration on the data stack (like a "lit").
             # So labelRef needs to be expanded to "lit" followed by labelRef
             numComplexInstrs += 1
-            $outputFile.write(opcodeLit)
+            writeLit(declaredFailAddr)
             currentPos += WORD_SIZE
             debugPrefixStr = "lit"
-            debugPrefixBinary = opcodeLit
+            debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
           end
           # Store [name, addr, lineNum, wordDeclName] of labelRef
           numLabelRefs += 1
@@ -1241,10 +1309,10 @@ sourceFile.each_with_index do | line, lineNum0 |
           if (!expectingAddr and !inData) then
             numConstRefs += 1
             numComplexInstrs += 1
-            $outputFile.write(opcodeLit)
+            writeLit(declaredFailAddr)
             currentPos += WORD_SIZE
             debugPrefixStr = "lit"
-            debugPrefixBinary = opcodeLit
+            debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
           end
           # Store [name, value, lineNum, wordDeclName] of constRef
           namespace = wordDeclName # ..constRef is treated as global
@@ -1260,10 +1328,10 @@ sourceFile.each_with_index do | line, lineNum0 |
           if (!expectingAddr and !inData) then
             numSlotRefs += 1
             numComplexInstrs += 1
-            $outputFile.write(opcodeLit)
+            writeLit(declaredFailAddr)
             currentPos += WORD_SIZE
             debugPrefixStr = "lit"
-            debugPrefixBinary = opcodeLit
+            debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
           end
           # Store [name, value, lineNum, wordDeclName] of slotRef
           namespace = wordDeclName # ##slotRef is treated as global
@@ -1303,7 +1371,7 @@ sourceFile.each_with_index do | line, lineNum0 |
             break
           else  # Store addr of label decl
             numLabelDecls += 1
-            labelDecls[[token[0..-2],wordDeclName,currNspace]] = lastPos
+            labelDecls[[token[0..-2],wordDeclName,currNspace]] = asCell(lastPos)
           end
         # --------------------------------------------------------------------
         elsif (/#{'(\A' + WDPTN + '+\z)'}/ =~ token) then
@@ -1321,8 +1389,8 @@ sourceFile.each_with_index do | line, lineNum0 |
           if (!inData) then
             numWordRefs += 1
             numComplexInstrs += 1
-            $outputFile.write(opcodeCall)
-            currentPos += WORD_SIZE
+            writeCall(declaredFailAddr)
+            currentPos += WORD_SIZE # TODO refactor currentPos, lastPos as cell counts not byte counts
             wordRefs << [token, currentPos, lineNum, wordNspace]
           else
             numDataCells +=1
@@ -1331,7 +1399,7 @@ sourceFile.each_with_index do | line, lineNum0 |
           end
           if (!inData) then
             debugPrefixStr = "call"
-            debugPrefixBinary = opcodeCall
+            debugPrefixBinary = [(ICALL | declaredFailAddr << 8)].pack("l<")
             currentPos += WORD_SIZE
           end
         # --------------------------------------------------------------------
@@ -1378,10 +1446,10 @@ sourceFile.each_with_index do | line, lineNum0 |
           if (!inData) then
             numStrConstRefs += 1
             numComplexInstrs += 1
-            $outputFile.write(opcodeLit)
+            writeLit(declaredFailAddr)
             currentPos += WORD_SIZE # This accounts for value cell after "lit"
             debugPrefixStr = "lit (for string)"
-            debugPrefixBinary = opcodeLit
+            debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<")
           end
           cellValue = 0 # Assign arbitrary zero value until SECOND PASS
           expectingAddr = false
@@ -1455,10 +1523,10 @@ sourceFile.each_with_index do | line, lineNum0 |
           inStrLiteral = true
           anonStr = true
           # Write "lit"
-          $outputFile.write(opcodeLit)
+          writeLit(declaredFailAddr)
           currentPos += WORD_SIZE
           debugPrefixStr = "lit"
-          debugPrefixBinary = opcodeLit
+          debugPrefixBinary = [(ILIT | declaredFailAddr << 8)].pack("l<") # TODO DRY
           anonStrConstRefs << [currStrConstDeclKey, currentPos]
           # Placeholder cell for anonymous string reference
           cellValue = 0 # Placeholder till SECOND PASS
@@ -1495,9 +1563,11 @@ sourceFile.each_with_index do | line, lineNum0 |
         # Token is an instruction that should be followed by an address
         numComplexInstrs += 1
         expectingAddr = true
+        $effectiveFailAddr = declaredFailAddr;
       else
         numSimpleInstrs += 1
         expectingAddr = false
+        $effectiveFailAddr = declaredFailAddr;
       end
     end
     # ========================================================================
@@ -1507,11 +1577,12 @@ sourceFile.each_with_index do | line, lineNum0 |
       if (inData) then
          printf($debugFile, "===inData===>")
          numDataCells += 1
+         $effectiveFailAddr = 0;
       end
-      cellBinary = writeCell(cellValue)
+      cellBinary = writeCell(cellValue, $effectiveFailAddr) # TODO NEXT
       # Just for debugging the compiler
       printf($debugFile,"%11s to %3d: %s %d (",
-          token, lastPos, debugPrefixStr, cellValue)
+          token, asCell(lastPos), debugPrefixStr, cellValue)
         debugPrefixBinary.bytes.to_a.each do |byte|
           printf($debugFile,"%d ",byte) end
         cellBinary.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
@@ -1536,11 +1607,11 @@ end
 if (!$syntaxError) then
   # Automatically insert a === "wall" at the end of the program
   numSimpleInstrs += 1
-  $outputFile.write(opcodeWall)
+  writeWall() # FIXME iWALL is iFAIL in FVM 2.0
   # Just for debugging the compiler
-  printf($debugFile,"%11s to %3d: === (", "===", currentPos)
-    opcodeWall.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
-    printf($debugFile,")\n")
+  printf($debugFile,"%11s to %3d: === (", "===", asCell(currentPos))
+  debugOpcode(IWALL, 0) 
+  printf($debugFile,")\n")
   currentPos += WORD_SIZE
 end
 
