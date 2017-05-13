@@ -4,8 +4,8 @@
 # Copyright © Robert Gollagher 2017
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150713
-# Updated:    20170513-1704
-# Version:    pre-alpha-0.0.0.0 for FVM 2.0
+# Updated:    20170513-1710
+# Version:    pre-alpha-0.0.0.1 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,5 +46,5 @@ fi
 echo "// Base64-encoded Freeputer program bytecode" > prgBase64.js &&
 echo -n "var prgBase64 = \"" >> prgBase64.js &&
 base64 -w 0 rom.fp >> prgBase64.js &&
-echo "\"" >> prgBase64.js
+echo "\";" >> prgBase64.js
 
