@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170514-1505
- * Version:    pre-alpha-0.0.0.18 for FVM 2.0
+ * Updated:    20170514-1828+
+ * Version:    pre-alpha-0.0.0.19 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -85,7 +85,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
     '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','    ','    ','    ','halt','    ', // 248
+    '    ','    ','    ','    ','    ','    ','    ','halt', // 248
   ];
 
   const iFAIL = 0|0;
@@ -96,7 +96,7 @@ var modFVM = (function () { 'use strict';
   const iADD = 201|0;
   const iSTORE = 190|0;
   const iSUB = 202|0;
-  const iHALT = 254|0;
+  const iHALT = 255|0;
 
   class FVM {
     constructor(config) {
@@ -114,6 +114,7 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.PRGe = config.program.byteLength;
       this.prg = new DataView(config.program);
+      this.ram = new DataView(new ArrayBuffer(config.RAMz-config.RAMa));
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
@@ -174,7 +175,11 @@ var modFVM = (function () { 'use strict';
                   this.lsb(this.fnUsrout,val);
                   break;
                 default:
-                  throw FAILURE;
+                  if ((addr >= this.RAMa) && (addr <= this.RAMz)) {
+                    this.ram.setInt32(addr<<WORD_PWR, val, true);
+                  } else {
+                    throw FAILURE;
+                  }
                 break;
               }
               break;

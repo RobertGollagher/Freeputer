@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170514-1505
- * Version:    pre-alpha-0.0.0.18 for FVM 2.0
+ * Updated:    20170514-1828+
+ * Version:    pre-alpha-0.0.0.19 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -49,6 +49,8 @@ function modFVMUI_init(prg) { 'use strict';
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
     cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
+    cf.RAMa = 0x1000000;
+    cf.RAMz = 0x1000400;
     modFVM.makeFVM(cf).run();
   };
 
@@ -69,7 +71,7 @@ function modFVMUI_init(prg) { 'use strict';
         <td>     
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.18 for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.19 for FVM 2.0.
         </td>
       </tr>
        <tr>

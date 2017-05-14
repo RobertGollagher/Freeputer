@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.3 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.4 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.3 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170514-1505
-# Version:    pre-alpha-0.0.0.3 for FVM 2.0
+# Updated:    20170514-1828+
+# Version:    pre-alpha-0.0.0.4 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,9 +69,16 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.3 for FVM 2.0"
 # being used to generate binaries to be run on the JavaScript prototype
 # of FVM 2.0 currently in development (see 'fvmui.html' and 'fvm2.js').
 #
+# Notes:
+# - slotFloor is now <<slotFloor>>
+# - failure address is simply declared by <> such as <:bad> or <1024>
+#     and applies at compile time until next such declaration; default is 0.
+#
+# Tasks:
 # TODO  Needs refactoring for DRY.
 # FIXME Currently only nicely handles failAddr up to 7fffff =  8388607
 #                            but should handle up to ffffff = 16777215.
+# FIXME Label to word-name conflicts not being flagged
 # TODO  This compiler currently only supports the use of a label with
 #         onFail if that label reference is a back ref not a forward ref;
 #         this is rather inconvenient.
@@ -279,7 +286,7 @@ end
 
 # FVM instruction set (must be in order)
 $iSet = [
-  "===",
+  "fail",
   "lit",
   "call",
   "go",
@@ -533,19 +540,19 @@ $iSet = [
   "troff",
   "reset",
   "reboot",
-  "halt",
-  "data"
+  "data", # swapped for FVM 2.0
+  "halt"
 ]
 
 # Some FVM instructions (must tally with the above)
 ILIT = 1
 ICALL = 2
 IEXIT = 145
-IWALL = 0
+IWALL = 0 # = IFAIL in FVM 2.0 parlance
 IHIGHEST_COMPLEX_OPCODE = 44 # Higher opcodes are simple not complex instrs
                              #   (or illegal if not > ILOWEST_SIMPLE_OPCODE)
 ILOWEST_SIMPLE_OPCODE = 133  # This and higher opcodes are simple instrs
-IDATA = 255                  # Note: breaks decompiler if wrong
+IDATA = 254                  # Note: breaks decompiler if wrong
 IHIGHEST_OPCODE = 255        # Highest opcode in FVM instruction set
 
 # ============================================================================
@@ -731,7 +738,7 @@ addrInstrs = $iSet.find_index("call")..$iSet.find_index("put?")
 opcodeLit = [$iSet.find_index("lit")].pack("l<")    # opcode for "lit"
 opcodeCall = [$iSet.find_index("call")].pack("l<")  # opcode for "call"
 opcodeReturn = [$iSet.find_index("ret")].pack("l<") # opcode for "return"
-opcodeWall = [$iSet.find_index("===")].pack("l<")   # opcode for "wall"
+opcodeWall = [$iSet.find_index("fail")].pack("l<")   # opcode for "wall"
 opcodeData = [$iSet.find_index("data")].pack("l<")  # opcode for "data"
 
 def writeLit(onFail)
@@ -864,7 +871,7 @@ sourceFile.each_with_index do | line, lineNum0 |
     end
     # ========================================================================
     # Check for endData ======================================================
-    if (token == "===" and inStrLiteral == false) then
+    if (token == "fail" and inStrLiteral == false) then
       # If we happen to be in a data section, hitting wall ends that section
       if (inData) then
          printf($debugFile, "---inData===>")
@@ -872,9 +879,9 @@ sourceFile.each_with_index do | line, lineNum0 |
          numSimpleInstrs -= 1 # Otherwise final iWALL gets counted twice
          inData = false
       else
-        $syntaxError = true
-        printf("%d === not allowed except to end a data section\n", lineNum)
-        break
+#        $syntaxError = true
+#        printf("%d === not allowed except to end a data section\n", lineNum)
+#        break
       end
     end
     # ========================================================================
@@ -884,12 +891,46 @@ sourceFile.each_with_index do | line, lineNum0 |
     debugPostfixBinary = ""                   # Just for debugging (addr)
     wordNspace = currNspace # Any change to wordNspace lasts for 1 token only
     # ========================================================================
+    # Deal with slotFloor definition =========================================
+    if (!inStrLiteral and (token == "<<slotFloor>>")) then
+      if (slotFloor == nil) then
+        expectingSlotFloorValue = true
+        next
+      else
+        $syntaxError = true
+        printf("%d Multiple definition of slotFloor: %s\n", lineNum, token)
+        break
+      end
+    end
+    if (expectingSlotFloorValue) then
+      if (/(\A[-\+]?[0-9]{1,10}\z)/ =~ token) then
+        # Value is decimal numeric literal
+        slotFloor = token.to_i
+        if (enforcePosRange(lineNum, token,slotFloor)) then break end
+        expectingSlotFloorValue = false
+        next
+      elsif (/(\A0x[a-f0-9]{1,8}\z)/ =~ token) then
+        # Value is hexadecimal numeric literal (starting with 0x)
+        slotFloor = token.to_i(16)
+        if (enforcePosRange(lineNum, token,slotFloor)) then break end
+        expectingSlotFloorValue = false
+        next
+      else
+        $syntaxError = true
+      printf("%d Invalid size of slotFloor declaration: %s\n", lineNum, token)
+        break
+      end
+    end
+    # ========================================================================
     # Deal with onFail definition ============================================
-    if (!inStrLiteral and (token == "onFail")) then
+=begin    if (!inStrLiteral and (token == "onFail")) then
         expectingOnFailValue = true
         next
     end
     if (expectingOnFailValue) then
+=end
+    if (/<.+>/ =~ token) then
+      token = token[1..-2] # Discard <>
       # Be ready to process a namespaced label reference if relevant
       if (/(\A[A-z_][0-9\?-z]*{[\.\#\$:]{0,2}[A-z_][0-9\?-z]*}\z)/ =~ token)
         then # nspace{tkn}
@@ -937,37 +978,6 @@ sourceFile.each_with_index do | line, lineNum0 |
       else
         $syntaxError = true
       printf("%d Invalid size of onFail declaration: %s\n", lineNum, token)
-        break
-      end
-    end
-    # ========================================================================
-    # Deal with slotFloor definition =========================================
-    if (!inStrLiteral and (token == "slotFloor")) then
-      if (slotFloor == nil) then
-        expectingSlotFloorValue = true
-        next
-      else
-        $syntaxError = true
-        printf("%d Multiple definition of slotFloor: %s\n", lineNum, token)
-        break
-      end
-    end
-    if (expectingSlotFloorValue) then
-      if (/(\A[-\+]?[0-9]{1,10}\z)/ =~ token) then
-        # Value is decimal numeric literal
-        slotFloor = token.to_i
-        if (enforcePosRange(lineNum, token,slotFloor)) then break end
-        expectingSlotFloorValue = false
-        next
-      elsif (/(\A0x[a-f0-9]{1,8}\z)/ =~ token) then
-        # Value is hexadecimal numeric literal (starting with 0x)
-        slotFloor = token.to_i(16)
-        if (enforcePosRange(lineNum, token,slotFloor)) then break end
-        expectingSlotFloorValue = false
-        next
-      else
-        $syntaxError = true
-      printf("%d Invalid size of slotFloor declaration: %s\n", lineNum, token)
         break
       end
     end
@@ -1211,11 +1221,11 @@ sourceFile.each_with_index do | line, lineNum0 |
                         lineNum, token)
           break
         end
-          # Automatically insert a === "wall" before the word implementation
+          # Automatically insert a "fail" before the word implementation
             numSimpleInstrs += 1
             $outputFile.write(opcodeWall)
             # Just for debugging the compiler
-            printf($debugFile,"%11s to %3d: === (", token, asCell(currentPos))
+            printf($debugFile,"%11s to %3d: fail (", token, asCell(currentPos))
             debugOpcode(IWALL, 0);
             printf($debugFile,")\n")
             currentPos += WORD_SIZE
@@ -1643,11 +1653,11 @@ if (inWordDecl) then
 end
 
 if (!$syntaxError) then
-  # Automatically insert a === "wall" at the end of the program
+  # Automatically insert a "fail" at the end of the program
   numSimpleInstrs += 1
   writeWall() # FIXME iWALL is iFAIL in FVM 2.0
   # Just for debugging the compiler
-  printf($debugFile,"%11s to %3d: === (", "===", asCell(currentPos))
+  printf($debugFile,"%11s to %3d: fail (", "fail", asCell(currentPos))
   debugOpcode(IWALL, 0) 
   printf($debugFile,")\n")
   currentPos += WORD_SIZE
