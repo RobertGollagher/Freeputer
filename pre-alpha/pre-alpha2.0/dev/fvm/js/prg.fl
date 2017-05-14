@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170514-1505
+Updated:    20170514-2140
 Version:    unstable
 
 ===========================================================================
@@ -26,29 +26,67 @@ WARNING: This is pre-alpha software and as such may well be incomplete,
 unstable and unreliable. It is considered to be suitable only for
 experimentation and nothing more.
 
+===========================================================================
+
+NOTES
+
+Syntax for compiler directive which declares the current failure address
+for branch on failure is simply to surround the failure address
+with <> as follows. This is entirely compile-time logic:
+
+  <:bad>          \ a back-reference to a previous label
+  <1024>          \ a literal PRG cell number
+
+The default is <0> if no failure address is ever declared. This could
+potentially cause a faulty program to endlessly restart itself, so it is
+wise to always declare a sensible failure address. A failure-address
+declaration applies until the compiler encounters another such
+declaration. This is compile-time logic not runtime logic.
+
+TODO consider if robustness is worth it as it's complicating the compiler
+somewhat and optionally may complicate the writing of programs.
+It probably is worth it but it should be reconsidered.
+A sophisticated compiler would not need the iJMPs.
+
+All other compiler directives in future shall be surrounded by <<>> and
+there is currently only one of these, namely slotFloor:
+
+  <<slotFloor>>   \ formerly was simply slotFloor rather than <<slotFloor>>
+
 =========================================================================== )
+<2> \ Override default failure endpoint
+<<slotFloor>> 16777216
 INT_MAX. 2147483647
+FAIL. 1
+OK. 0
 
-bar{
-  go :calc
+prg{
+  go :entryPoint \ If this fails it will go to PRG cell 2 because of <2> above
+    prgFail: fail <:prgFail> \ Failure endpoint (this is PRG cell 2)
+    floor# 4 \ Convenient reference to lowest slot
 
-  bad1:
+  entryPoint:
+    run
+  prgDone: \ Success endpoint
     halt
 
-  calc:
-    onFail :bad1
-    foo
-    \ .INT_MAX 1 + \ Addition will branch to onFail due to overflow
-    3 5 +
-    halt
-
-  bad2:
-    halt
-
-  : foo
-    onFail bar{::bad2} \ Exactly the same as onFail ::bad2
-    {..INT_MAX} 4 +
+  : run
+  \ {..INT_MAX}
+    3
+    add5a
+    add5a
   ;
 
-}bar
+  : add5 5 + ;
+
+  : add5a
+    go :try fail: {..FAIL} ret
+    try:
+      <:fail>
+        5 +
+      <::prgFail> \ FIXME compiler should support <:fail/> here (but without allowing nesting)
+        {..OK}
+  ;
+
+}prg
 
