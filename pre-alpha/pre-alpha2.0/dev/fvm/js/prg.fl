@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170514-2140
+Updated:    20170514-2337+
 Version:    unstable
 
 ===========================================================================
@@ -36,17 +36,13 @@ with <> as follows. This is entirely compile-time logic:
 
   <:bad>          \ a back-reference to a previous label
   <1024>          \ a literal PRG cell number
+  <:>              \ revert to previous failure address
 
 The default is <0> if no failure address is ever declared. This could
 potentially cause a faulty program to endlessly restart itself, so it is
 wise to always declare a sensible failure address. A failure-address
 declaration applies until the compiler encounters another such
 declaration. This is compile-time logic not runtime logic.
-
-TODO consider if robustness is worth it as it's complicating the compiler
-somewhat and optionally may complicate the writing of programs.
-It probably is worth it but it should be reconsidered.
-A sophisticated compiler would not need the iJMPs.
 
 All other compiler directives in future shall be surrounded by <<>> and
 there is currently only one of these, namely slotFloor:
@@ -84,7 +80,7 @@ prg{
     try:
       <:fail>
         5 +
-      <::prgFail> \ FIXME compiler should support <:fail/> here (but without allowing nesting)
+      <:>
         {..OK}
   ;
 

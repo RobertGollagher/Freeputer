@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.4 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.6 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.4 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170514-1828+
-# Version:    pre-alpha-0.0.0.4 for FVM 2.0
+# Updated:    20170514-2337+
+# Version:    pre-alpha-0.0.0.6 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,8 +71,9 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.4 for FVM 2.0"
 #
 # Notes:
 # - slotFloor is now <<slotFloor>>
-# - failure address is simply declared by <> such as <:bad> or <1024>
+# - failure address is simply declared by < > such as <:bad> or <1024>
 #     and applies at compile time until next such declaration; default is 0.
+#     And <:> reverts to previous failure address.
 #
 # Tasks:
 # TODO  Needs refactoring for DRY.
@@ -82,7 +83,7 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.4 for FVM 2.0"
 # TODO  This compiler currently only supports the use of a label with
 #         onFail if that label reference is a back ref not a forward ref;
 #         this is rather inconvenient.
-# TODO halt should probably, like fail, allow no failAddr.
+# TODO halt should, like fail, allow no failAddr.
 #
 # ============================================================================
 # Instructions
@@ -694,6 +695,7 @@ slotFloor = nil # slotPointer starts at slotFloor in RAM
 
 # Support for branch on failure (new in FVM 2.0)
 declaredFailAddr = 0 # To be used as declared failure address until next redefined
+prevFailAddr = 0 # Previous declared failure address
 $effectiveFailAddr = 0 # To be used as effective failure address now
 # FIXME compiler preferably should disallow onFail outside size of program itself
 
@@ -940,14 +942,20 @@ sourceFile.each_with_index do | line, lineNum0 |
       # Now proceed with evaluating onFail value
       if (/(\A[-\+]?[0-9]{1,10}\z)/ =~ token) then
         # Value is decimal numeric literal
+        prevFailAddr = declaredFailAddr
         declaredFailAddr = token.to_i
         if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
         expectingOnFailValue = false
         next
       elsif (/(\A0x[a-f0-9]{1,8}\z)/ =~ token) then
         # Value is hexadecimal numeric literal (starting with 0x)
+        prevFailAddr = declaredFailAddr
         declaredFailAddr = token.to_i(16)
         if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
+        expectingOnFailValue = false
+        next
+      elsif (token == ":") then
+        declaredFailAddr = prevFailAddr
         expectingOnFailValue = false
         next
       elsif (/#{'(\A:{1,2}' + WDPTN + '+\z)'}/ =~ token) then
@@ -965,6 +973,7 @@ sourceFile.each_with_index do | line, lineNum0 |
           labelDeclAddr = labelDecls[[labelName,namespace,wordNspace]]
         end
         if (labelDeclAddr != nil) then
+          prevFailAddr = declaredFailAddr
           declaredFailAddr = labelDeclAddr
           if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
           expectingOnFailValue = false
