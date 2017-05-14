@@ -56,8 +56,8 @@ var modFVM = (function () { 'use strict';
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
     'fail','lit ','call','jmp ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 16
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 24
+    '    ','    ','    ','jnz ','    ','    ','    ','    ', // 16
+    'jeq ','    ','    ','    ','    ','    ','    ','    ', // 24
     '    ','    ','    ','    ','    ','    ','    ','    ', // 32
     '    ','    ','    ','    ','    ','    ','    ','    ', // 40
     '    ','    ','    ','    ','    ','    ','    ','    ', // 48
@@ -73,7 +73,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 128
     '    ','    ','    ','    ','    ','    ','    ','    ', // 136
     '    ','ret ','    ','    ','    ','    ','    ','    ', // 144
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 152
+    '    ','    ','    ','    ','    ','    ','    ','drop', // 152
     '    ','    ','    ','    ','    ','    ','    ','    ', // 160
     '    ','    ','    ','    ','    ','    ','    ','    ', // 168
     '    ','    ','    ','    ','    ','    ','    ','    ', // 176
@@ -92,7 +92,10 @@ var modFVM = (function () { 'use strict';
   const iLIT = 1|0;
   const iCALL = 2|0;
   const iJMP = 3|0;
+  const iJNZ = 19|0;
+  const iJEQ = 24|0;
   const iEXIT = 145|0;
+  const iDROP = 159|0;
   const iADD = 201|0;
   const iSTORE = 190|0;
   const iSUB = 202|0;
@@ -154,6 +157,23 @@ var modFVM = (function () { 'use strict';
             case iJMP:
               this.pc = this.wordAtPc();
               break;
+            case iJNZ:
+              var n1 = this.ds.doPop();
+              if (n1 != 0) {  
+                this.pc = this.wordAtPc();
+              } else {
+                this.pc++;
+              }
+              break;
+            case iJEQ:
+              var n2 = this.ds.doPop();
+              var n1 = this.ds.doPop();
+              if (n1 == n2) {  
+                this.pc = this.wordAtPc();
+              } else {
+                this.pc++;
+              }
+              break;
             case iEXIT:
               this.pc = this.rs.doPop();
               break;
@@ -182,6 +202,9 @@ var modFVM = (function () { 'use strict';
                   }
                 break;
               }
+              break;
+            case iDROP:
+              this.ds.doPop();
               break;
             case iADD:
               this.ds.apply2((a,b) => a+b);

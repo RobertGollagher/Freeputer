@@ -50,36 +50,64 @@ there is currently only one of these, namely slotFloor:
   <<slotFloor>>   \ formerly was simply slotFloor rather than <<slotFloor>>
 
 =========================================================================== )
-<2> \ Override default failure endpoint
-<<slotFloor>> 16777216
-INT_MAX. 2147483647
-FAIL. 1
-OK. 0
+<2> <<slotFloor>> 16777216 INT_MAX. 2147483647 FAIL. 1 OK. 0
 
 prg{
-  go :entryPoint \ If this fails it will go to PRG cell 2 because of <2> above
-    prgFail: fail <:prgFail> \ Failure endpoint (this is PRG cell 2)
-    floor# 4 \ Convenient reference to lowest slot
 
-  entryPoint:
-    run
-  prgDone: \ Success endpoint
-    halt
+  go :entryPoint fail entryPoint: runB halt
 
+  \ Correct but not robust
   : run
-  \ {..INT_MAX}
-    3
-    add5a
-    add5a
+    {..INT_MAX}
+  \ 3
+    add5
+    add5
   ;
 
+  \ Robust and correct (will be when add stack guards)
+  : runA
+    {..INT_MAX}
+  \ 3
+    add5A go!=0 :calcFail
+    add5A go!=0 :calcFail
+    calcDone:
+      {..OK} ret
+    calcFail:
+      0 {..FAIL}
+  ;
+
+  \ Robust and correct (will be when add stack guards)
+  : runB
+    {..INT_MAX}
+  \ 3
+    5 add go!=0 :calcFail
+    5 add go!=0 :calcFail
+    calcDone:
+      {..OK} ret
+    calcFail:
+      {..FAIL}
+  ;
+
+  \ Correct but not robust
   : add5 5 + ;
 
-  : add5a
+  \ Robust and correct (will be when add stack guards)
+  : add5A ( n -- n+5 OK/FAIL )
     go :try fail: {..FAIL} ret
     try:
+      5
       <:fail>
-        5 +
+        +
+      <:>
+        {..OK}
+  ;
+
+  \ Robust and correct (will be when add stack guards)
+  : add ( n1 n2 -- n1+n2 OK/FAIL )
+    go :try fail: 0 {..FAIL} ret
+    try:
+      <:fail>
+        +
       <:>
         {..OK}
   ;
