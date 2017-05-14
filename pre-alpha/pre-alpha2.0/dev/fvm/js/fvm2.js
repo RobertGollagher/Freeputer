@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170514-0023
- * Version:    pre-alpha-0.0.0.17 for FVM 2.0
+ * Updated:    20170514-1505
+ * Version:    pre-alpha-0.0.0.18 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -54,7 +54,7 @@ var modFVM = (function () { 'use strict';
   const GRDOUT = -6;
   const USROUT = -8;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fail','lit ','call','    ','    ','    ','    ','    ', // 0 COMPLEX
+    'fail','lit ','call','jmp ','    ','    ','    ','    ', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -91,6 +91,7 @@ var modFVM = (function () { 'use strict';
   const iFAIL = 0|0;
   const iLIT = 1|0;
   const iCALL = 2|0;
+  const iJMP = 3|0;
   const iEXIT = 145|0;
   const iADD = 201|0;
   const iSTORE = 190|0;
@@ -147,6 +148,9 @@ var modFVM = (function () { 'use strict';
               break;
             case iCALL:
               this.rs.doPush(this.pc+1);
+              this.pc = this.wordAtPc();
+              break;
+            case iJMP:
               this.pc = this.wordAtPc();
               break;
             case iEXIT:

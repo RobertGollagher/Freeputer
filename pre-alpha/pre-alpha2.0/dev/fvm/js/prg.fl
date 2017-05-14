@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170514-0023
+Updated:    20170514-1505
 Version:    unstable
 
 ===========================================================================
@@ -27,14 +27,28 @@ unstable and unreliable. It is considered to be suitable only for
 experimentation and nothing more.
 
 =========================================================================== )
-onFail 8 \ FIXME Need compiler enhancement to do onFail :bad here
 INT_MAX. 2147483647
 
-foo
-.INT_MAX 1 + \ Addition will branch to onFail due to overflow
-halt
+bar{
+  go :calc
 
-bad: \ this is cell 8
-  halt
+  bad1:
+    halt
 
-: foo 3 4 + ;
+  calc:
+    onFail :bad1
+    foo
+    \ .INT_MAX 1 + \ Addition will branch to onFail due to overflow
+    3 5 +
+    halt
+
+  bad2:
+    halt
+
+  : foo
+    onFail bar{::bad2} \ Exactly the same as onFail ::bad2
+    {..INT_MAX} 4 +
+  ;
+
+}bar
+

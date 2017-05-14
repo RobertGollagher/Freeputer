@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.1 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.3 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.1 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170514-0023
-# Version:    pre-alpha-0.0.0.2 for FVM 2.0
+# Updated:    20170514-1505
+# Version:    pre-alpha-0.0.0.3 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,7 +69,13 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.1 for FVM 2.0"
 # being used to generate binaries to be run on the JavaScript prototype
 # of FVM 2.0 currently in development (see 'fvmui.html' and 'fvm2.js').
 #
-# TODO Needs refactoring for DRY
+# TODO  Needs refactoring for DRY.
+# FIXME Currently only nicely handles failAddr up to 7fffff =  8388607
+#                            but should handle up to ffffff = 16777215.
+# TODO  This compiler currently only supports the use of a label with
+#         onFail if that label reference is a back ref not a forward ref;
+#         this is rather inconvenient.
+# TODO halt should probably, like fail, allow no failAddr.
 #
 # ============================================================================
 # Instructions
@@ -884,6 +890,13 @@ sourceFile.each_with_index do | line, lineNum0 |
         next
     end
     if (expectingOnFailValue) then
+      # Be ready to process a namespaced label reference if relevant
+      if (/(\A[A-z_][0-9\?-z]*{[\.\#\$:]{0,2}[A-z_][0-9\?-z]*}\z)/ =~ token)
+        then # nspace{tkn}
+          wordNspace = token[0..(token.index("{")-1)] # nspace of nspace{tkn}
+          token = token[(token.index("{")+1)..-2] # tkn from nspace{tkn}
+      end
+      # Now proceed with evaluating onFail value
       if (/(\A[-\+]?[0-9]{1,10}\z)/ =~ token) then
         # Value is decimal numeric literal
         declaredFailAddr = token.to_i
@@ -896,6 +909,31 @@ sourceFile.each_with_index do | line, lineNum0 |
         if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
         expectingOnFailValue = false
         next
+      elsif (/#{'(\A:{1,2}' + WDPTN + '+\z)'}/ =~ token) then
+        # Token is a label reference (starts with :).
+        # At compile time, for onFail, this current implementation only
+        # accepts back references not forward references.
+        namespace = wordDeclName # ::labelRef is treated as global
+        if (token[1..1] == ":") then namespace = "" end
+        labelName = token[1..-1]
+        # The initial : is stripped on references to local labels
+        #  but retained on references to global labels
+        if (labelName[0..0] == ":") then
+          labelDeclAddr = labelDecls[[labelName[1..-1],namespace,wordNspace]]
+        else
+          labelDeclAddr = labelDecls[[labelName,namespace,wordNspace]]
+        end
+        if (labelDeclAddr != nil) then
+          declaredFailAddr = labelDeclAddr
+          if (enforcePosRange(lineNum, token, declaredFailAddr)) then break end
+          expectingOnFailValue = false
+          next
+        else
+          $syntaxError = true
+          printf("%d No such label: %s in word(%s) namespace(%s)\n",
+            lineNum, labelName, namespace, wordNspace)
+          break
+        end
       else
         $syntaxError = true
       printf("%d Invalid size of onFail declaration: %s\n", lineNum, token)
