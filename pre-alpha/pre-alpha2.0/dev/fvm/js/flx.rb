@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.6 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.8 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.6 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170514-2337+
-# Version:    pre-alpha-0.0.0.6 for FVM 2.0
+# Updated:    20170520-1408+
+# Version:    pre-alpha-0.0.0.8 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.6 for FVM 2.0"
 # - slotFloor is now <<slotFloor>>
 # - failure address is simply declared by < > such as <:bad> or <1024>
 #     and applies at compile time until next such declaration; default is 0.
-#     And <:> reverts to previous failure address.
+#     And <:> reverts to previous failure address. FIXME should be to default?
 #
 # Tasks:
 # TODO  Needs refactoring for DRY.
@@ -84,6 +84,9 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.6 for FVM 2.0"
 #         onFail if that label reference is a back ref not a forward ref;
 #         this is rather inconvenient.
 # TODO halt should, like fail, allow no failAddr.
+# FIXME debug.flx output is now wrong for calls.
+# TODO enhance map.info to show failAddr.
+# TODO Add ability to specify single function as fail addr eg <fail> <fret> ??
 #
 # ============================================================================
 # Instructions
@@ -419,7 +422,7 @@ $iSet = [
   "",
   "",
   "",
-  "",
+  "fret",
   "trace?", # FIXME reconsider the order of new instructions
   "zoom",
   "rchan?",
@@ -552,7 +555,7 @@ IEXIT = 145
 IWALL = 0 # = IFAIL in FVM 2.0 parlance
 IHIGHEST_COMPLEX_OPCODE = 44 # Higher opcodes are simple not complex instrs
                              #   (or illegal if not > ILOWEST_SIMPLE_OPCODE)
-ILOWEST_SIMPLE_OPCODE = 133  # This and higher opcodes are simple instrs
+ILOWEST_SIMPLE_OPCODE = 132  # This and higher opcodes are simple instrs
 IDATA = 254                  # Note: breaks decompiler if wrong
 IHIGHEST_OPCODE = 255        # Highest opcode in FVM instruction set
 

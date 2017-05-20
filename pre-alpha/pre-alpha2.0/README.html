@@ -53,7 +53,8 @@
 <li>Each stack has a maximum depth of <strong>256 elements</strong>.</li>
 <li>Inability to call a subroutine (call failure due to rs full) triggers <strong>branch on failure</strong>.</li>
 <li>Inability to return from a subroutine (return failure due to rs empty) triggers <strong>branch on failure</strong>.</li>
-<li>There is no special concept of subroutine failure other than call failure and return failure.</li>
+<li>The fret opcode retrospectively triggers <strong>branch on failure</strong> of the currently executing subroutine call instruction.</li>
+<li>The fret opcode itself undergoes <strong>branch on failure</strong> if that is not possible (fret failure due to rs empty or no call instruction).</li>
 <li>All I/O is <strong>non-blocking</strong> and unavailable I/O triggers <strong>branch on failure</strong>.</li>
 <li>All I/O is <strong>memory mapped</strong> and unsupported I/O triggers <strong>branch on failure</strong>.</li>
 <li>A <em>read-only cell</em> is one which only supports the @ instruction.</li>
@@ -296,7 +297,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 5 April 2017 at 23:35<br />
+This document was last updated on 20 May 2017 at 14:08<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

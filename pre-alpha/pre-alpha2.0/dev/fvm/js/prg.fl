@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170514-2337+
+Updated:    20170520-1408+
 Version:    unstable
 
 ===========================================================================
@@ -50,67 +50,34 @@ there is currently only one of these, namely slotFloor:
   <<slotFloor>>   \ formerly was simply slotFloor rather than <<slotFloor>>
 
 =========================================================================== )
-<2> <<slotFloor>> 16777216 INT_MAX. 2147483647 FAIL. 1 OK. 0
+<<slotFloor>> 16777216 INT_MAX. 2147483647 NIM. -2147483648 ERR. 1 OK. 0
+
+( TODO: Consider:
+  - Should illegal opcode simply branch on failure?
+  - Should there be a no-op?
+  - Is there any merit in going to constant width for all instructions?
+    That is, possibly to simplify compiler design.
+)
+
+<2> go :run fail run: prg{run} halt
 
 prg{
 
-  go :entryPoint fail entryPoint: runB halt
+  fail: fail <:fail>
+  fret: fret
+  fret1: drop fret
+  fret2: drop drop fret
+  fret3: drop drop drop fret
+  fret4: drop drop drop drop fret
 
-  \ Correct but not robust
-  : run
-    {..INT_MAX}
-  \ 3
-    add5
-    add5
-  ;
-
-  \ Robust and correct (will be when add stack guards)
-  : runA
-    {..INT_MAX}
-  \ 3
-    add5A go!=0 :calcFail
-    add5A go!=0 :calcFail
-    calcDone:
-      {..OK} ret
-    calcFail:
-      0 {..FAIL}
-  ;
-
-  \ Robust and correct (will be when add stack guards)
-  : runB
-    {..INT_MAX}
-  \ 3
-    5 add go!=0 :calcFail
-    5 add go!=0 :calcFail
-    calcDone:
-      {..OK} ret
-    calcFail:
-      {..FAIL}
-  ;
-
-  \ Correct but not robust
-  : add5 5 + ;
-
-  \ Robust and correct (will be when add stack guards)
-  : add5A ( n -- n+5 OK/FAIL )
-    go :try fail: {..FAIL} ret
-    try:
-      5
-      <:fail>
-        +
-      <:>
-        {..OK}
-  ;
-
-  \ Robust and correct (will be when add stack guards)
-  : add ( n1 n2 -- n1+n2 OK/FAIL )
-    go :try fail: 0 {..FAIL} ret
-    try:
-      <:fail>
-        +
-      <:>
-        {..OK}
-  ;
+  <:fret> : run calc ;
+  <:fret> : calc foo ;
+  <:fret> : add + ;
+  <:fret> : add1 1 + ;
+  <:fret> : add2 2 + ;
+  
+  \ fvm2.js is currently hardcoded to cause the below to fail
+  : foo <::fret> 1 <::fret1> 2 <::fret2> 3 <::fret3> 4 <::fret4> 5 ;
 
 }prg
 

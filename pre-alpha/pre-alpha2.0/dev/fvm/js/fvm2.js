@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170514-1828+
- * Version:    pre-alpha-0.0.0.19 for FVM 2.0
+ * Updated:    20170520-1408+
+ * Version:    pre-alpha-0.0.0.22 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -39,7 +39,7 @@ var modFVM = (function () { 'use strict';
   const SYSt = 0xffffffff;
   const WORD_BYTES = 4;
   const WORD_PWR = 2;
-  const STACK_ELEMS = 256;
+  const STACK_ELEMS = 3; //256; FIXME hardcoded to force failure
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
   const INT_MAX =  2147483647;
@@ -54,7 +54,7 @@ var modFVM = (function () { 'use strict';
   const GRDOUT = -6;
   const USROUT = -8;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fail','lit ','call','jmp ','    ','    ','    ','    ', // 0 COMPLEX
+    'fail','lit ','call','jmp ','    ','    ','    ','brnz', // 0 COMPLEX
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','jnz ','    ','    ','    ','    ', // 16
     'jeq ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -70,7 +70,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 104
     '    ','    ','    ','    ','    ','    ','    ','    ', // 112
     '    ','    ','    ','    ','    ','    ','    ','    ', // 120
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 128
+    '    ','    ','    ','    ','fret','    ','    ','    ', // 128
     '    ','    ','    ','    ','    ','    ','    ','    ', // 136
     '    ','ret ','    ','    ','    ','    ','    ','    ', // 144
     '    ','    ','    ','    ','    ','    ','    ','drop', // 152
@@ -92,6 +92,7 @@ var modFVM = (function () { 'use strict';
   const iLIT = 1|0;
   const iCALL = 2|0;
   const iJMP = 3|0;
+  const iBRNZ = 7|0;
   const iJNZ = 19|0;
   const iJEQ = 24|0;
   const iEXIT = 145|0;
@@ -99,6 +100,7 @@ var modFVM = (function () { 'use strict';
   const iADD = 201|0;
   const iSTORE = 190|0;
   const iSUB = 202|0;
+  const iFRET = 132|0;
   const iHALT = 255|0;
 
   class FVM {
@@ -157,6 +159,14 @@ var modFVM = (function () { 'use strict';
             case iJMP:
               this.pc = this.wordAtPc();
               break;
+            case iBRNZ:
+              var n1 = this.ds.doPeek();
+              if (n1 != 0) {  
+                this.pc = this.wordAtPc();
+              } else {
+                this.pc++;
+              }
+              break;
             case iJNZ:
               var n1 = this.ds.doPop();
               if (n1 != 0) {  
@@ -173,6 +183,21 @@ var modFVM = (function () { 'use strict';
               } else {
                 this.pc++;
               }
+              break;
+            case iFRET:
+              var rsTos = this.rs.doPop();
+              if (rsTos < 2) {
+                throw FAILURE;
+              }
+              var callPc = rsTos - 2;
+              var callInstr = this.prgWord(callPc);
+              var callOpcode = callInstr & LSB;
+              if (callOpcode != iCALL) {
+                throw FAILURE;
+              }
+              this.pc = callPc;
+              failAddr = (callInstr & MSP) >> 8;
+              throw FAILURE;
               break;
             case iEXIT:
               this.pc = this.rs.doPop();
@@ -223,6 +248,11 @@ var modFVM = (function () { 'use strict';
         } catch(e) {
           if (e != FAILURE) {
             throw e;
+          }
+          if (opcode != iFRET) {
+            this.fnTrc('FAILURE *************');
+          } else {
+            this.fnTrc(modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' *******');
           }
           this.pc = failAddr;
         }
@@ -326,8 +356,9 @@ var modFVM = (function () { 'use strict';
     }
 
     doPeek() {
-      if (this.sp <= this.SP_ONE) {
-        return elem = this.elems.getInt32(this.sp, true);
+      if (this.sp <= STACK_1) {
+        var elem = this.elems.getInt32(this.sp, true);
+        return elem;
       } else {
         throw FAILURE; // underflow
       }

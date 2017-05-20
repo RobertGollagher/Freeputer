@@ -58,7 +58,8 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. Each stack has a maximum depth of **256 elements**.
 1. Inability to call a subroutine (call failure due to rs full) triggers **branch on failure**.
 1. Inability to return from a subroutine (return failure due to rs empty) triggers **branch on failure**.
-1. There is no special concept of subroutine failure other than call failure and return failure.
+1. The fret opcode retrospectively triggers **branch on failure** of the currently executing subroutine call instruction.
+1. The fret opcode itself undergoes **branch on failure** if that is not possible (fret failure due to rs empty or no call instruction).
 1. All I/O is **non-blocking** and unavailable I/O triggers **branch on failure**.
 1. All I/O is **memory mapped** and unsupported I/O triggers **branch on failure**.
 1. A *read-only cell* is one which only supports the @ instruction.
@@ -220,7 +221,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 5 April 2017 at 23:35  
+This document was last updated on 20 May 2017 at 14:08  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
