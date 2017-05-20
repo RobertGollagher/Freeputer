@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170520-1408+
- * Version:    pre-alpha-0.0.0.22 for FVM 2.0
+ * Updated:    20170520-2016+
+ * Version:    pre-alpha-0.0.0.24 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -39,7 +39,7 @@ var modFVM = (function () { 'use strict';
   const SYSt = 0xffffffff;
   const WORD_BYTES = 4;
   const WORD_PWR = 2;
-  const STACK_ELEMS = 3; //256; FIXME hardcoded to force failure
+  const STACK_ELEMS = 256; //256; FIXME
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
   const INT_MAX =  2147483647;
@@ -85,7 +85,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
     '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','    ','    ','    ','    ','halt', // 248
+    '    ','    ','    ','risk','safe','noop','    ','halt', // 248
   ];
 
   const iFAIL = 0|0;
@@ -101,6 +101,9 @@ var modFVM = (function () { 'use strict';
   const iSTORE = 190|0;
   const iSUB = 202|0;
   const iFRET = 132|0;
+  const iRISK = 251|0;
+  const iSAFE = 252|0;
+  const iNOOP = 253|0;
   const iHALT = 255|0;
 
   class FVM {
@@ -123,6 +126,7 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
+      this.safe = true; // experimental
     };
 
     run() {
@@ -237,6 +241,16 @@ var modFVM = (function () { 'use strict';
             case iSUB:
               this.ds.apply2((a,b) => a-b);
               break;
+            case iRISK:
+              this.safe = false;
+              break;
+            case iSAFE:
+              if (this.safe === false) {
+                throw FAILURE;
+              }
+              break;
+            case iNOOP:
+              break;
             case iHALT:
               this.succeed();
               break;
@@ -249,10 +263,11 @@ var modFVM = (function () { 'use strict';
           if (e != FAILURE) {
             throw e;
           }
+          var prefix = this.safe? ' ' : '*';         
           if (opcode != iFRET) {
-            this.fnTrc('FAILURE *************');
+            this.fnTrc(prefix + 'FAILURE *************');
           } else {
-            this.fnTrc(modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' *******');
+            this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' *******');
           }
           this.pc = failAddr;
         }
@@ -288,7 +303,9 @@ var modFVM = (function () { 'use strict';
     }
 
     trace(pc,failAddr,opcode,lit) {
-      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
+      var prefix = this.safe? ' ' : '*';
+      this.fnTrc(prefix +
+                 modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ' +

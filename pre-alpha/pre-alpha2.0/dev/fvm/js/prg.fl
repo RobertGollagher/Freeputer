@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170520-1408+
+Updated:    20170520-2016+
 Version:    unstable
 
 ===========================================================================
@@ -53,26 +53,29 @@ there is currently only one of these, namely slotFloor:
 <<slotFloor>> 16777216 INT_MAX. 2147483647 NIM. -2147483648 ERR. 1 OK. 0
 
 ( TODO: Consider:
-  - Should illegal opcode simply branch on failure?
-  - Should there be a no-op?
   - Is there any merit in going to constant width for all instructions?
     That is, possibly to simplify compiler design.
 )
 
-<2> go :run fail run: prg{run} halt
+<2> go :run fail
+
+    run:
+      prg{run} halt
 
 prg{
 
   fail: fail <:fail>
+  illeg: fail
   fret: fret
+  fret_risk: risk fret
   fret1: drop fret
   fret2: drop drop fret
   fret3: drop drop drop fret
   fret4: drop drop drop drop fret
 
   <:fret> : run calc ;
-  <:fret> : calc foo ;
-  <:fret> : add + ;
+  <:fret> : calc ( 3 ) {..INT_MAX} 5 add ;
+  <:fret_risk> : add + ;
   <:fret> : add1 1 + ;
   <:fret> : add2 2 + ;
   
