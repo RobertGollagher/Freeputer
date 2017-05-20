@@ -59,11 +59,11 @@ All current development effort is now on [Freeputer&nbsp;2.0](pre-alpha/pre-alph
 
 ---
 
-Copyright © Robert Gollagher 2016  
+Copyright © Robert Gollagher 2016, 2017  
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 5 March January 2017 at 23:27.  
+This document was last updated on 10 May 2017 at 20:32.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
