@@ -50,11 +50,17 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. *Address space* is **32 signed bits** (the 16 GiB from word -2147483648 to word 2147483647).
 1. *Address space* consists of 5 *zones* (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK. 
 1. *Program space* (the PRG *zone*) is **24 unsigned bits** (the 64 MiB from word 0 to word 16777215).
+1. Program **execution loops** back to the start of PRG when it reaches the end of PRG.
+1. Branch instructions attempting to branch outside PRG cause **branch on failure**.
 1. The VM can be implemented on **powerful servers** using physical memory.
 1. The VM can be implemented on **small microcontrollers** using mainly logical memory.
 1. Words are **32 signed bits** (little endian, two's complement).
 1. **Simple instructions** are 1 word: an unsigned 24-bit *failure address* above an unsigned 8-bit *opcode*.
 1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
+1. Experimental **fixed alignment** of PRG zone to simplify robustness:
+    - All instructions are aligned to 2 words wide;
+    - Simple instructions are followed by a *zero literal*;
+    - Branch instructions attempting to branch to an odd cell cause **branch on failure**.
 1. The VM has **3 stacks** of words: a data stack (ds), a software stack (ss) and a return stack (rs).
 1. Each stack has a maximum depth of **256 elements**.
 1. Inability to call a subroutine (call failure due to rs full) triggers **branch on failure**.
@@ -222,7 +228,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 21 May 2017 at 12:09  
+This document was last updated on 21 May 2017 at 16:19  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
