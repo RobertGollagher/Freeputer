@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170520-2016+
- * Version:    pre-alpha-0.0.0.24 for FVM 2.0
+ * Updated:    20170521-1138+
+ * Version:    pre-alpha-0.0.0.25 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -146,7 +146,7 @@ var modFVM = (function () { 'use strict';
           }
           this.trace(this.pc,failAddr,opcode,lit); 
         }
-        this.pc++;
+        this.pc++; // FIXME could be outside PRG etc
         try {
           switch (opcode) {
             case iFAIL:
@@ -158,15 +158,15 @@ var modFVM = (function () { 'use strict';
               break;
             case iCALL:
               this.rs.doPush(this.pc+1);
-              this.pc = this.wordAtPc();
+              this.pc = this.wordAtPc(); // FIXME could be outside PRG
               break;
             case iJMP:
-              this.pc = this.wordAtPc();
+              this.pc = this.wordAtPc(); // FIXME could be outside PRG
               break;
             case iBRNZ:
               var n1 = this.ds.doPeek();
               if (n1 != 0) {  
-                this.pc = this.wordAtPc();
+                this.pc = this.wordAtPc(); // FIXME could be outside PRG
               } else {
                 this.pc++;
               }
@@ -174,7 +174,7 @@ var modFVM = (function () { 'use strict';
             case iJNZ:
               var n1 = this.ds.doPop();
               if (n1 != 0) {  
-                this.pc = this.wordAtPc();
+                this.pc = this.wordAtPc(); // FIXME could be outside PRG
               } else {
                 this.pc++;
               }
@@ -183,13 +183,13 @@ var modFVM = (function () { 'use strict';
               var n2 = this.ds.doPop();
               var n1 = this.ds.doPop();
               if (n1 == n2) {  
-                this.pc = this.wordAtPc();
+                this.pc = this.wordAtPc(); // FIXME could be outside PRG
               } else {
                 this.pc++;
               }
               break;
             case iFRET:
-              var rsTos = this.rs.doPop();
+              var rsTos = this.rs.doPop(); // FIXME could be outside PRG
               if (rsTos < 2) {
                 throw FAILURE;
               }
@@ -256,7 +256,7 @@ var modFVM = (function () { 'use strict';
               break;
             default:
               this.fnTrc('Illegal instruction: 0x' + modFmt.hex2(opcode));
-              this.fail();
+              throw FAILURE;
               break;
           }
         } catch(e) {
@@ -383,17 +383,23 @@ var modFVM = (function () { 'use strict';
 
     apply1(f) {
       var a = this.doPop();
-      this.doPush(this.verify(f(a)));
+      this.doPush(this.verify(f(a), a));
     }
 
     apply2(f) {
       var b = this.doPop();
       var a = this.doPop();
-      this.doPush(this.verify(f(a,b)));
+      this.doPush(this.verify(f(a,b), a, b));
     }
 
-    verify(i) {
+    verify(i, a , b) {
       if (i < INT_MIN || i > INT_MAX) {
+        if (a) {
+          this.doPush(a);
+        }
+        if (b) {
+          this.doPush(b);
+        }
         throw FAILURE;
       }
       return i;

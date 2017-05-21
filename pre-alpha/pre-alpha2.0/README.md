@@ -37,14 +37,15 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     1. The halt opcode (0xff).
 1. The only causes of VM failure are:
     1. The fail opcode (0x00);
-    1. Any illegal opcode;
     1. Platform failure.
-1. All opcodes **branch on failure** except: halt (0xff); fail (0x00); any illegal opcode.
+1. All opcodes **branch on failure** except: halt (0xff) and fail (0x00).
 1. The following opcodes cause immediate VM termination regardless of any fail address:
     1. The halt opcode (0xff);
-    1. The fail opcode (0x00);
-    1. Any illegal opcode.
-1. Failure is rare and means the run **cannot be trusted**.
+    1. The fail opcode (0x00).
+1. A program can be an infinite loop which never terminates.
+1. Failure is typically rare and means the run **cannot be trusted**.
+1. For most opcodes, **branch on failure is equivalent to a noop branching on failure**.
+1. All illegal opcodes are always treated as **a noop branching on failure**.
 1. Addressing is **absolute** and **word-indexed** (1 cell = 1 word).
 1. *Address space* is **32 signed bits** (the 16 GiB from word -2147483648 to word 2147483647).
 1. *Address space* consists of 5 *zones* (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK. 
@@ -221,7 +222,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 20 May 2017 at 14:08  
+This document was last updated on 21 May 2017 at 12:09  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
