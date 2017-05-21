@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170521-1138+
- * Version:    pre-alpha-0.0.0.25 for FVM 2.0
+ * Updated:    20170521-1216+
+ * Version:    pre-alpha-0.0.0.26 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -27,9 +27,9 @@
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
-  const PRGb = 0x000000;
-  const PRGt = 0xffffff;
-  const MEMb = 0x1000000;
+  const PRGb = 0x00000000;
+  const PRGt = 0x00ffffff;
+  const MEMb = 0x01000000;
   const MEMt = 0x3fffffff;
   const BLKb = 0x40000000;
   const BLKt = 0x7fffffff;
@@ -48,7 +48,7 @@ var modFVM = (function () { 'use strict';
   const LSB = 0x000000ff;
   const SUCCESS = 0|0;
   const FAILURE = 1|0;
-  const SIMPLE = 64;
+  const SIMPLE =256; // 64; // FIXME experimental 2-word align for all instrs
   const STDLOG = -2;
   const STDOUT = -4;
   const GRDOUT = -6;
@@ -146,7 +146,10 @@ var modFVM = (function () { 'use strict';
           }
           this.trace(this.pc,failAddr,opcode,lit); 
         }
-        this.pc++; // FIXME could be outside PRG etc
+        this.pc++;
+        if (this.pc > PRGt) { // FIXME complex vs simple
+          this.pc = this.pc & PRGt;
+        }
         try {
           switch (opcode) {
             case iFAIL:
@@ -158,15 +161,15 @@ var modFVM = (function () { 'use strict';
               break;
             case iCALL:
               this.rs.doPush(this.pc+1);
-              this.pc = this.wordAtPc(); // FIXME could be outside PRG
+              this.pc = this.cellAtPc();
               break;
             case iJMP:
-              this.pc = this.wordAtPc(); // FIXME could be outside PRG
+              this.pc = this.cellAtPc();
               break;
             case iBRNZ:
               var n1 = this.ds.doPeek();
               if (n1 != 0) {  
-                this.pc = this.wordAtPc(); // FIXME could be outside PRG
+                this.pc = this.cellAtPc();
               } else {
                 this.pc++;
               }
@@ -174,7 +177,7 @@ var modFVM = (function () { 'use strict';
             case iJNZ:
               var n1 = this.ds.doPop();
               if (n1 != 0) {  
-                this.pc = this.wordAtPc(); // FIXME could be outside PRG
+                this.pc = this.cellAtPc();
               } else {
                 this.pc++;
               }
@@ -183,13 +186,13 @@ var modFVM = (function () { 'use strict';
               var n2 = this.ds.doPop();
               var n1 = this.ds.doPop();
               if (n1 == n2) {  
-                this.pc = this.wordAtPc(); // FIXME could be outside PRG
+                this.pc = this.cellAtPc();
               } else {
                 this.pc++;
               }
               break;
             case iFRET:
-              var rsTos = this.rs.doPop(); // FIXME could be outside PRG
+              var rsTos = this.rs.doPop() & PRGt;
               if (rsTos < 2) {
                 throw FAILURE;
               }
@@ -204,7 +207,7 @@ var modFVM = (function () { 'use strict';
               throw FAILURE;
               break;
             case iEXIT:
-              this.pc = this.rs.doPop();
+              this.pc = this.rs.doPop() & PRGt;
               break;
             case iSTORE:
               // FIXME incomplete implementation
@@ -255,7 +258,7 @@ var modFVM = (function () { 'use strict';
               this.succeed();
               break;
             default:
-              this.fnTrc('Illegal instruction: 0x' + modFmt.hex2(opcode));
+              this.fnTrc('Illegal opcode: 0x' + modFmt.hex2(opcode));
               throw FAILURE;
               break;
           }
@@ -265,9 +268,9 @@ var modFVM = (function () { 'use strict';
           }
           var prefix = this.safe? ' ' : '*';         
           if (opcode != iFRET) {
-            this.fnTrc(prefix + 'FAILURE *************');
+            this.fnTrc(prefix + 'FAILURE **********************');
           } else {
-            this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' *******');
+            this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' ****************');
           }
           this.pc = failAddr;
         }
@@ -277,6 +280,14 @@ var modFVM = (function () { 'use strict';
 
     lsb(f,x) {
       f(x&LSB);
+    }
+
+    cellAtPc() {
+      var addr = this.prgWord(this.pc);
+      if (addr > PRGt) {
+        throw FAILURE;
+      }
+      return addr;
     }
 
     wordAtPc() {

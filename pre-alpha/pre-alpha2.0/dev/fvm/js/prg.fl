@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170521-1138+
+Updated:    20170521-1216+
 Version:    unstable
 
 ===========================================================================
@@ -55,6 +55,7 @@ there is currently only one of these, namely slotFloor:
 ( TODO: Consider:
   - Is there any merit in going to constant width for all instructions?
     That is, possibly to simplify compiler design.
+    Also to prevent alignment issues.
 )
 
 <2> go :run fail
@@ -64,6 +65,10 @@ there is currently only one of these, namely slotFloor:
 
 prg{
 
+  : run calc ;
+  : calc ;
+
+(((
   fail: fail <:fail>
   illeg: fail
   fret: fret
@@ -74,13 +79,14 @@ prg{
   fret4: drop drop drop drop fret
 
   <:fret> : run calc ;
-  <:fret> : calc ( 3 ) {..INT_MAX} 5 add ;
+  <:fret> : calc ( 3 ) {..INT_MAX} 5 + ;
   <:fret_risk> : add + ;
   <:fret> : add1 1 + ;
   <:fret> : add2 2 + ;
   
   \ fvm2.js is currently hardcoded to cause the below to fail
   : foo <::fret> 1 <::fret1> 2 <::fret2> 3 <::fret3> 4 <::fret4> 5 ;
+)))
 
 }prg
 

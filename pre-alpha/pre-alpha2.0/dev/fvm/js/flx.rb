@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.9 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.10 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.9 for FVM 2.0"
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170520-1810+
-# Version:    pre-alpha-0.0.0.9 for FVM 2.0
+# Updated:    20170521-1216+
+# Version:    pre-alpha-0.0.0.10 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,6 +87,7 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.9 for FVM 2.0"
 # FIXME debug.flx output is now wrong for calls.
 # TODO enhance map.info to show failAddr.
 # TODO Add ability to specify single function as fail addr eg <fail> <fret> ??
+# FIXME Don't allow addresses outside PRG for branching
 #
 # ============================================================================
 # Instructions
@@ -670,6 +671,7 @@ WDPTN = '[A-z_][0-9\?-z!]*'
 # Switches
 expectingAddr = false
 $syntaxError = false
+isSimple = false
 inComment = false
 inBComment = false
 inInlineComment = false
@@ -1219,7 +1221,11 @@ sourceFile.each_with_index do | line, lineNum0 |
           printf($debugFile,"%11s to %3d: return (", token, asCell(currentPos))
           debugOpcode(IEXIT, declaredFailAddr);
           printf($debugFile,")\n")
-          currentPos += WORD_SIZE
+
+          # FIXME experimental align to 2 words for all instrs
+          $outputFile.write(0)
+          currentPos += WORD_SIZE * 2
+
           inWordDecl = false
           wordDeclName = ""
           next
@@ -1240,7 +1246,11 @@ sourceFile.each_with_index do | line, lineNum0 |
             printf($debugFile,"%11s to %3d: fail (", token, asCell(currentPos))
             debugOpcode(IWALL, 0);
             printf($debugFile,")\n")
-            currentPos += WORD_SIZE
+
+            # FIXME experimental align to 2 words for all instrs
+            $outputFile.write(0)
+            currentPos += WORD_SIZE * 2
+
         inWordDecl = true
         expectingWordName = true
         next
@@ -1627,6 +1637,7 @@ sourceFile.each_with_index do | line, lineNum0 |
       else
         numSimpleInstrs += 1
         expectingAddr = false
+        isSimple = true;
         $effectiveFailAddr = declaredFailAddr;
       end
     end
@@ -1639,7 +1650,7 @@ sourceFile.each_with_index do | line, lineNum0 |
          numDataCells += 1
          $effectiveFailAddr = 0;
       end
-      cellBinary = writeCell(cellValue, $effectiveFailAddr) # TODO NEXT
+      cellBinary = writeCell(cellValue, $effectiveFailAddr)
       # Just for debugging the compiler
       printf($debugFile,"%11s to %3d: %s %d (",
           token, asCell(lastPos), debugPrefixStr, cellValue)
@@ -1647,6 +1658,14 @@ sourceFile.each_with_index do | line, lineNum0 |
           printf($debugFile,"%d ",byte) end
         cellBinary.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
         printf($debugFile,")\n")
+
+      if (isSimple) then # FIXME experimental alignment of all instrs to 2 words in PRG
+        printf($debugFile,"*") # FIXME debug.flx output will be incorrect now
+        writeCell(0,0)
+        isSimple = false
+        currentPos += WORD_SIZE
+      end
+
     end
   end # tokens
 # ============================================================================
@@ -1672,7 +1691,11 @@ if (!$syntaxError) then
   printf($debugFile,"%11s to %3d: fail (", "fail", asCell(currentPos))
   debugOpcode(IWALL, 0) 
   printf($debugFile,")\n")
-  currentPos += WORD_SIZE
+
+  # FIXME experimental align to 2 words for all instrs
+  $outputFile.write(0)
+  currentPos += WORD_SIZE * 2
+
 end
 
 # ============================================================================
