@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.10 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.11 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.10 for FVM 2.0
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170521-1216+
-# Version:    pre-alpha-0.0.0.10 for FVM 2.0
+# Updated:    20170522-1839+
+# Version:    pre-alpha-0.0.0.11 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1223,8 +1223,9 @@ sourceFile.each_with_index do | line, lineNum0 |
           printf($debugFile,")\n")
 
           # FIXME experimental align to 2 words for all instrs
-          $outputFile.write(0)
+          writeWall()
           currentPos += WORD_SIZE * 2
+          printf($debugFile,"*")
 
           inWordDecl = false
           wordDeclName = ""
@@ -1248,8 +1249,9 @@ sourceFile.each_with_index do | line, lineNum0 |
             printf($debugFile,")\n")
 
             # FIXME experimental align to 2 words for all instrs
-            $outputFile.write(0)
+            writeWall()
             currentPos += WORD_SIZE * 2
+            printf($debugFile,"*")
 
         inWordDecl = true
         expectingWordName = true
@@ -1693,8 +1695,9 @@ if (!$syntaxError) then
   printf($debugFile,")\n")
 
   # FIXME experimental align to 2 words for all instrs
-  $outputFile.write(0)
+  writeWall()
   currentPos += WORD_SIZE * 2
+  printf($debugFile,"*")
 
 end
 

@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170521-1216+
+Updated:    20170522-1839+
 Version:    unstable
 
 ===========================================================================
@@ -52,23 +52,17 @@ there is currently only one of these, namely slotFloor:
 =========================================================================== )
 <<slotFloor>> 16777216 INT_MAX. 2147483647 NIM. -2147483648 ERR. 1 OK. 0
 
-( TODO: Consider:
-  - Is there any merit in going to constant width for all instructions?
-    That is, possibly to simplify compiler design.
-    Also to prevent alignment issues.
+( TODO:
+
 )
 
-<2> go :run fail
+<17> go :run fail
 
     run:
       prg{run} halt
 
 prg{
 
-  : run calc ;
-  : calc ;
-
-(((
   fail: fail <:fail>
   illeg: fail
   fret: fret
@@ -86,7 +80,6 @@ prg{
   
   \ fvm2.js is currently hardcoded to cause the below to fail
   : foo <::fret> 1 <::fret1> 2 <::fret2> 3 <::fret3> 4 <::fret4> 5 ;
-)))
 
 }prg
 
