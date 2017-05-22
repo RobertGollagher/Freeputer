@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170521-1216+
- * Version:    pre-alpha-0.0.0.26 for FVM 2.0
+ * Updated:    20170522-2140+
+ * Version:    pre-alpha-0.0.0.27 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -48,13 +48,12 @@ var modFVM = (function () { 'use strict';
   const LSB = 0x000000ff;
   const SUCCESS = 0|0;
   const FAILURE = 1|0;
-  const SIMPLE =256; // 64; // FIXME experimental 2-word align for all instrs
   const STDLOG = -2;
   const STDOUT = -4;
   const GRDOUT = -6;
   const USROUT = -8;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fail','lit ','call','jmp ','    ','    ','    ','brnz', // 0 COMPLEX
+    'fail','lit ','call','jmp ','    ','    ','    ','brnz', // 0
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','jnz ','    ','    ','    ','    ', // 16
     'jeq ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -62,7 +61,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 40
     '    ','    ','    ','    ','    ','    ','    ','    ', // 48
     '    ','    ','    ','    ','    ','    ','    ','    ', // 56
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 64 SIMPLE
+    '    ','    ','    ','    ','    ','    ','    ','    ', // 64
     '    ','    ','    ','    ','    ','    ','    ','    ', // 72
     '    ','    ','    ','    ','    ','    ','    ','    ', // 80
     '    ','    ','    ','    ','    ','    ','    ','    ', // 88
@@ -139,15 +138,11 @@ var modFVM = (function () { 'use strict';
         failAddr = (instr & MSP) >> 8;
         opcode = instr & LSB;
         if (this.tracing) {
-          if (opcode < SIMPLE && opcode != iFAIL) {
-            lit = this.prgWord(this.pc+1);
-          } else {
-            lit = '';
-          }
+          lit = this.prgWord(this.pc+1);
           this.trace(this.pc,failAddr,opcode,lit); 
         }
         this.pc++;
-        if (this.pc > PRGt) { // FIXME complex vs simple
+        if (this.pc > PRGt) {
           this.pc = this.pc & PRGt;
         }
         try {
@@ -213,6 +208,7 @@ var modFVM = (function () { 'use strict';
               // FIXME incomplete implementation
               var addr = this.ds.doPop();
               var val = this.ds.doPop();
+              this.pc++;
               switch (addr) {
                 case STDLOG:
                   this.lsb(this.fnLog,val);
@@ -237,25 +233,32 @@ var modFVM = (function () { 'use strict';
               break;
             case iDROP:
               this.ds.doPop();
+              this.pc++;
               break;
             case iADD:
               this.ds.apply2((a,b) => a+b);
+              this.pc++;
               break;
             case iSUB:
               this.ds.apply2((a,b) => a-b);
+              this.pc++;
               break;
             case iRISK:
               this.safe = false;
+              this.pc++;
               break;
             case iSAFE:
               if (this.safe === false) {
                 throw FAILURE;
               }
+              this.pc++;
               break;
             case iNOOP:
+              this.pc++;
               break;
             case iHALT:
               this.succeed();
+              this.pc++;
               break;
             default:
               this.fnTrc('Illegal opcode: 0x' + modFmt.hex2(opcode));

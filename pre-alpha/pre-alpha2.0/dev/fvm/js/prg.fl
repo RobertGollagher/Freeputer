@@ -73,7 +73,7 @@ prg{
   fret4: drop drop drop drop fret
 
   <:fret> : run calc ;
-  <:fret> : calc ( 3 ) {..INT_MAX} 5 + ;
+  <:fret> : calc 3 5 + ;
   <:fret_risk> : add + ;
   <:fret> : add1 1 + ;
   <:fret> : add2 2 + ;
