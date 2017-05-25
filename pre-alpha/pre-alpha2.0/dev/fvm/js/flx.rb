@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.11 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.12 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.11 for FVM 2.0
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170522-1839+
-# Version:    pre-alpha-0.0.0.11 for FVM 2.0
+# Updated:    20170525-2018+
+# Version:    pre-alpha-0.0.0.12 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -88,6 +88,7 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.11 for FVM 2.0
 # TODO enhance map.info to show failAddr.
 # TODO Add ability to specify single function as fail addr eg <fail> <fret> ??
 # FIXME Don't allow addresses outside PRG for branching
+# FIXME 2nd pass iWALLS are no longer appropriately done
 #
 # ============================================================================
 # Instructions
@@ -671,7 +672,7 @@ WDPTN = '[A-z_][0-9\?-z!]*'
 # Switches
 expectingAddr = false
 $syntaxError = false
-isSimple = false
+$isSimple = false
 inComment = false
 inBComment = false
 inInlineComment = false
@@ -739,7 +740,8 @@ numDataCells = 0
 numStrCells = 0 # Only reference strings get compiled into program
 
 # Some instruction ranges # FIXME make this work off HIGHEST_COMPLEX_OPCODE
-addrInstrs = $iSet.find_index("call")..$iSet.find_index("put?")
+# addrInstrs = $iSet.find_index("call")..$iSet.find_index("put?")
+addrInstrs = $iSet.find_index("fail")..$iSet.find_index("halt")
 
 # Prepared binary cellValues
 opcodeLit = [$iSet.find_index("lit")].pack("l<")    # opcode for "lit"
@@ -760,10 +762,12 @@ end
 
 def writeReturn(onFail)
   writeCell(IEXIT, onFail)
+  $effectiveFailAddr = 0
 end
 
 def writeWall()
   writeCell(IWALL, 0)
+  $effectiveFailAddr = 0
 end
 
 def writeData(onFail)
@@ -1261,6 +1265,7 @@ sourceFile.each_with_index do | line, lineNum0 |
     # ========================================================================
     cellValue = $iSet.find_index(token)       # opcode (if any) in cellValue
     if (cellValue == nil or expectingAddr) then
+      $effectiveFailAddr = 0; # FIXME Yes, this fixed it
     # ========================================================================
     # Token is not an instruction
     # ========================================================================
@@ -1639,7 +1644,7 @@ sourceFile.each_with_index do | line, lineNum0 |
       else
         numSimpleInstrs += 1
         expectingAddr = false
-        isSimple = true;
+        $isSimple = true;
         $effectiveFailAddr = declaredFailAddr;
       end
     end
@@ -1661,13 +1666,13 @@ sourceFile.each_with_index do | line, lineNum0 |
         cellBinary.bytes.to_a.each do |byte| printf($debugFile,"%d ",byte) end
         printf($debugFile,")\n")
 
-      if (isSimple) then # FIXME experimental alignment of all instrs to 2 words in PRG
+=begin
+      if ($isSimple) then # FIXME experimental alignment of all instrs to 2 words in PRG
         printf($debugFile,"*") # FIXME debug.flx output will be incorrect now
-        writeCell(0,0)
-        isSimple = false
+        $isSimple = false
         currentPos += WORD_SIZE
       end
-
+=end
     end
   end # tokens
 # ============================================================================

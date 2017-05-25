@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170522-1839+
+Updated:    20170525-2018+
 Version:    unstable
 
 ===========================================================================
@@ -56,30 +56,18 @@ there is currently only one of these, namely slotFloor:
 
 )
 
-<17> go :run fail
+<2> go :run fail 0
 
     run:
-      prg{run} halt
+      prg{run} halt 0
 
 prg{
-
-  fail: fail <:fail>
-  illeg: fail
-  fret: fret
-  fret_risk: risk fret
-  fret1: drop fret
-  fret2: drop drop fret
-  fret3: drop drop drop fret
-  fret4: drop drop drop drop fret
-
-  <:fret> : run calc ;
-  <:fret> : calc 3 5 + ;
-  <:fret_risk> : add + ;
-  <:fret> : add1 1 + ;
-  <:fret> : add2 2 + ;
   
-  \ fvm2.js is currently hardcoded to cause the below to fail
-  : foo <::fret> 1 <::fret1> 2 <::fret2> 3 <::fret3> 4 <::fret4> 5 ;
+  fret: fret 0
+  <:fret> : run + 0 ; ( calc 0 ; 0 )
+  ( <:fret> : calc 3 5 + 0 ; 0
+  <:fret_risk> : add + 0 ; 0 )
 
 }prg
+
 
