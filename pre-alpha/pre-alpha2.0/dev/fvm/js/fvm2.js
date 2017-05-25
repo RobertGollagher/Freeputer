@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170522-2140+
- * Version:    pre-alpha-0.0.0.27 for FVM 2.0
+ * Updated:    20170525-2052+
+ * Version:    pre-alpha-0.0.0.28 for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript 
@@ -142,9 +142,10 @@ var modFVM = (function () { 'use strict';
           this.trace(this.pc,failAddr,opcode,lit); 
         }
         this.pc++;
-        if (this.pc > PRGt) {
+        if (this.pc > PRGt) { // FIXME disallow split
           this.pc = this.pc & PRGt;
         }
+        lit = this.wordAtPc(); // For fixed-width
         try {
           switch (opcode) {
             case iFAIL:
@@ -202,6 +203,8 @@ var modFVM = (function () { 'use strict';
               throw FAILURE;
               break;
             case iEXIT:
+              // TODO zero lit = unconditional return
+              //   non-zero lit = conditional return of some kind
               this.pc = this.rs.doPop() & PRGt;
               break;
             case iSTORE:
@@ -236,7 +239,11 @@ var modFVM = (function () { 'use strict';
               this.pc++;
               break;
             case iADD:
-              this.ds.apply2((a,b) => a+b);
+              if (lit == 0) {
+                this.ds.apply2((a,b) => a+b);
+              } else {
+                this.ds.apply1((a) => a+lit);
+              }
               this.pc++;
               break;
             case iSUB:
