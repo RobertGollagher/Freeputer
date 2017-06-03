@@ -39,7 +39,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     1. The fail opcode (0x00);
     1. Platform failure.
 1. All opcodes **branch on failure** except: halt (0xff) and fail (0x00).
-1. The following opcodes cause immediate VM termination regardless of any fail address:
+1. The following opcodes cause immediate VM termination regardless of any *metadata*:
     1. The halt opcode (0xff);
     1. The fail opcode (0x00).
 1. A program can be an infinite loop which never terminates.
@@ -47,20 +47,25 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 1. For most opcodes, **branch on failure is equivalent to a noop branching on failure**.
 1. All illegal opcodes are always treated as **a noop branching on failure**.
 1. Addressing is **absolute** and **word-indexed** (1 cell = 1 word).
+1. Common sense applies but generally speaking the default value of cells is **zero**.
 1. *Address space* is **32 signed bits** (the 16 GiB from word -2147483648 to word 2147483647).
 1. *Address space* consists of 5 *zones* (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK. 
 1. *Program space* (the PRG *zone*) is **24 unsigned bits** (the 64 MiB from word 0 to word 16777215).
 1. Program **execution loops** back to the start of PRG when it reaches the end of PRG.
-1. Branch instructions attempting to branch outside PRG cause **branch on failure**.
 1. The VM can be implemented on **powerful servers** using physical memory.
 1. The VM can be implemented on **small microcontrollers** using mainly logical memory.
 1. Words are **32 signed bits** (little endian, two's complement).
-1. **Simple instructions** are 1 word: an unsigned 24-bit *failure address* above an unsigned 8-bit *opcode*.
-1. **Complex instructions** also have a second word: a signed 32-bit *literal*.
-1. Experimental **fixed alignment** of PRG zone to simplify robustness:
-    - All instructions are aligned to 2 words wide;
-    - Simple instructions are followed by a *zero literal*;
-    - Branch instructions attempting to branch to an odd cell cause **branch on failure**.
+1. All instructions are always exactly **1 cell wide** (that is, 32 bits wide).
+1. Thus instructions are **simple**, **symmetrical**, **compact** and **small-device friendly**.
+1. The least-significant 8 bits of an instruction comprise its *opcode*.
+1. The most-significant 24 bits of an instruction comprise its *metadata*.
+1. For instructions which cannot fail, the *metadata* is an *address* or is ignored.
+1. For instructions which can fail, the *metadata* is a *failure address* except:
+    - for *literal instructions*, it is a *literal*;
+    - for *call instructions*, it is an *address*.
+1. For *literal instructions* and *call instructions*:
+    - the *failure address* is implicitly the following cell;
+    - the following cell is skipped upon success.
 1. The VM has **3 stacks** of words: a data stack (ds), a software stack (ss) and a return stack (rs).
 1. Each stack has a maximum depth of **256 elements**.
 1. Inability to call a subroutine (call failure due to rs full) triggers **branch on failure**.
@@ -217,7 +222,8 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
     - The instruction set for Freeputer 2.0:
         - has not yet been *fully* decided upon;
         - will be broadly similar to that of Freeputer 1.0;
-        - is likely to omit several very CISC-like instructions.
+        - is likely to omit several very CISC-like instructions;
+        - is certain to have no complex (2-word) instructions.
     - The prototype will use an experimental subset of proposed instructions.
     - The prototype will at first have very few instructions as its implementation gradually proceeds.
 
@@ -228,7 +234,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 21 May 2017 at 16:19  
+This document was last updated on 3 June 2017 at 15:16  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

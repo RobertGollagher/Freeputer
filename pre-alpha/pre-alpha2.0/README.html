@@ -32,7 +32,7 @@
 <li>Platform failure.</li>
 </ol></li>
 <li>All opcodes <strong>branch on failure</strong> except: halt (0xff) and fail (0x00).</li>
-<li>The following opcodes cause immediate VM termination regardless of any fail address:
+<li>The following opcodes cause immediate VM termination regardless of any <em>metadata</em>:
 <ol style="list-style-type: decimal">
 <li>The halt opcode (0xff);</li>
 <li>The fail opcode (0x00).</li>
@@ -42,21 +42,28 @@
 <li>For most opcodes, <strong>branch on failure is equivalent to a noop branching on failure</strong>.</li>
 <li>All illegal opcodes are always treated as <strong>a noop branching on failure</strong>.</li>
 <li>Addressing is <strong>absolute</strong> and <strong>word-indexed</strong> (1 cell = 1 word).</li>
+<li>Common sense applies but generally speaking the default value of cells is <strong>zero</strong>.</li>
 <li><em>Address space</em> is <strong>32 signed bits</strong> (the 16 GiB from word -2147483648 to word 2147483647).</li>
 <li><em>Address space</em> consists of 5 <em>zones</em> (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK.</li>
 <li><em>Program space</em> (the PRG <em>zone</em>) is <strong>24 unsigned bits</strong> (the 64 MiB from word 0 to word 16777215).</li>
 <li>Program <strong>execution loops</strong> back to the start of PRG when it reaches the end of PRG.</li>
-<li>Branch instructions attempting to branch outside PRG cause <strong>branch on failure</strong>.</li>
 <li>The VM can be implemented on <strong>powerful servers</strong> using physical memory.</li>
 <li>The VM can be implemented on <strong>small microcontrollers</strong> using mainly logical memory.</li>
 <li>Words are <strong>32 signed bits</strong> (little endian, two's complement).</li>
-<li><strong>Simple instructions</strong> are 1 word: an unsigned 24-bit <em>failure address</em> above an unsigned 8-bit <em>opcode</em>.</li>
-<li><strong>Complex instructions</strong> also have a second word: a signed 32-bit <em>literal</em>.</li>
-<li>Experimental <strong>fixed alignment</strong> of PRG zone to simplify robustness:
+<li>All instructions are always exactly <strong>1 cell wide</strong> (that is, 32 bits wide).</li>
+<li>Thus instructions are <strong>simple</strong>, <strong>symmetrical</strong>, <strong>compact</strong> and <strong>small-device friendly</strong>.</li>
+<li>The least-significant 8 bits of an instruction comprise its <em>opcode</em>.</li>
+<li>The most-significant 24 bits of an instruction comprise its <em>metadata</em>.</li>
+<li>For instructions which cannot fail, the <em>metadata</em> is an <em>address</em> or is ignored.</li>
+<li>For instructions which can fail, the <em>metadata</em> is a <em>failure address</em> except:
 <ul>
-<li>All instructions are aligned to 2 words wide;</li>
-<li>Simple instructions are followed by a <em>zero literal</em>;</li>
-<li>Branch instructions attempting to branch to an odd cell cause <strong>branch on failure</strong>.</li>
+<li>for <em>literal instructions</em>, it is a <em>literal</em>;</li>
+<li>for <em>call instructions</em>, it is an <em>address</em>.</li>
+</ul></li>
+<li>For <em>literal instructions</em> and <em>call instructions</em>:
+<ul>
+<li>the <em>failure address</em> is implicitly the following cell;</li>
+<li>the following cell is skipped upon success.</li>
 </ul></li>
 <li>The VM has <strong>3 stacks</strong> of words: a data stack (ds), a software stack (ss) and a return stack (rs).</li>
 <li>Each stack has a maximum depth of <strong>256 elements</strong>.</li>
@@ -296,7 +303,8 @@
 <ul>
 <li>has not yet been <em>fully</em> decided upon;</li>
 <li>will be broadly similar to that of Freeputer 1.0;</li>
-<li>is likely to omit several very CISC-like instructions.</li>
+<li>is likely to omit several very CISC-like instructions;</li>
+<li>is certain to have no complex (2-word) instructions.</li>
 </ul></li>
 <li>The prototype will use an experimental subset of proposed instructions.</li>
 <li>The prototype will at first have very few instructions as its implementation gradually proceeds.</li>
@@ -306,7 +314,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 21 May 2017 at 16:19<br />
+This document was last updated on 3 June 2017 at 15:16<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
