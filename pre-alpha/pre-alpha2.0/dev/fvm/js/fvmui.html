@@ -43,7 +43,8 @@ function modFVMUI_init(prg) { 'use strict';
   function asm() {
     clr(fvmAs);
     var fnMsg = x => fvmAs.textContent+=x+'\n';
-    modFVMA.makeFVMA(fnMsg).asm(fvmSrc.value);
+    prgBase64 = modFVMA.makeFVMA(fnMsg).asm(fvmSrc.value); // TODO refactor
+    prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
   }
 
   function clr(x) {

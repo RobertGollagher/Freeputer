@@ -44,7 +44,8 @@ var modFVMA = (function () { 'use strict';
         this.fnMsg('Melding...');
         this.prgElems.meld();
         this.fnMsg(this.prgElems);
-        this.fnMsg('\nTODO: implement use of assembled program');
+        return this.prgElems.toBase64();        
+        //this.fnMsg('\nTODO: implement use of assembled program');
       } catch (e) {
         this.fnMsg(e);
       }
@@ -83,6 +84,14 @@ var modFVMA = (function () { 'use strict';
         melded.push(this.elems[i] + (this.elems[i+1] << 8));
       }
       this.elems = melded;
+    }
+
+    toBase64() {
+      // FIXME
+      var buf = new Uint32Array(this.elems).buffer;
+      var b64 = btoa(buf);
+      return buf;
+      //return "/wAAAAAAAAAAAAAA";
     }
 
     toString() {
