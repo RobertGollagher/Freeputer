@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170611-1431+
- * Version:    pre-alpha-0.0.0.1 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.2 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -44,8 +44,7 @@ var modFVMA = (function () { 'use strict';
         this.fnMsg('Melding...');
         this.prgElems.meld();
         this.fnMsg(this.prgElems);
-        return this.prgElems.toBase64();        
-        //this.fnMsg('\nTODO: implement use of assembled program');
+        return this.prgElems.toBuf();
       } catch (e) {
         this.fnMsg(e);
       }
@@ -86,12 +85,8 @@ var modFVMA = (function () { 'use strict';
       this.elems = melded;
     }
 
-    toBase64() {
-      // FIXME
-      var buf = new Uint32Array(this.elems).buffer;
-      var b64 = btoa(buf);
-      return buf;
-      //return "/wAAAAAAAAAAAAAA";
+    toBuf() {
+      return new Uint32Array(this.elems).buffer;
     }
 
     toString() {

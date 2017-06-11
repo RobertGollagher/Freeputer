@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.31 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.32 for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -155,7 +155,6 @@ var modFVM = (function () { 'use strict';
               break;
             case iLIT:
               this.ds.doPush(metadata);
-              this.pc++;
               break;
             case iCALL:
               this.rs.doPush(this.pc+1); // FIXME handle failure
@@ -207,7 +206,6 @@ var modFVM = (function () { 'use strict';
               // FIXME incomplete implementation
               var addr = this.ds.doPop();
               var val = this.ds.doPop();
-              this.pc++;
               switch (addr) {
                 case STDLOG:
                   this.lsb(this.fnLog,val);
@@ -232,7 +230,6 @@ var modFVM = (function () { 'use strict';
               break;
             case iDROP:
               this.ds.doPop();
-              this.pc++;
               break;
             case iADD:
               if (lit == 0) {
@@ -240,28 +237,22 @@ var modFVM = (function () { 'use strict';
               } else {
                 this.ds.apply1((a) => a+lit);
               }
-              this.pc++;
               break;
             case iSUB:
               this.ds.apply2((a,b) => a-b);
-              this.pc++;
               break;
             case iRISK:
               this.safe = false;
-              this.pc++;
               break;
             case iSAFE:
               if (this.safe === false) {
                 throw FAILURE;
               }
-              this.pc++;
               break;
             case iNOOP:
-              this.pc++;
               break;
             case iHALT:
               this.succeed();
-              this.pc++;
               break;
             default:
               this.fnTrc('Illegal opcode: 0x' + modFmt.hex2(opcode));

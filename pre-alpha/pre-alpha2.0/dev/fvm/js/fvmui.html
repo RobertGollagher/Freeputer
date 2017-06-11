@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.31 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.32 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -43,8 +43,7 @@ function modFVMUI_init(prg) { 'use strict';
   function asm() {
     clr(fvmAs);
     var fnMsg = x => fvmAs.textContent+=x+'\n';
-    prgBase64 = modFVMA.makeFVMA(fnMsg).asm(fvmSrc.value); // TODO refactor
-    prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
+    prg = modFVMA.makeFVMA(fnMsg).asm(fvmSrc.value);
   }
 
   function clr(x) {
@@ -92,7 +91,7 @@ function modFVMUI_init(prg) { 'use strict';
           <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.31 for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.32 for FVM 2.0.
         </td>
       </tr>
        <tr>
