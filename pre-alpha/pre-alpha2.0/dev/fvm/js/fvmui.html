@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.29 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.30 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -15,9 +15,13 @@
 <meta charset="UTF-8">
 <script src="fvm2.js"></script>
 <script src="fvma.js"></script>
+<script src="prg.js"></script>
 <script src="prgBase64.js"></script>
 <script>
 window.onload = function() { 'use strict';
+  // Source for assembler is declared as prgSrc within prg.js
+  fvmSrc.textContent = prgSrc;
+  // Default program is loaded from prgBase64 binary and is unrelated to prgSrc
   var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
   modFVMUI = modFVMUI_init(prg);
 };
@@ -37,12 +41,17 @@ function modFVMUI_init(prg) { 'use strict';
   var fvmStdtrc = elem('fvmStdtrc');
 
   function asm() {
+    clr(fvmAs);
     var fnMsg = x => fvmAs.textContent+=x+'\n';
-    modFVMA.makeFVMA(fnMsg).asm(fvmSrc.textContent);
+    modFVMA.makeFVMA(fnMsg).asm(fvmSrc.value);
+  }
+
+  function clr(x) {
+    x.textContent = '';
   }
 
   function clear() {
-    var clr = x => {x.textContent = ''};
+    clr(fvmAs);
     clr(fvmStdout);
     clr(fvmUsrout);
     clr(fvmGrdout);
@@ -82,7 +91,7 @@ function modFVMUI_init(prg) { 'use strict';
           <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.29 for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.30 for FVM 2.0.
         </td>
       </tr>
        <tr>
@@ -99,9 +108,7 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
             <tr>
               <td>
-                  <textarea id="fvmSrc" class="fvmSrc fvmOut fvmScroll">
-Source editor not yet implemented
-                  </textarea>
+                  <textarea id="fvmSrc" class="fvmSrc fvmOut fvmScroll"></textarea>
               </td>
             </tr>
           </table>
