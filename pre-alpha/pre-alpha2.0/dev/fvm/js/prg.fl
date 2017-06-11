@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    prg.fl
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170513
-Updated:    20170525-2052+
+Updated:    20170611-1154+
 Version:    unstable
 
 ===========================================================================
@@ -51,32 +51,34 @@ there is currently only one of these, namely slotFloor:
 
 =========================================================================== )
 <<slotFloor>> 16777216 INT_MAX. 2147483647 NIM. -2147483648 ERR. 1 OK. 0
-NORMAL. 0 \ zero literal for fixed-width of simple instructions
 
 ( TODO:
 
 )
 
-<2> go :run
-      fail .NORMAL
+<0> fail
+
+(
+<1> go :run
+      fail
 
     run:
       3 prg{run}
-      drop .NORMAL
-      noop .NORMAL
+      drop
+      noop
       ..INT_MAX prg{run}
-      halt .NORMAL
+      halt
 
 prg{
-  NORMAL. 0
   
   fret:
-    fret .NORMAL
-  <:fret> : run calc ; ..NORMAL
-  <:fret> : calc 4 add ; ..NORMAL
-  <:fret> : add + ..NORMAL ; ..NORMAL
-  <:fret> : add4 + 4 ; ..NORMAL
+    fret
+  <:fret> : run calc ;
+  <:fret> : calc 4 add ;
+  <:fret> : add + ;
+  <:fret> : add4 + 4 ;
 
 }prg
+)
 
 

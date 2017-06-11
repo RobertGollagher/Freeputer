@@ -5,11 +5,11 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170525-2052+
- * Version:    pre-alpha-0.0.0.28 for FVM 2.0
+ * Updated:    20170611-1154+
+ * Version:    pre-alpha-0.0.0.29 for FVM 2.0
  *
- *                               This Edition:
- *                                JavaScript 
+ *                   This Edition of the Virtual Machine:
+ *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
@@ -131,21 +131,23 @@ var modFVM = (function () { 'use strict';
     run() {
       this.fnTrc('FVM run...');
       this.running = true;
-      var instr, failAddr, opcode, lit;
+      var metadata, instr, failAddr, opcode, lit;
 
       while (this.running) {
         instr = this.wordAtPc();
-        failAddr = (instr & MSP) >> 8;
+        metadata = (instr & MSP) >> 8;
+        failAddr = metadata; // TODO refactor naming
+        lit = metadata; // TODO refactor naming
         opcode = instr & LSB;
         if (this.tracing) {
-          lit = this.prgWord(this.pc+1);
+          // lit = this.prgWord(this.pc+1);
           this.trace(this.pc,failAddr,opcode,lit); 
         }
         this.pc++;
         if (this.pc > PRGt) { // FIXME disallow split
           this.pc = this.pc & PRGt;
         }
-        lit = this.wordAtPc(); // For fixed-width
+        // lit = this.wordAtPc(); // For fixed-width
         try {
           switch (opcode) {
             case iFAIL:
@@ -156,35 +158,29 @@ var modFVM = (function () { 'use strict';
               this.pc++;
               break;
             case iCALL:
-              this.rs.doPush(this.pc+1);
-              this.pc = this.cellAtPc();
+              this.rs.doPush(this.pc+1); // FIXME handle failure
+              this.pc = metadata;
               break;
             case iJMP:
-              this.pc = this.cellAtPc();
+              this.pc = metadata;
               break;
             case iBRNZ:
               var n1 = this.ds.doPeek();
               if (n1 != 0) {  
-                this.pc = this.cellAtPc();
-              } else {
-                this.pc++;
+                this.pc = metadata;
               }
               break;
             case iJNZ:
               var n1 = this.ds.doPop();
               if (n1 != 0) {  
-                this.pc = this.cellAtPc();
-              } else {
-                this.pc++;
+                this.pc = metadata;
               }
               break;
             case iJEQ:
               var n2 = this.ds.doPop();
               var n1 = this.ds.doPop();
               if (n1 == n2) {  
-                this.pc = this.cellAtPc();
-              } else {
-                this.pc++;
+                this.pc = metadata;
               }
               break;
             case iFRET:
@@ -327,10 +323,9 @@ var modFVM = (function () { 'use strict';
       var prefix = this.safe? ' ' : '*';
       this.fnTrc(prefix +
                  modFmt.hex6(this.pc) + ' ' + 
-                 modFmt.hex6(failAddr) + ':' +
-                 modFmt.hex2(opcode) + ' ' +
-                 MNEMS[opcode] + ' ' +
-                 modFmt.hex8(lit) + ' ( ' +
+                 modFmt.hex6(failAddr) + ' ' +
+                 modFmt.hex2(opcode) + ':' +
+                 MNEMS[opcode] + ' ( ' +
                  this.ds + ')[ ' +
                  this.ss + ']{ ' +
                  this.rs + '}');

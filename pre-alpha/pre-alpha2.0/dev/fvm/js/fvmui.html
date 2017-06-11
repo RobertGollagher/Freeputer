@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170525-2052+
- * Version:    pre-alpha-0.0.0.28 for FVM 2.0
+ * Updated:    20170611-1154+
+ * Version:    pre-alpha-0.0.0.29 for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -14,6 +14,7 @@
 <title>FVM</title>
 <meta charset="UTF-8">
 <script src="fvm2.js"></script>
+<script src="fvma.js"></script>
 <script src="prgBase64.js"></script>
 <script>
 window.onload = function() { 'use strict';
@@ -21,16 +22,24 @@ window.onload = function() { 'use strict';
   modFVMUI = modFVMUI_init(prg);
 };
 
-// Module modFVMUI connects this UI to an FVM provided by modFVM.
+// Module modFVMUI connects this UI to an FVM provided by modFVM
+//   and to a Freeputer Assembler provided by modFVMA
 var modFVMUI;
 function modFVMUI_init(prg) { 'use strict';
 
   var elem = x => document.getElementById(x);
+  var fvmSrc = elem('fvmSrc');
+  var fvmAs = elem('fvmAs');
   var fvmStdout = elem('fvmStdout');
   var fvmUsrout = elem('fvmUsrout');
   var fvmGrdout = elem('fvmGrdout');
   var fvmStdlog = elem('fvmStdlog');
   var fvmStdtrc = elem('fvmStdtrc');
+
+  function asm() {
+    var fnMsg = x => fvmAs.textContent+=x+'\n';
+    modFVMA.makeFVMA(fnMsg).asm(fvmSrc.textContent);
+  }
 
   function clear() {
     var clr = x => {x.textContent = ''};
@@ -55,6 +64,7 @@ function modFVMUI_init(prg) { 'use strict';
   };
 
   return {
+    asm: asm,
     clear: clear,
     run : run
   };
@@ -68,14 +78,49 @@ function modFVMUI_init(prg) { 'use strict';
     <h2>Freeputer Virtual Machine</h2>
     <table class="fvmMaxed">
        <tr>
-        <td>     
+        <td>   
+          <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.28 for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.29 for FVM 2.0.
         </td>
       </tr>
        <tr>
         <td>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>Source</b>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                  <textarea id="fvmSrc" class="fvmSrc fvmOut fvmScroll">
+Source editor not yet implemented
+                  </textarea>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <table class="fvmMaxed">
+            <tr>
+              <td>
+                <b>Assembler</b>
+              </td>
+            </tr>
+            <tr>
+              <td class="fvmOut fvmScroll">
+                  <pre><code><span id="fvmAs"></span></code></pre>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
       <tr>

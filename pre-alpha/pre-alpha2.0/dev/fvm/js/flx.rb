@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 # ============================================================================
-VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.12 for FVM 2.0"
+VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.13 for FVM 2.0"
 # ============================================================================
 #
 # Copyright © 2017, Robert Gollagher.
@@ -10,8 +10,8 @@ VERSION = "flx.rb Freelang cross compiler version pre-alpha-0.0.0.12 for FVM 2.0
 # Copyright © Robert Gollagher 2015
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    20150329
-# Updated:    20170525-2018+
-# Version:    pre-alpha-0.0.0.12 for FVM 2.0
+# Updated:    20170611-1154+
+# Version:    pre-alpha-0.0.0.13 for FVM 2.0
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -740,8 +740,8 @@ numDataCells = 0
 numStrCells = 0 # Only reference strings get compiled into program
 
 # Some instruction ranges # FIXME make this work off HIGHEST_COMPLEX_OPCODE
-# addrInstrs = $iSet.find_index("call")..$iSet.find_index("put?")
-addrInstrs = $iSet.find_index("fail")..$iSet.find_index("halt")
+addrInstrs = $iSet.find_index("call")..$iSet.find_index("put?")
+# addrInstrs = $iSet.find_index("fail")..$iSet.find_index("halt")
 
 # Prepared binary cellValues
 opcodeLit = [$iSet.find_index("lit")].pack("l<")    # opcode for "lit"
