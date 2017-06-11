@@ -56,7 +56,7 @@ there is currently only one of these, namely slotFloor:
 
 )
 
-<0> fail
+<0> halt
 
 (
 <1> go :run

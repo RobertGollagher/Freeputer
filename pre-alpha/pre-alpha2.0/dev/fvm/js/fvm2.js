@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.30 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.31 for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -154,7 +154,7 @@ var modFVM = (function () { 'use strict';
               this.fail();
               break;
             case iLIT:
-              this.ds.doPush(this.wordAtPc());
+              this.ds.doPush(metadata);
               this.pc++;
               break;
             case iCALL:
@@ -323,8 +323,8 @@ var modFVM = (function () { 'use strict';
       var prefix = this.safe? ' ' : '*';
       this.fnTrc(prefix +
                  modFmt.hex6(this.pc) + ' ' + 
-                 modFmt.hex6(failAddr) + ' ' +
-                 modFmt.hex2(opcode) + ':' +
+                 modFmt.hex6(failAddr) + ':' +
+                 modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ( ' +
                  this.ds + ')[ ' +
                  this.ss + ']{ ' +
