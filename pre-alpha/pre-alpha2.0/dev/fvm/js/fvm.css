@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.29 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.33 for FVM 2.0
 */
 
 @CHARSET "UTF-8";
@@ -49,7 +49,7 @@ h2 {
 }
 
 .fvmSrc {
-  height: 24vh;
+  height: 32vh;
   width: 100%;
 }
 
