@@ -27,10 +27,20 @@
 // Module modFVMA will provide a Freeputer Assembler implementation.
 var modFVMA = (function () { 'use strict';
 
+  const DEF = '#def';
+  const HERE = '.';
+  const COMMENT = '//';
+
   class FVMA {
     constructor(fnMsg) {
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
+      this.cmtLineNum = 0;
+      this.inComment = false;
+      this.dict = {};
+      this.expectDecl = false;
+      this.expectDef = false;
+      this.Decl = "";
     };
 
     asm(str) { // FIXME no enforcement yet
@@ -44,6 +54,8 @@ var modFVMA = (function () { 'use strict';
         this.fnMsg('Melding...');
         this.prgElems.meld();
         this.fnMsg(this.prgElems);
+        this.fnMsg('Dictionary...');
+        this.fnMsg(JSON.stringify(this.dict));
         return this.prgElems.toBuf();
       } catch (e) {
         this.fnMsg(e);
@@ -56,19 +68,103 @@ var modFVMA = (function () { 'use strict';
       tokens.forEach(token => this.parseToken(token,lineNum), this);
     }
 
-    parseToken(token, lineNum) {
-      if (this.parseHex2(token)) {
-      } else if (this.parseHex6(token)) {
-      } else if (this.parseDef(token)) {
+    use(x) {
+      if (this.expectDef) {
+        if (x === HERE) {
+          this.dict[this.decl] = this.prgElems.cursor / 2;
+        } else {
+          this.dict[this.decl] = x;
+        }
+        this.decl = "";
+        this.expectDef = false;
       } else {
-        throw lineNum + ":Syntax error:" + token;
+        this.prgElems.addElem(x);
+      }
+    }
+
+    parseToken(token, lineNum) {
+      if (false) {
+      } else if (this.inCmt(lineNum)) {
+      } else if (this.parseComment(token, lineNum)) {
+      } else if (this.excectingDecl(token)) {
+      } else if (this.parseDef(token)) {
+      } else if (this.parseRef(token)) {
+      } else if (this.parseHere(token)) {
+      } else if (this.parseHex2(token)) {
+      } else if (this.parseHex6(token)) {
+      } else {
+        throw lineNum + ":Unknown symbol:" + token;
       }
     };
+
+    excectingDecl(token) {
+      if (this.expectDecl) {
+        if (this.dict[token]) {
+          throw lineNum + ":Already defined:" + token;
+        } else {
+          this.decl = token;
+          this.expectDecl = false;
+          this.expectDef = true;
+        }
+        return true;
+      }
+      return false;
+    }
+
+    inCmt(lineNum) {
+      if (lineNum == this.cmtLineNum){
+        return true;
+      } else {
+        this.cmtLineNum = false;
+        return false;
+      }      
+    }
+
+    parseComment(token, lineNum) {
+      if (token === COMMENT){
+        this.cmtLineNum = lineNum;
+        this.inComment = true;
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
+    parseDef(token) {
+      if (token === DEF){
+        this.expectDecl = true;
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
+    parseRef(token) {
+      if (this.dict[token] >= 0){
+        this.use(this.dict[token]);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
+    parseHere(token) {
+      if (token === HERE){
+        if (this.expectDef) {
+          this.use(token);
+        } else {
+          throw lineNum + ":Not permitted here:" + token;
+        }
+        return true;
+      } else {
+        return false;
+      }      
+    }
 
     parseHex2(token) {
       if (token.length == 4 && token.match(/0x[0-9a-f]{2}/)){
         var n = parseInt(token,16);
-        this.prgElems.addElem(n);
+        this.use(n);
         return true;
       } else {
         return false;
@@ -78,16 +174,7 @@ var modFVMA = (function () { 'use strict';
     parseHex6(token) {
       if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
         var n = parseInt(token,16);
-        this.prgElems.addElem(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseDef(token) {
-      if (token.match(/=/)){
-
+        this.use(n);
         return true;
       } else {
         return false;
