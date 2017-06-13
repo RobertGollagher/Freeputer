@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170611-1431+
- * Version:    pre-alpha-0.0.0.3 for FVM 2.0
+ * Updated:    20170613-2006+
+ * Version:    pre-alpha-0.0.0.4 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -29,13 +29,13 @@ var modFVMA = (function () { 'use strict';
 
   const DEF = '#def';
   const HERE = '.';
-  const COMMENT = '//';
+  const COMSTART = '(';
+  const COMEND = ')';
 
   class FVMA {
     constructor(fnMsg) {
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
-      this.cmtLineNum = 0;
       this.inComment = false;
       this.dict = {};
       this.expectDecl = false;
@@ -84,7 +84,7 @@ var modFVMA = (function () { 'use strict';
 
     parseToken(token, lineNum) {
       if (false) {
-      } else if (this.inCmt(lineNum)) {
+      } else if (this.inCmt(token)) {
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.excectingDecl(token)) {
       } else if (this.parseDef(token)) {
@@ -111,18 +111,22 @@ var modFVMA = (function () { 'use strict';
       return false;
     }
 
-    inCmt(lineNum) {
-      if (lineNum == this.cmtLineNum){
-        return true;
-      } else {
-        this.cmtLineNum = false;
-        return false;
-      }      
+    inCmt(token, lineNum) {
+        if (this.inComment) {
+          if (token == COMEND){
+            this.inComment = false;
+          }
+          return true;
+        } else {
+          if (token == COMEND){
+            throw lineNum + ":Not permitted here:" + token;
+          }
+          return false;
+        }     
     }
 
     parseComment(token, lineNum) {
-      if (token === COMMENT){
-        this.cmtLineNum = lineNum;
+      if (token === COMSTART){
         this.inComment = true;
         return true;
       } else {
