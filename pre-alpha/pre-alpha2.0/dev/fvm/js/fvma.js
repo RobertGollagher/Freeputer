@@ -31,6 +31,7 @@ var modFVMA = (function () { 'use strict';
   const HERE = '.';
   const COMSTART = '(';
   const COMEND = ')';
+  const COMWORD= '/';
 
   class FVMA {
     constructor(fnMsg) {
@@ -86,7 +87,9 @@ var modFVMA = (function () { 'use strict';
       if (false) {
       } else if (this.inCmt(token)) {
       } else if (this.parseComment(token, lineNum)) {
-      } else if (this.excectingDecl(token)) {
+      } else if (this.parseComword(token, lineNum)) {
+      } else if (this.expectingDecl(token, lineNum)) {
+      } else if (this.parseForw(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
@@ -97,7 +100,7 @@ var modFVMA = (function () { 'use strict';
       }
     };
 
-    excectingDecl(token) {
+    expectingDecl(token, lineNum) {
       if (this.expectDecl) {
         if (this.dict[token]) {
           throw lineNum + ":Already defined:" + token;
@@ -134,6 +137,14 @@ var modFVMA = (function () { 'use strict';
       }      
     }
 
+    parseComword(token, lineNum) {
+      if (token.startsWith(COMWORD)) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
     parseDef(token) {
       if (token === DEF){
         this.expectDecl = true;
@@ -152,7 +163,7 @@ var modFVMA = (function () { 'use strict';
       }      
     }
 
-    parseHere(token) {
+    parseHere(token, lineNum) {
       if (token === HERE){
         if (this.expectDef) {
           this.use(token);
@@ -185,6 +196,18 @@ var modFVMA = (function () { 'use strict';
       }      
     }
 
+    parseForw(token) { // TODO check overflow or out of bounds
+      if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
+        var asHex = token.replace('0f','0x');
+        var n = parseInt(token,16);
+        var m = this.prgElems.cursor/2 + n;
+        this.use(m);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
   };
 
   class PrgElems {
@@ -195,6 +218,10 @@ var modFVMA = (function () { 'use strict';
 
     addElem(n) {
       this.cursor = this.elems.push(n);
+    }
+
+    topElem() {
+      return this.elems[-1];
     }
 
     meld() {
