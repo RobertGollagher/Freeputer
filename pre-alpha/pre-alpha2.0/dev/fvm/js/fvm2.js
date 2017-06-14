@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170611-1154+
- * Version:    pre-alpha-0.0.0.33 for FVM 2.0
+ * Updated:    20170614-2138+
+ * Version:    pre-alpha-0.0.0.34 for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -53,7 +53,7 @@ var modFVM = (function () { 'use strict';
   const GRDOUT = -6;
   const USROUT = -8;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fail','lit ','call','jmp ','    ','    ','    ','brnz', // 0
+    'fal ','lit ','cal ','jmp ','    ','    ','    ','bnz ', // 0
     '    ','    ','    ','    ','    ','    ','    ','    ', // 8
     '    ','    ','    ','jnz ','    ','    ','    ','    ', // 16
     'jeq ','    ','    ','    ','    ','    ','    ','    ', // 24
@@ -69,10 +69,10 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 104
     '    ','    ','    ','    ','    ','    ','    ','    ', // 112
     '    ','    ','    ','    ','    ','    ','    ','    ', // 120
-    '    ','    ','    ','    ','fret','    ','    ','    ', // 128
+    '    ','    ','    ','    ','frt ','    ','    ','    ', // 128
     '    ','    ','    ','    ','    ','    ','    ','    ', // 136
     '    ','ret ','    ','    ','    ','    ','    ','    ', // 144
-    '    ','    ','    ','    ','    ','    ','    ','drop', // 152
+    '    ','    ','    ','    ','    ','    ','    ','drp ', // 152
     '    ','    ','    ','    ','    ','    ','    ','    ', // 160
     '    ','    ','    ','    ','    ','    ','    ','    ', // 168
     '    ','    ','    ','    ','    ','    ','    ','    ', // 176
@@ -84,7 +84,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
     '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','risk','safe','noop','    ','halt', // 248
+    '    ','    ','    ','risk','safe','nop ','    ','hal ', // 248
   ];
 
   const iFAIL = 0|0;
@@ -100,7 +100,7 @@ var modFVM = (function () { 'use strict';
   const iSTORE = 190|0;
   const iSUB = 202|0;
   const iFRET = 132|0;
-  const iRISK = 251|0;
+  const iRISK = 251|0; // TODO remove RISK and SAFE stuff
   const iSAFE = 252|0;
   const iNOOP = 253|0;
   const iHALT = 255|0;
