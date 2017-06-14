@@ -5,7 +5,7 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170614-2138+
+ * Updated:    20170615-0733+
  * Version:    pre-alpha-0.0.0.5 for FVM 2.0
  *
  *                     This Edition of the Assembler:
@@ -30,13 +30,21 @@ Design notes:
   - assembler is intended to be minimum required for bootstrapping higher languages later
   - assembler design is intended for extemely minimal memory use (few kB) and extreme simplicity
   - reason for this is to achieve extreme hardware freedom (e.g. develop on a microcontroller)
-  - all symbols except opcode are in effect an encoded word
+  - remove anything not reasonably essential (YAGNI)
+  - there is a reasonable argument for going smaller, perhaps PRG should be 64 kB and then compose multiple instances?
+
+Thus:
+
+  - all symbols except opcode are in effect an encoded word (and might add simple namespacing later)
+  - preprocessor could be added later for more human-readable convenience but not essential
 
 Next:
 
-  - implement forward references and this more about labels in general (keeping it to a mimimum)
+  - implement forward references and think more about labels in general (keeping it to a mimimum)
   - consider eliminating all other definitions except labels and just using \foo approach instead!
   - but take into account possible slot management
+  - are forward decls worthwhile?
+  - possibly nop strategy
 
 */
 
@@ -48,13 +56,19 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
+  const OPCODES = {
+    nop: 0x00,
+    lit: 0x01,
+    jmp: 0x03,
+    hal: 0xff
+  };
 
   class FVMA {
     constructor(fnMsg) {
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
       this.inComment = false;
-      this.dict = {};
+      this.dict = OPCODES;
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
