@@ -24,8 +24,24 @@
  *
  */
 
+/*
+Design notes:
+
+  - assembler is intended to be minimum required for bootstrapping higher languages later
+  - assembler design is intended for extemely minimal memory use (few kB) and extreme simplicity
+  - reason for this is to achieve extreme hardware freedom (e.g. develop on a microcontroller)
+  - all symbols except opcode are in effect an encoded word
+
+Next:
+
+  - implement forward references and this more about labels in general (keeping it to a mimimum)
+  - consider eliminating all other definitions except labels and just using \foo approach instead!
+  - but take into account possible slot management
+
+*/
+
 // Module modFVMA will provide a Freeputer Assembler implementation.
-var modFVMA = (function () { 'use strict';
+var modFVMA = (function () { 'use strict'; // TODO consider adding slot management
 
   const DEF = '#def';
   const HERE = '.';
