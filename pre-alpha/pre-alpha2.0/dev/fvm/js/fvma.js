@@ -90,6 +90,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.parseForw(token)) {
+      } else if (this.parseBackw(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
@@ -196,11 +197,23 @@ var modFVMA = (function () { 'use strict';
       }      
     }
 
-    parseForw(token) { // TODO check overflow or out of bounds
+    parseForw(token) { // TODO check overflow or out of bounds and endless loop
       if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
         var asHex = token.replace('0f','0x');
         var n = parseInt(token,16);
         var m = this.prgElems.cursor/2 + n;
+        this.use(m);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
+    parseBackw(token) { // TODO check overflow or out of bounds and endless loop
+      if (token.length == 8 && token.match(/0r[0-9a-f]{6}/)){
+        var asHex = token.replace('0r','0x');
+        var n = parseInt(token,16);
+        var m = this.prgElems.cursor/2 - n -1;
         this.use(m);
         return true;
       } else {
