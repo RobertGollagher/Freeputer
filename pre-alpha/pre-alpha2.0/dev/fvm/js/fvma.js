@@ -32,19 +32,34 @@ Design notes:
   - reason for this is to achieve extreme hardware freedom (e.g. develop on a microcontroller)
   - remove anything not reasonably essential (YAGNI)
   - there is a reasonable argument for going smaller, perhaps PRG should be 64 kB and then compose multiple instances?
+  - this is not the only possible assembler, it's just a minimal one; you could have others which are more convenient later
 
 Thus:
 
   - all symbols except opcode are in effect an encoded word (and might add simple namespacing later)
   - preprocessor could be added later for more human-readable convenience but not essential
+  - prevalidator could check if human has made any errors by checking \foo 0x000123 never varies and \\bar matches label
+  - possibly PRG should start at 0x000001 not 0x000000 so as to accord with line numbers?
 
 Next:
 
   - implement forward references and think more about labels in general (keeping it to a mimimum)
   - consider eliminating all other definitions except labels and just using \foo approach instead!
-  - but take into account possible slot management
+  - LATER: but take into account possible slot management
   - are forward decls worthwhile?
   - possibly nop strategy
+  - forwards and reverses probably need to be small number of instrs, say 16 max, otherwise unmaintainable?
+
+Interesting ideas:
+
+  - if you had no declarations except labels, and labels and comments were inlined, and there were no blank lines:
+    - you could achieve 1 line = 1 instruction
+    - which means the assembler (or a person) could know before assembling what the address of a label will be
+    - line 0 could be for assembler directives or possibly the odd declaration or two
+
+Decisions:
+
+  - YAGNI. Go with minimum for now. This means labels are the ONLY defs.
 
 */
 
@@ -56,11 +71,12 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
-  const OPCODES = {
+  const SYMBOLS = {
     nop: 0x00,
     lit: 0x01,
     jmp: 0x03,
-    hal: 0xff
+    hal: 0xff,
+    '---': 0x000000
   };
 
   class FVMA {
@@ -68,7 +84,7 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
       this.inComment = false;
-      this.dict = OPCODES;
+      this.dict = SYMBOLS;
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
