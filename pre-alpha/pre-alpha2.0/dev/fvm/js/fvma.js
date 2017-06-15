@@ -30,12 +30,13 @@ Design notes:
   - this is a bold experimental design based on absolute minimalism:
       - extremely simple one-pass assembler requiring only a few bytes of memory (easily run anywhere)
       - everything is done by hand using **human intelligence** (possibly helped by a preprocessor or validator)
-      - no definitions, no declarations, no symbol tables, no labels (only relative and absolute jumps)
+      - no definitions, no declarations, no symbol tables, no labels (only relative and block-absolute and absolute jumps)
       - this is a total commitment to the principal of YAGNI (which delivers extreme portability)
       - purpose is just enough to bootstrap higher languages later (and not one iota more)
       - to facilitate this the compromises are:
           - coding will be done in SMALL blocks of constant size padded with nops
           - therefore, factoring and the use of composition will be EXTREME
+          - clever assembler design will allow block relocation by hand
           - what is coded later will build on what is coded earlier
           - changing what was coded earlier will be rare
           - strategies for reuse will be employed
@@ -44,17 +45,17 @@ Design notes:
 */
 
 // Module modFVMA will provide a Freeputer Assembler implementation.
-var modFVMA = (function () { 'use strict'; // TODO consider adding slot management
+var modFVMA = (function () { 'use strict';
 
-  const DEF = '#def';
-  const HERE = '.';
+  const BLKSIZE = 32;
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
   const SYMBOLS = {
-    nop: 0xfd,
+    fal: 0x00,
     lit: 0x01,
     jmp: 0x03,
+    nop: 0xfd,
     hal: 0xff,
     '---': 0x000000
   };
@@ -99,6 +100,7 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.parseSymbol(token)) {
+      } else if (this.parseBlkAbs(token)) {
       } else if (this.parseForw(token)) {
       } else if (this.parseBackw(token)) {
       } else if (this.parseHex2(token)) {
@@ -168,10 +170,22 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       }      
     }
 
+    parseBlkAbs(token) { // TODO check overflow or out of bounds and endless loop
+      if (token.length == 8 && token.match(/0k[0-9a-f]{6}/)){
+        var asHex = token.replace('0k','0x');
+        var n = parseInt(asHex,16);
+        var m = Math.floor((this.prgElems.cursor/2)/BLKSIZE) + n;
+        this.use(m);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
     parseForw(token) { // TODO check overflow or out of bounds and endless loop
       if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
         var asHex = token.replace('0f','0x');
-        var n = parseInt(token,16);
+        var n = parseInt(asHex,16);
         var m = this.prgElems.cursor/2 + n;
         this.use(m);
         return true;
@@ -183,7 +197,7 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
     parseBackw(token) { // TODO check overflow or out of bounds and endless loop
       if (token.length == 8 && token.match(/0r[0-9a-f]{6}/)){
         var asHex = token.replace('0r','0x');
-        var n = parseInt(token,16);
+        var n = parseInt(asHex,16);
         var m = this.prgElems.cursor/2 - n -1;
         this.use(m);
         return true;
