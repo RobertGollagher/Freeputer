@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170615-2006+
- * Version:    pre-alpha-0.0.0.5 for FVM 2.0
+ * Updated:    20170615-2013+
+ * Version:    pre-alpha-0.0.0.6 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -52,7 +52,7 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
   const COMEND = ')';
   const COMWORD= '/';
   const SYMBOLS = {
-    nop: 0x00,
+    nop: 0xfd,
     lit: 0x01,
     jmp: 0x03,
     hal: 0xff,
@@ -64,10 +64,6 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
       this.inComment = false;
-      this.dict = SYMBOLS;
-      this.expectDecl = false;
-      this.expectDef = false;
-      this.Decl = "";
     };
 
     asm(str) { // FIXME no enforcement yet
@@ -81,8 +77,6 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
         this.fnMsg('Melding...');
         this.prgElems.meld();
         this.fnMsg(this.prgElems);
-        this.fnMsg('Dictionary...');
-        this.fnMsg(JSON.stringify(this.dict));
         return this.prgElems.toBuf();
       } catch (e) {
         this.fnMsg(e);
@@ -96,17 +90,7 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
     }
 
     use(x) {
-      if (this.expectDef) {
-        if (x === HERE) {
-          this.dict[this.decl] = this.prgElems.cursor / 2;
-        } else {
-          this.dict[this.decl] = x;
-        }
-        this.decl = "";
-        this.expectDef = false;
-      } else {
-        this.prgElems.addElem(x);
-      }
+      this.prgElems.addElem(x);
     }
 
     parseToken(token, lineNum) {
@@ -114,12 +98,9 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       } else if (this.inCmt(token)) {
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
-      } else if (this.expectingDecl(token, lineNum)) {
+      } else if (this.parseSymbol(token)) {
       } else if (this.parseForw(token)) {
       } else if (this.parseBackw(token)) {
-      } else if (this.parseDef(token)) {
-      } else if (this.parseRef(token)) {
-      } else if (this.parseHere(token)) {
       } else if (this.parseHex2(token)) {
       } else if (this.parseHex6(token)) {
       } else {
@@ -127,18 +108,13 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       }
     };
 
-    expectingDecl(token, lineNum) {
-      if (this.expectDecl) {
-        if (this.dict[token]) {
-          throw lineNum + ":Already defined:" + token;
-        } else {
-          this.decl = token;
-          this.expectDecl = false;
-          this.expectDef = true;
-        }
+    parseSymbol(token) {
+      if (SYMBOLS[token] >= 0){
+        this.use(SYMBOLS[token]);
         return true;
-      }
-      return false;
+      } else {
+        return false;
+      }      
     }
 
     inCmt(token, lineNum) {
@@ -170,37 +146,6 @@ var modFVMA = (function () { 'use strict'; // TODO consider adding slot manageme
       } else {
         return false;
       }
-    }
-
-    parseDef(token) {
-      if (token === DEF){
-        this.expectDecl = true;
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseRef(token) {
-      if (this.dict[token] >= 0){
-        this.use(this.dict[token]);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseHere(token, lineNum) {
-      if (token === HERE){
-        if (this.expectDef) {
-          this.use(token);
-        } else {
-          throw lineNum + ":Not permitted here:" + token;
-        }
-        return true;
-      } else {
-        return false;
-      }      
     }
 
     parseHex2(token) {
