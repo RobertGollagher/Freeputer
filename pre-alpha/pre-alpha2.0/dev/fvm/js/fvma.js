@@ -5,7 +5,7 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170615-0733+
+ * Updated:    20170615-2006+
  * Version:    pre-alpha-0.0.0.5 for FVM 2.0
  *
  *                     This Edition of the Assembler:
@@ -27,39 +27,19 @@
 /*
 Design notes:
 
-  - assembler is intended to be minimum required for bootstrapping higher languages later
-  - assembler design is intended for extemely minimal memory use (few kB) and extreme simplicity
-  - reason for this is to achieve extreme hardware freedom (e.g. develop on a microcontroller)
-  - remove anything not reasonably essential (YAGNI)
-  - there is a reasonable argument for going smaller, perhaps PRG should be 64 kB and then compose multiple instances?
-  - this is not the only possible assembler, it's just a minimal one; you could have others which are more convenient later
-
-Thus:
-
-  - all symbols except opcode are in effect an encoded word (and might add simple namespacing later)
-  - preprocessor could be added later for more human-readable convenience but not essential
-  - prevalidator could check if human has made any errors by checking \foo 0x000123 never varies and \\bar matches label
-  - possibly PRG should start at 0x000001 not 0x000000 so as to accord with line numbers?
-
-Next:
-
-  - implement forward references and think more about labels in general (keeping it to a mimimum)
-  - consider eliminating all other definitions except labels and just using \foo approach instead!
-  - LATER: but take into account possible slot management
-  - are forward decls worthwhile?
-  - possibly nop strategy
-  - forwards and reverses probably need to be small number of instrs, say 16 max, otherwise unmaintainable?
-
-Interesting ideas:
-
-  - if you had no declarations except labels, and labels and comments were inlined, and there were no blank lines:
-    - you could achieve 1 line = 1 instruction
-    - which means the assembler (or a person) could know before assembling what the address of a label will be
-    - line 0 could be for assembler directives or possibly the odd declaration or two
-
-Decisions:
-
-  - YAGNI. Go with minimum for now. This means labels are the ONLY defs.
+  - this is a bold experimental design based on absolute minimalism:
+      - extremely simple one-pass assembler requiring only a few bytes of memory (easily run anywhere)
+      - everything is done by hand using **human intelligence** (possibly helped by a preprocessor or validator)
+      - no definitions, no declarations, no symbol tables, no labels (only relative and absolute jumps)
+      - this is a total commitment to the principal of YAGNI (which delivers extreme portability)
+      - purpose is just enough to bootstrap higher languages later (and not one iota more)
+      - to facilitate this the compromises are:
+          - coding will be done in SMALL blocks of constant size padded with nops
+          - therefore, factoring and the use of composition will be EXTREME
+          - what is coded later will build on what is coded earlier
+          - changing what was coded earlier will be rare
+          - strategies for reuse will be employed
+          - 1 line = 1 instruction
 
 */
 
