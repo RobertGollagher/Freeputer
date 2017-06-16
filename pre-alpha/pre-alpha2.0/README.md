@@ -32,6 +32,7 @@ Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. Th
 ## Proposed Design
 
 1. The VM is **correct without trapping**.
+1. Program execution begins at cell 1 (not cell 0).
 1. Its termination results in **success or failure** (0 or 1).
 1. The only cause of VM success is:
     1. The halt opcode (0xff).
@@ -234,7 +235,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 3 June 2017 at 15:16  
+This document was last updated on 16 June 2017 at 17:30  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

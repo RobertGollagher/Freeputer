@@ -1,13 +1,68 @@
-var prgSrc = `nop --- nop --- ( 0x = hex, 0f = forward, 0r = reverse, 0k = block absolute 0..1e, / = token is a comment )
-/start lit 0x000003
-  lit /bar 0x000008                 ( literal )
-  jmp /green 0f000004               ( forward )
-  nop ---
-  nop ---
-/red jmp /end 0k00000b              ( block absolute )
-/green jmp /red 0r000001            ( reverse )
-  nop ---
-  nop ---
-/end hal ---
-
+var prgSrc = `///startProgram fal --- lit 0x000001
+fal ---
+cal /put2 0p000001
+fal ---
+hal ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+///put2 lit 0x000002
+frt ---
+cal 0p000002
+frt ---
+ret 0n000001
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+///put3 lit 0x000003
+frt ---
+frt ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+(
+/// nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+)
+( Copyright 2017, Robert Gollagher.
+  SPDX-License-Identifier: GPL-3.0+ )
 `;

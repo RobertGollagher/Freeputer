@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170614-2138+
- * Version:    pre-alpha-0.0.0.34 for FVM 2.0
+ * Updated:    20170616-0739+
+ * Version:    pre-alpha-0.0.0.36+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -107,7 +107,7 @@ var modFVM = (function () { 'use strict';
 
   class FVM {
     constructor(config) {
-      this.pc = PRGb;
+      this.pc = PRGb + 1;
       this.running = false;
       this.exitCode = null;
       this.tracing = true;
@@ -154,11 +154,28 @@ var modFVM = (function () { 'use strict';
               this.fail();
               break;
             case iLIT:
-              this.ds.doPush(metadata);
+              try {
+                this.ds.doPush(metadata);
+              } catch (e) {
+                if (e == FAILURE) {
+                  break;
+                } else {
+                  throw e;
+                }
+              }
+              this.pc++;
               break;
             case iCALL:
-              this.rs.doPush(this.pc+1); // FIXME handle failure
-              this.pc = metadata;
+              try {
+                this.rs.doPush(this.pc+1);
+                this.pc = metadata;
+              } catch (e) {
+                if (e == FAILURE) {
+                  break;
+                } else {
+                  throw e;
+                }
+              }
               break;
             case iJMP:
               this.pc = metadata;
@@ -194,12 +211,11 @@ var modFVM = (function () { 'use strict';
                 throw FAILURE;
               }
               this.pc = callPc;
-              failAddr = (callInstr & MSP) >> 8;
+              failAddr = callPc + 1; // (callInstr & MSP) >> 8;
               throw FAILURE;
               break;
             case iEXIT:
-              // TODO zero lit = unconditional return
-              //   non-zero lit = conditional return of some kind
+              // FIXME handle failure
               this.pc = this.rs.doPop() & PRGt;
               break;
             case iSTORE:
@@ -267,7 +283,7 @@ var modFVM = (function () { 'use strict';
           if (opcode != iFRET) {
             this.fnTrc(prefix + 'FAILURE **********************');
           } else {
-            this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' ****************');
+            //this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' ****************');
           }
           this.pc = failAddr;
         }
@@ -293,9 +309,13 @@ var modFVM = (function () { 'use strict';
 
     prgWord(addr) {
       if (addr >= 0 && addr < this.PRGe) {
-        return this.prg.getUint32(addr<<WORD_PWR, true);
+        try {
+          return this.prg.getUint32(addr<<WORD_PWR, true);
+        } catch (e) {
+          return 0; // outside bounds of DataView
+        }
       }
-      return 0;
+      return 0; // outside bounds of PRG
     }
 
     fail() {
