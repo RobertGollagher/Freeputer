@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170617-2159+
+  Updated:    20170617-2209+
 
   This is an experimental program for Freeputer 2 pre-alpha.
   This program is being changed frequently.
@@ -43,48 +43,17 @@ fal --- jmp 0x000000
 
 ( START OF ATOMS )
 
-#def /put1 0s0001 .
-  lit 0x000001
-  frt ---
-  ret ---
 
-#def /put2 0s0002 .
-  lit 0x000002
-  frt ---
-  ret ---
-
-#def /put3 0s0004 .
-  lit 0x000003
-  frt ---
-  ret ---
-
-#def /put4 0s0003 .
-  lit 0x000004
-  frt ---
-  ret ---
 
 
 ( START OF MOLECULES )
 
-#def /put2twice 0s0006 .
-  cal /put2 0s0002
-  frt ---
-  cal /put2 0s0002
-  frt ---
-  ret ---
+
 
 
 ( PROGRAM ENTRY POINT )
 
 #def /start 0s0000 .
-  cal /put4 0s0003
-  frt ---
-  cal /put3 0s0004
-  frt ---
-  cal /put2twice 0s0006
-  frt ---
-  cal /put1 0s0001
-  frt ---
   hal ---
 
 `;
