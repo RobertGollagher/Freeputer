@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170617-1137+
- * Version:    pre-alpha-0.0.0.11 for FVM 2.0
+ * Updated:    20170617-1447+
+ * Version:    pre-alpha-0.0.0.12 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -52,6 +52,7 @@ Modifications:
   - Practical upshot of this is:
       - added #def back into the assembler
       - TODO remove phrase functionality
+  - Think deeply about call failure vs subroutine failure
 
 Jury is still out on:
 
@@ -152,10 +153,6 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
-      } else if (this.parsePhrAbs(token)) {
-      } else if (this.parsePhrnum(token)) {
-      } else if (this.parseForw(token)) {
-      } else if (this.parseBackw(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
@@ -259,30 +256,6 @@ var modFVMA = (function () { 'use strict';
       if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
         var n = parseInt(token,16);
         this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parsePhrAbs(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 8 && token.match(/0n[0-9a-f]{6}/)){
-        var asHex = token.replace('0n','0x');
-        var n = parseInt(asHex,16);
-        var m = Math.floor((this.prgElems.cursor/2)/PHRSIZE) + n;
-        this.use(m);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseForw(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
-        var asHex = token.replace('0f','0x');
-        var n = parseInt(asHex,16);
-        var m = this.prgElems.cursor/2 + n;
-        this.use(m);
         return true;
       } else {
         return false;
