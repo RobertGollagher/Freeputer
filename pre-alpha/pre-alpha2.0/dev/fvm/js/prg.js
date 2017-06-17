@@ -80,7 +80,7 @@ fal --- jmp 0x000000
   frt ---
   cal /put3 0s000004
   frt ---
-  cal /put2twice 0s000002
+  cal /put2twice 0s000006
   frt ---
   cal /put1 0s000001
   frt ---
