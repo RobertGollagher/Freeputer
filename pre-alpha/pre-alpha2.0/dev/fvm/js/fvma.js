@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170617-1137+
- * Version:    pre-alpha-0.0.0.10 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.11 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -40,7 +40,7 @@ Design notes:
           - what is coded later will build on what is coded earlier
           - IMPRACTICAL: changing what was coded earlier will be rare
           - strategies for reuse will be employed
-          - IMPRACTICAL: 1 line = 1 instruction
+          - BORDERLINE: 1 line = 1 instruction
 
 Modifications:
 
@@ -49,9 +49,9 @@ Modifications:
       - failing to use them would just shift the burden to sophisticated text editors (not worthwhile overall)
       - using fixed-size phrases carries too high a runtime burden (too much RAM needed for loading programs)
       - bug-fixing requires being able to change what was coded earlier (in place)
-      - 1 line = 1 instruction is unfortunately not practical
   - Practical upshot of this is:
       - added #def back into the assembler
+      - TODO remove phrase functionality
   
 */
 
@@ -116,7 +116,7 @@ var modFVMA = (function () { 'use strict';
 
     use(x) {
       if (this.expectDef) {
-       if (x === HERE) {
+       if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
          this.dict[this.decl] = this.prgElems.cursor / 2;
        } else {
          this.dict[this.decl] = x;
@@ -134,7 +134,6 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
-      } else if (this.parseSymbol(token)) {
       } else if (this.parsePhrAbs(token)) {
       } else if (this.parsePhrnum(token)) {
       } else if (this.parseForw(token)) {
@@ -158,7 +157,9 @@ var modFVMA = (function () { 'use strict';
           this.expectDecl = false;
           this.expectDef = true;
         }
+        return true;
       }
+      return false;
     }
 
      parseDef(token) {
@@ -191,15 +192,6 @@ var modFVMA = (function () { 'use strict';
          return false;
        }      
      }
-
-    parseSymbol(token) {
-      if (SYMBOLS[token] >= 0){
-        this.use(SYMBOLS[token]);
-        return true;
-      } else {
-        return false;
-      }      
-    }
 
     inCmt(token, lineNum) {
         if (this.inComment) {
