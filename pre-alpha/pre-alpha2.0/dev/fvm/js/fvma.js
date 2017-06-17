@@ -52,6 +52,14 @@ Modifications:
   - Practical upshot of this is:
       - added #def back into the assembler
       - TODO remove phrase functionality
+
+Jury is still out on:
+
+  - Do we need to support forward references to labels or not?
+      - Intuitive answer: no, except 1 label to start, because:
+          - forward references encourage monolithic design and tangled dependencies, which is bad
+          - can use relative forwards instead within molecules
+          - in theory all we need is start for the entry point
   
 */
 
@@ -79,26 +87,30 @@ var modFVMA = (function () { 'use strict';
   class FVMA {
     constructor(fnMsg) {
       this.fnMsg = fnMsg;
+      this.reset();
+    };
+
+    reset() {
       this.prgElems = new PrgElems();
       this.inComment = false;
-      this.dict = SYMBOLS;
+      this.dict = {};
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
-
-    };
+    }
 
     asm(str) { // FIXME no enforcement yet
+      this.reset();
       //this.fnMsg('Parsing...');
       var lines = str.split(/\n/);
       try {
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        this.fnMsg(this.prgElems);
-        this.fnMsg('Melding...');
+        //this.fnMsg(this.prgElems);
+        //this.fnMsg('Melding...');
         this.prgElems.meld();
-        this.fnMsg(this.prgElems);
+        //this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         this.fnMsg('Done');
@@ -121,6 +133,12 @@ var modFVMA = (function () { 'use strict';
        } else {
          this.dict[this.decl] = x;
        }
+      if (this.decl === '0s000000') { // FIXME handling start decl for entry point
+        if (this.dict[this.decl] > 1) {
+          this.prgElems.putElem(SYMBOLS['jmp'],2);
+          this.prgElems.putElem(this.dict[this.decl],3);
+        } 
+      }
        this.decl = "";
        this.expectDef = false;
       } else {
@@ -172,7 +190,10 @@ var modFVMA = (function () { 'use strict';
      }
  
      parseRef(token) {
-       if (this.dict[token] >= 0){
+       if (SYMBOLS[token] >= 0){
+           this.use(SYMBOLS[token]);
+           return true;
+       } else if (this.dict[token] >= 0){
          this.use(this.dict[token]);
          return true;
        } else {
@@ -299,6 +320,10 @@ var modFVMA = (function () { 'use strict';
       this.cursor = 0;
       this.elems = [];
     };
+
+    putElem(n, index) { //FIXME not robust
+      this.elems[index] = n;
+    }
 
     addElem(n) {
       this.cursor = this.elems.push(n);
