@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170617-0951+
- * Version:    pre-alpha-0.0.0.37+ for FVM 2.0
+ * Updated:    20170617-2217+
+ * Version:    pre-alpha-0.0.0.38+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -84,7 +84,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
     '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','risk','safe','nop ','    ','hal ', // 248
+    '    ','    ','    ','    ','    ','nop ','    ','hal ', // 248
   ];
 
   const iFAIL = 0|0;
@@ -100,8 +100,6 @@ var modFVM = (function () { 'use strict';
   const iSTORE = 190|0;
   const iSUB = 202|0;
   const iFRET = 132|0;
-  const iRISK = 251|0; // TODO remove RISK and SAFE stuff
-  const iSAFE = 252|0;
   const iNOOP = 253|0;
   const iHALT = 255|0;
 
@@ -125,7 +123,6 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
-      this.safe = true; // experimental
     };
 
     run() {
@@ -257,14 +254,6 @@ var modFVM = (function () { 'use strict';
             case iSUB:
               this.ds.apply2((a,b) => a-b);
               break;
-            case iRISK:
-              this.safe = false;
-              break;
-            case iSAFE:
-              if (this.safe === false) {
-                throw FAILURE;
-              }
-              break;
             case iNOOP:
               break;
             case iHALT:
@@ -278,12 +267,11 @@ var modFVM = (function () { 'use strict';
         } catch(e) {
           if (e != FAILURE) {
             throw e;
-          }
-          var prefix = this.safe? ' ' : '*';         
+          }    
           if (opcode != iFRET) {
-            this.fnTrc(prefix + 'FAILURE **********************');
+            this.fnTrc('FAILURE **********************');
           } else {
-            //this.fnTrc(prefix + modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' ****************');
+            //this.fnTrc(modFmt.hex6(this.pc) + ' ' + modFmt.hex6(failAddr) + ' ****************');
           }
           this.pc = failAddr;
         }
@@ -331,9 +319,7 @@ var modFVM = (function () { 'use strict';
     }
 
     trace(pc,failAddr,opcode,lit) {
-      var prefix = this.safe? ' ' : '*';
-      this.fnTrc(prefix +
-                 modFmt.hex6(this.pc) + ' ' + 
+      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ( ' +
