@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170617-1447+
- * Version:    pre-alpha-0.0.0.14 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.15 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -40,7 +40,7 @@ Design notes:
           - what is coded later will build on what is coded earlier
           - IMPRACTICAL: changing what was coded earlier will be rare
           - strategies for reuse will be employed
-          - BORDERLINE: 1 line = 1 instruction
+          - IMPRACTICAL: 1 line = 1 instruction
 
 Modifications:
 
@@ -51,7 +51,6 @@ Modifications:
       - bug-fixing requires being able to change what was coded earlier (in place)
   - Practical upshot of this is:
       - added #def back into the assembler
-      - TODO remove phrase functionality
   - Think deeply about call failure vs subroutine failure
 
 Jury is still out on:
@@ -134,7 +133,7 @@ var modFVMA = (function () { 'use strict';
        } else {
          this.dict[this.decl] = x;
        }
-      if (this.decl === '0s0000') { // FIXME handling start decl for entry point
+      if (this.decl == 0) { // TODO check corner cases
         if (this.dict[this.decl] > 1) {
           this.prgElems.putElem(SYMBOLS['jmp'],2);
           this.prgElems.putElem(this.dict[this.decl],3);
@@ -164,12 +163,37 @@ var modFVMA = (function () { 'use strict';
       }
     };
 
+    symbolToInt(str) {
+      if (str.length == 6 && str.match(/0s[0-9a-f]{4}/)){
+        var asHex = str.replace('0s','0x');
+        var intValue = parseInt(asHex,16);
+        return intValue;
+      } else {
+        throw "Assembler bug in symbolToInt(str) for:" + str;
+      }
+    }
+
+    intToSymbol(i) {
+      if (i >= 0x0000 && i <= 0xffff){
+        var str = '0s' + ('0000' + i.toString(16)).substr(-4);
+        return str;
+      } else {
+        throw "Assembler bug in intToSymbol(int) for:" + i;
+      }
+    }
+
     expectingDecl(token, lineNum) {
       if (this.expectDecl) {
-        if (this.dict[token]) {
+        var intValue;
+        if (token.length == 6 && token.match(/0s[0-9a-f]{4}/)){
+          intValue = this.symbolToInt(token);
+        } else {
+          throw lineNum + ":Illegal symbol format (must be like 0s0001):" + token;
+        }
+        if (this.dict[intValue]) {
           throw lineNum + ":Already defined:" + token;
         } else {
-          this.decl = token;
+          this.decl = intValue;
           this.expectDecl = false;
           this.expectDef = true;
         }
@@ -191,12 +215,12 @@ var modFVMA = (function () { 'use strict';
        if (SYMBOLS[token] >= 0){
            this.use(SYMBOLS[token]);
            return true;
-       } else if (this.dict[token] >= 0){
-         this.use(this.dict[token]);
+       } else if (token.length == 6 && token.match(/0s[0-9a-f]{4}/) && this.dict[this.symbolToInt(token)] >= 0){
+         this.use(this.dict[this.symbolToInt(token)]);
          return true;
        } else {
          return false;
-       }      
+       }
      }
  
      parseHere(token, lineNum) {
