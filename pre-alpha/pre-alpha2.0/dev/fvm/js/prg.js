@@ -1,8 +1,10 @@
-var prgSrc = `fal --- jmp 0x00000e
+var prgSrc = `fal --- jmp 0x000010
 #def /put1 0s000001 . lit 0x000001
   frt ---
   ret ---
-#def /put2and2 0s000002 . lit 0x0fffff      ( a bug )
+#def /put2and2 0s000002 . lit 0x000002      ( a fixed bug )
+  frt ---
+  lit 0x000002
   frt ---
   ret ---
 #def /put4 0s000003 . lit 0x000004
