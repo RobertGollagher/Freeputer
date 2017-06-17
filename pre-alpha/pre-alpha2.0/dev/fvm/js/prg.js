@@ -1,36 +1,30 @@
-var prgSrc = `fal --- jmp /start 0x00000e
-/put1 lit 0x000001
+var prgSrc = `/Molecule fal --- nop ---
+cal /put4 0x000016
+frt ---
+cal /put3 0x000019
+frt ---
+cal /put2 0x000013
+frt ---
+cal /put1 0x000010
+frt ---
+hal ---
+nop ---
+nop ---
+nop ---
+nop ---
+nop ---
+/Atom /put1 lit 0x000001
   frt ---
   ret ---
-/put2and2 /replaced jmp 0x000017
-  fal ---
-  fal ---
-/put4 lit 0x000004
+/Atom /put2and2 lit 0x0fffff      ( a bug )
   frt ---
   ret ---
-/put3 lit 0x000003
+/Atom /put4 lit 0x000004
   frt ---
   ret ---
-/put1to4 cal /put1 0x000002
-  frt ---
-  cal /put2and2 0x000005
-  frt ---
-  cal /put3 0x00000b
-  frt ---
-  cal /put4 0x000008
-  frt ---
-  hal ---
-/put2and2 lit 0x000002
-  frt ---
-  lit 0x000002
+/Atom /put3 lit 0x000003
   frt ---
   ret ---
-/start cal /put1to4 0x00000e ( =========================== )
-  frt ---
-  hal ---
-
-
-
 
 ( Copyright 2017, Robert Gollagher.
   SPDX-License-Identifier: GPL-3.0+ )
