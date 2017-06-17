@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170617-0951+
- * Version:    pre-alpha-0.0.0.9 for FVM 2.0
+ * Updated:    20170617-1137+
+ * Version:    pre-alpha-0.0.0.10 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -29,25 +29,38 @@ Design notes:
 
   - this is a bold experimental design based on absolute minimalism:
       - extremely simple one-pass assembler requiring only a few bytes of memory (easily run anywhere)
-      - everything is done by hand using **human intelligence** (possibly helped by a preprocessor or validator)
-      - no definitions, no declarations, no symbol tables, no labels (only relative and block-absolute and absolute jumps)
+      - IMPRACTICAL: everything is done by hand using **human intelligence** (possibly helped by a preprocessor or validator)
+      - IMPRACTICAL: no definitions, no declarations, no symbol tables, no labels (only relative and block-absolute and absolute jumps)
       - this is a total commitment to the principal of YAGNI (which delivers extreme portability)
       - purpose is just enough to bootstrap higher languages later (and not one iota more)
       - to facilitate this the compromises are:
-          - coding will be done in SMALL blocks (called phrases) of constant size padded with nops
+          - IMPRACTICAL: coding will be done in SMALL blocks (called phrases) of constant size padded with nops
           - therefore, factoring and the use of composition will be EXTREME
-          - clever assembler design will allow block relocation by hand
+          - IMPRACTICAL: clever assembler design will allow block relocation by hand
           - what is coded later will build on what is coded earlier
-          - changing what was coded earlier will be rare
+          - IMPRACTICAL: changing what was coded earlier will be rare
           - strategies for reuse will be employed
-          - 1 line = 1 instruction
+          - IMPRACTICAL: 1 line = 1 instruction
 
+Modifications:
+
+  - Experimentation has shown:
+      - declarations and definitions are necessary for reasonable productivity (especially labels but some others too)
+      - failing to use them would just shift the burden to sophisticated text editors (not worthwhile overall)
+      - using fixed-size phrases carries too high a runtime burden (too much RAM needed for loading programs)
+      - bug-fixing requires being able to change what was coded earlier (in place)
+      - 1 line = 1 instruction is unfortunately not practical
+  - Practical upshot of this is:
+      - added #def back into the assembler
+  
 */
 
 // Module modFVMA will provide a Freeputer Assembler implementation.
 var modFVMA = (function () { 'use strict';
 
-  const PHRSIZE = 16;
+  const DEF = '#def';
+  const HERE = '.';
+  const PHRSIZE = 16; // FIXME
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
@@ -68,6 +81,11 @@ var modFVMA = (function () { 'use strict';
       this.fnMsg = fnMsg;
       this.prgElems = new PrgElems();
       this.inComment = false;
+      this.dict = SYMBOLS;
+      this.expectDecl = false;
+      this.expectDef = false;
+      this.Decl = "";
+
     };
 
     asm(str) { // FIXME no enforcement yet
@@ -77,10 +95,12 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        //this.fnMsg(this.prgElems);
-        //this.fnMsg('Melding...');
+        this.fnMsg(this.prgElems);
+        this.fnMsg('Melding...');
         this.prgElems.meld();
-        //this.fnMsg(this.prgElems);
+        this.fnMsg(this.prgElems);
+        this.fnMsg('Dictionary...');
+        this.fnMsg(JSON.stringify(this.dict));
         this.fnMsg('Done');
         return this.prgElems.toBuf();
       } catch (e) {
@@ -95,7 +115,17 @@ var modFVMA = (function () { 'use strict';
     }
 
     use(x) {
-      this.prgElems.addElem(x);
+      if (this.expectDef) {
+       if (x === HERE) {
+         this.dict[this.decl] = this.prgElems.cursor / 2;
+       } else {
+         this.dict[this.decl] = x;
+       }
+       this.decl = "";
+       this.expectDef = false;
+      } else {
+       this.prgElems.addElem(x);
+      }
     }
 
     parseToken(token, lineNum) {
@@ -103,17 +133,64 @@ var modFVMA = (function () { 'use strict';
       } else if (this.inCmt(token)) {
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
+      } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.parseSymbol(token)) {
       } else if (this.parsePhrAbs(token)) {
       } else if (this.parsePhrnum(token)) {
       } else if (this.parseForw(token)) {
       } else if (this.parseBackw(token)) {
+      } else if (this.parseDef(token)) {
+      } else if (this.parseRef(token)) {
+      } else if (this.parseHere(token)) {
       } else if (this.parseHex2(token)) {
       } else if (this.parseHex6(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
       }
     };
+
+    expectingDecl(token, lineNum) {
+      if (this.expectDecl) {
+        if (this.dict[token]) {
+          throw lineNum + ":Already defined:" + token;
+        } else {
+          this.decl = token;
+          this.expectDecl = false;
+          this.expectDef = true;
+        }
+      }
+    }
+
+     parseDef(token) {
+       if (token === DEF){
+         this.expectDecl = true;
+         return true;
+       } else {
+         return false;
+       }      
+     }
+ 
+     parseRef(token) {
+       if (this.dict[token] >= 0){
+         this.use(this.dict[token]);
+         return true;
+       } else {
+         return false;
+       }      
+     }
+ 
+     parseHere(token, lineNum) {
+       if (token === HERE){
+         if (this.expectDef) {
+           this.use(token);
+         } else {
+           throw lineNum + ":Not permitted here:" + token;
+         }
+         return true;
+       } else {
+         return false;
+       }      
+     }
 
     parseSymbol(token) {
       if (SYMBOLS[token] >= 0){
@@ -252,8 +329,8 @@ var modFVMA = (function () { 'use strict';
     }
 
     toString() {
-      var str = " ";
-      this.elems.forEach(x => str = str + modFmt.hex8(x) + "\n");
+      var str = ":";
+      this.elems.forEach(x => str = str + modFmt.hex8(x) + ":");
       return str;
     }
 
