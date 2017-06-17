@@ -67,8 +67,8 @@ function modFVMUI_init(prg) { 'use strict';
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
     cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
-    cf.RAMa = 0x1000000;
-    cf.RAMz = 0x1000400;
+    cf.RAMa = 0x100000;
+    cf.RAMz = 0x100400;
     modFVM.makeFVM(cf).run();
   };
 

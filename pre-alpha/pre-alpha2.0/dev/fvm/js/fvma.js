@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170617-1447+
- * Version:    pre-alpha-0.0.0.15 for FVM 2.0
+ * Updated:    20170617-2246+
+ * Version:    pre-alpha-0.0.0.16 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -25,6 +25,11 @@
  */
 
 /*
+
+TODO:
+
+  - more strict/helpful assembler syntax/structure checks
+
 Design notes:
 
   - this is a bold experimental design based on absolute minimalism:
@@ -52,6 +57,7 @@ Modifications:
   - Practical upshot of this is:
       - added #def back into the assembler
   - Think deeply about call failure vs subroutine failure
+  - Think deeply about 24-bit lit barrier and performance problems of @ and ! (worth going smaller?)
 
 Jury is still out on:
 
@@ -79,6 +85,8 @@ var modFVMA = (function () { 'use strict';
     ret: 0x91,
     frt: 0x84,
     jmp: 0x03,
+    ldo: 0xbd,
+    sto: 0xfbe,
     nop: 0xfd,
     hal: 0xff,
     '---': 0x000000
@@ -158,6 +166,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
       } else if (this.parseHex6(token)) {
+      } else if (this.parseHex8(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
       }
@@ -261,6 +270,16 @@ var modFVMA = (function () { 'use strict';
 
     parseComword(token, lineNum) {
       if (token.startsWith(COMWORD)) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseHex8(token) {
+      if (token.length == 10 && token.match(/0x[0-9a-f]{8}/)){
+        var n = parseInt(token,16);
+        this.use(n);
         return true;
       } else {
         return false;

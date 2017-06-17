@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170617-2217+
- * Version:    pre-alpha-0.0.0.38+ for FVM 2.0
+ * Updated:    20170617-2246+
+ * Version:    pre-alpha-0.0.0.39+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -38,7 +38,7 @@ var modFVM = (function () { 'use strict';
   const SYSb = 0xff000000;
   const SYSt = 0xffffffff;
   const WORD_BYTES = 4;
-  const WORD_PWR = 2;
+  const WORD_PWR = 2; // FIXME necessary any more?
   const STACK_ELEMS = 256; //256; FIXME
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
@@ -76,7 +76,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','    ','    ','    ', // 160
     '    ','    ','    ','    ','    ','    ','    ','    ', // 168
     '    ','    ','    ','    ','    ','    ','    ','    ', // 176
-    '    ','    ','    ','    ','    ','    ','!   ','    ', // 184
+    '    ','    ','    ','    ','    ','@   ','!   ','    ', // 184
     '    ','    ','    ','    ','    ','    ','    ','    ', // 192
     '    ','+   ','-   ','    ','    ','    ','    ','    ', // 200
     '    ','    ','    ','    ','    ','    ','    ','    ', // 208
@@ -97,6 +97,7 @@ var modFVM = (function () { 'use strict';
   const iEXIT = 145|0;
   const iDROP = 159|0;
   const iADD = 201|0;
+  const iLOAD = 189|0;
   const iSTORE = 190|0;
   const iSUB = 202|0;
   const iFRET = 132|0;
@@ -119,7 +120,9 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.PRGe = config.program.byteLength;
       this.prg = new DataView(config.program);
-      this.ram = new DataView(new ArrayBuffer(config.RAMz-config.RAMa));
+      this.RAMa = config.RAMa;
+      this.RAMz = config.RAMz;
+      this.ram = new DataView(new ArrayBuffer(this.RAMz-this.RAMa));
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
@@ -215,6 +218,20 @@ var modFVM = (function () { 'use strict';
               // FIXME handle failure
               this.pc = this.rs.doPop() & PRGt;
               break;
+            case iLOAD:
+              // FIXME incomplete implementation
+              var addr = this.ds.doPop();
+              switch (addr) {
+                default:
+                  if ((addr >= this.RAMa) && (addr <= this.RAMz)) {
+                    var val = this.ram.getInt32(addr-this.RAMa, true);
+                    this.ds.doPush(val);
+                  } else {
+                    throw FAILURE;
+                  }
+                break;
+              }
+              break;
             case iSTORE:
               // FIXME incomplete implementation
               var addr = this.ds.doPop();
@@ -234,7 +251,7 @@ var modFVM = (function () { 'use strict';
                   break;
                 default:
                   if ((addr >= this.RAMa) && (addr <= this.RAMz)) {
-                    this.ram.setInt32(addr<<WORD_PWR, val, true);
+                    this.ram.setInt32(addr-this.RAMa, val, true);
                   } else {
                     throw FAILURE;
                   }

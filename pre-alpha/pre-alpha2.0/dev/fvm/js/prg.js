@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170617-2209+
+  Updated:    20170617-2246+
 
   This is an experimental program for Freeputer 2 pre-alpha.
   This program is being changed frequently.
@@ -33,6 +33,8 @@ var prgSrc = `
 
 )
 
+#def /RAMa 0s0001 0x100000 ( TODO remove this hard-coding )
+
 ( STANDARD BOILERPLATE
 
   The VM begins execution at cell 1 which here is 'jmp 0x000000'
@@ -54,6 +56,14 @@ fal --- jmp 0x000000
 ( PROGRAM ENTRY POINT )
 
 #def /start 0s0000 .
+  lit 0x000010
+  fal ---
+  lit /RAMa 0s0001
+  fal ---
+  sto ---
+  lit /RAMa 0s0001
+  fal ---
+  ldo ---
   hal ---
 
 `;
