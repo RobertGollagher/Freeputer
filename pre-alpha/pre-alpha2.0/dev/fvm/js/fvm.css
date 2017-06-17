@@ -5,8 +5,8 @@
  * File:       fvm.css
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170614-2138+
- * Version:    pre-alpha-0.0.0.34 for FVM 2.0
+ * Updated:    20170617-0951+
+ * Version:    pre-alpha-0.0.0.35 for FVM 2.0
 */
 
 @CHARSET "UTF-8";
@@ -41,21 +41,21 @@ h2 {
 }
 
 .fvmSmall {
-  height: 8vh;
+  height: 50px;
   width: 100%;
 }
 .fvmMid {
-  height: 24vh;
+  height: 100px;
   width: 100%;
 }
 
 .fvmMed {
-  height: 32vh;
+  height: 150px;
   width: 100%;
 }
 
 .fvmLarge {
-  height: 64vh;
+  height: 300px;
   width: 100%;
 }
 
