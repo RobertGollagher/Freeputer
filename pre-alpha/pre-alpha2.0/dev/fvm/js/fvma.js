@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170617-1447+
- * Version:    pre-alpha-0.0.0.12 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.13 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -153,10 +153,11 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
+      } else if (this.parseForw(token)) {
+      } else if (this.parseBackw(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
-      } else if (this.parseHex2(token)) {
       } else if (this.parseHex6(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
@@ -242,16 +243,6 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseHex2(token) {
-      if (token.length == 4 && token.match(/0x[0-9a-f]{2}/)){
-        var n = parseInt(token,16);
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
     parseHex6(token) {
       if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
         var n = parseInt(token,16);
@@ -262,11 +253,11 @@ var modFVMA = (function () { 'use strict';
       }      
     }
 
-    parsePhrnum(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 8 && token.match(/0p[0-9a-f]{6}/)){
-        var asHex = token.replace('0p','0x');
+    parseForw(token) { // TODO check overflow or out of bounds and endless loop
+      if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
+        var asHex = token.replace('0f','0x');
         var n = parseInt(asHex,16);
-        var m = n*PHRSIZE;
+        var m = this.prgElems.cursor/2 + n;
         this.use(m);
         return true;
       } else {
