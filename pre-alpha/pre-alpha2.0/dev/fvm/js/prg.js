@@ -42,22 +42,22 @@ fal --- jmp 0x000000
 
 ( START OF ATOMS )
 
-#def /put1 0s000001 .
+#def /put1 0s0001 .
   lit 0x000001
   frt ---
   ret ---
 
-#def /put2 0s000002 .
+#def /put2 0s0002 .
   lit 0x000002
   frt ---
   ret ---
 
-#def /put3 0s000004 .
+#def /put3 0s0004 .
   lit 0x000003
   frt ---
   ret ---
 
-#def /put4 0s000003 .
+#def /put4 0s0003 .
   lit 0x000004
   frt ---
   ret ---
@@ -65,24 +65,24 @@ fal --- jmp 0x000000
 
 ( START OF MOLECULES )
 
-#def /put2twice 0s000006 .
-  cal /put2 0s000002
+#def /put2twice 0s0006 .
+  cal /put2 0s0002
   frt ---
-  cal /put2 0s000002
+  cal /put2 0s0002
   frt ---
   ret ---
 
 
 ( PROGRAM ENTRY POINT )
 
-#def /start 0s000000 .
-  cal /put4 0s000003
+#def /start 0s0000 .
+  cal /put4 0s0003
   frt ---
-  cal /put3 0s000004
+  cal /put3 0s0004
   frt ---
-  cal /put2twice 0s000006
+  cal /put2twice 0s0006
   frt ---
-  cal /put1 0s000001
+  cal /put1 0s0001
   frt ---
   hal ---
 

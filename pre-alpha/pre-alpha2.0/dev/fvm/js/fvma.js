@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170617-1447+
- * Version:    pre-alpha-0.0.0.13 for FVM 2.0
+ * Version:    pre-alpha-0.0.0.14 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -134,7 +134,7 @@ var modFVMA = (function () { 'use strict';
        } else {
          this.dict[this.decl] = x;
        }
-      if (this.decl === '0s000000') { // FIXME handling start decl for entry point
+      if (this.decl === '0s0000') { // FIXME handling start decl for entry point
         if (this.dict[this.decl] > 1) {
           this.prgElems.putElem(SYMBOLS['jmp'],2);
           this.prgElems.putElem(this.dict[this.decl],3);
