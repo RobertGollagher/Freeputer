@@ -21,7 +21,7 @@ Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. T
 
 Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
 
-Freeputer&nbsp;2.0 has a smaller *program space* than Freeputer&nbsp;1.0. This allows ***correctness and robustness at the same time***, in a manner which is portable and simpler and easier to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
+Freeputer&nbsp;2.0 has a smaller *program space* than Freeputer&nbsp;1.0. This allows ***correctness and robustness at the same time***, in a manner which is portable and simpler to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
 
 Freeputer&nbsp;2.0 may also have a different I/O strategy to Freeputer&nbsp;1.0.
 
@@ -249,7 +249,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 18 June 2017 at 11:43  
+This document was last updated on 19 June 2017 at 07:50  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
