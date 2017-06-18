@@ -64,6 +64,15 @@ fal --- jmp 0x000000
   lit /RAMa 0s0001
   fal ---
   ldo ---
+  jmp 0f04
+  lit 0x000003
+  fal ---
+  jmp 0f02
+  jmp 0r01
+  lit 0x000005
+  fal ---
+  lit 0x000008
+  fal ---
   hal ---
 
 `;

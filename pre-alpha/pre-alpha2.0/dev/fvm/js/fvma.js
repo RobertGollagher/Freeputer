@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170617-2246+
- * Version:    pre-alpha-0.0.0.16 for FVM 2.0
+ * Updated:    20170619-0815+
+ * Version:    pre-alpha-0.0.0.17 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -297,7 +297,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseForw(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 8 && token.match(/0f[0-9a-f]{6}/)){
+      if (token.length == 4 && token.match(/0f[0-9a-f]{2}/)){
         var asHex = token.replace('0f','0x');
         var n = parseInt(asHex,16);
         var m = this.prgElems.cursor/2 + n;
@@ -309,10 +309,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseBackw(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 8 && token.match(/0r[0-9a-f]{6}/)){
+      if (token.length == 4 && token.match(/0r[0-9a-f]{2}/)){
         var asHex = token.replace('0r','0x');
         var n = parseInt(asHex,16);
-        var m = this.prgElems.cursor/2 - n -1;
+        var m = this.prgElems.cursor/2 - n;
         this.use(m);
         return true;
       } else {
