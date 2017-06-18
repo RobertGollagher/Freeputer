@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170617-2246+
+  Updated:    20170617-2300+
 
   This is an experimental program for Freeputer 2 pre-alpha.
   This program is being changed frequently.

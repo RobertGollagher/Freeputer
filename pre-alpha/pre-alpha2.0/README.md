@@ -15,21 +15,35 @@ Freeputer ( ) \[ \] { } smaller simpler better
 
 ## Benefits
 
-Freeputer&nbsp;2.0 will be ***much easier to implement***, making it even more portable. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***.
+Freeputer&nbsp;2.0 will be ***much easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. 
 
 Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in a web browser or on a microcontroller!
 
-Freeputer&nbsp;2.0 ***adds excellent robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve its excellent correctness, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining excellent correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
+Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
 
-Freeputer&nbsp;2.0 has ***improved I/O*** compared to Freeputer&nbsp;1.0 (now simpler, more standardized, more flexible, more discrete, more powerful and easier to extend). All I/O is now memory-mapped and achieved by the @ and ! instructions alone.
+Freeputer&nbsp;2.0 has a smaller *program space* than Freeputer&nbsp;1.0. This allows ***correctness and robustness at the same time***, in a manner which is portable and simpler and easier to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
 
-Freeputer&nbsp;2.0 has a larger *address space* but a smaller *program space* than Freeputer&nbsp;1.0. Having a smaller *program space* allows the achievement of excellent correctness and excellent robustness *at the same time*, in a manner which is portable *and* simpler and easier to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
+Freeputer&nbsp;2.0 may also have a different I/O strategy to Freeputer&nbsp;1.0.
 
 ## Migration
 
-Freeputer&nbsp;1.0 and 2.0 are ***quite similar but not binary compatible***. The instruction set and its bytecode has been changed somewhat. Converting Freelang&nbsp;1.0 programs to Freelang 2.0 programs for Freeputer&nbsp;2.0 can be done with ***some difficulty***.
+Freeputer&nbsp;1.0 and 2.0 are significantly different although broadly similar in concept and instruction sets. Freeputer&nbsp;1.0 uses the Freelang language. However, the large amount of RAM (several megabytes) required by the symbol tables of the `flc.fl` Freelang compiler to compile itself is a barrier to portability. Also, Freelang is not especially well suited to *branching on failure* rather than *trapping on failure*. Lastly, a Freelang compiler is rather complex as a minimal bootstrapping platform. For these reasons a tiny one-pass assembler (`fvma.js`) requiring almost no RAM at all is being created for Freeputer&nbsp;2.0; it uses a simple assembly language intended to be the bare minimum for bootstrapping higher languages later. This is a better way to manage complexity.
 
-## Proposed Design
+Migrating a Freeputer&nbsp;1.0 program to Freeputer&nbsp;2.0 is non-trivial since the latter does not use Freelang. However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer&nbsp;2.0.
+
+## Proposed Design: Plan B
+
+Although Plan A (see below) is reasonable, there is a strong counterargument for going smaller. Ongoing development of the prototype VM (see `fvm2.js`) and assembler (see `fvma.js` and example program `prg.js`) has led to a decision to abandon complex instructions and to use only fixed-width 32-bit simple instructions. This is the best compromise for the instruction set but it leads to a bottleneck for the lit instruction which is then limited to 24-bit literals and would need to be supplemented by other instructions; considered together with the @ and ! instructions for load and store this leads to unwanted complexity and performance penalties. Furthermore, memory-mapped I/O using @ and ! carries significant penalties in complexity and performance for the implementation of those instructions and is not necessarily easier to understand in practice. Lastly, the smaller the VM the less monolithic will be systems built on the VM.
+
+With all this in mind, a Plan B would look something like this:
+
+1. Generally similar to Plan A except:
+    1. 24-bit address space rather than 32-bit address space.
+    1. PRG perhaps limited to 20 bits and MEM occupying most of the remainder.
+    1. Perhaps dedicated I/O instructions rather than memory-mapped I/O.
+    1. Perhaps even smaller than the above but with conditional and scaled instructions for performance.
+
+## Proposed Design: Plan A
 
 1. The VM is **correct without trapping**.
 1. Program execution begins at cell 1 (not cell 0).
@@ -235,7 +249,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 16 June 2017 at 17:30  
+This document was last updated on 18 June 2017 at 11:43  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
