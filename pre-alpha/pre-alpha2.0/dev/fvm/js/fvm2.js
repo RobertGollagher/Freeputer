@@ -5,14 +5,17 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170617-2246+
- * Version:    pre-alpha-0.0.0.39+ for FVM 2.0
+ * Updated:    20170619-1927+
+ * Version:    pre-alpha-0.0.0.40+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
+ *
+ *    Note: This implementation is now experimenting with Plans B and C;
+ *          thus it is a hybrid and internally inconsistent for now.
  *
  * ===========================================================================
  * 
@@ -28,8 +31,8 @@
 var modFVM = (function () { 'use strict';
 
   const PRGb = 0x00000000;
-  const PRGt = 0x00ffffff;
-  const MEMb = 0x01000000;
+  const PRGt = 0x000fffff; // modified for 20-bit PRG trial
+  const MEMb = 0x00100000;
   const MEMt = 0x3fffffff;
   const BLKb = 0x40000000;
   const BLKt = 0x7fffffff;
@@ -79,7 +82,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','@   ','!   ','    ', // 184
     '    ','    ','    ','    ','    ','    ','    ','    ', // 192
     '    ','+   ','-   ','    ','    ','    ','    ','    ', // 200
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 208
+    'xA  ','xB  ','xC  ','    ','    ','    ','    ','    ', // 208 // Hybrid Plan C instrs
     '    ','    ','    ','    ','    ','    ','    ','    ', // 216
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
@@ -104,6 +107,11 @@ var modFVM = (function () { 'use strict';
   const iNOOP = 253|0;
   const iHALT = 255|0;
 
+  // Plan C
+  const xA = 208|0;
+  const xB = 209|0;
+  const xC = 210|0;
+
   class FVM {
     constructor(config) {
       this.pc = PRGb + 1;
@@ -126,6 +134,11 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this);
       this.ss = new Stack(this);
       this.rs = new Stack(this);
+
+      //Plan C
+      this.xA = 0;
+      this.xB = 0;
+      this.xC = 0;
     };
 
     run() {
@@ -153,6 +166,17 @@ var modFVM = (function () { 'use strict';
             case iFAIL:
               this.fail();
               break;
+            // Plan C
+            case xA:
+              this.xA = metadata;
+              break;
+            case xB:
+              this.xB = metadata;
+              break;
+            case xC:
+              this.xC = metadata;
+              break;
+            // -------------------------
             case iLIT:
               try {
                 this.ds.doPush(metadata);
@@ -336,13 +360,18 @@ var modFVM = (function () { 'use strict';
     }
 
     trace(pc,failAddr,opcode,lit) {
-      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
+      this.fnTrc(modFmt.hex5(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
                  MNEMS[opcode] + ' ( ' +
                  this.ds + ')[ ' +
                  this.ss + ']{ ' +
-                 this.rs + '}');
+                 this.rs + '}' +
+                 // Plan C
+                 ' xA: ' + modFmt.hex6(this.xA) +
+                 ' xB: ' + modFmt.hex6(this.xB) +
+                 ' xC: ' + modFmt.hex6(this.xC)
+                 );
     }
   }
 
@@ -467,6 +496,14 @@ var modFmt = (function () { 'use strict';
     }
   }
 
+  var hex5 = function(i) {
+    if (typeof i === 'number') {
+      return ('00000' + i.toString(16)).substr(-5);
+    } else {
+      return '      ';
+    }
+  };
+
   var hex6 = function(i) {
     if (typeof i === 'number') {
       return ('000000' + i.toString(16)).substr(-6);
@@ -485,6 +522,7 @@ var modFmt = (function () { 'use strict';
 
   return {
     hex2: hex2,
+    hex5: hex5,
     hex6: hex6,
     hex8: hex8
   };

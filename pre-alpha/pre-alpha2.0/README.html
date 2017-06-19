@@ -19,6 +19,14 @@
 <h2 id="migration">Migration</h2>
 <p>Freeputer 1.0 and 2.0 are significantly different although broadly similar in concept and instruction sets. Freeputer 1.0 uses the Freelang language. However, the large amount of RAM (several megabytes) required by the symbol tables of the <code>flc.fl</code> Freelang compiler to compile itself is a barrier to portability. Also, Freelang is not especially well suited to <em>branching on failure</em> rather than <em>trapping on failure</em>. Lastly, a Freelang compiler is rather complex as a minimal bootstrapping platform. For these reasons a tiny one-pass assembler (<code>fvma.js</code>) requiring almost no RAM at all is being created for Freeputer 2.0; it uses a simple assembly language intended to be the bare minimum for bootstrapping higher languages later. This is a better way to manage complexity.</p>
 <p>Migrating a Freeputer 1.0 program to Freeputer 2.0 is non-trivial since the latter does not use Freelang. However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0.</p>
+<h2 id="proposed-design-plan-c">Proposed Design: Plan C</h2>
+<p>Plan C is a meta-machine. Build the rest later on top of the meta-machine:</p>
+<ol style="list-style-type: decimal">
+<li>Tiny instruction set (not more than 16 to 64 instructions).</li>
+<li>Make failure impossible (so branch-on-failure not needed; and no illegal opcodes).</li>
+<li>Some kind of simple I/O strategy (come up with this later).</li>
+<li>Unsigned ints only (eliminate C problems, etc.).</li>
+</ol>
 <h2 id="proposed-design-plan-b">Proposed Design: Plan B</h2>
 <p>Although Plan A (see below) is reasonable, there is a strong counterargument for going smaller. Ongoing development of the prototype VM (see <code>fvm2.js</code>) and assembler (see <code>fvma.js</code> and example program <code>prg.js</code>) has led to a decision to abandon complex instructions and to use only fixed-width 32-bit simple instructions. This is the best compromise for the instruction set but it leads to a bottleneck for the lit instruction which is then limited to 24-bit literals and would need to be supplemented by other instructions; considered together with the @ and ! instructions for load and store this leads to unwanted complexity and performance penalties. Furthermore, memory-mapped I/O using @ and ! carries significant penalties in complexity and performance for the implementation of those instructions and is not necessarily easier to understand in practice. Lastly, the smaller the VM the less monolithic will be systems built on the VM.</p>
 <p>With all this in mind, a Plan B would look something like this:</p>
@@ -328,7 +336,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 19 June 2017 at 07:50<br />
+This document was last updated on 19 June 2017 at 21:15<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

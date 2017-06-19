@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170617-2300+
+  Updated:    20170619-1929+
 
   This is an experimental program for Freeputer 2 pre-alpha.
   This program is being changed frequently.
@@ -34,6 +34,9 @@ var prgSrc = `
 )
 
 #def /RAMa 0s0001 0x100000 ( TODO remove this hard-coding )
+#def /RAM00 0s0002 /RAMa 0s0001
+#def /RAM01 0s0003 0x100001
+#def /RAM02 0s0004 0x100002
 
 ( STANDARD BOILERPLATE
 
@@ -41,7 +44,7 @@ var prgSrc = `
   but the assembler will replace this 0x000000 with the value of 0s0000,
   which symbol is defined at the program entry point further below. )
 
-fal --- jmp 0x000000
+fal --- jmp 0x00000
 
 ( START OF ATOMS )
 
@@ -56,6 +59,15 @@ fal --- jmp 0x000000
 ( PROGRAM ENTRY POINT )
 
 #def /start 0s0000 .
+
+( Plan C experiments: )
+
+  xA /RAM00 0s0002
+  xB /RAM01 0s0003
+  xC /RAM02 0s0004
+
+
+(
   lit 0x000010
   fal ---
   lit /RAMa 0s0001
@@ -68,11 +80,11 @@ fal --- jmp 0x000000
   lit 0x000003
   fal ---
   jmp 0f02
-  jmp 0r01
+  jmp 0r03
   lit 0x000005
   fal ---
   lit 0x000008
   fal ---
   hal ---
-
+)
 `;

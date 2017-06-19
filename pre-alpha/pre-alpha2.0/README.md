@@ -31,6 +31,15 @@ Freeputer&nbsp;1.0 and 2.0 are significantly different although broadly similar 
 
 Migrating a Freeputer&nbsp;1.0 program to Freeputer&nbsp;2.0 is non-trivial since the latter does not use Freelang. However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer&nbsp;2.0.
 
+## Proposed Design: Plan C
+
+Plan C is a meta-machine. Build the rest later on top of the meta-machine:
+
+1. Tiny instruction set (not more than 16 to 64 instructions).
+1. Make failure impossible (so branch-on-failure not needed; and no illegal opcodes).
+1. Some kind of simple I/O strategy (come up with this later).
+1. Unsigned ints only (eliminate C problems, etc.).
+
 ## Proposed Design: Plan B
 
 Although Plan A (see below) is reasonable, there is a strong counterargument for going smaller. Ongoing development of the prototype VM (see `fvm2.js`) and assembler (see `fvma.js` and example program `prg.js`) has led to a decision to abandon complex instructions and to use only fixed-width 32-bit simple instructions. This is the best compromise for the instruction set but it leads to a bottleneck for the lit instruction which is then limited to 24-bit literals and would need to be supplemented by other instructions; considered together with the @ and ! instructions for load and store this leads to unwanted complexity and performance penalties. Furthermore, memory-mapped I/O using @ and ! carries significant penalties in complexity and performance for the implementation of those instructions and is not necessarily easier to understand in practice. Lastly, the smaller the VM the less monolithic will be systems built on the VM.
@@ -249,7 +258,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 19 June 2017 at 07:50  
+This document was last updated on 19 June 2017 at 21:15  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

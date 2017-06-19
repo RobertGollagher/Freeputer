@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170619-0815+
- * Version:    pre-alpha-0.0.0.17 for FVM 2.0
+ * Updated:    20170619-1929+
+ * Version:    pre-alpha-0.0.0.19 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -66,6 +66,14 @@ Jury is still out on:
           - forward references encourage monolithic design and tangled dependencies, which is bad
           - can use relative forwards instead within molecules
           - in theory all we need is start for the entry point
+
+TODO NEXT:
+
+  - DONE try reducing PRG to 20 bits, i.e. 0x00001 with length 5 = a million instrs
+  - this would mean considering PRG to be 15 times that size, i.e. 0x000001 length 6
+  - maybe best practice would keep the whole thing in 0x0001 space
+     (otherwise expand opcode part of jmp and call and ret etc instructions for symmetry)
+
   
 */
 
@@ -89,7 +97,12 @@ var modFVMA = (function () { 'use strict';
     sto: 0xfbe,
     nop: 0xfd,
     hal: 0xff,
-    '---': 0x000000
+    '---': 0x000000,
+
+    // Plan C
+    xA: 0xd0,
+    xB: 0xd1,
+    xC: 0xd2
   };
 
   class FVMA {
@@ -165,6 +178,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token)) {
+      } else if (this.parseHex5(token)) {
       } else if (this.parseHex6(token)) {
       } else if (this.parseHex8(token)) {
       } else {
@@ -284,6 +298,16 @@ var modFVMA = (function () { 'use strict';
       } else {
         return false;
       }
+    }
+
+    parseHex5(token) {
+      if (token.length == 7 && token.match(/0x[0-9a-f]{5}/)){
+        var n = parseInt(token,16);
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }      
     }
 
     parseHex6(token) {
