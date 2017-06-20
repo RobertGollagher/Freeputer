@@ -42,9 +42,13 @@ fal --- jmp 0x00000
 
 ( DATA SPACE )
 
+  #def /v1 0s0001 .
   nop ---
+  #def /v2 0s0002 .
   nop ---
+  #def /v3 0s0003 .
   nop ---
+  #def /v4 0s0004 .
   nop ---
 
 ( PROGRAM ENTRY POINT )
@@ -53,8 +57,9 @@ fal --- jmp 0x00000
 
   lta 0x000001
   lto 0x000002
-  lts 0x000003
-  ltd 0x000004
+  lts 0s0001
+  ltd 0s0002
+  lda ---
   hal ---
 
 `;

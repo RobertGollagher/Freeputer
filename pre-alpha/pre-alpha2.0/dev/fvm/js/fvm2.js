@@ -40,7 +40,7 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1|0;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
     'fal ','    ','    ','jmp ','    ','    ','    ','    ', // 0
-    'lta ','lto ','lts ','ltd ','    ','    ','    ','    ', // 8
+    'lta ','lto ','lts ','ltd ','add ','lda ','sta ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
     '    ','    ','    ','    ','    ','    ','    ','    ', // 32
@@ -79,7 +79,9 @@ var modFVM = (function () { 'use strict';
   const iLTO = 0x09|0;
   const iLTS = 0x0a|0;
   const iLTD = 0x0b|0;
-  const iADD = 0x12|0;
+  const iADD = 0x0c|0;
+  const iLDA = 0x0d|0;
+  const iSTA = 0x0e|0;
   const iNOP = 0xfe|0;
   const iHAL = 0xff|0;
 
@@ -140,6 +142,15 @@ var modFVM = (function () { 'use strict';
             break;
           case iLTD:
             this.rD = metadata;
+            break;
+          case iADD:
+            this.rA = this.rA + this.rO; // FIXME handle overflow and consider unsigned
+            break;
+          case iLDA: // FIXME
+            this.rA = this.prg.getInt32(this.rS*WORD_BYTES, true);
+            break;
+          case iSTA: // FIXME
+            this.prg.setInt32(this.rD*WORD_BYTES, this.rA, true);
             break;
           case iJMP:
             this.pc = metadata;

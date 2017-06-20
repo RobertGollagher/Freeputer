@@ -92,6 +92,9 @@ var modFVMA = (function () { 'use strict';
     lto: 0x09,
     lts: 0x0a,
     ltd: 0x0b,
+    add: 0x0c,
+    lda: 0x0d,
+    sta: 0x0e,
     nop: 0xfd,
     hal: 0xff,
     '---': 0x000000
