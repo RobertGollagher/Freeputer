@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170619-1929+
- * Version:    pre-alpha-0.0.0.19 for FVM 2.0
+ * Updated:    20170621-2126+
+ * Version:    pre-alpha-0.0.0.20 for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -82,30 +82,16 @@ var modFVMA = (function () { 'use strict';
 
   const DEF = '#def';
   const HERE = '.';
-  const PHRSIZE = 16; // FIXME
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
   const SYMBOLS = {
     fal: 0x00,
-    lit: 0x01,
-    cal: 0x02,
-    ret: 0x91,
-    frt: 0x84,
     jmp: 0x03,
-    ldo: 0xbd,
-    sto: 0xfbe,
     nop: 0xfd,
     hal: 0xff,
     '---': 0x000000,
 
-    // Plan C
-    xD: 0xd0,
-    xS: 0xd1,
-    //xC: 0xd2
-    'xD!' : 0xd3,
-    'xS!' : 0xd4,
-    'x+' : 0xd5
   };
 
   class FVMA {

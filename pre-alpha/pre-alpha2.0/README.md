@@ -36,7 +36,7 @@ Migrating a Freeputer&nbsp;1.0 program to Freeputer&nbsp;2.0 is non-trivial sinc
 Plan C is a meta-machine. Build the rest later on top of the meta-machine:
 
 1. Tiny instruction set (not more than 16 to 64 instructions).
-1. Make failure impossible (so branch-on-failure not needed; and no illegal opcodes).
+1. Perhaps make failure almost impossible (so branch-on-failure not needed; and no illegal opcodes).
 1. Some kind of simple I/O strategy (come up with this later).
 1. Unsigned ints only (eliminate C problems, etc.).
 
@@ -258,7 +258,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 19 June 2017 at 21:15  
+This document was last updated on 20 June 2017 at 21:49  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
