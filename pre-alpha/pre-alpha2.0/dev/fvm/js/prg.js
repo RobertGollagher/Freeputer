@@ -62,10 +62,12 @@ fal --- jmp 0x00000
 
 ( Plan C experiments: )
 
-  xA /RAM00 0s0002
-  xB /RAM01 0s0003
-  xC /RAM02 0s0004
-
+  xD /RAM00 0s0002 ( xD = Destination or Accumulator address )
+  xS /RAM01 0s0003 ( xS = Source or Operand address )
+  xD! 0x000003
+  xS! 0x000008
+  x+ ---
+  hal ---
 
 (
   lit 0x000010

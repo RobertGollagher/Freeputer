@@ -82,7 +82,7 @@ var modFVM = (function () { 'use strict';
     '    ','    ','    ','    ','    ','@   ','!   ','    ', // 184
     '    ','    ','    ','    ','    ','    ','    ','    ', // 192
     '    ','+   ','-   ','    ','    ','    ','    ','    ', // 200
-    'xA  ','xB  ','xC  ','    ','    ','    ','    ','    ', // 208 // Hybrid Plan C instrs
+    'xD  ','xS  ','    ','xD! ','xS! ','x+  ','    ','    ', // 208 // Hybrid Plan C instrs
     '    ','    ','    ','    ','    ','    ','    ','    ', // 216
     '    ','    ','    ','    ','    ','    ','    ','    ', // 224
     '    ','    ','    ','    ','    ','    ','    ','    ', // 232
@@ -108,9 +108,12 @@ var modFVM = (function () { 'use strict';
   const iHALT = 255|0;
 
   // Plan C
-  const xA = 208|0;
-  const xB = 209|0;
-  const xC = 210|0;
+  const xD = 208|0;
+  const xS = 209|0;
+  // const xC = 210|0;
+  const xlitD = 211|0;
+  const xlitS = 212|0;
+  const xadd = 0xd5|0;
 
   class FVM {
     constructor(config) {
@@ -136,9 +139,9 @@ var modFVM = (function () { 'use strict';
       this.rs = new Stack(this);
 
       //Plan C
-      this.xA = 0;
-      this.xB = 0;
-      this.xC = 0;
+      this.xD = 0;
+      this.xS = 0;
+      //this.xC = 0;
     };
 
     run() {
@@ -167,15 +170,34 @@ var modFVM = (function () { 'use strict';
               this.fail();
               break;
             // Plan C
-            case xA:
-              this.xA = metadata;
+            case xD:
+              this.xD = metadata;
               break;
-            case xB:
-              this.xB = metadata;
+            case xS:
+              this.xS = metadata;
               break;
-            case xC:
+            case xlitD:
+              var val = metadata; // FIXME incongruous that failure still possible here in Plan C
+              if ((this.xD >= this.RAMa) && (this.xD <= this.RAMz)) {
+                this.ram.setInt32((this.xD-this.RAMa)*WORD_BYTES, val, true);
+              } else {
+                throw FAILURE;
+              }
+              break;
+            case xlitS:
+              var val = metadata; // FIXME incongruous that failure still possible here in Plan C
+              if ((this.xS >= this.RAMa) && (this.xS <= this.RAMz)) {
+                this.ram.setInt32((this.xS-this.RAMa)*WORD_BYTES, val, true);
+              } else {
+                throw FAILURE;
+              }
+              break;
+            case xadd:
+              this.setRAMvalue(this.xD, this.getRAMvalue(this.xS) + this.getRAMvalue(this.xD));
+              break;
+            /*case xC:
               this.xC = metadata;
-              break;
+              break;*/
             // -------------------------
             case iLIT:
               try {
@@ -359,6 +381,23 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('VM success');
     }
 
+    setRAMvalue(addr, val) {
+      if ((addr >= this.RAMa) && (addr <= this.RAMz)) { // FIXME and elsewhere WORD_BYTES
+        this.ram.setInt32((addr-this.RAMa)*WORD_BYTES, val, true);
+      } else {
+        throw "Outside RAM boundaries, cannot setRAMvalue";
+      }
+    }
+
+    getRAMvalue(addr) {
+      if ((addr >= this.RAMa) && (addr <= this.RAMz)) { // FIXME and elsewhere WORD_BYTES
+        var val = this.ram.getInt32((addr-this.RAMa)*WORD_BYTES, true);
+        return val;
+      } else {
+        return 0; //FIXME
+      }
+    }
+
     trace(pc,failAddr,opcode,lit) {
       this.fnTrc(modFmt.hex5(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
@@ -368,9 +407,9 @@ var modFVM = (function () { 'use strict';
                  this.ss + ']{ ' +
                  this.rs + '}' +
                  // Plan C
-                 ' xA: ' + modFmt.hex6(this.xA) +
-                 ' xB: ' + modFmt.hex6(this.xB) +
-                 ' xC: ' + modFmt.hex6(this.xC)
+                 ' xD: ' + modFmt.hex6(this.getRAMvalue(this.xD)) + '@' + modFmt.hex6(this.xD) + // FIXME not robust
+                 ' xS: ' + modFmt.hex6(this.getRAMvalue(this.xS)) + '@' + modFmt.hex6(this.xS) //+
+                 //' xC: ' + modFmt.hex6(this.xC)
                  );
     }
   }

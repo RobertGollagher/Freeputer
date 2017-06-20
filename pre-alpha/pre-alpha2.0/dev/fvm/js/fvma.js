@@ -100,9 +100,12 @@ var modFVMA = (function () { 'use strict';
     '---': 0x000000,
 
     // Plan C
-    xA: 0xd0,
-    xB: 0xd1,
-    xC: 0xd2
+    xD: 0xd0,
+    xS: 0xd1,
+    //xC: 0xd2
+    'xD!' : 0xd3,
+    'xS!' : 0xd4,
+    'x+' : 0xd5
   };
 
   class FVMA {
