@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170621-2126+
+  Updated:    20170622-0719+
 
   This is an experimental program for Freeputer 2 pre-alpha for Plan C.
   This program is being changed frequently.
@@ -51,6 +51,10 @@ fal --- jmp 0x00000
 
 #def /start 0s0000 .
 
+  lta 0x000001
+  lto 0x000002
+  lts 0x000003
+  ltd 0x000004
   hal ---
 
 `;

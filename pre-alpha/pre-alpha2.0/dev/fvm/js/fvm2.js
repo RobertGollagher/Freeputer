@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170621-2126+
- * Version:    pre-alpha-0.0.0.41+ for FVM 2.0
+ * Updated:    20170622-0719+
+ * Version:    pre-alpha-0.0.0.42+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -40,7 +40,7 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1|0;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
     'fal ','    ','    ','jmp ','    ','    ','    ','    ', // 0
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 8
+    'lta ','lto ','lts ','ltd ','    ','    ','    ','    ', // 8
     '    ','    ','    ','    ','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
     '    ','    ','    ','    ','    ','    ','    ','    ', // 32
@@ -75,6 +75,11 @@ var modFVM = (function () { 'use strict';
 
   const iFAL = 0x00|0;
   const iJMP = 0x03|0;
+  const iLTA = 0x08|0;
+  const iLTO = 0x09|0;
+  const iLTS = 0x0a|0;
+  const iLTD = 0x0b|0;
+  const iADD = 0x12|0;
   const iNOP = 0xfe|0;
   const iHAL = 0xff|0;
 
@@ -94,6 +99,12 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       // FIXME for now there is no address space but the program itself!
       this.prg = new DataView(config.program);
+
+      // Reegisters. For now just treat as ordinary Numbers:
+      this.rA = 0; // Accumulator
+      this.rO = 0; // Operand
+      this.rS = 0; // Source pointer
+      this.rD = 0; // Destination pointer
     };
 
     run() {
@@ -117,6 +128,18 @@ var modFVM = (function () { 'use strict';
         switch (opcode) {
           case iFAL:
             this.fail();
+            break;
+          case iLTA:
+            this.rA = metadata;
+            break;
+          case iLTO:
+            this.rO = metadata;
+            break;
+          case iLTS:
+            this.rS = metadata;
+            break;
+          case iLTD:
+            this.rD = metadata;
             break;
           case iJMP:
             this.pc = metadata;
@@ -177,7 +200,11 @@ var modFVM = (function () { 'use strict';
       this.fnTrc(modFmt.hex5(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
-                 MNEMS[opcode]
+                 MNEMS[opcode] + ' A:' +
+                 modFmt.hex8(this.rA) + ' O:' +
+                 modFmt.hex8(this.rO) + ' S:' +
+                 modFmt.hex8(this.rS) + ' D:' +
+                 modFmt.hex8(this.rD)
                  );
     }
   }
