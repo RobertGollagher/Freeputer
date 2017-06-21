@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170622-0719+
- * Version:    pre-alpha-0.0.0.42+ for FVM 2.0
+ * Updated:    20170622-0651+
+ * Version:    pre-alpha-0.0.0.44+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -28,38 +28,26 @@
  */
 
 /*
-Fundamental questions are:
 
-  - Do we care about running from ROM?
-      - If no, all can be solved with a simple holding strategy for call and return.
-          - However, that affects robustness.
-      - If yes, then maybe should consider separate program and data spaces.
-      - Or just similar to Fp 1.0
-  - Do we care about standardizing size?
-      - Maybe we do for these reasons:
-          - Simple standard machine
-          - Avoids monolithic design
-          - Software reuse
-          - Simplicity
-          - Fun
-      - Maybe we don't for these reasons:
-          - Desire to run on tiny devices with almost no RAM and little ROM
-          - Desire to run on gigantic devices
-          - Desire to virtualise small instances in larger ones
-          - Desire to virtualise other types of VMs within base
+The Bottom Line:
 
-DECISION:
-
-  - If you are serious about software reuse you need a standard size.
-    Otherwise you are just playing around?
-  - Best strategy might be standard size and a cluster implementation.
-
+1. VM needs to be robust and correct: SOLVED
+2. Assembler needs to be easy to implement and need little RAM: SOLVED
+3. VM needs to be easier to implement : MOST IMPORTANT THING
+    - easiest approach is 1 flat address space: OK
+    - might just use lit/call from addr to solve length issues: OK
+    - just use dedicated I/O instructions: OK
+4. VM needs great hardware freedom
+5. Need more standardization
+6. Make all the complexity just go away!
+                ------------------------
 
 */
 
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
+  const PRG_SIZE_BYTES = 0x40000; // = words 0x0000...0xffff
   const WORD_BYTES = 4;
   const WORD_PWR = 2;
   const INT_MAX =  2147483647;
@@ -129,10 +117,16 @@ var modFVM = (function () { 'use strict';
       this.fnGrdout = config.fnGrdout;
       this.fnLog = config.fnLog;
       this.fnTrc = config.fnTrc;
-      // FIXME for now there is no address space but the program itself!
-      this.prg = new DataView(config.program);
 
-      // Reegisters. For now just treat as ordinary Numbers:
+      // Plan C revised: just use 1 flat PRG space for everything
+      this.prg = new DataView(new ArrayBuffer(PRG_SIZE_BYTES));
+      var program = new DataView(config.program);
+      for (var i = 0; i < config.program.byteLength; i+=WORD_BYTES) {
+        var w = program.getInt32(i, true);
+        this.prg.setInt32(i, w, true);
+      }
+
+      // Registers. For now just treat as ordinary Numbers:
       this.rA = 0; // Accumulator
       this.rO = 0; // Operand
       this.rS = 0; // Source pointer
@@ -154,9 +148,10 @@ var modFVM = (function () { 'use strict';
           this.trace(this.pc,failAddr,opcode,lit); 
         }
         this.pc++;
+        /* FIXME
         if (this.pc > this.mmSize) {
           this.pc = 0;
-        }
+        } */
         switch (opcode) {
           case iFAL:
             this.fail();
