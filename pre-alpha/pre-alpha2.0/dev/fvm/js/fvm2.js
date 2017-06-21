@@ -48,7 +48,7 @@ The Bottom Line:
 var modFVM = (function () { 'use strict';
 
   const PRG_SIZE_BYTES = 0x40000; // = words 0x0000...0xffff
-  const WORD_BYTES = 4;
+  const WORD_BYTES = 4; // ? would byte-indexing be better ?
   const WORD_PWR = 2;
   const INT_MAX =  2147483647;
   const INT_MIN = -2147483648;
@@ -100,7 +100,7 @@ var modFVM = (function () { 'use strict';
   const iADD = 0x0c|0;
   const iLDA = 0x0d|0;
   const iSTA = 0x0e|0;
-  const iNOP = 0xfe|0;
+  const iNOP = 0xfd|0;
   const iHAL = 0xff|0;
 
   class FVM {

@@ -51,6 +51,9 @@ fal --- jmp 0x00000
   #def /v4 0s0004 .
   nop 0x000004
 
+  #def /v5 0s0005 0x000100
+  #def /v6 0s0006 0x000101
+
 ( PROGRAM ENTRY POINT )
 
 #def /start 0s0000 .
@@ -65,6 +68,16 @@ fal --- jmp 0x00000
   lta 0x111111
   lts 0s0002
   lda ---
+
+  nop ---
+
+  lta 0x222222
+  ltd 0s0005
+  sta ---
+  lta 0x000010
+  lts 0s0005
+  lda ---
+
   hal ---
 
 `;
