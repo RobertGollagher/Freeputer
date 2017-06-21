@@ -27,6 +27,36 @@
  *
  */
 
+/*
+Fundamental questions are:
+
+  - Do we care about running from ROM?
+      - If no, all can be solved with a simple holding strategy for call and return.
+          - However, that affects robustness.
+      - If yes, then maybe should consider separate program and data spaces.
+      - Or just similar to Fp 1.0
+  - Do we care about standardizing size?
+      - Maybe we do for these reasons:
+          - Simple standard machine
+          - Avoids monolithic design
+          - Software reuse
+          - Simplicity
+          - Fun
+      - Maybe we don't for these reasons:
+          - Desire to run on tiny devices with almost no RAM and little ROM
+          - Desire to run on gigantic devices
+          - Desire to virtualise small instances in larger ones
+          - Desire to virtualise other types of VMs within base
+
+DECISION:
+
+  - If you are serious about software reuse you need a standard size.
+    Otherwise you are just playing around?
+  - Best strategy might be standard size and a cluster implementation.
+
+
+*/
+
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 

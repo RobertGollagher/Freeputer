@@ -43,13 +43,13 @@ fal --- jmp 0x00000
 ( DATA SPACE )
 
   #def /v1 0s0001 .
-  nop ---
+  nop 0x000001 ( abusing metadata here and below )
   #def /v2 0s0002 .
-  nop ---
+  nop 0x000002
   #def /v3 0s0003 .
-  nop ---
+  nop 0x000003
   #def /v4 0s0004 .
-  nop ---
+  nop 0x000004
 
 ( PROGRAM ENTRY POINT )
 
@@ -59,6 +59,11 @@ fal --- jmp 0x00000
   lto 0x000002
   lts 0s0001
   ltd 0s0002
+  lda ---
+  add ---
+  sta ---
+  lta 0x111111
+  lts 0s0002
   lda ---
   hal ---
 
