@@ -42,12 +42,19 @@ The Bottom Line:
 6. Make all the complexity just go away!
                 ------------------------
 
+TRIAL:
+
+  - only unsigned
+  - no premature optimisation: just factor it small
+  - very few registers if any  
+  - could go smaller on instr width? (using literal table)
+
 */
 
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
-  const PRG_SIZE_BYTES = 0x40000; // = words 0x0000...0xffff
+  const PRG_SIZE_BYTES = 0x4000000; // = words 0x000000...0xffffff
   const WORD_BYTES = 4; // ? would byte-indexing be better ?
   const WORD_PWR = 2;
   const INT_MAX =  2147483647;
@@ -57,9 +64,9 @@ var modFVM = (function () { 'use strict';
   const SUCCESS = 0|0;
   const FAILURE = 1|0;
   const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fal ','    ','    ','jmp ','    ','    ','    ','    ', // 0
-    'lta ','lto ','lts ','ltd ','add ','lda ','sta ','    ', // 8
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 16
+    'fal ','    ','    ','jmp ','jst ','    ','    ','    ', // 0
+    'res ','lit ','src ','dst ','add ','lod ','sav ','    ', // 8
+    '    ','    ','src@','dst@','    ','    ','    ','    ', // 16
     '    ','    ','    ','    ','    ','    ','    ','    ', // 24
     '    ','    ','    ','    ','    ','    ','    ','    ', // 32
     '    ','    ','    ','    ','    ','    ','    ','    ', // 40
@@ -93,6 +100,7 @@ var modFVM = (function () { 'use strict';
 
   const iFAL = 0x00|0;
   const iJMP = 0x03|0;
+  const iJST = 0x04|0;
   const iLTA = 0x08|0;
   const iLTO = 0x09|0;
   const iLTS = 0x0a|0;
@@ -100,6 +108,8 @@ var modFVM = (function () { 'use strict';
   const iADD = 0x0c|0;
   const iLDA = 0x0d|0;
   const iSTA = 0x0e|0;
+  const iSRCat = 0x12|0;
+  const iDSTat = 0x13|0;
   const iNOP = 0xfd|0;
   const iHAL = 0xff|0;
 
@@ -168,6 +178,12 @@ var modFVM = (function () { 'use strict';
           case iLTD:
             this.rD = metadata;
             break;
+          case iSRCat:
+            this.rS = this.prgWord(metadata);
+            break;
+          case iDSTat:
+            this.rD = this.prgWord(metadata);
+            break;
           case iADD:
             this.rA = this.rA + this.rO; // FIXME handle overflow and consider unsigned
             break;
@@ -179,6 +195,9 @@ var modFVM = (function () { 'use strict';
             break;
           case iJMP:
             this.pc = metadata;
+            break;
+          case iJST:
+            this.pc = this.dst;
             break;
           case iNOP:
             break;
@@ -233,14 +252,14 @@ var modFVM = (function () { 'use strict';
     }
 
     trace(pc,failAddr,opcode,lit) {
-      this.fnTrc(modFmt.hex5(this.pc) + ' ' + 
+      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex6(failAddr) + ':' +
                  modFmt.hex2(opcode) + ' ' +
-                 MNEMS[opcode] + ' A:' +
-                 modFmt.hex8(this.rA) + ' O:' +
-                 modFmt.hex8(this.rO) + ' S:' +
-                 modFmt.hex8(this.rS) + ' D:' +
-                 modFmt.hex8(this.rD)
+                 MNEMS[opcode] + ' ' +
+                 modFmt.hex8(this.rO) + ' ' +
+                 modFmt.hex8(this.rA) + ' S:' +
+                 modFmt.hex6(this.rS) + ' D:' +
+                 modFmt.hex6(this.rD)
                  );
     }
   }
@@ -282,6 +301,14 @@ var modFmt = (function () { 'use strict';
     }
   }
 
+  var hex4 = function(i) {
+    if (typeof i === 'number') {
+      return ('0000' + i.toString(16)).substr(-4);
+    } else {
+      return '      ';
+    }
+  };
+
   var hex5 = function(i) {
     if (typeof i === 'number') {
       return ('00000' + i.toString(16)).substr(-5);
@@ -308,6 +335,7 @@ var modFmt = (function () { 'use strict';
 
   return {
     hex2: hex2,
+    hex4: hex4,
     hex5: hex5,
     hex6: hex6,
     hex8: hex8

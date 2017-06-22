@@ -88,13 +88,16 @@ var modFVMA = (function () { 'use strict';
   const SYMBOLS = {
     fal: 0x00,
     jmp: 0x03,
-    lta: 0x08,
-    lto: 0x09,
-    lts: 0x0a,
-    ltd: 0x0b,
+    jst: 0x04,
+    res: 0x08,
+    lit: 0x09,
+    src: 0x0a,
+    dst: 0x0b,
     add: 0x0c,
-    lda: 0x0d,
-    sta: 0x0e,
+    lod: 0x0d,
+    sav: 0x0e,
+    'src@': 0x12,
+    'dst@': 0x13,
     nop: 0xfd,
     hal: 0xff,
     '---': 0x000000
@@ -172,7 +175,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseBackw(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
-      } else if (this.parseHere(token)) {
+      } else if (this.parseHere(token, lineNum)) {
       } else if (this.parseHex5(token)) {
       } else if (this.parseHex6(token)) {
       } else if (this.parseHex8(token)) {

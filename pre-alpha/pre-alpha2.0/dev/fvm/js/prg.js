@@ -42,42 +42,43 @@ fal --- jmp 0x00000
 
 ( DATA SPACE )
 
-  #def /v1 0s0001 .
-  nop 0x000001 ( abusing metadata here and below )
-  #def /v2 0s0002 .
-  nop 0x000002
-  #def /v3 0s0003 .
-  nop 0x000003
-  #def /v4 0s0004 .
-  nop 0x000004
-
   #def /v5 0s0005 0x000100
   #def /v6 0s0006 0x000101
+
+( SOME RANDOM PADDING )
+
+  nop ---
+  nop ---
+  nop ---
+
+( PSEUDO FUNCTIONS )
+
+  #def /f1ret 0s0007 .
+    fal ---
+    #def /f1 0s0008 .
+    dst@ 0s0007 ( FIXME )
+    jst ---
 
 ( PROGRAM ENTRY POINT )
 
 #def /start 0s0000 .
 
-  lta 0x000001
-  lto 0x000002
-  lts 0s0001
-  ltd 0s0002
-  lda ---
+  ( returning is not so simple here )
+  ( tentatively I think we do not have a solution here, Plan B is better )
+
+  jmp /f1 0s0008
+
+(
+  res 0x222222
+  dst 0s0005
+  sav ---
+  res 0x000010
+  src@ 0s0005
+  lod ---
+  lit 0x010000
   add ---
-  sta ---
-  lta 0x111111
-  lts 0s0002
-  lda ---
-
-  nop ---
-
-  lta 0x222222
-  ltd 0s0005
-  sta ---
-  lta 0x000010
-  lts 0s0005
-  lda ---
-
+)
+  #def /end 0s0009 .
   hal ---
 
 `;
