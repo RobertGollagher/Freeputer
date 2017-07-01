@@ -15,42 +15,44 @@ Freeputer ( ) \[ \] { } smaller simpler better
 
 ## Benefits
 
-Freeputer&nbsp;2.0 will be ***much easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. 
+Freeputer&nbsp;2.0 will be ***much easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a ***powerful server*** or in a ***web browser*** or on a ***microcontroller***.
 
-Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in a web browser or on a microcontroller!
+Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while ***maintaining correctness***.
 
-Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while maintaining correctness. It achieves this by *branching on failure* rather than *trapping on failure*.
+Freeputer&nbsp;2.0 may also have a different architecture and I/O strategy.
 
-Freeputer&nbsp;2.0 has a smaller *program space* than Freeputer&nbsp;1.0. This allows ***correctness and robustness at the same time***, in a manner which is portable and simpler to implement. This is why the motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
-
-Freeputer&nbsp;2.0 may also have a different I/O strategy to Freeputer&nbsp;1.0.
+The motto of Freeputer&nbsp;2.0 is: ***smaller simpler better***.
 
 ## Migration
 
-Freeputer&nbsp;1.0 and 2.0 are significantly different although broadly similar in concept and instruction sets. Freeputer&nbsp;1.0 uses the Freelang language. However, the large amount of RAM (several megabytes) required by the symbol tables of the `flc.fl` Freelang compiler to compile itself is a barrier to portability. Also, Freelang is not especially well suited to *branching on failure* rather than *trapping on failure*. Lastly, a Freelang compiler is rather complex as a minimal bootstrapping platform. For these reasons a tiny one-pass assembler (`fvma.js`) requiring almost no RAM at all is being created for Freeputer&nbsp;2.0; it uses a simple assembly language intended to be the bare minimum for bootstrapping higher languages later. This is a better way to manage complexity.
+Freeputer&nbsp;2.0 will not run unmodified Freeputer&nbsp;1.0 programs.
 
-Migrating a Freeputer&nbsp;1.0 program to Freeputer&nbsp;2.0 is non-trivial since the latter does not use Freelang. However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer&nbsp;2.0.
+However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer&nbsp;2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer&nbsp;1.0 programs to run there.
 
 ## Proposed Design: Plan C
 
-Plan C is a meta-machine. Build the rest later on top of the meta-machine:
+Plan C is to use a simple but robust meta-machine as a foundation. It would look something like this:
 
-1. Tiny instruction set (not more than 16 to 64 instructions).
-1. Perhaps make failure almost impossible (so branch-on-failure not needed; and no illegal opcodes).
-1. Some kind of simple I/O strategy (come up with this later).
-1. Unsigned ints only (eliminate C problems, etc.).
+1. RISC register machine (of variable memory capacity) with a simple fixed-width 32-bit (FW32) instruction set.
+1. Primarily designed to be trivially easy to implement in assembly language and to require little RAM.
+1. Rxx, @Rxx, @Rxx++, @--Rxx, orthogonal. Leave space for extensions. Little endian.
+1. Reserve space for 64 opcodes and 16 registers (including pc, sp, lr, zr).
+1. Initial implementation might be 16-32 opcodes and 8-10 registers.
+1. Relative and absolute branching and load/store.
+1. Designed for very easy fetch and decode. Suitable for FPGA implementation.
+1. Instruction format: 2 operands, space for 64 opcodes and 16 registers, conditional:
+    1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
+    1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 6=ret 10=imm
+
+This approach might make it easier to implement the VM since all the popular hardware architectures today are register machines not stack machines. Plan C is also, for the same reason, an easier target for existing compilers. The meta-machine could then very easily serve as a platform on which to implement whatever kind of stack machine (such as Plan A) is desired. Or it could be used stand-alone.
 
 ## Proposed Design: Plan B
 
-Although Plan A (see below) is reasonable, there is a strong counterargument for going smaller. Ongoing development of the prototype VM (see `fvm2.js`) and assembler (see `fvma.js` and example program `prg.js`) has led to a decision to abandon complex instructions and to use only fixed-width 32-bit simple instructions. This is the best compromise for the instruction set but it leads to a bottleneck for the lit instruction which is then limited to 24-bit literals and would need to be supplemented by other instructions; considered together with the @ and ! instructions for load and store this leads to unwanted complexity and performance penalties. Furthermore, memory-mapped I/O using @ and ! carries significant penalties in complexity and performance for the implementation of those instructions and is not necessarily easier to understand in practice. Lastly, the smaller the VM the less monolithic will be systems built on the VM.
+Plan B has been rejected as unnecessary. The choice is now between:
 
-With all this in mind, a Plan B would look something like this:
-
-1. Generally similar to Plan A except:
-    1. 24-bit address space rather than 32-bit address space.
-    1. PRG perhaps limited to 20 bits and MEM occupying most of the remainder.
-    1. Perhaps dedicated I/O instructions rather than memory-mapped I/O.
-    1. Perhaps even smaller than the above but with conditional and scaled instructions for performance.
+- Plan C alone (that is, a pure register machine)
+- Plan A alone (that is, a pure stack machine)
+- Plan A and Plan C combined (a register machine underlying a stack machine)
 
 ## Proposed Design: Plan A
 
@@ -79,17 +81,14 @@ With all this in mind, a Plan B would look something like this:
 1. The VM can be implemented on **powerful servers** using physical memory.
 1. The VM can be implemented on **small microcontrollers** using mainly logical memory.
 1. Words are **32 signed bits** (little endian, two's complement).
-1. All instructions are always exactly **1 cell wide** (that is, 32 bits wide).
+1. All instructions are **1 cell wide** (that is, 32 bits wide) but a few use data from the following cell.
 1. Thus instructions are **simple**, **symmetrical**, **compact** and **small-device friendly**.
 1. The least-significant 8 bits of an instruction comprise its *opcode*.
 1. The most-significant 24 bits of an instruction comprise its *metadata*.
-1. For instructions which cannot fail, the *metadata* is an *address* or is ignored.
-1. For instructions which can fail, the *metadata* is a *failure address* except:
-    - for *literal instructions*, it is a *literal*;
-    - for *call instructions*, it is an *address*.
-1. For *literal instructions* and *call instructions*:
-    - the *failure address* is implicitly the following cell;
-    - the following cell is skipped upon success.
+1. For instructions which cannot fail the *metadata* is an *address* (in the case of *branch instructions*) or is ignored.
+1. Most instructions can fail. For instructions which can fail, the *metadata* is a *failure address*.
+1. *Literal instructions* and *call instructions* can fail. They are unusual in that they use data from the following cell:
+    - the following cell is skipped upon success and contains the address or literal used by the instruction.
 1. The VM has **3 stacks** of words: a data stack (ds), a software stack (ss) and a return stack (rs).
 1. Each stack has a maximum depth of **256 elements**.
 1. Inability to call a subroutine (call failure due to rs full) triggers **branch on failure**.
@@ -258,7 +257,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 20 June 2017 at 21:49  
+This document was last updated on 1 July 2017 at 22:52  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
