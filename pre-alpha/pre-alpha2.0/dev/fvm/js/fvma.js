@@ -5,14 +5,18 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170622-0719+
- * Version:    pre-alpha-0.0.0.21+ for FVM 2.0
+ * Updated:    20170701:2336+
+ * Version:    pre-alpha-0.0.0.46+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
+ *
+ *              Note: This implementation is only for Plan C, GOLD.
+ *              FIXME not ported to Plan C, GOLD yet.
+ *              Currently largely unimplemented!
  *
  * ===========================================================================
  * 
@@ -24,59 +28,6 @@
  *
  */
 
-/*
-
-TODO:
-
-  - more strict/helpful assembler syntax/structure checks
-
-Design notes:
-
-  - this is a bold experimental design based on absolute minimalism:
-      - extremely simple one-pass assembler requiring only a few bytes of memory (easily run anywhere)
-      - IMPRACTICAL: everything is done by hand using **human intelligence** (possibly helped by a preprocessor or validator)
-      - IMPRACTICAL: no definitions, no declarations, no symbol tables, no labels (only relative and block-absolute and absolute jumps)
-      - this is a total commitment to the principal of YAGNI (which delivers extreme portability)
-      - purpose is just enough to bootstrap higher languages later (and not one iota more)
-      - to facilitate this the compromises are:
-          - IMPRACTICAL: coding will be done in SMALL blocks (called phrases) of constant size padded with nops
-          - therefore, factoring and the use of composition will be EXTREME
-          - IMPRACTICAL: clever assembler design will allow block relocation by hand
-          - what is coded later will build on what is coded earlier
-          - IMPRACTICAL: changing what was coded earlier will be rare
-          - strategies for reuse will be employed
-          - IMPRACTICAL: 1 line = 1 instruction
-
-Modifications:
-
-  - Experimentation has shown:
-      - declarations and definitions are necessary for reasonable productivity (especially labels but some others too)
-      - failing to use them would just shift the burden to sophisticated text editors (not worthwhile overall)
-      - using fixed-size phrases carries too high a runtime burden (too much RAM needed for loading programs)
-      - bug-fixing requires being able to change what was coded earlier (in place)
-  - Practical upshot of this is:
-      - added #def back into the assembler
-  - Think deeply about call failure vs subroutine failure
-  - Think deeply about 24-bit lit barrier and performance problems of @ and ! (worth going smaller?)
-
-Jury is still out on:
-
-  - Do we need to support forward references to labels or not?
-      - Intuitive answer: no, except 1 label to start, because:
-          - forward references encourage monolithic design and tangled dependencies, which is bad
-          - can use relative forwards instead within molecules
-          - in theory all we need is start for the entry point
-
-TODO NEXT:
-
-  - DONE try reducing PRG to 20 bits, i.e. 0x00001 with length 5 = a million instrs
-  - this would mean considering PRG to be 15 times that size, i.e. 0x000001 length 6
-  - maybe best practice would keep the whole thing in 0x0001 space
-     (otherwise expand opcode part of jmp and call and ret etc instructions for symmetry)
-
-  
-*/
-
 // Module modFVMA will provide a Freeputer Assembler implementation.
 var modFVMA = (function () { 'use strict';
 
@@ -85,22 +36,18 @@ var modFVMA = (function () { 'use strict';
   const COMSTART = '(';
   const COMEND = ')';
   const COMWORD= '/';
+
+  const WORD_SIZE_BYTES = 4;
+
+  const iFAL = 0x00|0; // FIXME
+  const iJMP = 0x01|0;
+  const iHAL = 0x1f; // FIXME
+
   const SYMBOLS = {
-    fal: 0x00,
-    jmp: 0x03,
-    jst: 0x04,
-    res: 0x08,
-    lit: 0x09,
-    src: 0x0a,
-    dst: 0x0b,
-    add: 0x0c,
-    lod: 0x0d,
-    sav: 0x0e,
-    'src@': 0x12,
-    'dst@': 0x13,
-    nop: 0xfd,
-    hal: 0xff,
-    '---': 0x000000
+    '--': 0x0000,
+    'hal': iHAL,
+    'jmp': iJMP,
+    'fal': iFAL
   };
 
   class FVMA {
@@ -126,10 +73,10 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        //this.fnMsg(this.prgElems);
-        //this.fnMsg('Melding...');
+        this.fnMsg(this.prgElems);
+        this.fnMsg('Melding...');
         this.prgElems.meld();
-        //this.fnMsg(this.prgElems);
+        this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         this.fnMsg('Done');
@@ -148,7 +95,8 @@ var modFVMA = (function () { 'use strict';
     use(x) {
       if (this.expectDef) {
        if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
-         this.dict[this.decl] = this.prgElems.cursor / 2;
+          // note: nowadays using byte addressing
+         this.dict[this.decl] = (this.prgElems.cursor / 2) * WORD_SIZE_BYTES;
        } else {
          this.dict[this.decl] = x;
        }
@@ -176,8 +124,8 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
-      } else if (this.parseHex5(token)) {
-      } else if (this.parseHex6(token)) {
+      //} else if (this.parseHex5(token)) {
+      //} else if (this.parseHex6(token)) {
       } else if (this.parseHex8(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
@@ -298,18 +246,8 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseHex5(token) {
-      if (token.length == 7 && token.match(/0x[0-9a-f]{5}/)){
-        var n = parseInt(token,16);
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseHex6(token) {
-      if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
+    parseHex4(token) {
+      if (token.length == 6 && token.match(/0x[0-9a-f]{4}/)){
         var n = parseInt(token,16);
         this.use(n);
         return true;
@@ -365,7 +303,8 @@ var modFVMA = (function () { 'use strict';
     meld() {
       var melded = [];
       for (var i = 0; i < this.elems.length-1; i=i+2) {
-        melded.push(this.elems[i] + (this.elems[i+1] << 8));
+        // FIXME for Plan C GOLD this is just a hack and not working fully
+        melded.push((this.elems[i] << 26) | (this.elems[i+1]));
       }
       this.elems = melded;
     }

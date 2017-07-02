@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170617
-  Updated:    20170622-0719+
+  Updated:    20170701:2336+
 
   This is an experimental program for Freeputer 2 pre-alpha for Plan C.
   This program is being changed frequently.
@@ -33,52 +33,18 @@ var prgSrc = `
 
 )
 
-( STANDARD BOILERPLATE
+( PRIOR TO PROGRAM ENTRY POINT )
 
-  The VM begins execution at cell 1 which here is 'jmp 0x000000'
-  but the assembler will replace this 0x000000 with the value of 0s0000,
-  which symbol is defined at the program entry point further below. )
-fal --- jmp 0x00000
+  fal --
 
-( DATA SPACE )
+( PROGRAM ENTRY POINT: JUMPS TO /start )
 
-  #def /v5 0s0005 0x000100
-  #def /v6 0s0006 0x000101
+  jmp -- ( the assembler will rewrite this jmp to the address of /start )
 
-( SOME RANDOM PADDING )
-
-  nop ---
-  nop ---
-  nop ---
-
-( PSEUDO FUNCTIONS )
-
-  #def /f1ret 0s0007 .
-    fal ---
-    #def /f1 0s0008 .
-    dst@ 0s0007 ( FIXME )
-    jst ---
-
-( PROGRAM ENTRY POINT )
+( PROGRAM START )
 
 #def /start 0s0000 .
 
-  ( returning is not so simple here )
-  ( tentatively I think we do not have a solution here, Plan B is better )
-
-  jmp /f1 0s0008
-
-(
-  res 0x222222
-  dst 0s0005
-  sav ---
-  res 0x000010
-  src@ 0s0005
-  lod ---
-  lit 0x010000
-  add ---
-)
-  #def /end 0s0009 .
-  hal ---
+  hal --
 
 `;

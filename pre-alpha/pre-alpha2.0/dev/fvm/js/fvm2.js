@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170622-0651+
- * Version:    pre-alpha-0.0.0.44+ for FVM 2.0
+ * Updated:    20170701:2336+
+ * Version:    pre-alpha-0.0.0.46+ for FVM 2.0
  *
  *                   This Edition of the Virtual Machine:
  *                                JavaScript
@@ -14,8 +14,7 @@
  * 
  *                                ( ) [ ] { }
  *
- *              Note: This implementation is only for Plan C.
- *          It is extremely minimal without any stack support.
+ *               Note: This implementation is only for Plan C, GOLD.
  *
  * ===========================================================================
  * 
@@ -27,188 +26,109 @@
  *
  */
 
-/*
-
-The Bottom Line:
-
-1. VM needs to be robust and correct: SOLVED
-2. Assembler needs to be easy to implement and need little RAM: SOLVED
-3. VM needs to be easier to implement : MOST IMPORTANT THING
-    - easiest approach is 1 flat address space: OK
-    - might just use lit/call from addr to solve length issues: OK
-    - just use dedicated I/O instructions: OK
-4. VM needs great hardware freedom
-5. Need more standardization
-6. Make all the complexity just go away!
-                ------------------------
-
-TRIAL:
-
-  - only unsigned
-  - no premature optimisation: just factor it small
-  - very few registers if any  
-  - could go smaller on instr width? (using literal table)
-
-*/
-
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
-  const PRG_SIZE_BYTES = 0x4000000; // = words 0x000000...0xffffff
-  const WORD_BYTES = 4; // ? would byte-indexing be better ?
-  const WORD_PWR = 2;
-  const INT_MAX =  2147483647;
-  const INT_MIN = -2147483648;
-  const MSP = 0xffffff00;
-  const LSB = 0x000000ff;
-  const SUCCESS = 0|0;
-  const FAILURE = 1|0;
-  const MNEMS = [ // Note: temporarily using FVM 1.x opcodes
-    'fal ','    ','    ','jmp ','jst ','    ','    ','    ', // 0
-    'res ','lit ','src ','dst ','add ','lod ','sav ','    ', // 8
-    '    ','    ','src@','dst@','    ','    ','    ','    ', // 16
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 24
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 32
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 40
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 48
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 56
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 64
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 72
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 80
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 88
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 96
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 104
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 112
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 120
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 128
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 136
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 144
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 152
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 160
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 168
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 176
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 184
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 192
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 200
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 208 // Hybrid Plan C instrs
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 216
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 224
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 232
-    '    ','    ','    ','    ','    ','    ','    ','    ', // 240
-    '    ','    ','    ','    ','    ','nop ','    ','hal ', // 248
-  ];
+  const MM_SIZE = 0xefff; // in bytes .        .       .       .       .
+  const WORD_SIZE_BYTES = 4;
+  const SUCCESS = 0;
+  const FAILURE = 1;
 
-  const iFAL = 0x00|0;
-  const iJMP = 0x03|0;
-  const iJST = 0x04|0;
-  const iLTA = 0x08|0;
-  const iLTO = 0x09|0;
-  const iLTS = 0x0a|0;
-  const iLTD = 0x0b|0;
-  const iADD = 0x0c|0;
-  const iLDA = 0x0d|0;
-  const iSTA = 0x0e|0;
-  const iSRCat = 0x12|0;
-  const iDSTat = 0x13|0;
-  const iNOP = 0xfd|0;
-  const iHAL = 0xff|0;
+  const iFAL = 0x00|0; // FIXME
+  const iJMP = 0x01|0;
+  const iHAL = 0x1f|0; // FIXME
+  const MNEMS = [
+    'fal','jmp','','','','','','',
+    '','','','','','','','',
+    '','','','','','','','',
+    '','','','','','','','hal',
+  ]
+
+  // Plan C instruction format GOLD
+  const OPCODE_MASK = 0xfc000000; //   11111100000000000000000000000000
+  const DST_MASK =    0x03c00000; //   00000011110000000000000000000000
+  const DSTM_MASK =   0x00300000; //   00000000001100000000000000000000
+  const SR1_MASK =    0x000f0000; //   00000000000011110000000000000000
+  const SR1M_MASK =   0x0000c000; //   00000000000000001100000000000000
+  const SR2_MASK =    0x00003c00; //   00000000000000000011110000000000
+  const SR2M_MASK =   0x00000300; //   00000000000000000000001100000000
+  const IMR_MASK =    0x000000ff; //   00000000000000000000000011111111
+  const IMB_MASK =    0x0000ffff; //   00000000000000001111111111111111
+  const CON_MASK =    0x000f0000; //   00000000000011110000000000000000
+
+  
 
   class FVM {
     constructor(config) {
-      this.pc = 1;
-      this.running = false;
-      this.exitCode = null;
-      this.tracing = true;
-      this.fnStdin = config.fnStdin;
-      this.fnStdout = config.fnStdout;
-      this.fnUsrin = config.fnUsrin;
-      this.fnUsrout = config.fnUsrout;
-      this.fnGrdin = config.fnGrdin;
-      this.fnGrdout = config.fnGrdout;
-      this.fnLog = config.fnLog;
+      this.pc = WORD_SIZE_BYTES; // non-zero, also nowadays is byte-addressed
+      this.mm = new DataView(new ArrayBuffer(MM_SIZE));
       this.fnTrc = config.fnTrc;
-
-      // Plan C revised: just use 1 flat PRG space for everything
-      this.prg = new DataView(new ArrayBuffer(PRG_SIZE_BYTES));
-      var program = new DataView(config.program);
-      for (var i = 0; i < config.program.byteLength; i+=WORD_BYTES) {
-        var w = program.getInt32(i, true);
-        this.prg.setInt32(i, w, true);
-      }
-
-      // Registers. For now just treat as ordinary Numbers:
-      this.rA = 0; // Accumulator
-      this.rO = 0; // Operand
-      this.rS = 0; // Source pointer
-      this.rD = 0; // Destination pointer
+      this.loadProg(config.program, this.mm);
+      this.tracing = true;
     };
 
+    loadProg(pgm, mm) {
+      if (pgm === undefined) {
+        this.loadedProg = false;
+        this.fnTrc('No program to load');
+      } else {
+        var program = new DataView(pgm);
+        for (var i = 0; i < program.byteLength; i++) {
+          var w = program.getUint8(i, true);
+          mm.setUint8(i, w, true);
+        }
+        this.loadedProg = true;
+      }
+    }
+
     run() {
+      if (!this.loadedProg) {
+        return;
+      }
       this.fnTrc('FVM run...');
       this.running = true;
-      var metadata, instr, failAddr, opcode, lit;
+      var instr, opcode, dst, dstm, sr1, sr1m, sr2, sr2m, imr, imb, con;
 
       while (this.running) {
         instr = this.wordAtPc();
-        metadata = (instr & MSP) >> 8;
-        failAddr = metadata;
-        lit = metadata;
-        opcode = instr & LSB;
+
+        // TODO optimize later
+        opcode = (instr & OPCODE_MASK) >> 26;
+        dst = (instr & DST_MASK) >> 22;
+        dstm = (instr & DSTM_MASK) >> 20;
+        sr1 = (instr & SR1_MASK) >> 14;
+        sr1m = (instr & SR1M_MASK) >> 12;
+        sr2 = (instr & SR2_MASK) >> 10;
+        sr2m = (instr & SR2M_MASK) >> 8;
+        imr = (instr & IMR_MASK);
+        imb = (instr & IMB_MASK);
+        con = (instr & CON_MASK) >> 16;
+
         if (this.tracing) {
-          this.trace(this.pc,failAddr,opcode,lit); 
+          this.trace(this.pc,instr,opcode,dst,dstm,sr1,sr1m,sr2,sr2m,imr,imb,con); 
         }
-        this.pc++;
-        /* FIXME
-        if (this.pc > this.mmSize) {
-          this.pc = 0;
-        } */
+
+        this.pc+=WORD_SIZE_BYTES; // nowadays is byte-addressed
         switch (opcode) {
           case iFAL:
-            this.fail();
+            this.fail(); // FIXME
             break;
-          case iLTA:
-            this.rA = metadata;
-            break;
-          case iLTO:
-            this.rO = metadata;
-            break;
-          case iLTS:
-            this.rS = metadata;
-            break;
-          case iLTD:
-            this.rD = metadata;
-            break;
-          case iSRCat:
-            this.rS = this.prgWord(metadata);
-            break;
-          case iDSTat:
-            this.rD = this.prgWord(metadata);
-            break;
-          case iADD:
-            this.rA = this.rA + this.rO; // FIXME handle overflow and consider unsigned
-            break;
-          case iLDA: // FIXME
-            this.rA = this.prg.getInt32(this.rS*WORD_BYTES, true);
-            break;
-          case iSTA: // FIXME
-            this.prg.setInt32(this.rD*WORD_BYTES, this.rA, true);
-            break;
-          case iJMP:
-            this.pc = metadata;
-            break;
-          case iJST:
-            this.pc = this.dst;
-            break;
-          case iNOP:
+          case iJMP: // FIXME not properly implemented yet!
+            this.pc = imb;
             break;
           case iHAL:
-            this.succeed();
+            this.succeed(); // FIXME
             break;
           default:
             this.fnTrc('Illegal opcode: 0x' + modFmt.hex2(opcode));
             this.fail();
             break;
         }
+
+        if (this.pc > this.mmSize) { //FIXME
+          this.running = false;
+        }
+
       }
       this.fnTrc('FVM ran. Exit code: ' + this.exitCode);
     };
@@ -218,7 +138,7 @@ var modFVM = (function () { 'use strict';
     }
 
     cellAtPc() {
-      var addr = this.prgWord(this.pc);
+      var addr = this.load(this.pc);
       if (addr > PRGt) {
         throw FAILURE;
       }
@@ -226,17 +146,20 @@ var modFVM = (function () { 'use strict';
     }
 
     wordAtPc() {
-      return this.prgWord(this.pc);
+      return this.load(this.pc);
     }
 
-    prgWord(addr) {
+    store(addr,val) {
+      this.mm.setInt32(addr, val, true);
+    }
+
+    load(addr) {
       try {
-        // FIXME for now there is no address space but the program itself!
-        return this.prg.getUint32(addr<<WORD_PWR, true);
+        return this.mm.getUint32(addr, true);
       } catch (e) {
         return 0; // outside bounds of DataView
       }
-      return 0; // outside bounds of PRG
+      return 0; // outside bounds of mm
     }
 
     fail() {
@@ -251,15 +174,20 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('VM success');
     }
 
-    trace(pc,failAddr,opcode,lit) {
+    trace(pc,instr,opcode,dst,dstm,sr1,sr1m,sr2,sr2m,imr,imb,con) {
       this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
-                 modFmt.hex6(failAddr) + ':' +
-                 modFmt.hex2(opcode) + ' ' +
+                 modFmt.hex8(instr) + ' ' +
                  MNEMS[opcode] + ' ' +
-                 modFmt.hex8(this.rO) + ' ' +
-                 modFmt.hex8(this.rA) + ' S:' +
-                 modFmt.hex6(this.rS) + ' D:' +
-                 modFmt.hex6(this.rD)
+                 modFmt.hex2(opcode) + '--' +
+                 modFmt.hex1(dst) + ':' +
+                 modFmt.hex1(dstm) + ' | ' +
+                 modFmt.hex1(sr1) + ':' +
+                 modFmt.hex1(sr1m) + '--' +
+                 modFmt.hex1(sr2) + ':' +
+                 modFmt.hex1(sr2m) + '--' +
+                 modFmt.hex2(imr) + ' | ' +
+                 modFmt.hex2(con) + '--' +
+                 modFmt.hex4(imb)
                  );
     }
   }
@@ -269,11 +197,6 @@ var modFVM = (function () { 'use strict';
       this.program = prg;
       this.fnStdin = null;
       this.fnStdout = null;
-      this.fnUsrin = null;
-      this.fnUsrout = null;
-      this.fnGrdin = null;
-      this.fnGrdout = null;
-      this.fnLog = null;
       this.fnTrc = null;
     };
   }
@@ -293,25 +216,33 @@ var modFVM = (function () { 'use strict';
 // Module modFmt provides formatting.
 var modFmt = (function () { 'use strict';
 
-  var hex2 = function(i) {
+  var hex1 = function(i) {
     if (typeof i === 'number') {
-        return ('00' + i.toString(16)).substr(-2);
-    } else {
-      return ' ';
-    }
-  }
-
-  var hex4 = function(i) {
-    if (typeof i === 'number') {
-      return ('0000' + i.toString(16)).substr(-4);
+      return ('0' + i.toString(16)).substr(-1);
     } else {
       return '      ';
     }
   };
 
-  var hex5 = function(i) {
+  var hex2 = function(i) {
     if (typeof i === 'number') {
-      return ('00000' + i.toString(16)).substr(-5);
+      return ('00' + i.toString(16)).substr(-2);
+    } else {
+      return '      ';
+    }
+  };
+
+  var hex3 = function(i) {
+    if (typeof i === 'number') {
+      return ('000' + i.toString(16)).substr(-3);
+    } else {
+      return '      ';
+    }
+  };
+
+  var hex4 = function(i) {
+    if (typeof i === 'number') {
+      return ('0000' + i.toString(16)).substr(-4);
     } else {
       return '      ';
     }
@@ -329,16 +260,17 @@ var modFmt = (function () { 'use strict';
     if (typeof i === 'number') {
       return ('00000000' + i.toString(16)).substr(-8);
     } else {
-      return '        ';
+      return '      ';
     }
   };
 
   return {
+    hex1: hex1,
     hex2: hex2,
+    hex3: hex3,
     hex4: hex4,
-    hex5: hex5,
     hex6: hex6,
-    hex8: hex8
+    hex8: hex8,
   };
 
 })(); // modFmt
