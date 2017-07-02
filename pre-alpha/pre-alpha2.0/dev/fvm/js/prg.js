@@ -22,7 +22,7 @@ var prgSrc = `
     - this approach encourages:
         - human intelligence rather than compiler intelligence
         - modular design rather than monolithic design
-        - software reuse [especially of atoms]
+        - software reuse
 
   0x = hex, 0f = forward, 0r = reverse, 0s = symbol,
   0s0000 = start, / = token is a comment
@@ -35,19 +35,19 @@ var prgSrc = `
 
 ( PRIOR TO PROGRAM ENTRY POINT )
 
-  fal --
+  fal -- --
 
 ( PROGRAM ENTRY POINT: JUMPS TO /start )
 
 ( the assembler will rewrite this jmp to the address of /start )
 ( jmp all r0 0x0000 )
 
-  jmp -- 
+  jmp -- --
 
 ( PROGRAM START )
 
-#def /start 0s0000 .
+( def /start 0s0000 . )
 
-  hal --
+  hal -- --
 
 `;

@@ -14,8 +14,8 @@
  * 
  *                                ( ) [ ] { }
  *
- *              Note: This implementation is only for Plan C, GOLD.
- *              FIXME not ported to Plan C, GOLD yet.
+ *              Note: This implementation is only for Plan C, JADE.
+ *              FIXME not ported to Plan C, JADE yet.
  *              Currently largely unimplemented!
  *
  * ===========================================================================
@@ -313,9 +313,9 @@ var modFVMA = (function () { 'use strict';
 
     meld() {
       var melded = [];
-      for (var i = 0; i < this.elems.length-1; i=i+2) {
-        // FIXME for Plan C GOLD this is just a hack and not working fully
-        melded.push((this.elems[i] << 26) | (this.elems[i+1]));
+      for (var i = 0; i < this.elems.length-1; i=i+3) {
+        // FIXME for Plan C JADE this is just a hack and not working fully
+        melded.push((this.elems[i] << 24) | (this.elems[i+1]) << 16 | this.elems[i+2]);
       }
       this.elems = melded;
     }

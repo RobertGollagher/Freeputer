@@ -14,7 +14,7 @@
  * 
  *                                ( ) [ ] { }
  *
- *               Note: This implementation is only for Plan C, GOLD.
+ *               Note: This implementation is only for Plan C, JADE.
  *
  * ===========================================================================
  * 
@@ -51,19 +51,12 @@ var modFVM = (function () { 'use strict';
     '=c','=d','=e','all'
   ]
 
-  // Plan C instruction format GOLD
-  const OPCODE_MASK = 0xfc000000; //   11111100000000000000000000000000
-  const DST_MASK =    0x03c00000; //   00000011110000000000000000000000
-  const DSTM_MASK =   0x00300000; //   00000000001100000000000000000000
-  const SR1_MASK =    0x000f0000; //   00000000000011110000000000000000
-  const SR1M_MASK =   0x0000c000; //   00000000000000001100000000000000
-  const SR2_MASK =    0x00003c00; //   00000000000000000011110000000000
-  const SR2M_MASK =   0x00000300; //   00000000000000000000001100000000
-  const IMR_MASK =    0x000000ff; //   00000000000000000000000011111111
-  const IMB_MASK =    0x0000ffff; //   00000000000000001111111111111111
-  const CON_MASK =    0x000f0000; //   00000000000011110000000000000000
-
-  
+  // Plan C instruction format JADE
+  const OPCODE_MASK = 0xff000000; //   11111111000000000000000000000000
+  const DST_MASK =    0x00ff0000; //   00000000111111110000000000000000
+  const DSTM_MASK =   0x00c00000; //   00000000110000000000000000000000
+  const SRC_MASK =    0x0000ffff; //   00000000000000001111111111111111
+  const SRCM_MASK =   0x0000c000; //   00000000000000001100000000000000
 
   class FVM {
     constructor(config) {
@@ -94,25 +87,20 @@ var modFVM = (function () { 'use strict';
       }
       this.fnTrc('FVM run...');
       this.running = true;
-      var instr, opcode, dst, dstm, sr1, sr1m, sr2, sr2m, imr, imb, con;
+      var instr, opcode, dst, dstm, src, srcm;
 
       while (this.running) {
         instr = this.wordAtPc();
 
         // TODO optimize later
-        opcode = (instr & OPCODE_MASK) >> 26;
-        dst = (instr & DST_MASK) >> 22;
-        dstm = (instr & DSTM_MASK) >> 20;
-        sr1 = (instr & SR1_MASK) >> 14;
-        sr1m = (instr & SR1M_MASK) >> 12;
-        sr2 = (instr & SR2_MASK) >> 10;
-        sr2m = (instr & SR2M_MASK) >> 8;
-        imr = (instr & IMR_MASK);
-        imb = (instr & IMB_MASK);
-        con = (instr & CON_MASK) >> 16;
+        opcode = (instr & OPCODE_MASK) >> 24;
+        dst = (instr & DST_MASK) >> 16;
+        dstm = (instr & DSTM_MASK) >> 22;
+        src = (instr & SRC_MASK);
+        srcm = (instr & SRC_MASK) >> 14;
 
         if (this.tracing) {
-          this.trace(this.pc,instr,opcode,dst,dstm,sr1,sr1m,sr2,sr2m,imr,imb,con); 
+          this.trace(this.pc,instr,opcode,dst,dstm,src,srcm); 
         }
 
         this.pc+=WORD_SIZE_BYTES; // nowadays is byte-addressed
@@ -121,7 +109,7 @@ var modFVM = (function () { 'use strict';
             this.fail(); // FIXME
             break;
           case iJMP: // FIXME not properly implemented yet!
-            this.pc = imb;
+            this.pc = src;
             break;
           case iHAL:
             this.succeed(); // FIXME
@@ -181,20 +169,15 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('VM success');
     }
 
-    trace(pc,instr,opcode,dst,dstm,sr1,sr1m,sr2,sr2m,imr,imb,con) {
+    trace(pc,instr,opcode,dst,dstm,src,srcm) {
       this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex8(instr) + ' ' +
                  MNEMS[opcode] + ' ' +
                  modFmt.hex2(opcode) + '--' +
-                 modFmt.hex1(dst) + ':' +
+                 modFmt.hex2(dst) + ':' +
                  modFmt.hex1(dstm) + ' | ' +
-                 modFmt.hex1(sr1) + ':' +
-                 modFmt.hex1(sr1m) + '--' +
-                 modFmt.hex1(sr2) + ':' +
-                 modFmt.hex1(sr2m) + '--' +
-                 modFmt.hex2(imr) + ' | ' +
-                 COND[con] + '--' +
-                 modFmt.hex4(imb)
+                 modFmt.hex4(src) + ':' +
+                 modFmt.hex1(srcm)
                  );
     }
   }
