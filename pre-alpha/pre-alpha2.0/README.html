@@ -31,7 +31,26 @@
 <li>Designed to be easy to emulate in C (standard types preferred).</li>
 <li>Possible alternative designs for instruction format:
 <ol style="list-style-type: decimal">
-<li><strong>GOLD: 3 operands, dual, mixed:</strong> SCORE 9/10 RANK 1 <strong><em>12:20</em></strong>
+<li><strong>JADE: 2 operands, single, mixed:</strong> SCORE 10/10 RANK 1 <strong><em>16:16</em></strong>
+<ol style="list-style-type: decimal">
+<li>All instructions: 8=opcode 8=dst 16=src
+<ul>
+<li>simplest solution, RISC in spirit, leaves room to grow</li>
+<li>opcode determines if instruction is conditional</li>
+<li>opcode determines if src is immediate or not</li>
+<li>opcode determines if src needs to be decoded or not</li>
+<li>opcodes and immediates are standard C types</li>
+<li>extremely easy decoding of 1:1 split from <em>16 bits</em></li>
+<li>this makes decoding efficient even on 16-bit microcontrollers</li>
+<li>16-bit literals fit in instruction, 32-bit ones use <span class="citation">@pc</span>++<br />
+</li>
+<li>no speed penalty for regular instructions</li>
+<li>branches are conveniently conditional</li>
+<li>branches have an optimal offset size</li>
+<li>note: be mindful of opcodes ranges</li>
+</ul></li>
+</ol></li>
+<li><strong>GOLD: 3 operands, dual, mixed:</strong> SCORE 9/10 RANK 2 <strong><em>12:20</em></strong>
 <ol style="list-style-type: decimal">
 <li>Regular instructions: 6=opcode 6=dst 6=src1 6=src2 8=imm</li>
 <li>Branch instructions:  6=opcode 6=dst 4=cond 16=imm
@@ -44,7 +63,7 @@
 <li>disadvantage is inconvenient decoding of 3:2 split from 20 bits</li>
 </ul></li>
 </ol></li>
-<li><strong>SILVER: 2 operands, single, conditional:</strong> SCORE 8/10 RANK 2 <strong><em>16:16</em></strong>
+<li><strong>SILVER: 2 operands, single, conditional:</strong> SCORE 8/10 RANK 3 <strong><em>16:16</em></strong>
 <ol style="list-style-type: decimal">
 <li>Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm</li>
 <li>Branch instructions:  4=cond 6=opcode 6=dst 6=ret 10=imm
@@ -59,7 +78,7 @@
 </ul></li>
 </ul></li>
 </ol></li>
-<li><strong>BRONZE: 2 operands, dual, conditional:</strong> SCORE 8/10 RANK 3 <strong><em>16:16</em></strong>
+<li><strong>BRONZE: 2 operands, dual, conditional:</strong> SCORE 8/10 RANK 4 <strong><em>16:16</em></strong>
 <ol style="list-style-type: decimal">
 <li>Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm</li>
 <li>Branch instructions:  4=cond 6=opcode 6=dst 16=imm
@@ -73,7 +92,7 @@
 </ul></li>
 </ul></li>
 </ol></li>
-<li><strong>COPPER: 3 operands, dual, conditional:</strong> SCORE 7/10 RANK 4 <strong><em>16:16</em></strong>
+<li><strong>COPPER: 3 operands, dual, conditional:</strong> SCORE 7/10 RANK 5 <strong><em>16:16</em></strong>
 <ol style="list-style-type: decimal">
 <li>Regular instructions: 4=cond 6=opcode 6=dst 6=src1 6=src2 4=imm</li>
 <li>Branch instructions:  4=cond 6=opcode 6=dst 16=imm
@@ -390,7 +409,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 2 July 2017 at 17:02<br />
+This document was last updated on 2 July 2017 at 23:13<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

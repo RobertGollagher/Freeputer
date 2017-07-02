@@ -42,7 +42,21 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
 1. Designed for very easy fetch and decode. Suitable for FPGA implementation.
 1. Designed to be easy to emulate in C (standard types preferred).
 1. Possible alternative designs for instruction format:
-    1. **GOLD: 3 operands, dual, mixed:** SCORE 9/10 RANK 1 ***12:20***
+    1. **JADE: 2 operands, single, mixed:** SCORE 10/10 RANK 1 ***16:16***
+        1. All instructions: 8=opcode 8=dst 16=src
+            - simplest solution, RISC in spirit, leaves room to grow
+            - opcode determines if instruction is conditional
+            - opcode determines if src is immediate or not
+            - opcode determines if src needs to be decoded or not
+            - opcodes and immediates are standard C types
+            - extremely easy decoding of 1:1 split from *16 bits*
+            - this makes decoding efficient even on 16-bit microcontrollers
+            - 16-bit literals fit in instruction, 32-bit ones use @pc++        
+            - no speed penalty for regular instructions
+            - branches are conveniently conditional
+            - branches have an optimal offset size
+            - note: be mindful of opcodes ranges
+    1. **GOLD: 3 operands, dual, mixed:** SCORE 9/10 RANK 2 ***12:20***
         1. Regular instructions: 6=opcode 6=dst 6=src1 6=src2 8=imm
         1. Branch  instructions:&nbsp; 6=opcode 6=dst 4=cond 16=imm
             - both immediates are standard C types
@@ -51,7 +65,7 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
             - branches have an optimal offset size
             - 3 operands complex but fast, dense, powerful
             - disadvantage is inconvenient decoding of 3:2 split from 20 bits
-    1. **SILVER: 2 operands, single, conditional:** SCORE 8/10 RANK 2 ***16:16***
+    1. **SILVER: 2 operands, single, conditional:** SCORE 8/10 RANK 3 ***16:16***
         1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
         1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 6=ret 10=imm
             - extremely easy decoding of 1:1 split from *16 bits*
@@ -60,7 +74,7 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
                 - single instruction format (but immediates not standard C types)
                 - src specifies ownership of return address (powerful)
                 - entirely conditional (a trade-off)
-    1. **BRONZE: 2 operands, dual, conditional:** SCORE 8/10 RANK 3 ***16:16***
+    1. **BRONZE: 2 operands, dual, conditional:** SCORE 8/10 RANK 4 ***16:16***
         1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
         1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
             - nicely convenient decoding of 2:1 split from *16 bits*
@@ -68,7 +82,7 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
             - otherwise similar advantages to GOLD except:
                 - regular immediate not a standard C type
                 - entirely conditional (a trade-off)
-    1. **COPPER: 3 operands, dual, conditional:** SCORE 7/10 RANK 4 ***16:16***
+    1. **COPPER: 3 operands, dual, conditional:** SCORE 7/10 RANK 5 ***16:16***
         1. Regular instructions: 4=cond 6=opcode 6=dst 6=src1 6=src2 4=imm
         1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
             - moderately convenient decoding of 3:1 split from *16 bits*
@@ -291,7 +305,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 2 July 2017 at 17:02  
+This document was last updated on 2 July 2017 at 23:13  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
