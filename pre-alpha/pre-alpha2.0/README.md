@@ -35,14 +35,48 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
 
 1. RISC register machine (of variable memory capacity) with a simple fixed-width 32-bit (FW32) instruction set.
 1. Primarily designed to be trivially easy to implement in assembly language and to require little RAM.
-1. Rxx, @Rxx, @Rxx++, @--Rxx, orthogonal. Leave space for extensions. Little endian.
+1. 2-bit mode: Rxx, @Rxx, @Rxx++, @--Rxx. Orthogonal. Leave space for extensions. Little endian.
 1. Reserve space for 64 opcodes and 16 registers (including pc, sp, lr, zr).
 1. Initial implementation might be 16-32 opcodes and 8-10 registers.
 1. Relative and absolute branching and load/store.
 1. Designed for very easy fetch and decode. Suitable for FPGA implementation.
-1. Instruction format: 2 operands, space for 64 opcodes and 16 registers, conditional:
-    1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
-    1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 6=ret 10=imm
+1. Designed to be easy to emulate in C (standard types preferred).
+1. Possible alternative designs for instruction format:
+    1. **GOLD: 3 operands, dual, mixed:** SCORE 9/10 RANK 1 ***12:20***
+        1. Regular instructions: 6=opcode 6=dst 6=src1 6=src2 8=imm
+        1. Branch  instructions:&nbsp; 6=opcode 6=dst 4=cond 16=imm
+            - both immediates are standard C types
+            - no speed penalty for regular instructions
+            - branches are conveniently conditional
+            - branches have a optimal offset size
+            - 3 operands complex but fast, dense, powerful
+            - disadvantage is inconvenient decoding of 3:2 split from 20 bits
+    1. **SILVER: 2 operands, single, conditional:** SCORE 8/10 RANK 2 ***16:16***
+        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
+        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 6=ret 10=imm
+            - extremely easy decoding of 1:1 split from *16 bits*
+            - this makes decoding efficient even on 16-bit microcontrollers
+            - elegant but unusual scheme with several trade-offs:
+                - single instruction format (but immediates not standard C types)
+                - src specifies ownership of return address (powerful)
+                - entirely conditional (a trade-off)
+    1. **BRONZE: 2 operands, dual, conditional:** SCORE 8/10 RANK 3 ***16:16***
+        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
+        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
+            - nicely convenient decoding of 2:1 split from *16 bits*
+            - this makes decoding efficient even on 16-bit microcontrollers
+            - otherwise similar advantages to GOLD except:
+                - regular immediate not a standard C type
+                - entirely conditional (a trade-off)
+    1. **COPPER: 3 operands, dual, conditional:** SCORE 7/10 RANK 4 ***16:16***
+        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src1 6=src2 4=imm
+        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
+            - moderately convenient decoding of 3:1 split from *16 bits*
+            - this makes decoding efficient even on 16-bit microcontrollers
+            - 3 operands complex but dense and powerful
+            - otherwise similar advantages to GOLD except:
+                - very small regular immediate not a standard C type
+                - entirely conditional (a trade-off)
 
 This approach might make it easier to implement the VM since all the popular hardware architectures today are register machines not stack machines. Plan C is also, for the same reason, an easier target for existing compilers. The meta-machine could then very easily serve as a platform on which to implement whatever kind of stack machine (such as Plan A) is desired. Or it could be used stand-alone.
 
@@ -257,7 +291,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 1 July 2017 at 22:52  
+This document was last updated on 2 July 2017 at 12:19  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
