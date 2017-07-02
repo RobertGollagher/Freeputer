@@ -44,6 +44,13 @@ var modFVM = (function () { 'use strict';
     '','','','','','','','hal',
   ]
 
+  const COND = [
+    '=0','=1','=2','=3',
+    '=4','=5','=6','=7',
+    '=8','=9','=a','=b',
+    '=c','=d','=e','all'
+  ]
+
   // Plan C instruction format GOLD
   const OPCODE_MASK = 0xfc000000; //   11111100000000000000000000000000
   const DST_MASK =    0x03c00000; //   00000011110000000000000000000000
@@ -186,7 +193,7 @@ var modFVM = (function () { 'use strict';
                  modFmt.hex1(sr2) + ':' +
                  modFmt.hex1(sr2m) + '--' +
                  modFmt.hex2(imr) + ' | ' +
-                 modFmt.hex2(con) + '--' +
+                 COND[con] + '--' +
                  modFmt.hex4(imb)
                  );
     }

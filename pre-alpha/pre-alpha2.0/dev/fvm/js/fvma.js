@@ -41,13 +41,17 @@ var modFVMA = (function () { 'use strict';
 
   const iFAL = 0x00|0; // FIXME
   const iJMP = 0x01|0;
-  const iHAL = 0x1f; // FIXME
+  const iHAL = 0x1f|0; // FIXME
 
   const SYMBOLS = {
-    '--': 0x0000,
-    'hal': iHAL,
-    'jmp': iJMP,
-    'fal': iFAL
+    '--': 0x00|0,
+    hal: iHAL,
+    jmp: iJMP,
+    fal: iFAL,
+  };
+
+  const COND = {
+    all:0xf|0
   };
 
   class FVMA {
@@ -108,6 +112,8 @@ var modFVMA = (function () { 'use strict';
       }
        this.decl = "";
        this.expectDef = false;
+      } else if (this.expectCond) {
+        // FIXME
       } else {
        this.prgElems.addElem(x);
       }
@@ -119,6 +125,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseComment(token, lineNum)) {
       } else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
+      } else if (this.expectingCond(token, lineNum)) {
       } else if (this.parseForw(token)) {
       } else if (this.parseBackw(token)) {
       } else if (this.parseDef(token)) {
@@ -169,6 +176,10 @@ var modFVMA = (function () { 'use strict';
         return true;
       }
       return false;
+    }
+
+    expectingCond(token, lineNum) {
+      return false; //FIXME
     }
 
      parseDef(token) {

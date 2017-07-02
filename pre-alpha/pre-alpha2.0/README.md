@@ -48,7 +48,7 @@ Plan C is to use a simple but robust meta-machine as a foundation. It would look
             - both immediates are standard C types
             - no speed penalty for regular instructions
             - branches are conveniently conditional
-            - branches have a optimal offset size
+            - branches have an optimal offset size
             - 3 operands complex but fast, dense, powerful
             - disadvantage is inconvenient decoding of 3:2 split from 20 bits
     1. **SILVER: 2 operands, single, conditional:** SCORE 8/10 RANK 2 ***16:16***
@@ -291,7 +291,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 2 July 2017 at 12:19  
+This document was last updated on 2 July 2017 at 17:02  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
