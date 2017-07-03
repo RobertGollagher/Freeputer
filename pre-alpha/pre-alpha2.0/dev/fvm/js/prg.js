@@ -39,10 +39,7 @@ var prgSrc = `
 
 ( PROGRAM ENTRY POINT: JUMPS TO /start )
 
-( the assembler will rewrite this jmp to the address of /start )
-( jmp r0 0x0000 )
-
-  jmp r0 0x0000
+  jmp r0 0x0000  ( assembler will rewrite this jmp to the address of /start )
 
 ( PROGRAM START )
 
@@ -52,11 +49,6 @@ var prgSrc = `
   addi r2 0x5678
   addi r1 0x4321
   addi r2 0x3210
-
-  jmp r0 0f04 ( relative forward jmp by 4 instructions )
-  jmp @r2++ 0x0000
-  jmp @--r4 0x0000
-  jmp r8 0x0000
 
   #def /end 0s0001 .
   hal -- --

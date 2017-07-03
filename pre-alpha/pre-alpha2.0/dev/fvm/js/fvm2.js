@@ -151,10 +151,6 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('FVM ran. Exit code: ' + this.exitCode);
     };
 
-    lsb(f,x) {
-      f(x&LSB);
-    }
-
     cellAtPc() {
       var addr = this.load(this.pc);
       if (addr > PRGt) {
