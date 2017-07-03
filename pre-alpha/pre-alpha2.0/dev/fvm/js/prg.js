@@ -40,13 +40,13 @@ var prgSrc = `
 ( PROGRAM ENTRY POINT: JUMPS TO /start )
 
 ( the assembler will rewrite this jmp to the address of /start )
-( jmp all r0 0x0000 )
+( jmp r0 0x0000 )
 
   jmp -- --
 
 ( PROGRAM START )
 
-( def /start 0s0000 . )
+  #def /start 0s0000 .
 
   hal -- --
 

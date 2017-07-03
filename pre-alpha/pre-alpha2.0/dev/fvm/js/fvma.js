@@ -100,14 +100,18 @@ var modFVMA = (function () { 'use strict';
       if (this.expectDef) {
        if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
           // note: nowadays using byte addressing
-         this.dict[this.decl] = (this.prgElems.cursor / 2) * WORD_SIZE_BYTES;
+         this.dict[this.decl] = (this.prgElems.cursor / 3) * WORD_SIZE_BYTES;
        } else {
          this.dict[this.decl] = x;
        }
       if (this.decl == 0) { // TODO check corner cases
         if (this.dict[this.decl] > 1) {
-          this.prgElems.putElem(SYMBOLS['jmp'],2);
-          this.prgElems.putElem(this.dict[this.decl],3);
+          this.prgElems.putElem(SYMBOLS['jmp'],3);
+          this.prgElems.putElem(0|0,4); // FIXME JADE
+          this.prgElems.putElem(this.dict[this.decl],5);
+
+this.fnMsg(this.prgElems);
+
         } 
       }
        this.decl = "";
