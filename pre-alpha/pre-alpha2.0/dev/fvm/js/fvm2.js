@@ -36,12 +36,13 @@ var modFVM = (function () { 'use strict';
 
   const iFAL = 0x00|0; // FIXME
   const iJMP = 0x01|0;
+  const iADDI = 0x10|0;
   const iHAL = 0x1f|0; // FIXME
   const MNEMS = [
-    'fal','jmp','','','','','','',
+    'fal ','jmp ','','','','','','',
     '','','','','','','','',
-    '','','','','','','','',
-    '','','','','','','','hal',
+    'addi','','','','','','','',
+    '','','','','','','','hal ',
   ]
 
   const COND = [
@@ -65,6 +66,10 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.loadProg(config.program, this.mm);
       this.tracing = true;
+      this.regs = [
+        0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 
+        0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0
+      ]
     };
 
     loadProg(pgm, mm) {
@@ -110,6 +115,24 @@ var modFVM = (function () { 'use strict';
             break;
           case iJMP: // FIXME not properly implemented yet!
             this.pc = src;
+            break;
+          case iADDI: // FIXME
+            switch(dstm) {
+              case 0x0:
+                this.regs[dst]+=src;
+                break;
+              case 0x1:
+                throw 'UNIMPLEMENTED';
+                break;
+              case 0x2:
+                throw 'UNIMPLEMENTED';
+                break;
+              case 0x3:
+                throw 'UNIMPLEMENTED';
+                break;
+              default:
+                break;
+            }
             break;
           case iHAL:
             this.succeed(); // FIXME
@@ -173,11 +196,13 @@ var modFVM = (function () { 'use strict';
       this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
                  modFmt.hex8(instr) + ' ' +
                  MNEMS[opcode] + ' ' +
-                 modFmt.hex2(opcode) + '--' +
+                 //modFmt.hex2(opcode) + '--' +
                  modFmt.hex2(dst) + ':' +
                  modFmt.hex1(dstm) + ' | ' +
                  modFmt.hex4(src) + ':' +
-                 modFmt.hex1(srcm)
+                 modFmt.hex1(srcm) + 
+                ' r1 ' + modFmt.hex8(this.regs[0x1]) +
+                ' r2 ' + modFmt.hex8(this.regs[0x2])
                  );
     }
   }

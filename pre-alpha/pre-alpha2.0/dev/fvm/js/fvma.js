@@ -41,13 +41,79 @@ var modFVMA = (function () { 'use strict';
 
   const iFAL = 0x00|0; // FIXME
   const iJMP = 0x01|0;
+  const iADDI = 0x10|0;
   const iHAL = 0x1f|0; // FIXME
 
   const SYMBOLS = {
     '--': 0x00|0,
     hal: iHAL,
     jmp: iJMP,
+    addi: iADDI,
     fal: iFAL,
+    r0: 0x0,
+    r1: 0x1,
+    r2: 0x2,
+    r3: 0x3,
+    r4: 0x4,
+    r5: 0x5,
+    r6: 0x6,
+    r7: 0x7,
+    r8: 0x8,
+    r9: 0x9,
+    r10: 0xa,
+    r11: 0xb,
+    r12: 0xc,
+    r13: 0xd,
+    r14: 0xe,
+    r15: 0xf,
+    '@r0': 0x40,
+    '@r1': 0x41,
+    '@r2': 0x42,
+    '@r3': 0x43,
+    '@r4': 0x44,
+    '@r5': 0x45,
+    '@r6': 0x46,
+    '@r7': 0x47,
+    '@r8': 0x48,
+    '@r9': 0x49,
+    '@r10': 0x4a,
+    '@r11': 0x4b,
+    '@r12': 0x4c,
+    '@r13': 0x4d,
+    '@r14': 0x4e,
+    '@r15': 0x4f,
+    '@r0++': 0x80,
+    '@r1++': 0x81,
+    '@r2++': 0x82,
+    '@r3++': 0x83,
+    '@r4++': 0x84,
+    '@r5++': 0x85,
+    '@r6++': 0x86,
+    '@r7++': 0x87,
+    '@r8++': 0x88,
+    '@r9++': 0x89,
+    '@r10++': 0x8a,
+    '@r11++': 0x8b,
+    '@r12++': 0x8c,
+    '@r13++': 0x8d,
+    '@r14++': 0x8e,
+    '@r15++': 0x8f,
+    '@--r0': 0xc0,
+    '@--r1': 0xc1,
+    '@--r2': 0xc2,
+    '@--r3': 0xc3,
+    '@--r4': 0xc4,
+    '@--r5': 0xc5,
+    '@--r6': 0xc6,
+    '@--r7': 0xc7,
+    '@--r8': 0xc8,
+    '@--r9': 0xc9,
+    '@--r10': 0xca,
+    '@--r11': 0xcb,
+    '@--r12': 0xcc,
+    '@--r13': 0xcd,
+    '@--r14': 0xce,
+    '@--r15': 0xcf
   };
 
   const COND = {
@@ -135,8 +201,9 @@ this.fnMsg(this.prgElems);
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
-      //} else if (this.parseHex5(token)) {
-      //} else if (this.parseHex6(token)) {
+      } else if (this.parseHex2(token)) {
+      } else if (this.parseHex4(token)) {
+      } else if (this.parseHex6(token)) {
       } else if (this.parseHex8(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
@@ -261,8 +328,28 @@ this.fnMsg(this.prgElems);
       }
     }
 
+    parseHex6(token) {
+      if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
+        var n = parseInt(token,16);
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
     parseHex4(token) {
       if (token.length == 6 && token.match(/0x[0-9a-f]{4}/)){
+        var n = parseInt(token,16);
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }      
+    }
+
+    parseHex2(token) {
+      if (token.length == 4 && token.match(/0x[0-9a-f]{2}/)){
         var n = parseInt(token,16);
         this.use(n);
         return true;
@@ -275,7 +362,7 @@ this.fnMsg(this.prgElems);
       if (token.length == 4 && token.match(/0f[0-9a-f]{2}/)){
         var asHex = token.replace('0f','0x');
         var n = parseInt(asHex,16);
-        var m = this.prgElems.cursor/2 + n;
+        var m = (WORD_SIZE_BYTES * Math.floor(this.prgElems.cursor/3)) + n*WORD_SIZE_BYTES;
         this.use(m);
         return true;
       } else {
@@ -287,7 +374,7 @@ this.fnMsg(this.prgElems);
       if (token.length == 4 && token.match(/0r[0-9a-f]{2}/)){
         var asHex = token.replace('0r','0x');
         var n = parseInt(asHex,16);
-        var m = this.prgElems.cursor/2 - n;
+        var m = (WORD_SIZE_BYTES * Math.floor(this.prgElems.cursor/3)) - n*WORD_SIZE_BYTES;
         this.use(m);
         return true;
       } else {
