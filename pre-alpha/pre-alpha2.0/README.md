@@ -29,80 +29,29 @@ Freeputer&nbsp;2.0 will not run unmodified Freeputer&nbsp;1.0 programs.
 
 However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer&nbsp;2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer&nbsp;1.0 programs to run there.
 
-## Proposed Design: Plan C
+## Shortlist
 
-Plan C is to use a simple but robust meta-machine as a foundation. It would look something like this:
+### Proposed Design: Plan G: Single Register Machine
 
-1. RISC register machine (of variable memory capacity) with a simple fixed-width 32-bit (FW32) instruction set.
-1. Primarily designed to be trivially easy to implement in assembly language and to require little RAM.
-1. 2-bit mode: Rxx, @Rxx, @Rxx++, @--Rxx. Orthogonal. Leave space for extensions. Little endian.
-1. Reserve space for 64 opcodes and 16 registers (including pc, sp, lr, zr).
-1. Initial implementation might be 16-32 opcodes and 8-10 registers.
-1. Relative and absolute branching and load/store.
-1. Designed for very easy fetch and decode. Suitable for FPGA implementation.
-1. Designed to be easy to emulate in C (standard types preferred).
-1. Possible alternative designs for instruction format:
-    1. **JADE: 2 operands, single, mixed:** SCORE 10/10 RANK 1 ***16:16***
-        1. All instructions: 8=opcode 8=dst 16=src
-            - simplest solution, RISC in spirit, leaves room to grow
-            - opcode determines if instruction is conditional
-            - opcode determines if src is immediate or not
-            - opcode determines if src needs to be decoded or not
-            - opcodes and immediates are standard C types
-            - extremely easy decoding of 1:1 split from *16 bits*
-            - this makes decoding efficient even on 16-bit microcontrollers
-            - 16-bit literals fit in instruction, 32-bit ones use @pc++        
-            - no speed penalty for regular instructions
-            - branches are conveniently conditional
-            - branches have an optimal offset size
-            - note: be mindful of opcodes ranges
-    1. **GOLD: 3 operands, dual, mixed:** SCORE 9/10 RANK 2 ***12:20***
-        1. Regular instructions: 6=opcode 6=dst 6=src1 6=src2 8=imm
-        1. Branch  instructions:&nbsp; 6=opcode 6=dst 4=cond 16=imm
-            - both immediates are standard C types
-            - no speed penalty for regular instructions
-            - branches are conveniently conditional
-            - branches have an optimal offset size
-            - 3 operands complex but fast, dense, powerful
-            - disadvantage is inconvenient decoding of 3:2 split from 20 bits
-    1. **SILVER: 2 operands, single, conditional:** SCORE 8/10 RANK 3 ***16:16***
-        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
-        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 6=ret 10=imm
-            - extremely easy decoding of 1:1 split from *16 bits*
-            - this makes decoding efficient even on 16-bit microcontrollers
-            - elegant but unusual scheme with several trade-offs:
-                - single instruction format (but immediates not standard C types)
-                - src specifies ownership of return address (powerful)
-                - entirely conditional (a trade-off)
-    1. **BRONZE: 2 operands, dual, conditional:** SCORE 8/10 RANK 4 ***16:16***
-        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm
-        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
-            - nicely convenient decoding of 2:1 split from *16 bits*
-            - this makes decoding efficient even on 16-bit microcontrollers
-            - otherwise similar advantages to GOLD except:
-                - regular immediate not a standard C type
-                - entirely conditional (a trade-off)
-    1. **COPPER: 3 operands, dual, conditional:** SCORE 7/10 RANK 5 ***16:16***
-        1. Regular instructions: 4=cond 6=opcode 6=dst 6=src1 6=src2 4=imm
-        1. Branch  instructions:&nbsp; 4=cond 6=opcode 6=dst 16=imm
-            - moderately convenient decoding of 3:1 split from *16 bits*
-            - this makes decoding efficient even on 16-bit microcontrollers
-            - 3 operands complex but dense and powerful
-            - otherwise similar advantages to GOLD except:
-                - very small regular immediate not a standard C type
-                - entirely conditional (a trade-off)
+A portable register machine with a single visible register.
 
-This approach might make it easier to implement the VM since all the popular hardware architectures today are register machines not stack machines. Plan C is also, for the same reason, an easier target for existing compilers. The meta-machine could then very easily serve as a platform on which to implement whatever kind of stack machine (such as Plan A) is desired. Or it could be used stand-alone.
+This plan is moderately easy to implement but factoring is not especially easy.
 
-## Proposed Design: Plan B
+Performance is good and native compilation is possible. A simple versatile platform.
 
-Plan B has been rejected as unnecessary. The choice is now between:
+For ongoing experiments see 'dev/fvm/x86/srm.s'.
 
-- Plan C alone (that is, a pure register machine)
-- Plan A alone (that is, a pure stack machine)
-- Plan A and Plan C combined (a register machine underlying a stack machine)
+### Proposed Design: Plan A: Improved Stack Machine
 
-## Proposed Design: Plan A
+A portable stack machine which is correct and robust by virtue of branching on failure.
+
+This plan is moderately difficult to implement but makes factoring easy.
+
+Performance is at least moderate. An excellent stack machine.
+
+Implementation is on hold while Plan G is explored.
+
+The detailed design is:
 
 1. The VM is **correct without trapping**.
 1. Program execution begins at cell 1 (not cell 0).
@@ -112,7 +61,7 @@ Plan B has been rejected as unnecessary. The choice is now between:
 1. The only causes of VM failure are:
     1. The fail opcode (0x00);
     1. Platform failure.
-1. All opcodes **branch on failure** except: halt (0xff) and fail (0x00).
+1. All opcodes **branch on failure** except: halt (0xff), fail (0x00) and branches.
 1. The following opcodes cause immediate VM termination regardless of any *metadata*:
     1. The halt opcode (0xff);
     1. The fail opcode (0x00).
@@ -305,7 +254,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 2 July 2017 at 23:13  
+This document was last updated on 10 July 2017+ at 22:22+  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

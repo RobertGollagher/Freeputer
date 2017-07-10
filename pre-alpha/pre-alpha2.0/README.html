@@ -18,106 +18,18 @@
 <h2 id="migration">Migration</h2>
 <p>Freeputer 2.0 will not run unmodified Freeputer 1.0 programs.</p>
 <p>However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer 1.0 programs to run there.</p>
-<h2 id="proposed-design-plan-c">Proposed Design: Plan C</h2>
-<p>Plan C is to use a simple but robust meta-machine as a foundation. It would look something like this:</p>
-<ol style="list-style-type: decimal">
-<li>RISC register machine (of variable memory capacity) with a simple fixed-width 32-bit (FW32) instruction set.</li>
-<li>Primarily designed to be trivially easy to implement in assembly language and to require little RAM.</li>
-<li>2-bit mode: Rxx, <span class="citation">@Rxx</span>, <span class="citation">@Rxx</span>++, @--Rxx. Orthogonal. Leave space for extensions. Little endian.</li>
-<li>Reserve space for 64 opcodes and 16 registers (including pc, sp, lr, zr).</li>
-<li>Initial implementation might be 16-32 opcodes and 8-10 registers.</li>
-<li>Relative and absolute branching and load/store.</li>
-<li>Designed for very easy fetch and decode. Suitable for FPGA implementation.</li>
-<li>Designed to be easy to emulate in C (standard types preferred).</li>
-<li>Possible alternative designs for instruction format:
-<ol style="list-style-type: decimal">
-<li><strong>JADE: 2 operands, single, mixed:</strong> SCORE 10/10 RANK 1 <strong><em>16:16</em></strong>
-<ol style="list-style-type: decimal">
-<li>All instructions: 8=opcode 8=dst 16=src
-<ul>
-<li>simplest solution, RISC in spirit, leaves room to grow</li>
-<li>opcode determines if instruction is conditional</li>
-<li>opcode determines if src is immediate or not</li>
-<li>opcode determines if src needs to be decoded or not</li>
-<li>opcodes and immediates are standard C types</li>
-<li>extremely easy decoding of 1:1 split from <em>16 bits</em></li>
-<li>this makes decoding efficient even on 16-bit microcontrollers</li>
-<li>16-bit literals fit in instruction, 32-bit ones use <span class="citation">@pc</span>++<br />
-</li>
-<li>no speed penalty for regular instructions</li>
-<li>branches are conveniently conditional</li>
-<li>branches have an optimal offset size</li>
-<li>note: be mindful of opcodes ranges</li>
-</ul></li>
-</ol></li>
-<li><strong>GOLD: 3 operands, dual, mixed:</strong> SCORE 9/10 RANK 2 <strong><em>12:20</em></strong>
-<ol style="list-style-type: decimal">
-<li>Regular instructions: 6=opcode 6=dst 6=src1 6=src2 8=imm</li>
-<li>Branch instructions:  6=opcode 6=dst 4=cond 16=imm
-<ul>
-<li>both immediates are standard C types</li>
-<li>no speed penalty for regular instructions</li>
-<li>branches are conveniently conditional</li>
-<li>branches have an optimal offset size</li>
-<li>3 operands complex but fast, dense, powerful</li>
-<li>disadvantage is inconvenient decoding of 3:2 split from 20 bits</li>
-</ul></li>
-</ol></li>
-<li><strong>SILVER: 2 operands, single, conditional:</strong> SCORE 8/10 RANK 3 <strong><em>16:16</em></strong>
-<ol style="list-style-type: decimal">
-<li>Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm</li>
-<li>Branch instructions:  4=cond 6=opcode 6=dst 6=ret 10=imm
-<ul>
-<li>extremely easy decoding of 1:1 split from <em>16 bits</em></li>
-<li>this makes decoding efficient even on 16-bit microcontrollers</li>
-<li>elegant but unusual scheme with several trade-offs:
-<ul>
-<li>single instruction format (but immediates not standard C types)</li>
-<li>src specifies ownership of return address (powerful)</li>
-<li>entirely conditional (a trade-off)</li>
-</ul></li>
-</ul></li>
-</ol></li>
-<li><strong>BRONZE: 2 operands, dual, conditional:</strong> SCORE 8/10 RANK 4 <strong><em>16:16</em></strong>
-<ol style="list-style-type: decimal">
-<li>Regular instructions: 4=cond 6=opcode 6=dst 6=src 10=imm</li>
-<li>Branch instructions:  4=cond 6=opcode 6=dst 16=imm
-<ul>
-<li>nicely convenient decoding of 2:1 split from <em>16 bits</em></li>
-<li>this makes decoding efficient even on 16-bit microcontrollers</li>
-<li>otherwise similar advantages to GOLD except:
-<ul>
-<li>regular immediate not a standard C type</li>
-<li>entirely conditional (a trade-off)</li>
-</ul></li>
-</ul></li>
-</ol></li>
-<li><strong>COPPER: 3 operands, dual, conditional:</strong> SCORE 7/10 RANK 5 <strong><em>16:16</em></strong>
-<ol style="list-style-type: decimal">
-<li>Regular instructions: 4=cond 6=opcode 6=dst 6=src1 6=src2 4=imm</li>
-<li>Branch instructions:  4=cond 6=opcode 6=dst 16=imm
-<ul>
-<li>moderately convenient decoding of 3:1 split from <em>16 bits</em></li>
-<li>this makes decoding efficient even on 16-bit microcontrollers</li>
-<li>3 operands complex but dense and powerful</li>
-<li>otherwise similar advantages to GOLD except:
-<ul>
-<li>very small regular immediate not a standard C type</li>
-<li>entirely conditional (a trade-off)</li>
-</ul></li>
-</ul></li>
-</ol></li>
-</ol></li>
-</ol>
-<p>This approach might make it easier to implement the VM since all the popular hardware architectures today are register machines not stack machines. Plan C is also, for the same reason, an easier target for existing compilers. The meta-machine could then very easily serve as a platform on which to implement whatever kind of stack machine (such as Plan A) is desired. Or it could be used stand-alone.</p>
-<h2 id="proposed-design-plan-b">Proposed Design: Plan B</h2>
-<p>Plan B has been rejected as unnecessary. The choice is now between:</p>
-<ul>
-<li>Plan C alone (that is, a pure register machine)</li>
-<li>Plan A alone (that is, a pure stack machine)</li>
-<li>Plan A and Plan C combined (a register machine underlying a stack machine)</li>
-</ul>
-<h2 id="proposed-design-plan-a">Proposed Design: Plan A</h2>
+<h2 id="shortlist">Shortlist</h2>
+<h3 id="proposed-design-plan-g-single-register-machine">Proposed Design: Plan G: Single Register Machine</h3>
+<p>A portable register machine with a single visible register.</p>
+<p>This plan is moderately easy to implement but factoring is not especially easy.</p>
+<p>Performance is good and native compilation is possible. A simple versatile platform.</p>
+<p>For ongoing experiments see 'dev/fvm/x86/srm.s'.</p>
+<h3 id="proposed-design-plan-a-improved-stack-machine">Proposed Design: Plan A: Improved Stack Machine</h3>
+<p>A portable stack machine which is correct and robust by virtue of branching on failure.</p>
+<p>This plan is moderately difficult to implement but makes factoring easy.</p>
+<p>Performance is at least moderate. An excellent stack machine.</p>
+<p>Implementation is on hold while Plan G is explored.</p>
+<p>The detailed design is:</p>
 <ol style="list-style-type: decimal">
 <li>The VM is <strong>correct without trapping</strong>.</li>
 <li>Program execution begins at cell 1 (not cell 0).</li>
@@ -131,7 +43,7 @@
 <li>The fail opcode (0x00);</li>
 <li>Platform failure.</li>
 </ol></li>
-<li>All opcodes <strong>branch on failure</strong> except: halt (0xff) and fail (0x00).</li>
+<li>All opcodes <strong>branch on failure</strong> except: halt (0xff), fail (0x00) and branches.</li>
 <li>The following opcodes cause immediate VM termination regardless of any <em>metadata</em>:
 <ol style="list-style-type: decimal">
 <li>The halt opcode (0xff);</li>
@@ -409,7 +321,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 2 July 2017 at 23:13<br />
+This document was last updated on 10 July 2017+ at 22:22+<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
