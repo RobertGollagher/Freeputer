@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170710:2222
-Version:    pre-alpha-0.0.0.1 for FVM 2.0
+Updated:    20170711+
+Version:    pre-alpha-0.0.0.2 for FVM 2.0
 
 
                               This Edition:
@@ -192,13 +192,13 @@ main:
   from a
   from b
   from c
-
+/*
   # Inbuilt looping = 1.4 sec
   repeats 0x7fffffff
   loop:
     again loop
+*/
 
-/*
   # Memory looping = 4.9 sec
   lit 0x7fffffff
   to counter
@@ -207,24 +207,6 @@ main:
     subm counter
     from counter
     jnz loop1
-*/
-/*
-  # Register loopiing = 1.4 sec
-  lit 0x7fffffff
-  loop2:
-    sub 1
-    jnz loop2
-*/
-
-/*
-  # Practical register looping = 4.8 sec
-  lit 0x7fffffff
-  loop3:
-    to counter
-    from counter
-    sub 1
-    jnz loop3
-*/
 
   HALT
 
