@@ -54,7 +54,7 @@ var modFVM = (function () { 'use strict';
 
   // Plan C instruction format JADE
   const OPCODE_MASK = 0xff000000; //   11111111000000000000000000000000
-  const DST_MASK =    0x00ff0000; //   00000000111111110000000000000000
+  const DST_MASK =    0x003f0000; //   00000000001111110000000000000000
   const DSTM_MASK =   0x00c00000; //   00000000110000000000000000000000
   const SRC_MASK =    0x0000ffff; //   00000000000000001111111111111111
   const SRCM_MASK =   0x0000c000; //   00000000000000001100000000000000
@@ -122,15 +122,18 @@ var modFVM = (function () { 'use strict';
                 this.regs[dst]+=src;
                 break;
               case 0x1:
-                throw 'UNIMPLEMENTED';
+                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
                 break;
               case 0x2:
-                throw 'UNIMPLEMENTED';
+                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
+                this.regs[dst]+=WORD_SIZE_BYTES; // TODO what about overflow?
                 break;
               case 0x3:
-                throw 'UNIMPLEMENTED';
+                this.regs[dst]-=WORD_SIZE_BYTES;
+                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
                 break;
               default:
+                throw ('VM BUG!');
                 break;
             }
             break;
@@ -198,7 +201,9 @@ var modFVM = (function () { 'use strict';
                  modFmt.hex4(src) + ':' +
                  modFmt.hex1(srcm) + 
                 ' r1 ' + modFmt.hex8(this.regs[0x1]) +
-                ' r2 ' + modFmt.hex8(this.regs[0x2])
+                ' r2 ' + modFmt.hex8(this.regs[0x2]) +
+                ' mm ' + modFmt.hex8(this.load(0x100)) +
+                ' ' + modFmt.hex8(this.load(0x104))
                  );
     }
   }

@@ -45,10 +45,15 @@ var prgSrc = `
 
   #def /start 0s0000 .
 
-  addi r1 0x1234
   addi r2 0x5678
-  addi r1 0x4321
   addi r2 0x3210
+
+  addi r1 0x0100
+  addi @r1 0x2222
+  addi @r1++ 0x1111
+  addi @r1 0x4444
+  addi @r1 0x1111
+  addi @--r1 0x3333
 
   #def /end 0s0001 .
   hal -- --
