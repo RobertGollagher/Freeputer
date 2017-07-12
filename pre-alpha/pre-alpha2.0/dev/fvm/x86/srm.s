@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170711+
+Updated:    20170712+
 Version:    pre-alpha-0.0.0.2 for FVM 2.0
 
 
@@ -197,39 +197,17 @@ memory: .lcomm mm, MM_BYTES
 .global main
 main:
 
+  # Initialize pointer
   lit 0x14
   to ptr
 
-  lit 3
-  push ptr
-
-  lit 5
-  push ptr
-
-  lit 7
-  push ptr
-
-  pop ptr
-  pop ptr
-  pop ptr
-
-/*
-  # Inbuilt looping = 1.4 sec
-  repeats 0x7fffffff
+  # Inbuilt looping for gigantic stack = 0.20 sec
+  lit 9
+  repeats 0x3fff00
   loop:
+    push ptr
+    pop ptr
     again loop
-*/
-
-/*
-  # Memory looping = 4.9 sec
-  lit 0x7fffffff
-  to counter
-  loop1:
-    lit 1
-    subm counter
-    load counter
-    jnz loop1
-*/
 
   HALT
 
