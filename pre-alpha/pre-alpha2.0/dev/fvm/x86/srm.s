@@ -77,6 +77,37 @@ space: .asciz " "
 # ============================================================================
 #                             INSTRUCTION SET
 # ============================================================================
+/*
+
+  lit
+
+  from
+  to
+  pull
+  put
+  pop
+  push
+
+  add
+  sub
+  mul
+  div
+
+  shr
+  shl
+
+  and
+  or
+  xor
+
+  jmp with l,@,@++,--@ and conditionals
+
+  halt
+? fail
+? noop
+
+*/
+
 .macro HALT
   jmp vm_success
 .endm
@@ -85,6 +116,7 @@ space: .asciz " "
   jmp vm_failure
 .endm
 
+# 32-bit lits? 16-bit compatibility? unusual or clever flag/overflow/less-1-bit solutions?
 .macro lit imm
   movl $\imm, vA
 .endm
@@ -99,15 +131,91 @@ space: .asciz " "
   movl vA, memory(,rA,1)
 .endm
 
+.macro pull imm
+  movl $\imm, rA
+  movl memory(,rA,1), rC
+  movl memory(,rC,1), vA
+.endm
+
+.macro put imm
+  movl $\imm, rC
+  movl memory(,rC,1), rA
+  movl vA, memory(,rA,1)
+.endm
+
+.macro pop imm
+  movl $\imm, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl memory(,rC,1), vA
+.endm
+
+.macro push imm
+  movl $\imm, rC
+  movl memory(,rC,1), rA
+  movl vA, memory(,rA,1)
+  addl $4, memory(,rC,1)
+.endm
+
 .macro subm imm
   movl $\imm, rA
   subl vA, memory(,rA,1)
+.endm
+
+.macro shl imm
+  movl $\imm, rA
+  movl rA, %ecx
+  shll %cl, vA
+.endm
+
+.macro shr imm
+  movl $\imm, rA
+  movl rA, %ecx
+  shlr %cl, vA
+.endm
+
+.macro or imm
+  orl $\imm, vA
+.endm
+
+.macro and imm
+  andl $\imm, vA
+.endm
+
+.macro xor imm
+  xorl $\imm, vA
+.endm
+
+# TODO carry? overflow?
+.macro add imm
+  addl $\imm, vA
 .endm
 
 .macro sub imm
   subl $\imm, vA
 .endm
 
+.macro mul imm
+  imull $\imm, vA
+.endm
+
+.macro div imm
+  movl vA, %eax
+  movl $\imm, %ebx
+
+  test %ebx, %ebx
+  je 1f
+
+  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
+  idivl %ebx      # %edx:eax is the implied dividend
+  jmp 2f
+  1: # Division by zero
+    movl $0, vA
+  2:
+.endm
+
+# TODO conditions? absolute? relative? link register? pc access?
 .macro jnz label
   xorl $0, vA
   jz 1f
@@ -124,21 +232,6 @@ space: .asciz " "
   jle 1f
     jmp \label
   1:
-.endm
-
-.macro pop imm
-  movl $\imm, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl memory(,rC,1), vA
-.endm
-
-.macro push imm
-  movl $\imm, rC
-  movl memory(,rC,1), rA
-  movl vA, memory(,rA,1)
-  addl $4, memory(,rC,1)
 .endm
 
 /*
