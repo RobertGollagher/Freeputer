@@ -1,5 +1,5 @@
 /*
-                     SINGLE REGISTER MACHINE (SRM)
+                      SINGLE REGISTER MACHINE (SRM)
 
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
@@ -61,6 +61,7 @@ Alternative if no imports:
 .equ vA, %ebx
 .equ vC, %edx
 .equ rA, %eax
+.equ rC, %ecx
 
 # ============================================================================
 .section .data #                CONSTANTS
@@ -125,6 +126,21 @@ space: .asciz " "
   1:
 .endm
 
+.macro pop imm
+  movl $\imm, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl memory(,rC,1), vA
+.endm
+
+.macro push imm
+  movl $\imm, rC
+  movl memory(,rC,1), rA
+  movl vA, memory(,rA,1)
+  addl $4, memory(,rC,1)
+.endm
+
 /*
 .macro
 
@@ -173,6 +189,7 @@ memory: .lcomm mm, MM_BYTES
 .equ b, 0x04
 .equ c, 0x08
 .equ counter, 0x0c
+.equ ptr, 0x10
 
 # ============================================================================
 .section .text #                ENTRY POINT
@@ -180,18 +197,22 @@ memory: .lcomm mm, MM_BYTES
 .global main
 main:
 
-  lit 0
-  to a
+  lit 0x14
+  to ptr
 
-  lit 1
-  to b
+  lit 3
+  push ptr
 
-  lit 2
-  to c
+  lit 5
+  push ptr
 
-  from a
-  from b
-  from c
+  lit 7
+  push ptr
+
+  pop ptr
+  pop ptr
+  pop ptr
+
 /*
   # Inbuilt looping = 1.4 sec
   repeats 0x7fffffff
@@ -199,16 +220,19 @@ main:
     again loop
 */
 
+/*
   # Memory looping = 4.9 sec
   lit 0x7fffffff
   to counter
   loop1:
     lit 1
     subm counter
-    from counter
+    load counter
     jnz loop1
+*/
 
   HALT
+
 
 vm_failure:
 
