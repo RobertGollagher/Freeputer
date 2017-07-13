@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170712+
-Version:    pre-alpha-0.0.0.2 for FVM 2.0
+Updated:    20170713+
+Version:    pre-alpha-0.0.0.3 for FVM 2.0
 
 
                               This Edition:
@@ -79,32 +79,18 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  lit
+  LATEST THOUGHTS:
 
-  from
-  to
-  pull
-  put
-  pop
-  push
-
-  add
-  sub
-  mul
-  div
-
-  shr
-  shl
-
-  and
-  or
-  xor
-
-  jmp with l,@,@++,--@ and conditionals
-
-  halt
-? fail
-? noop
+  - FW32
+  - word-addressing
+  - 2 bits: mode (imm,@,@++,--@)
+  - 4 bits: opcode:
+      - lit, from, to
+      - add, sub, mul, div
+      - shr, shl, and, or, xor
+      - sys, halt
+      - jmp, jz, jnz, jgt, jlt... ?
+  - 24 bits: metadata
 
 */
 
