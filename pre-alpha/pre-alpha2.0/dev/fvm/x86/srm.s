@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170713+
+Updated:    20170715+
 Version:    pre-alpha-0.0.0.3 for FVM 2.0
 
 
@@ -67,9 +67,8 @@ Alternative if no imports:
 .section .data #                CONSTANTS
 # ============================================================================
 version: .asciz "SRM 0.0.0.0\n"
-success: .asciz "SRM success\n"
-failure: .asciz "SRM failure\n"
-illegal: .asciz "SRM illegal opcode: "
+exit: .asciz "SRM exit code: "
+illegal: .asciz "SRM illegal opcode with metadata: "
 format_hex8: .asciz "%08x"
 newline: .asciz "\n"
 space: .asciz " "
@@ -83,26 +82,98 @@ space: .asciz " "
 
   - FW32
   - word-addressing
+  - 1 bit: jmp-format instruction
   - 2 bits: mode (imm,@,@++,--@)
   - 4 bits: opcode:
-      - lit, from, to
-      - add, sub, mul, div
-      - shr, shl, and, or, xor
-      - sys, halt
-      - jmp, jz, jnz, jgt, jlt... ?
+      - lit, from, to = 3
+      - add, sub, mul, div = 4
+      - shr, shl, and, or, xor = 5
+      - reserved1, reserved2, nop, halt = 4
+  - jumps:
+      - jmp, jz, jnz, jlz, jgz, jo = 6
+      - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10
   - 24 bits: metadata
+
+  PREFERRED:
+
+  - Keep it simple, have it in 1 direction only: M->R
+  - bit-30 overflow solutions and 15-bit multiply, not sure div
+
 
 */
 
-.macro HALT
-  jmp vm_success
+
+
+# ----------------------------------------------------------------------------
+#                                STORE MACROS
+# ----------------------------------------------------------------------------
+# M = x
+.macro dst_imm x
+  movl $\x, rA
+  movl vA, memory(,rA,1)
 .endm
 
-.macro FAIL
-  jmp vm_failure
+# M = @x
+.macro dst_at x
+  movl $\x, rA
+  movl memory(,rA,1), rA
+  movl vA, memory(,rA,1)
 .endm
 
-# 32-bit lits? 16-bit compatibility? unusual or clever flag/overflow/less-1-bit solutions?
+# M = @x++
+.macro dst_pp x
+  movl $\x, rC
+  movl memory(,rC,1), rA
+  movl vA, memory(,rA,1)
+  addl $4, memory(,rC,1)
+.endm
+
+# M = --@x
+.macro mm_dst x
+  movl $\x, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl vA, memory(,rC,1)
+.endm
+
+# ----------------------------------------------------------------------------
+#                                 LOAD MACROS
+# ----------------------------------------------------------------------------
+# R = x
+.macro src_imm x
+  movl $\x, rA
+  movl memory(,rA,1), vA
+.endm
+
+# R = @x
+.macro src_at x
+  movl $\x, rA
+  movl memory(,rA,1), rA
+  movl vA, memory(,rA,1)
+.endm
+
+# R = @x++
+.macro src_pp x
+  movl $\x, rC
+  movl memory(,rC,1), rA
+  movl memory(,rA,1), vA
+  addl $4, memory(,rC,1)
+.endm
+
+# R = --@x
+.macro mm_src x
+  movl $\x, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl memory(,rC,1), vA
+.endm
+
+# ----------------------------------------------------------------------------
+#                             MOVE INSTRUCTIONS
+# ----------------------------------------------------------------------------
+
 .macro lit imm
   movl $\imm, vA
 .endm
@@ -117,61 +188,9 @@ space: .asciz " "
   movl vA, memory(,rA,1)
 .endm
 
-.macro pull imm
-  movl $\imm, rA
-  movl memory(,rA,1), rC
-  movl memory(,rC,1), vA
-.endm
-
-.macro put imm
-  movl $\imm, rC
-  movl memory(,rC,1), rA
-  movl vA, memory(,rA,1)
-.endm
-
-.macro pop imm
-  movl $\imm, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl memory(,rC,1), vA
-.endm
-
-.macro push imm
-  movl $\imm, rC
-  movl memory(,rC,1), rA
-  movl vA, memory(,rA,1)
-  addl $4, memory(,rC,1)
-.endm
-
-.macro subm imm
-  movl $\imm, rA
-  subl vA, memory(,rA,1)
-.endm
-
-.macro shl imm
-  movl $\imm, rA
-  movl rA, %ecx
-  shll %cl, vA
-.endm
-
-.macro shr imm
-  movl $\imm, rA
-  movl rA, %ecx
-  shlr %cl, vA
-.endm
-
-.macro or imm
-  orl $\imm, vA
-.endm
-
-.macro and imm
-  andl $\imm, vA
-.endm
-
-.macro xor imm
-  xorl $\imm, vA
-.endm
+# ----------------------------------------------------------------------------
+#                           ARITHMETIC INSTRUCTIONS
+# ----------------------------------------------------------------------------
 
 # TODO carry? overflow?
 .macro add imm
@@ -201,6 +220,42 @@ space: .asciz " "
   2:
 .endm
 
+.macro subm imm
+  movl $\imm, rA
+  subl vA, memory(,rA,1)
+.endm
+
+# ----------------------------------------------------------------------------
+#                               BITWISE INSTRUCTIONS
+# ----------------------------------------------------------------------------
+.macro or imm
+  orl $\imm, vA
+.endm
+
+.macro and imm
+  andl $\imm, vA
+.endm
+
+.macro xor imm
+  xorl $\imm, vA
+.endm
+
+.macro shl imm
+  movl $\imm, rA
+  movl rA, %ecx
+  shll %cl, vA
+.endm
+
+.macro shr imm
+  movl $\imm, rA
+  movl rA, %ecx
+  shlr %cl, vA
+.endm
+
+# ----------------------------------------------------------------------------
+#                               JUMP INSTRUCTIONS
+# ----------------------------------------------------------------------------
+
 # TODO conditions? absolute? relative? link register? pc access?
 .macro jnz label
   xorl $0, vA
@@ -209,22 +264,27 @@ space: .asciz " "
   1:
 .endm
 
-.macro repeats imm
-  movl $\imm, vC
+# ----------------------------------------------------------------------------
+#                            OTHER INSTRUCTIONS
+# ----------------------------------------------------------------------------
+
+.macro nop
 .endm
 
-.macro again label
-  decl vC
-  jle 1f
-    jmp \label
-  1:
+.macro reserved1 imm
+  movl $\imm, %eax
+  jmp vm_illegal
 .endm
 
-/*
-.macro
-
+.macro reserved2 imm
+  movl $\imm, %eax
+  jmp vm_illegal
 .endm
-*/
+
+.macro halt imm
+  movl $\imm, %eax
+  jmp vm_exit
+.endm
 
 # ============================================================================
 .section .bss #                  VARIABLES
@@ -276,35 +336,21 @@ memory: .lcomm mm, MM_BYTES
 .global main
 main:
 
-  # Initialize pointer
-  lit 0x14
-  to ptr
-
-  # Inbuilt looping for gigantic stack = 0.20 sec
-  lit 9
-  repeats 0x3fff00
-  loop:
-    push ptr
-    pop ptr
-    again loop
-
-  HALT
+  halt 0x12345678
 
 
-vm_failure:
+vm_illegal:
 
-  # PRINT FAILURE MESSAGE AND EXIT ====
-  TRACE_STR $failure
-  movl $FAILURE, %eax
+  TRACE_STR $illegal
+  TRACE_HEX8 rA
+  TRACE_STR $newline
   ret
-  # ===================================
 
-vm_success:
+vm_exit:
 
-  #  PRINT SUCCESS MESSAGE AND EXIT ===
-  TRACE_STR $success
-  movl $SUCCESS, %eax
+  TRACE_STR $exit
+  TRACE_HEX8 rA
+  TRACE_STR $newline
   ret
-  #  ==================================
 
 # ============================================================================
