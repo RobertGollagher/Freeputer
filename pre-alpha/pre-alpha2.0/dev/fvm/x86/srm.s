@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170715+
-Version:    pre-alpha-0.0.0.5 for FVM 2.0
+Version:    pre-alpha-0.0.0.6 for FVM 2.0
 
 
                               This Edition:
@@ -94,7 +94,7 @@ space: .asciz " "
 
   PREFERRED:
 
-  - bit-30 overflow solutions and 15-bit multiply, not sure div ?? carry, overflow
+  - bit-30 overflow solutions and 15-bit mul, not sure div ?? carry, overflow
 
 */
 
@@ -627,7 +627,33 @@ space: .asciz " "
   movl $\metadata, %eax
   jmp vm_exit
 .endm
+# ----------------------------------------------------------------------------
+#                             COMPOSITE MACROS
+# ----------------------------------------------------------------------------
+# FIXME overflow check
+.macro calling label
+  lit 1f
+  to_pp rsp
+  jump \label
+  1:
+.endm
 
+# FIXME overflow check
+.macro returning
+  jump_mm rsp
+.endm
+
+.macro branch label
+  lit 1f
+  to lr
+  jump \label
+  1:
+.endm
+
+.macro unbranch
+  src_at lr
+  doJump
+.endm
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
@@ -673,8 +699,8 @@ memory: .lcomm mm, MM_BYTES
 .equ base, 0x10
 .equ top,  0x1c
 .equ ptr, 0x20
-.equ rsp, 0x24
-.equ lr, 0x28
+.equ rsp, 0x24 # Here being used like a return-stack pointer
+.equ lr, 0x28 # Here being used like a link register
 .equ rs_base, 0x30
 
 # ============================================================================
@@ -697,69 +723,43 @@ vm_exit:
 # ============================================================================
 #                     ENTRY POINT for an example program
 # ============================================================================
-.macro calling label
-  # FIXME needs overflow check for rs
-  lit 1f
-  to_pp rsp
-  jump \label
-  1:
-.endm
-
-.macro returning
-  # FIXME needs underflow check for rs
-  jump_mm rsp
-.endm
-
-.macro branch label
-  lit 1f
-  to lr
-  jump \label
-  1:
-.endm
-
-.macro unbranch
-  jump lr
-.endm
-
 .global main
 main:
 
-  lit rs_base
-  to rsp
+    branch initProgram
+    calling countdown
 
-  lit base
-  to ptr
+  end:
+    halt 0
 
-  branch litMaxInt
-nexting:
-  to_at ptr
+  initProgram:
+    lit rs_base
+    to rsp
+    lit base
+    to ptr
+    calling litMaxInt
+    to_at ptr
+    unbranch
 
-  // Native execution time is about 3 s for 0x7fffffff iterations
+  litMaxInt:
+    lit 0x7fffff
+    shl 0x8
+    or 0xff
+    calling foo
+    returning
+
   countdown:
     from base
     sub 1
     to base
     jmpgz countdown
+    returning
 
-  end:
-    halt 0
+  foo:
+    calling bar
+    returning
 
-  litMaxInt:
-/*
-    lit 0x7fffff
-    shl 0x8
-    or 0xff
-*/
-    lit 1
-
-
-  //leal nexting, rA
-
-  src lr
-  movl memory(,rA,1), rA
-  doJump
-
-
-    //unbranch
+  bar:
+    returning
 
 # ============================================================================
