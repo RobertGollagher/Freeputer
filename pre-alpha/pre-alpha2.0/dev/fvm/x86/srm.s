@@ -82,13 +82,14 @@ space: .asciz " "
 
   - FW32
   - word-addressing
-  - 1 bit: jmp-format instruction
+  - 1 bit: reserved
+  - 1 bit: instruction format (regular, jump)
   - 2 bits: mode (imm,@,@++,--@)
   - 4 bits: opcode:
       - lit, from, to = 3
       - add, sub, mul, div = 4
-      - shr, shl, and, or, xor = 5
-      - reserved1, reserved1, nop, halt = 3
+      - shl, shr, and, or, xor = 5
+      - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute
       - jmp, jz, jnz, jlz, jgz, jo = 6
       - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10
@@ -263,12 +264,12 @@ space: .asciz " "
 .macro nop
 .endm
 
-.macro reserved2 imm
+.macro reserved1 imm
   movl $\imm, %eax
   jmp vm_illegal
 .endm
 
-.macro reserved1 imm
+.macro reserved2 imm
   movl $\imm, %eax
   jmp vm_illegal
 .endm
