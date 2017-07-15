@@ -75,7 +75,7 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:   ?sign, sign-extending
+  LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack
 
   - FW32
   - word-addressing, 32-bit address space
@@ -133,13 +133,14 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                 LOAD MACROS
 # ----------------------------------------------------------------------------
-# This may be used after each of the below
+# This may be used after each of the @ below
 .macro rA_mem_vA
   movl memory(,rA,1), vA
 .endm
 
-# This may be used after each of the below
-.macro rA_mem_rA
+# This may be used after each of the @@ below
+.macro rA_mem_at_rA
+  movl memory(,rA,1), rA
   movl memory(,rA,1), rA
 .endm
 
@@ -501,91 +502,109 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 .macro jump_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJump
 .endm
 
 .macro jmpo_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJmpo
 .endm
 
 .macro jmpz_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJmpz
 .endm
 
 .macro jmpnz_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJmpnz
 .endm
 
 .macro jmplz_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJmplt
 .endm
 
 .macro jmpgz_at metadata
   src_at \metadata
+  rA_mem_at_rA
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
 .macro jump_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJump
 .endm
 
 .macro jmpo_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJmpo
 .endm
 
 .macro jmpz_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJmpz
 .endm
 
 .macro jmpnz_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJmpnz
 .endm
 
 .macro jmplz_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJmplt
 .endm
 
 .macro jmpgz_pp metadata
   src_pp \metadata
+  rA_mem_at_rA
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
 .macro jump_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJump
 .endm
 
 .macro jmpo_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJmpo
 .endm
 
 .macro jmpz_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJmpz
 .endm
 
 .macro jmpnz_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJmpnz
 .endm
 
 .macro jmplz_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJmplt
 .endm
 
 .macro jmpgz_mm metadata
   src_mm \metadata
+  rA_mem_at_rA
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
@@ -654,6 +673,8 @@ memory: .lcomm mm, MM_BYTES
 .equ base, 0x10
 .equ top,  0x1c
 .equ ptr, 0x20
+.equ rsp, 0x24
+.equ rs_base, 0x30
 
 # ============================================================================
 .section .text #                EXIT POINTS
@@ -678,15 +699,16 @@ vm_exit:
 .global main
 main:
 
+  lit rs_base
+  to rsp
+
   lit base
   to ptr
 
-  // <TODO NEXT>
-  //    encapsulate this as a function which will return by jmp_mm
-  lit 0x7fffff
-  shl 0x8
-  or 0xff
-  // </TODO NEXT>
+  lit 1f
+  to_pp rsp
+  jump litMaxInt
+  1:
 
   to_at ptr
 
@@ -699,5 +721,14 @@ main:
 
   end:
     halt 0
+
+  litMaxInt:
+/*
+    lit 0x7fffff
+    shl 0x8
+    or 0xff
+*/
+    lit 1
+    jump_mm rsp
 
 # ============================================================================
