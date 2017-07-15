@@ -171,65 +171,64 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro lit imm
-  movl $\imm, rA
+.macro lit metadata
+  movl $\metadata, rA
 .endm
-
-.macro from imm
-  src imm
+# ----------------------------------------------------------------------------
+.macro from metadata
+  src metadata
   rA_mem_vA
 .endm
 
-.macro from_at imm
-  src_at imm
+.macro from_at metadata
+  src_at metadata
   rA_mem_vA
 .endm
 
-.macro from_pp imm
-  src_pp imm
+.macro from_pp metadata
+  src_pp metadata
   rA_mem_vA
 .endm
 
-.macro from_mm imm
-  src_mm imm
+.macro from_mm metadata
+  src_mm metadata
   rA_mem_vA
 .endm
-
-.macro to imm
-  dst imm
+# ----------------------------------------------------------------------------
+.macro to metadata
+  dst metadata
 .endm
 
-.macro to_at imm
-  dst_at imm
+.macro to_at metadata
+  dst_at metadata
 .endm
 
-.macro to_pp imm
-  dst_pp imm
+.macro to_pp metadata
+  dst_pp metadata
 .endm
 
-.macro to_mm imm
-  dst_mm imm
+.macro to_mm metadata
+  dst_mm metadata
 .endm
-
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
 # TODO carry? overflow?
-.macro add imm
-  addl $\imm, vA
+.macro add metadata
+  addl $\metadata, vA
 .endm
 
-.macro sub imm
-  subl $\imm, vA
+.macro sub metadata
+  subl $\metadata, vA
 .endm
 
-.macro mul imm
-  imull $\imm, vA
+.macro mul metadata
+  imull $\metadata, vA
 .endm
 
-.macro div imm
+.macro div metadata
   movl vA, %eax
-  movl $\imm, %ebx
+  movl $\metadata, %ebx
 
   test %ebx, %ebx
   je 1f
@@ -242,72 +241,118 @@ space: .asciz " "
   2:
 .endm
 
-.macro subm imm
-  movl $\imm, rA
+.macro subm metadata
+  movl $\metadata, rA
   subl vA, memory(,rA,1)
 .endm
 
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro or imm
-  orl $\imm, vA
+.macro or metadata
+  orl $\metadata, vA
 .endm
 
-.macro or_at imm
-  src_at imm
+.macro or_at metadata
+  src_at metadata
   orl rA, vA
 .endm
 
-.macro or_pp imm
-  src_pp imm
+.macro or_pp metadata
+  src_pp metadata
   orl rA, vA
 .endm
 
-.macro or_mm imm
-  src_mm imm
+.macro or_mm metadata
+  src_mm metadata
   orl rA, vA
 .endm
-
 # ----------------------------------------------------------------------------
-.macro and imm
-  andl $\imm, vA
+.macro and metadata
+  andl $\metadata, vA
 .endm
 
-.macro and_at imm
-  src_at imm
+.macro and_at metadata
+  src_at metadata
   andl rA, vA
 .endm
 
-.macro and_pp imm
-  src_pp imm
+.macro and_pp metadata
+  src_pp metadata
   andl rA, vA
 .endm
 
-.macro and_mm imm
-  src_mm imm
+.macro and_mm metadata
+  src_mm metadata
   andl rA, vA
 .endm
-
 # ----------------------------------------------------------------------------
-.macro xor imm
-  xorl $\imm, vA
+.macro xor metadata
+  xorl $\metadata, vA
 .endm
 
+.macro xor_at metadata
+  src_at metadata
+  xorl rA, vA
+.endm
+
+.macro xor_pp metadata
+  src_pp metadata
+  xorl rA, vA
+.endm
+
+.macro xor_mm metadata
+  src_mm metadata
+  xorl rA, vA
+.endm
 # ----------------------------------------------------------------------------
-.macro shl imm
-  movl $\imm, rA
+.macro shl metadata
+  movl $\metadata, rA
   movl rA, %ecx
   shll %cl, vA
 .endm
 
-# ----------------------------------------------------------------------------
-.macro shr imm
-  movl $\imm, rA
+.macro shl_at metadata
+  src_at metadata
   movl rA, %ecx
-  shlr %cl, vA
+  shll %cl, vA
 .endm
 
+.macro shl_pp metadata
+  src_pp metadata
+  movl rA, %ecx
+  shll %cl, vA
+.endm
+
+.macro shl_mm metadata
+  src_mm metadata
+  movl rA, %ecx
+  shll %cl, vA
+.endm
+# ----------------------------------------------------------------------------
+.macro shr metadata
+  movl $\metadata, rA
+  movl rA, %ecx
+  shrl %cl, vA
+.endm
+
+.macro shr_at metadata
+  src_at metadata
+  movl rA, %ecx
+  shrl %cl, vA
+.endm
+
+.macro shr_pp metadata
+  src_pp metadata
+  movl rA, %ecx
+  shrl %cl, vA
+.endm
+
+.macro shr_mm metadata
+  src_mm metadata
+  movl rA, %ecx
+  shrl %cl, vA
+.endm
 # ----------------------------------------------------------------------------
 #                               JUMP INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -324,18 +369,18 @@ space: .asciz " "
 .macro nop
 .endm
 
-.macro reserved1 imm
-  movl $\imm, %eax
+.macro reserved1 metadata
+  movl $\metadata, %eax
   jmp vm_illegal
 .endm
 
-.macro reserved2 imm
-  movl $\imm, %eax
+.macro reserved2 metadata
+  movl $\metadata, %eax
   jmp vm_illegal
 .endm
 
-.macro halt imm
-  movl $\imm, %eax
+.macro halt metadata
+  movl $\metadata, %eax
   jmp vm_exit
 .endm
 
