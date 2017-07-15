@@ -78,14 +78,14 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:
+  LATEST THOUGHTS:   ?sign, sign-extending
 
   - FW32
-  - word-addressing
+  - word-addressing, 32-bit address space
   - 1 bit: reserved
   - 1 bit: instruction format (regular, jump)
-  - 2 bits: mode (imm,@,@++,--@)
-  - 4 bits: opcode:
+  - 2 bits: mode (imm|@,@@,@@++,--@@) (not orthogonal)
+  - 4 bits: opcode: (all one-directional M->R)
       - lit, from, to = 3
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
@@ -97,7 +97,6 @@ space: .asciz " "
 
   PREFERRED:
 
-  - Keep it simple, have it in 1 direction only: M->R
   - bit-30 overflow solutions and 15-bit multiply, not sure div
 
 */
@@ -105,20 +104,20 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                STORE MACROS
 # ----------------------------------------------------------------------------
-# M = x
-.macro dst_imm x
+# M = @x
+.macro dst x
   movl $\x, rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @x
+# M = @@x
 .macro dst_at x
   movl $\x, rA
   movl memory(,rA,1), rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @x++
+# M = @@x++
 .macro dst_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
@@ -126,8 +125,8 @@ space: .asciz " "
   addl $4, memory(,rC,1)
 .endm
 
-# M = --@x
-.macro mm_dst x
+# M = --@@x
+.macro dst_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
   subl $4, rC
@@ -138,51 +137,78 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                 LOAD MACROS
 # ----------------------------------------------------------------------------
-# R = x
-.macro src_imm x
-  movl $\x, rA
+# This may be used after each of the below
+.macro rA_mem_vA
   movl memory(,rA,1), vA
 .endm
 
-# R = @x
+# rA = @x
+.macro src x
+  movl $\x, rA
+.endm
+
+# rA = @@x
 .macro src_at x
   movl $\x, rA
   movl memory(,rA,1), rA
-  movl vA, memory(,rA,1)
 .endm
 
-# R = @x++
+# rA = @@x++
 .macro src_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
-  movl memory(,rA,1), vA
   addl $4, memory(,rC,1)
 .endm
 
-# R = --@x
-.macro mm_src x
+# rA = --@@x
+.macro src_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
   subl $4, rC
   movl rC, memory(,rA,1)
-  movl memory(,rC,1), vA
 .endm
 
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro lit imm
-  movl $\imm, vA
+  movl $\imm, rA
 .endm
 
 .macro from imm
-  movl $\imm, rA
-  movl memory(,rA,1), vA
+  src imm
+  rA_mem_vA
+.endm
+
+.macro from_at imm
+  src_at imm
+  rA_mem_vA
+.endm
+
+.macro from_pp imm
+  src_pp imm
+  rA_mem_vA
+.endm
+
+.macro from_mm imm
+  src_mm imm
+  rA_mem_vA
 .endm
 
 .macro to imm
-  movl $\imm, rA
-  movl vA, memory(,rA,1)
+  dst imm
+.endm
+
+.macro to_at imm
+  dst_at imm
+.endm
+
+.macro to_pp imm
+  dst_pp imm
+.endm
+
+.macro to_mm imm
+  dst_mm imm
 .endm
 
 # ----------------------------------------------------------------------------
@@ -228,20 +254,54 @@ space: .asciz " "
   orl $\imm, vA
 .endm
 
+.macro or_at imm
+  src_at imm
+  orl rA, vA
+.endm
+
+.macro or_pp imm
+  src_pp imm
+  orl rA, vA
+.endm
+
+.macro or_mm imm
+  src_mm imm
+  orl rA, vA
+.endm
+
+# ----------------------------------------------------------------------------
 .macro and imm
   andl $\imm, vA
 .endm
 
+.macro and_at imm
+  src_at imm
+  andl rA, vA
+.endm
+
+.macro and_pp imm
+  src_pp imm
+  andl rA, vA
+.endm
+
+.macro and_mm imm
+  src_mm imm
+  andl rA, vA
+.endm
+
+# ----------------------------------------------------------------------------
 .macro xor imm
   xorl $\imm, vA
 .endm
 
+# ----------------------------------------------------------------------------
 .macro shl imm
   movl $\imm, rA
   movl rA, %ecx
   shll %cl, vA
 .endm
 
+# ----------------------------------------------------------------------------
 .macro shr imm
   movl $\imm, rA
   movl rA, %ecx
