@@ -678,33 +678,19 @@ vm_exit:
 .global main
 main:
 
-  lit 1
-  to a
-
-  lit 2
-  to b
-
-  lit 3
-  to c
-
-  lit 4
-  to d
-
-  from a
-  from b
-  from c
-  from d
-
   lit base
   to ptr
 
+  // <TODO NEXT>
+  //    encapsulate this as a function which will return by jmp_mm
   lit 0x7fffff
   shl 0x8
   or 0xff
+  // </TODO NEXT>
 
-  // lit 4
   to_at ptr
 
+  // Native execution time is about 3 s for 0x7fffffff iterations
   countdown:
     from base
     sub 1
@@ -712,6 +698,6 @@ main:
     jmpgz countdown
 
   end:
-    halt 0x12345678
+    halt 0
 
 # ============================================================================
