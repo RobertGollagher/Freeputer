@@ -470,7 +470,7 @@ space: .asciz " "
   shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-#                               JUMP INSTRUCTIONS
+#                               JUMP INSTRUCTIONS maybe decleq or (as skip is problemmatic)
 # ----------------------------------------------------------------------------
 .macro jump label
   leal \label, rA
