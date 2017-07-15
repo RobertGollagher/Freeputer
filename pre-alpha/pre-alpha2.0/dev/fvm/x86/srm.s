@@ -97,7 +97,7 @@ space: .asciz " "
 
   PREFERRED:
 
-  - bit-30 overflow solutions and 15-bit multiply, not sure div
+  - bit-30 overflow solutions and 15-bit multiply, not sure div ?? carry, overflow
 
 */
 
@@ -169,6 +169,24 @@ space: .asciz " "
 .endm
 
 # ----------------------------------------------------------------------------
+#                                ARITHMETIC MACROS
+# ----------------------------------------------------------------------------
+.macro divide metadata
+  movl vA, %eax
+  movl $\metadata, %ebx
+
+  test %ebx, %ebx
+  je 1f
+
+  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
+  idivl %ebx      # %edx:eax is the implied dividend
+  jmp 2f
+  1: # Division by zero
+    movl $0, vA
+  2:
+.endm
+
+# ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro lit metadata
@@ -213,37 +231,83 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-# TODO carry? overflow?
 .macro add metadata
   addl $\metadata, vA
 .endm
 
+.macro add_at metadata
+  src_at metadata
+  addl rA, vA
+.endm
+
+.macro add_pp metadata
+  src_pp metadata
+  addl rA, vA
+.endm
+
+.macro add_mm metadata
+  src_mm metadata
+  addl rA, vA
+.endm
+# ----------------------------------------------------------------------------
 .macro sub metadata
   subl $\metadata, vA
 .endm
 
+.macro sub_at metadata
+  src_at metadata
+  subl rA, vA
+.endm
+
+.macro sub_pp metadata
+  src_pp metadata
+  subl rA, vA
+.endm
+
+.macro sub_mm metadata
+  src_mm metadata
+  subl rA, vA
+.endm
+# ----------------------------------------------------------------------------
 .macro mul metadata
-  imull $\metadata, vA
+  mull $\metadata, vA
 .endm
 
+.macro mul_at metadata
+  src_at metadata
+  mull rA, vA
+.endm
+
+.macro mul_pp metadata
+  src_pp metadata
+  mull rA, vA
+.endm
+
+.macro mul_mm metadata
+  src_mm metadata
+  mull rA, vA
+.endm
+# ----------------------------------------------------------------------------
 .macro div metadata
-  movl vA, %eax
-  movl $\metadata, %ebx
-
-  test %ebx, %ebx
-  je 1f
-
-  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
-  idivl %ebx      # %edx:eax is the implied dividend
-  jmp 2f
-  1: # Division by zero
-    movl $0, vA
-  2:
+  divide metadata
 .endm
 
-.macro subm metadata
-  movl $\metadata, rA
-  subl vA, memory(,rA,1)
+.macro div_at metadata
+  src_at metadata
+  rA_mem_vA
+  divide metadata
+.endm
+
+.macro div_pp metadata
+  src_pp metadata
+  rA_mem_vA
+  divide metadata
+.endm
+
+.macro div_mm metadata
+  src_mm metadata
+  rA_mem_vA
+  divide metadata
 .endm
 
 # ----------------------------------------------------------------------------
@@ -356,9 +420,34 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                               JUMP INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro jnz label
+.macro jump label
+  jmp \label
+.endm
+
+.macro jmpz label
+  xorl $0, vA
+  jnz 1f
+    jmp \label
+  1:
+.endm
+
+.macro jmpnz label
   xorl $0, vA
   jz 1f
+    jmp \label
+  1:
+.endm
+
+.macro jmplt label
+  cmp $0, vA
+  jgt 1f
+    jmp \label
+  1:
+.endm
+
+.macro jmpgt label
+  cmp $0, vA
+  jlt 1f
     jmp \label
   1:
 .endm
