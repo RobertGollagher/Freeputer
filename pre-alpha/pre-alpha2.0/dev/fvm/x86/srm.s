@@ -92,7 +92,8 @@ space: .asciz " "
       - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute
       - jmp, jz, jnz, jlz, jgz, jo = 6
-      - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10 (simulated)
+      - sknz, sklz, skgz, sko, skeq, skne, skle, skge = 9 (simulated)
+      - note: 1 spare instruction here, maybe use for from@pc++ (problematic)
   - 24 bits: metadata
 
   PREFERRED:
@@ -104,20 +105,20 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                STORE MACROS
 # ----------------------------------------------------------------------------
-# M = @x
+# M = @x # FIXME
 .macro dst x
   movl $\x, rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @@x
+# M = @@x # FIXME
 .macro dst_at x
   movl $\x, rA
   movl memory(,rA,1), rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @@x++
+# M = @@x++ # FIXME
 .macro dst_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
@@ -125,7 +126,7 @@ space: .asciz " "
   addl $4, memory(,rC,1)
 .endm
 
-# M = --@@x
+# M = --@@x # FIXME
 .macro dst_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
@@ -145,22 +146,23 @@ space: .asciz " "
 # rA = @x
 .macro src x
   movl $\x, rA
-.endm
-
-# rA = @@x
-.macro src_at x
-  movl $\x, rA
   movl memory(,rA,1), rA
 .endm
 
-# rA = @@x++
+# rA = @@x # FIXME
+.macro src_at x
+  movl $\x, rA
+  leal memory(,rA,1), rA
+.endm
+
+# rA = @@x++ # FIXME
 .macro src_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
   addl $4, memory(,rC,1)
 .endm
 
-# rA = --@@x
+# rA = --@@x # FIXME
 .macro src_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
@@ -243,6 +245,47 @@ space: .asciz " "
   jmp 1f
 .endm
 
+.macro doSko
+  andl vA, $0x80000000
+  jz positive
+    andl vA, $0x40000000
+    jnz ok
+      doSkip
+  positive:
+    andl vA, $0x40000000
+    jz ok
+      doSkip
+  ok:
+.endm
+
+.macro doSkz
+  xorl $0, vA
+  jnz 2f
+    doSkip
+  2:
+.endm
+
+.macro doSknz
+  xorl $0, vA
+  jz 2f
+    doSkip
+  2:
+.endm
+
+.macro doSklt
+  cmp $0, vA
+  jgt 2f
+    doSkip
+  2:
+.endm
+
+.macro doSkgt
+  cmp $0, vA
+  jlt 2f
+    doSkip
+  2:
+.endm
+# ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -251,39 +294,39 @@ space: .asciz " "
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
-  src metadata
+  src \metadata
   rA_mem_vA
 .endm
 
 .macro from_at metadata
-  src_at metadata
+  src_at \metadata
   rA_mem_vA
 .endm
 
 .macro from_pp metadata
-  src_pp metadata
+  src_pp \metadata
   rA_mem_vA
 .endm
 
 .macro from_mm metadata
-  src_mm metadata
+  src_mm \metadata
   rA_mem_vA
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
-  dst metadata
+  dst \metadata
 .endm
 
 .macro to_at metadata
-  dst_at metadata
+  dst_at \metadata
 .endm
 
 .macro to_pp metadata
-  dst_pp metadata
+  dst_pp \metadata
 .endm
 
 .macro to_mm metadata
-  dst_mm metadata
+  dst_mm \metadata
 .endm
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
@@ -293,17 +336,17 @@ space: .asciz " "
 .endm
 
 .macro add_at metadata
-  src_at metadata
+  src_at \metadata
   addl rA, vA
 .endm
 
 .macro add_pp metadata
-  src_pp metadata
+  src_pp \metadata
   addl rA, vA
 .endm
 
 .macro add_mm metadata
-  src_mm metadata
+  src_mm \metadata
   addl rA, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -312,17 +355,17 @@ space: .asciz " "
 .endm
 
 .macro sub_at metadata
-  src_at metadata
+  src_at \metadata
   subl rA, vA
 .endm
 
 .macro sub_pp metadata
-  src_pp metadata
+  src_pp \metadata
   subl rA, vA
 .endm
 
 .macro sub_mm metadata
-  src_mm metadata
+  src_mm \metadata
   subl rA, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -331,40 +374,40 @@ space: .asciz " "
 .endm
 
 .macro mul_at metadata
-  src_at metadata
+  src_at \metadata
   mull rA, vA
 .endm
 
 .macro mul_pp metadata
-  src_pp metadata
+  src_pp \metadata
   mull rA, vA
 .endm
 
 .macro mul_mm metadata
-  src_mm metadata
+  src_mm \metadata
   mull rA, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro div metadata
-  divide metadata
+  divide \metadata
 .endm
 
 .macro div_at metadata
-  src_at metadata
+  src_at \metadata
   rA_mem_vA
-  divide metadata
+  divide \metadata
 .endm
 
 .macro div_pp metadata
-  src_pp metadata
+  src_pp \metadata
   rA_mem_vA
-  divide metadata
+  divide \metadata
 .endm
 
 .macro div_mm metadata
-  src_mm metadata
+  src_mm \metadata
   rA_mem_vA
-  divide metadata
+  divide \metadata
 .endm
 
 # ----------------------------------------------------------------------------
@@ -375,17 +418,17 @@ space: .asciz " "
 .endm
 
 .macro or_at metadata
-  src_at metadata
+  src_at \metadata
   orl rA, vA
 .endm
 
 .macro or_pp metadata
-  src_pp metadata
+  src_pp \metadata
   orl rA, vA
 .endm
 
 .macro or_mm metadata
-  src_mm metadata
+  src_mm \metadata
   orl rA, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -394,17 +437,17 @@ space: .asciz " "
 .endm
 
 .macro and_at metadata
-  src_at metadata
+  src_at \metadata
   andl rA, vA
 .endm
 
 .macro and_pp metadata
-  src_pp metadata
+  src_pp \metadata
   andl rA, vA
 .endm
 
 .macro and_mm metadata
-  src_mm metadata
+  src_mm \metadata
   andl rA, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -413,17 +456,17 @@ space: .asciz " "
 .endm
 
 .macro xor_at metadata
-  src_at metadata
+  src_at \metadata
   xorl rA, vA
 .endm
 
 .macro xor_pp metadata
-  src_pp metadata
+  src_pp \metadata
   xorl rA, vA
 .endm
 
 .macro xor_mm metadata
-  src_mm metadata
+  src_mm \metadata
   xorl rA, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -434,19 +477,19 @@ space: .asciz " "
 .endm
 
 .macro shl_at metadata
-  src_at metadata
+  src_at \metadata
   movl rA, %ecx
   shll %cl, vA
 .endm
 
 .macro shl_pp metadata
-  src_pp metadata
+  src_pp \metadata
   movl rA, %ecx
   shll %cl, vA
 .endm
 
 .macro shl_mm metadata
-  src_mm metadata
+  src_mm \metadata
   movl rA, %ecx
   shll %cl, vA
 .endm
@@ -458,19 +501,19 @@ space: .asciz " "
 .endm
 
 .macro shr_at metadata
-  src_at metadata
+  src_at \metadata
   movl rA, %ecx
   shrl %cl, vA
 .endm
 
 .macro shr_pp metadata
-  src_pp metadata
+  src_pp \metadata
   movl rA, %ecx
   shrl %cl, vA
 .endm
 
 .macro shr_mm metadata
-  src_mm metadata
+  src_mm \metadata
   movl rA, %ecx
   shrl %cl, vA
 .endm
@@ -497,12 +540,12 @@ space: .asciz " "
   doJmpnz
 .endm
 
-.macro jmplt label
+.macro jmplz label
   leal \label, rA
   doJmplt
 .endm
 
-.macro jmpgt label
+.macro jmpgz label
   leal \label, rA
   doJmpgt
 .endm
@@ -527,12 +570,12 @@ space: .asciz " "
   doJmpnz
 .endm
 
-.macro jmplt_at metadata
+.macro jmplz_at metadata
   src_at \metadata
   doJmplt
 .endm
 
-.macro jmpgt_at metadata
+.macro jmpgz_at metadata
   src_at \metadata
   doJmpgt
 .endm
@@ -557,12 +600,12 @@ space: .asciz " "
   doJmpnz
 .endm
 
-.macro jmplt_pp metadata
+.macro jmplz_pp metadata
   src_pp \metadata
   doJmplt
 .endm
 
-.macro jmpgt_pp metadata
+.macro jmpgz_pp metadata
   src_pp \metadata
   doJmpgt
 .endm
@@ -587,22 +630,93 @@ space: .asciz " "
   doJmpnz
 .endm
 
-.macro jmplt_mm metadata
+.macro jmplz_mm metadata
   src_mm \metadata
   doJmplt
 .endm
 
-.macro jmpgt_mm metadata
+.macro jmpgz_mm metadata
   src_mm \metadata
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
-.macro skip metadata label
+.macro sko metadata
   src \metadata
-  leal \label, rA
-  doJump
+  andl rA, $0x80000000
+  jz positive
+    andl rA, $0x40000000
+    jnz ok
+      doSkip
+  positive:
+    andl rA, $0x40000000
+    jz ok
+      doSkip
+  ok:
 .endm
 
+.macro skz metadata
+  src \metadata
+  xorl $0, rA
+  jnz 2f
+    doSkip
+  2:
+.endm
+
+.macro sknz metadata
+  src \metadata
+  xorl $0, rA
+  jz 2f
+    doSkip
+  2:
+.endm
+
+.macro sklz metadata
+  src \metadata
+  cmp $0, rA
+  jgt 2f
+    doSkip
+  2:
+.endm
+
+.macro skgz metadata
+  src \metadata
+  cmp $0, rA
+  jlt 2f
+    doSkip
+  2:
+.endm
+
+.macro skeq metadata
+  src \metadata
+  cmp rA, vA
+  jne 2f
+    doSkip
+  2:
+.endm
+
+.macro skneq metadata
+  src \metadata
+  cmp rA, vA
+  je 2f
+    doSkip
+  2:
+.endm
+
+.macro sklt metadata
+  src \metadata
+  cmp rA, vA
+  jgt 2f
+    doSkip
+  2:
+.endm
+
+.macro skgt metadata
+  src \metadata
+  cmp rA, vA
+  jlt 2f
+    doSkip
+  2:
+.endm
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 
@@ -679,8 +793,21 @@ memory: .lcomm mm, MM_BYTES
 main:
 
     lit 1
-    skip a end
+    to 0x00
+    //sknz 0x00
+
+
+  src 0x00
+  xorl $0, rA
+  jz 2f
+    doSkip
+  2:
+
+
+
+
     lit 2
+  1:
   end:
     halt 0x12345678
 
