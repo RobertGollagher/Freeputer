@@ -88,7 +88,7 @@ space: .asciz " "
       - shl, shr, and, or, xor = 5
       - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute (maybe swap < for <=)
-      - jmp, jz, jnz, jlz, jgz, jo = 6
+      - jmp, jz, jnz, jlz, jgz, jo = 6 (probably all sk unnecessary except maybe last 4)
       - sknz, sklez, skgez, sko, skeq, skne, skle, skge = 9 (simulated)
       - note: 1 spare instruction here, maybe use for from@pc++ (problematic)
   - 24 bits: metadata
@@ -845,7 +845,7 @@ main:
   shl 0x8
   or 0xff
 
-  lit 4
+  // lit 4
   to_at ptr
 
   countdown:
@@ -853,8 +853,10 @@ main:
 
     sub 1
     to base
-    sklez base
-    jmp countdown
+    jmpgz countdown
+
+    //sklez base
+    //jmp countdown
   1:
   end:
     halt 0x12345678
