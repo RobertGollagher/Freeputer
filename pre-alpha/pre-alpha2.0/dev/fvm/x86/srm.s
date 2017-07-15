@@ -55,7 +55,7 @@ Alternative if no imports:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equ MM_BYTES, 0x01000000
+.equ MM_BYTES, 0x1000000
 .equ vA, %ebx
 .equ rA, %eax
 .equ rC, %ecx
@@ -87,10 +87,9 @@ space: .asciz " "
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
       - reserved1, reserved2, nop, halt = 3
-  - jumps: always absolute (maybe swap < for <=)
-      - jmp, jz, jnz, jlz, jgz, jo = 6 (probably all sk unnecessary except maybe last 4)
-      - sknz, sklez, skgez, sko, skeq, skne, skle, skge = 9 (simulated)
-      - note: 1 spare instruction here, maybe use for from@pc++ (problematic)
+  - jumps: always absolute
+      - jmp, jz, jnz, jlz, jgz, jo = 6 (maybe add <= and >=)(maybe decleq)
+      - note: 10 spare instructions here, rethink
   - 24 bits: metadata
 
   PREFERRED:
@@ -131,7 +130,6 @@ space: .asciz " "
   movl rC, memory(,rA,1)
   movl vA, memory(,rC,1)
 .endm
-
 # ----------------------------------------------------------------------------
 #                                 LOAD MACROS
 # ----------------------------------------------------------------------------
@@ -170,7 +168,6 @@ space: .asciz " "
   subl $4, rC
   movl rC, memory(,rA,1)
 .endm
-
 # ----------------------------------------------------------------------------
 #                                ARITHMETIC MACROS   TODO /-1
 # ----------------------------------------------------------------------------
@@ -188,7 +185,6 @@ space: .asciz " "
     movl $0, vA
   2:
 .endm
-
 # ----------------------------------------------------------------------------
 #                                   JUMP MACROS
 # ----------------------------------------------------------------------------
@@ -240,53 +236,6 @@ space: .asciz " "
     indirectJump
   1:
 .endm
-# ----------------------------------------------------------------------------
-# Here we merely simulate skip by requiring a label 1:
-.macro doSkip
-  jmp 1f
-.endm
-
-.macro doSko
-  andl vA, $0x80000000
-  jz positive
-    andl vA, $0x40000000
-    jnz ok
-      doSkip
-  positive:
-    andl vA, $0x40000000
-    jz ok
-      doSkip
-  ok:
-.endm
-
-.macro doSkz
-  xorl $0, vA
-  jnz 2f
-    doSkip
-  2:
-.endm
-
-.macro doSknz
-  xorl $0, vA
-  jz 2f
-    doSkip
-  2:
-.endm
-
-.macro doSklt
-  cmp $0, vA
-  jge 2f
-    doSkip
-  2:
-.endm
-
-.macro doSkgt
-  cmp $0, vA
-  jle 2f
-    doSkip
-  2:
-.endm
-# ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -410,7 +359,6 @@ space: .asciz " "
   rA_mem_vA
   divide \metadata
 .endm
-
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -519,7 +467,7 @@ space: .asciz " "
   shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-#                               JUMP INSTRUCTIONS maybe decleq or (as skip is problemmatic)
+#                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
 .macro jump label
   leal \label, rA
@@ -641,97 +589,6 @@ space: .asciz " "
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
-.macro sko metadata
-  src \metadata
-  rA_mem_rA
-  andl rA, $0x80000000
-  jz positive
-    andl rA, $0x40000000
-    jnz ok
-      doSkip
-  positive:
-    andl rA, $0x40000000
-    jz ok
-      doSkip
-  ok:
-.endm
-
-.macro skz metadata
-  src \metadata
-  rA_mem_rA
-  xorl $0, rA
-  jnz 2f
-    doSkip
-  2:
-.endm
-
-.macro sknz metadata
-  src \metadata
-  rA_mem_rA
-  xorl $0, rA
-  jz 2f
-    doSkip
-  2:
-.endm
-
-.macro sklez metadata
-  src \metadata
-  rA_mem_rA
-  cmp $0, rA
-  jg 2f
-    doSkip
-  2:
-.endm
-
-.macro skgez metadata
-  src \metadata
-  rA_mem_rA
-  cmp $0, rA
-  jl 2f
-    doSkip
-  2:
-.endm
-
-.macro skeq metadata
-  src \metadata
-  rA_mem_rA
-  cmp rA, vA
-  jne 2f
-    doSkip
-  2:
-.endm
-
-.macro skneq metadata
-  src \metadata
-  rA_mem_rA
-  cmp rA, vA
-  je 2f
-    doSkip
-  2:
-.endm
-
-.macro sklt metadata
-  src \metadata
-  rA_mem_rA
-  cmp rA, vA
-  jge 2f
-    doSkip
-  2:
-.endm
-
-.macro skgt metadata
-  src \metadata
-  rA_mem_rA
-  cmp rA, vA
-  jle 2f
-    doSkip
-  2:
-.endm
-# ----------------------------------------------------------------------------
-# ----------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro nop
@@ -850,14 +707,10 @@ main:
 
   countdown:
     from base
-
     sub 1
     to base
     jmpgz countdown
 
-    //sklez base
-    //jmp countdown
-  1:
   end:
     halt 0x12345678
 
