@@ -674,6 +674,7 @@ memory: .lcomm mm, MM_BYTES
 .equ top,  0x1c
 .equ ptr, 0x20
 .equ rsp, 0x24
+.equ lr, 0x28
 .equ rs_base, 0x30
 
 # ============================================================================
@@ -696,6 +697,30 @@ vm_exit:
 # ============================================================================
 #                     ENTRY POINT for an example program
 # ============================================================================
+.macro calling label
+  # FIXME needs overflow check for rs
+  lit 1f
+  to_pp rsp
+  jump \label
+  1:
+.endm
+
+.macro returning
+  # FIXME needs underflow check for rs
+  jump_mm rsp
+.endm
+
+.macro branch label
+  lit 1f
+  to lr
+  jump \label
+  1:
+.endm
+
+.macro unbranch
+  jump lr
+.endm
+
 .global main
 main:
 
@@ -705,11 +730,8 @@ main:
   lit base
   to ptr
 
-  lit 1f
-  to_pp rsp
-  jump litMaxInt
-  1:
-
+  branch litMaxInt
+nexting:
   to_at ptr
 
   // Native execution time is about 3 s for 0x7fffffff iterations
@@ -729,6 +751,15 @@ main:
     or 0xff
 */
     lit 1
-    jump_mm rsp
+
+
+  //leal nexting, rA
+
+  src lr
+  movl memory(,rA,1), rA
+  doJump
+
+
+    //unbranch
 
 # ============================================================================
