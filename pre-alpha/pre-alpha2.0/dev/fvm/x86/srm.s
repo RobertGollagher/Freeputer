@@ -424,6 +424,19 @@ space: .asciz " "
   jmp \label
 .endm
 
+.macro jmpo label
+  andl vA, $0x80000000
+  jz positive
+    andl vA, $0x40000000
+    jnz ok
+      jmp \label
+  positive:
+    andl vA, $0x40000000
+    jz ok
+      jmp \label
+  ok:
+.endm
+
 .macro jmpz label
   xorl $0, vA
   jnz 1f
