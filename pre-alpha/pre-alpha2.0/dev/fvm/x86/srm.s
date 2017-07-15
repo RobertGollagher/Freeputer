@@ -187,6 +187,54 @@ space: .asciz " "
 .endm
 
 # ----------------------------------------------------------------------------
+#                                   JUMP MACROS
+# ----------------------------------------------------------------------------
+.macro doJump label # FIXME difficult, need to make indirect
+  jmp \label
+.endm
+
+.macro doJmpo label
+  andl vA, $0x80000000
+  jz positive
+    andl vA, $0x40000000
+    jnz ok
+      jmp \label
+  positive:
+    andl vA, $0x40000000
+    jz ok
+      jmp \label
+  ok:
+.endm
+
+.macro doJmpz label
+  xorl $0, vA
+  jnz 1f
+    jmp \label
+  1:
+.endm
+
+.macro doJmpnz label
+  xorl $0, vA
+  jz 1f
+    jmp \label
+  1:
+.endm
+
+.macro doJmplt label
+  cmp $0, vA
+  jgt 1f
+    jmp \label
+  1:
+.endm
+
+.macro doJmpgt label
+  cmp $0, vA
+  jlt 1f
+    jmp \label
+  1:
+.endm
+
+# ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro lit metadata
@@ -421,49 +469,30 @@ space: .asciz " "
 #                               JUMP INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro jump label
-  jmp \label
+  doJump \label
 .endm
 
 .macro jmpo label
-  andl vA, $0x80000000
-  jz positive
-    andl vA, $0x40000000
-    jnz ok
-      jmp \label
-  positive:
-    andl vA, $0x40000000
-    jz ok
-      jmp \label
-  ok:
+  doJmpo \label
 .endm
 
 .macro jmpz label
-  xorl $0, vA
-  jnz 1f
-    jmp \label
-  1:
+  doJmpz \label
 .endm
 
 .macro jmpnz label
-  xorl $0, vA
-  jz 1f
-    jmp \label
-  1:
+  doJmpnz \label
 .endm
 
 .macro jmplt label
-  cmp $0, vA
-  jgt 1f
-    jmp \label
-  1:
+  doJmplt \label
 .endm
 
 .macro jmpgt label
-  cmp $0, vA
-  jlt 1f
-    jmp \label
-  1:
+  doJmpgt \label
 .endm
+# ----------------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
