@@ -189,48 +189,52 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                   JUMP MACROS
 # ----------------------------------------------------------------------------
-.macro doJump label # FIXME difficult, need to make indirect
-  jmp \label
+.macro indirectJump
+  jmp *(rA)
 .endm
 
-.macro doJmpo label
+.macro doJump
+  indirectJump
+.endm
+
+.macro doJmpo
   andl vA, $0x80000000
   jz positive
     andl vA, $0x40000000
     jnz ok
-      jmp \label
+      indirectJump
   positive:
     andl vA, $0x40000000
     jz ok
-      jmp \label
+      indirectJump \label
   ok:
 .endm
 
-.macro doJmpz label
+.macro doJmpz
   xorl $0, vA
   jnz 1f
-    jmp \label
+    indirectJump
   1:
 .endm
 
-.macro doJmpnz label
+.macro doJmpnz
   xorl $0, vA
   jz 1f
-    jmp \label
+    indirectJump
   1:
 .endm
 
-.macro doJmplt label
+.macro doJmplt
   cmp $0, vA
   jgt 1f
-    jmp \label
+    indirectJump
   1:
 .endm
 
-.macro doJmpgt label
+.macro doJmpgt
   cmp $0, vA
   jlt 1f
-    jmp \label
+    indirectJump
   1:
 .endm
 
@@ -469,28 +473,125 @@ space: .asciz " "
 #                               JUMP INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro jump label
-  doJump \label
+  leal \label, rA
+  doJump
 .endm
 
 .macro jmpo label
-  doJmpo \label
+  leal \label, rA
+  doJmpo
 .endm
 
 .macro jmpz label
-  doJmpz \label
+  leal \label, rA
+  doJmpz
 .endm
 
 .macro jmpnz label
-  doJmpnz \label
+  leal \label, rA
+  doJmpnz
 .endm
 
 .macro jmplt label
-  doJmplt \label
+  leal \label, rA
+  doJmplt
 .endm
 
 .macro jmpgt label
-  doJmpgt \label
+  leal \label, rA
+  doJmpgt
 .endm
+# ----------------------------------------------------------------------------
+.macro jump_at metadata
+  src_at \metadata
+  doJump
+.endm
+
+.macro jmpo_at metadata
+  src_at \metadata
+  doJmpo
+.endm
+
+.macro jmpz_at metadata
+  src_at \metadata
+  doJmpz
+.endm
+
+.macro jmpnz_at metadata
+  src_at \metadata
+  doJmpnz
+.endm
+
+.macro jmplt_at metadata
+  src_at \metadata
+  doJmplt
+.endm
+
+.macro jmpgt_at metadata
+  src_at \metadata
+  doJmpgt
+.endm
+# ----------------------------------------------------------------------------
+.macro jump_pp metadata
+  src_pp \metadata
+  doJump
+.endm
+
+.macro jmpo_pp metadata
+  src_pp \metadata
+  doJmpo
+.endm
+
+.macro jmpz_pp metadata
+  src_pp \metadata
+  doJmpz
+.endm
+
+.macro jmpnz_pp metadata
+  src_pp \metadata
+  doJmpnz
+.endm
+
+.macro jmplt_pp metadata
+  src_pp \metadata
+  doJmplt
+.endm
+
+.macro jmpgt_pp metadata
+  src_pp \metadata
+  doJmpgt
+.endm
+# ----------------------------------------------------------------------------
+.macro jump_mm metadata
+  src_mm \metadata
+  doJump
+.endm
+
+.macro jmpo_mm metadata
+  src_mm \metadata
+  doJmpo
+.endm
+
+.macro jmpz_mm metadata
+  src_mm \metadata
+  doJmpz
+.endm
+
+.macro jmpnz_mm metadata
+  src_mm \metadata
+  doJmpnz
+.endm
+
+.macro jmplt_mm metadata
+  src_mm \metadata
+  doJmplt
+.endm
+
+.macro jmpgt_mm metadata
+  src_mm \metadata
+  doJmpgt
+.endm
+# ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 
 
