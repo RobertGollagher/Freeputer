@@ -190,7 +190,7 @@ space: .asciz " "
 #                                   JUMP MACROS
 # ----------------------------------------------------------------------------
 .macro indirectJump
-  jmp *(rA)
+  jmp rA
 .endm
 
 .macro doJump
@@ -242,7 +242,7 @@ space: .asciz " "
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro lit metadata
-  movl $\metadata, rA
+  movl $\metadata, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
@@ -666,7 +666,11 @@ memory: .lcomm mm, MM_BYTES
 .global main
 main:
 
-  halt 0x12345678
+    lit 1
+    jump end
+  end:
+    lit 2
+    halt 0x12345678
 
 
 vm_illegal:
