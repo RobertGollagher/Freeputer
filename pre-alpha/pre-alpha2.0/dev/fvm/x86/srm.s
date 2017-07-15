@@ -92,7 +92,7 @@ space: .asciz " "
       - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute
       - jmp, jz, jnz, jlz, jgz, jo = 6
-      - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10
+      - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10 (simulated)
   - 24 bits: metadata
 
   PREFERRED:
@@ -169,7 +169,7 @@ space: .asciz " "
 .endm
 
 # ----------------------------------------------------------------------------
-#                                ARITHMETIC MACROS
+#                                ARITHMETIC MACROS   TODO /-1
 # ----------------------------------------------------------------------------
 .macro divide metadata
   movl vA, %eax
@@ -236,6 +236,11 @@ space: .asciz " "
   jlt 1f
     indirectJump
   1:
+.endm
+# ----------------------------------------------------------------------------
+# Here we merely simulate skip by requiring a label 1:
+.macro doSkip
+  jmp 1f
 .endm
 
 # ----------------------------------------------------------------------------
@@ -592,6 +597,13 @@ space: .asciz " "
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
+.macro skip metadata label
+  src \metadata
+  leal \label, rA
+  doJump
+.endm
+
+# ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 
 
@@ -667,9 +679,9 @@ memory: .lcomm mm, MM_BYTES
 main:
 
     lit 1
-    jump end
-  end:
+    skip a end
     lit 2
+  end:
     halt 0x12345678
 
 
