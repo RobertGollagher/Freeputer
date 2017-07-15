@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170715+
-Version:    pre-alpha-0.0.0.3 for FVM 2.0
+Version:    pre-alpha-0.0.0.4 for FVM 2.0
 
 
                               This Edition:
@@ -88,8 +88,8 @@ space: .asciz " "
       - lit, from, to = 3
       - add, sub, mul, div = 4
       - shr, shl, and, or, xor = 5
-      - reserved1, reserved2, nop, halt = 4
-  - jumps:
+      - reserved1, reserved1, nop, halt = 3
+  - jumps: always absolute
       - jmp, jz, jnz, jlz, jgz, jo = 6
       - skip, skz, sknz, sklz, skgz, sko, skeq, skne, skle, skge = 10
   - 24 bits: metadata
@@ -99,10 +99,7 @@ space: .asciz " "
   - Keep it simple, have it in 1 direction only: M->R
   - bit-30 overflow solutions and 15-bit multiply, not sure div
 
-
 */
-
-
 
 # ----------------------------------------------------------------------------
 #                                STORE MACROS
@@ -173,7 +170,6 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-
 .macro lit imm
   movl $\imm, vA
 .endm
@@ -191,7 +187,6 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-
 # TODO carry? overflow?
 .macro add imm
   addl $\imm, vA
@@ -255,8 +250,6 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                               JUMP INSTRUCTIONS
 # ----------------------------------------------------------------------------
-
-# TODO conditions? absolute? relative? link register? pc access?
 .macro jnz label
   xorl $0, vA
   jz 1f
@@ -267,16 +260,15 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
-
 .macro nop
 .endm
 
-.macro reserved1 imm
+.macro reserved2 imm
   movl $\imm, %eax
   jmp vm_illegal
 .endm
 
-.macro reserved2 imm
+.macro reserved1 imm
   movl $\imm, %eax
   jmp vm_illegal
 .endm
