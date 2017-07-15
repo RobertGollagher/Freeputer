@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170715+
-Version:    pre-alpha-0.0.0.4 for FVM 2.0
+Version:    pre-alpha-0.0.0.5 for FVM 2.0
 
 
                               This Edition:
@@ -55,11 +55,8 @@ Alternative if no imports:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equ SUCCESS, 0x00
-.equ FAILURE, 0x01
 .equ MM_BYTES, 0x01000000
 .equ vA, %ebx
-.equ vC, %edx
 .equ rA, %eax
 .equ rC, %ecx
 
@@ -90,9 +87,9 @@ space: .asciz " "
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
       - reserved1, reserved2, nop, halt = 3
-  - jumps: always absolute
+  - jumps: always absolute (maybe swap < for <=)
       - jmp, jz, jnz, jlz, jgz, jo = 6
-      - sknz, sklz, skgz, sko, skeq, skne, skle, skge = 9 (simulated)
+      - sknz, sklez, skgez, sko, skeq, skne, skle, skge = 9 (simulated)
       - note: 1 spare instruction here, maybe use for from@pc++ (problematic)
   - 24 bits: metadata
 
@@ -105,20 +102,20 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                STORE MACROS
 # ----------------------------------------------------------------------------
-# M = @x # FIXME
+# @x = vA
 .macro dst x
   movl $\x, rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @@x # FIXME
+# @@x = vA
 .macro dst_at x
   movl $\x, rA
   movl memory(,rA,1), rA
   movl vA, memory(,rA,1)
 .endm
 
-# M = @@x++ # FIXME
+# @@x++ = vA
 .macro dst_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
@@ -126,7 +123,7 @@ space: .asciz " "
   addl $4, memory(,rC,1)
 .endm
 
-# M = --@@x # FIXME
+# --@@x = vA
 .macro dst_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
@@ -143,26 +140,30 @@ space: .asciz " "
   movl memory(,rA,1), vA
 .endm
 
-# rA = @x
+# This may be used after each of the below
+.macro rA_mem_rA
+  movl memory(,rA,1), rA
+.endm
+
+# vA = @x when followed by rA_mem_vA
 .macro src x
+  movl $\x, rA
+.endm
+
+# vA = @@x when followed by rA_mem_vA
+.macro src_at x
   movl $\x, rA
   movl memory(,rA,1), rA
 .endm
 
-# rA = @@x # FIXME
-.macro src_at x
-  movl $\x, rA
-  leal memory(,rA,1), rA
-.endm
-
-# rA = @@x++ # FIXME
+# vA = @@x++ when followed by rA_mem_vA
 .macro src_pp x
   movl $\x, rC
   movl memory(,rC,1), rA
   addl $4, memory(,rC,1)
 .endm
 
-# rA = --@@x # FIXME
+# vA = --@@x when followed by rA_mem_vA
 .macro src_mm x
   movl $\x, rA
   movl memory(,rA,1), rC
@@ -228,14 +229,14 @@ space: .asciz " "
 
 .macro doJmplt
   cmp $0, vA
-  jgt 1f
+  jge 1f
     indirectJump
   1:
 .endm
 
 .macro doJmpgt
   cmp $0, vA
-  jlt 1f
+  jle 1f
     indirectJump
   1:
 .endm
@@ -274,14 +275,14 @@ space: .asciz " "
 
 .macro doSklt
   cmp $0, vA
-  jgt 2f
+  jge 2f
     doSkip
   2:
 .endm
 
 .macro doSkgt
   cmp $0, vA
-  jlt 2f
+  jle 2f
     doSkip
   2:
 .endm
@@ -642,6 +643,7 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 .macro sko metadata
   src \metadata
+  rA_mem_rA
   andl rA, $0x80000000
   jz positive
     andl rA, $0x40000000
@@ -656,6 +658,7 @@ space: .asciz " "
 
 .macro skz metadata
   src \metadata
+  rA_mem_rA
   xorl $0, rA
   jnz 2f
     doSkip
@@ -664,30 +667,34 @@ space: .asciz " "
 
 .macro sknz metadata
   src \metadata
+  rA_mem_rA
   xorl $0, rA
   jz 2f
     doSkip
   2:
 .endm
 
-.macro sklz metadata
+.macro sklez metadata
   src \metadata
+  rA_mem_rA
   cmp $0, rA
-  jgt 2f
+  jg 2f
     doSkip
   2:
 .endm
 
-.macro skgz metadata
+.macro skgez metadata
   src \metadata
+  rA_mem_rA
   cmp $0, rA
-  jlt 2f
+  jl 2f
     doSkip
   2:
 .endm
 
 .macro skeq metadata
   src \metadata
+  rA_mem_rA
   cmp rA, vA
   jne 2f
     doSkip
@@ -696,6 +703,7 @@ space: .asciz " "
 
 .macro skneq metadata
   src \metadata
+  rA_mem_rA
   cmp rA, vA
   je 2f
     doSkip
@@ -704,16 +712,18 @@ space: .asciz " "
 
 .macro sklt metadata
   src \metadata
+  rA_mem_rA
   cmp rA, vA
-  jgt 2f
+  jge 2f
     doSkip
   2:
 .endm
 
 .macro skgt metadata
   src \metadata
+  rA_mem_rA
   cmp rA, vA
-  jlt 2f
+  jle 2f
     doSkip
   2:
 .endm
@@ -783,35 +793,14 @@ memory: .lcomm mm, MM_BYTES
 .equ a, 0x00
 .equ b, 0x04
 .equ c, 0x08
-.equ counter, 0x0c
-.equ ptr, 0x10
+.equ d, 0x0c
+.equ base, 0x10
+.equ top,  0x1c
+.equ ptr, 0x20
 
 # ============================================================================
-.section .text #                ENTRY POINT
+.section .text #                EXIT POINTS
 # ============================================================================
-.global main
-main:
-
-    lit 1
-    to 0x00
-    //sknz 0x00
-
-
-  src 0x00
-  xorl $0, rA
-  jz 2f
-    doSkip
-  2:
-
-
-
-
-    lit 2
-  1:
-  end:
-    halt 0x12345678
-
-
 vm_illegal:
 
   TRACE_STR $illegal
@@ -825,5 +814,49 @@ vm_exit:
   TRACE_HEX8 rA
   TRACE_STR $newline
   ret
+
+# ============================================================================
+#                     ENTRY POINT for an example program
+# ============================================================================
+.global main
+main:
+
+  lit 1
+  to a
+
+  lit 2
+  to b
+
+  lit 3
+  to c
+
+  lit 4
+  to d
+
+  from a
+  from b
+  from c
+  from d
+
+  lit base
+  to ptr
+
+  lit 0x7fffff
+  shl 0x8
+  or 0xff
+
+  lit 4
+  to_at ptr
+
+  countdown:
+    from base
+
+    sub 1
+    to base
+    sklez base
+    jmp countdown
+  1:
+  end:
+    halt 0x12345678
 
 # ============================================================================
