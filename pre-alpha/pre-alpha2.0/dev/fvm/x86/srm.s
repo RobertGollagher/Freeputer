@@ -92,7 +92,7 @@ space: .asciz " "
       - shl, shr, and, or, xor = 5
       - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute
-      - jmp, jz, jnz, jlz, jgz, jo = 6 (maybe add <= and >=)(maybe decleq)
+      - xjmp, jmp, jz, jnz, jlz, jgz, jo = 6 (maybe add <= and >=)(maybe decleq)
       - note: 10 spare instructions here, rethink
   - 24 bits: metadata
 
@@ -142,6 +142,11 @@ space: .asciz " "
   movl memory(,rA,1), vA
 .endm
 
+# This may be used after some
+.macro vX_mem_vX
+  movl memory(,vX,1), vX
+.endm
+
 # This may be used after each
 .macro rA_mem_vX
   movl memory(,rA,1), vX
@@ -182,57 +187,6 @@ space: .asciz " "
   movl memory(,rA,1), rC
   subl $4, rC
   movl rC, memory(,rA,1)
-.endm
-# ----------------------------------------------------------------------------
-#                                   JUMP MACROS
-# ----------------------------------------------------------------------------
-.macro indirectJump
-  jmp rA
-.endm
-
-.macro doJump
-  indirectJump
-.endm
-
-.macro doJmpo
-  andl vA, $0x80000000
-  jz positive
-    andl vA, $0x40000000
-    jnz ok
-      indirectJump
-  positive:
-    andl vA, $0x40000000
-    jz ok
-      indirectJump \label
-  ok:
-.endm
-
-.macro doJmpz
-  xorl $0, vA
-  jnz 1f
-    indirectJump
-  1:
-.endm
-
-.macro doJmpnz
-  xorl $0, vA
-  jz 1f
-    indirectJump
-  1:
-.endm
-
-.macro doJmplt
-  cmp $0, vA
-  jge 1f
-    indirectJump
-  1:
-.endm
-
-.macro doJmpgt
-  cmp $0, vA
-  jle 1f
-    indirectJump
-  1:
 .endm
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
@@ -278,7 +232,8 @@ space: .asciz " "
 
 .macro with_mm metadata
   src_mm \metadata
-  rA_mem_vX
+  movl memory(,rA,1), rA
+  movl memory(,rA,1), vX
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
@@ -352,142 +307,59 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
+.macro jumpx
+  jmp vX
+.endm
+
 .macro jump label
   leal \label, rA
-  doJump
+  jmp rA
 .endm
 
 .macro jmpo label
   leal \label, rA
-  doJmpo
+  andl vA, $0x80000000
+  jz positive
+    andl vA, $0x40000000
+    jnz ok
+      jmp rA
+  positive:
+    andl vA, $0x40000000
+    jz ok
+      jmp rA \label
+  ok:
 .endm
 
 .macro jmpz label
   leal \label, rA
-  doJmpz
+  xorl $0, vA
+  jnz 1f
+    jmp rA
+  1:
 .endm
 
 .macro jmpnz label
   leal \label, rA
-  doJmpnz
+  xorl $0, vA
+  jz 1f
+    jmp rA
+  1:
 .endm
 
 .macro jmplz label
   leal \label, rA
-  doJmplt
+  cmp $0, vA
+  jge 1f
+    jmp rA
+  1:
 .endm
 
 .macro jmpgz label
   leal \label, rA
-  doJmpgt
-.endm
-# ----------------------------------------------------------------------------
-.macro jump_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJump
-.endm
-
-.macro jmpo_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJmpo
-.endm
-
-.macro jmpz_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJmpz
-.endm
-
-.macro jmpnz_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJmpnz
-.endm
-
-.macro jmplz_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJmplt
-.endm
-
-.macro jmpgz_at metadata
-  src_at \metadata
-  rA_mem_at_rA
-  doJmpgt
-.endm
-# ----------------------------------------------------------------------------
-.macro jump_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJump
-.endm
-
-.macro jmpo_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJmpo
-.endm
-
-.macro jmpz_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJmpz
-.endm
-
-.macro jmpnz_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJmpnz
-.endm
-
-.macro jmplz_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJmplt
-.endm
-
-.macro jmpgz_pp metadata
-  src_pp \metadata
-  rA_mem_at_rA
-  doJmpgt
-.endm
-# ----------------------------------------------------------------------------
-.macro jump_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJump
-.endm
-
-.macro jmpo_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJmpo
-.endm
-
-.macro jmpz_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJmpz
-.endm
-
-.macro jmpnz_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJmpnz
-.endm
-
-.macro jmplz_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJmplt
-.endm
-
-.macro jmpgz_mm metadata
-  src_mm \metadata
-  rA_mem_at_rA
-  doJmpgt
+  cmp $0, vA
+  jle 1f
+    jmp rA
+  1:
 .endm
 # ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS   FIXME make use vX
@@ -522,7 +394,8 @@ space: .asciz " "
 
 # FIXME overflow check
 .macro returning
-  jump_mm rsp
+  with_mm rsp
+  jumpx
 .endm
 
 .macro branch label
@@ -534,7 +407,7 @@ space: .asciz " "
 
 .macro unbranch
   src_at lr
-  doJump
+  jmp rA
 .endm
 # ============================================================================
 .section .bss #                  VARIABLES
@@ -625,7 +498,8 @@ main:
 
   litTwo:
     lit 2
-    returning
+    with_mm rsp
+    jumpx
 
   litMaxInt:
     lit 0x7fffff
