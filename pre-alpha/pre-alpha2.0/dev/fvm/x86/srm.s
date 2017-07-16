@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170716+
-Version:    pre-alpha-0.0.0.8 for FVM 2.0
+Version:    pre-alpha-0.0.0.9 for FVM 2.0
 
 
                               This Edition:
@@ -80,18 +80,16 @@ space: .asciz " "
   LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack,
                        maybe grow stacks downwards instead, maybe swap
 
-        Trying having 'with' and vX to reduce lines of code herein
-
   - FW32
   - word-addressing, 32-bit address space
-  - 1 bit: reserved
   - 1 bit: instruction format (regular, jump)
-  - 2 bits: mode (imm|@,@@,@@++,--@@) (not orthogonal)
+  - 3 bits: mode (imm,@,@@,@@++,--@@) (not orthogonal)
   - 4 bits: opcode: (all one-directional M->R)
       - lit, from, to = 3
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
-      - reserved1, reserved1, nop, halt = 4
+      - halt = 2
+      - note: 2 spare instructions here, rethink
   - jumps: always absolute
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
       - note: 7 spare instructions here, rethink
@@ -331,23 +329,14 @@ space: .asciz " "
   1:
 .endm
 # ----------------------------------------------------------------------------
-#                            OTHER INSTRUCTIONS   FIXME make use vX
+#                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro nop
 .endm
 
-.macro reserved1 metadata
-  movl $\metadata, %eax
-  jmp vm_illegal
-.endm
-
-.macro reserved2 metadata
-  movl $\metadata, %eax
-  jmp vm_illegal
-.endm
-
-.macro halt metadata
-  movl $\metadata, %eax
+.macro halt with metadata
+  \with \metadata
+  movl vX, %eax
   jmp vm_exit
 .endm
 
@@ -457,7 +446,7 @@ vm_exit:
     CALL countdown
 
   end:
-    halt 0
+    halt with 0
 
   initProgram:
     lit rs_base
