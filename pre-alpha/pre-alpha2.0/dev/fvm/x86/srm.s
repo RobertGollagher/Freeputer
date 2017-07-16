@@ -57,7 +57,8 @@ Alternative if no imports:
 # ============================================================================
 .equ MM_BYTES, 0x1000000
 .equ vA, %ebx
-.equ vX, %edx # Might be some conflict with div here
+.equ vX, %edx
+.equ vL, %edi
 .equ rA, %eax
 .equ rC, %ecx
 
@@ -90,7 +91,7 @@ space: .asciz " "
       - lit, from, to = 3
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
-      - reserved1, reserved2, nop, halt = 3
+      - branch, unbranch, nop, halt = 3
   - jumps: always absolute
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe add <= and >=)(maybe decleq)
       - note: 10 spare instructions here, rethink
@@ -204,7 +205,8 @@ space: .asciz " "
   mull vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro div
+.macro div # untested
+  pushl vX
   movl vA, %eax
   movl vX, %ebx
   test %ebx, %ebx
@@ -215,6 +217,8 @@ space: .asciz " "
   1: # Division by zero
     movl $0, vA
   2:
+  movl %eax, vA
+  popl vX
 .endm
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
@@ -335,20 +339,6 @@ space: .asciz " "
   movl $\metadata, %eax
   jmp vm_exit
 .endm
-# ----------------------------------------------------------------------------
-#                 COMPOSITE MACROS Note: no overflow checks
-# ----------------------------------------------------------------------------
-.macro branch label
-  lit 1f
-  to lr
-  jump \label
-  1:
-.endm
-
-.macro unbranch
-  with_at lr
-  jumpx
-.endm
 
 # ============================================================================
 .section .bss #                  VARIABLES
@@ -394,7 +384,7 @@ memory: .lcomm mm, MM_BYTES
 .equ d, 0x0c
 .equ base, 0x10
 .equ top,  0x1c
-.equ ptr, 0x20
+.equ foo_ptr, 0x20 # An example of an arbitrary pointer called foo_ptr
 .equ rsp, 0x24 # Here being used like a return-stack pointer
 .equ lr, 0x28 # Here being used like a link register
 .equ rs_base, 0x30
@@ -420,9 +410,12 @@ vm_exit:
 #                     ENTRY POINT for an example program
 # ============================================================================
 .global main
-main:
-
-    branch initProgram
+  main:
+    # branch:
+      lit 1f
+      to lr
+      jump initProgram
+      1:
     # call:
       lit 1f
       to_ptr_pp rsp
@@ -436,14 +429,16 @@ main:
     lit rs_base
     to rsp
     lit base
-    to ptr
+    to foo_ptr
     # call:
       lit 1f
       to_ptr_pp rsp
       jump litMaxInt
       1:
-    to_ptr ptr
-    unbranch
+    to_ptr foo_ptr
+    # unbranch:
+      with_at lr
+      jumpx
 
   litTwo:
     lit 2
@@ -460,7 +455,7 @@ main:
     # call:
       lit 1f
       to_ptr_pp rsp
-      jump foo
+      jump bar
       1:
     # return:
       with_ptr_mm rsp
@@ -476,17 +471,17 @@ main:
       with_ptr_mm rsp
       jumpx
 
-  foo:
+  bar:
     # call:
       lit 1f
       to_ptr_pp rsp
-      jump bar
+      jump baz
       1:
     # return:
       with_ptr_mm rsp
       jumpx
 
-  bar:
+  baz:
     # return:
       with_ptr_mm rsp
       jumpx
