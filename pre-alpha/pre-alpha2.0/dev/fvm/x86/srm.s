@@ -133,29 +133,29 @@ space: .asciz " "
   movl memory(,rC,1), vA
 .endm
 # ----------------------------------------------------------------------------
-.macro with metadata
+.macro by metadata
   movl $\metadata, vX
 .endm
 
-.macro with_at metadata
+.macro by_at metadata
   movl $\metadata, rA
   movl memory(,rA,1), vX
 .endm
 
-.macro with_ptr metadata
+.macro by_ptr metadata
   movl $\metadata, rA
   movl memory(,rA,1), rA
   movl memory(,rA,1), vX
 .endm
 
-.macro with_ptr_pp metadata
+.macro by_ptr_pp metadata
   movl $\metadata, rC
   movl memory(,rC,1), rA
   addl $4, memory(,rC,1)
   movl memory(,rA,1), vX
 .endm
 
-.macro with_ptr_mm metadata
+.macro by_ptr_mm metadata
   movl $\metadata, rA
   movl memory(,rA,1), rC
   subl $4, rC
@@ -191,24 +191,24 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro add with metadata
-  \with \metadata
+.macro add by metadata
+  \by \metadata
   addl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro sub with metadata
-  \with \metadata
+.macro sub by metadata
+  \by \metadata
   subl vX, vA
 .endm
 
 # ----------------------------------------------------------------------------
-.macro mul with metadata
-  \with \metadata
+.macro mul by metadata
+  \by \metadata
   mull vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro div with metadata
-  \with \metadata
+.macro div by metadata
+  \by \metadata
   pushl vX        # untested
   movl vA, %eax
   movl vX, %ebx
@@ -226,30 +226,30 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro or with metadata
-  \with \metadata
+.macro or by metadata
+  \by \metadata
   orl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro and with metadata
-  \with \metadata
+.macro and by metadata
+  \by \metadata
   andl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro xor with metadata
-  \with \metadata
+.macro xor by metadata
+  \by \metadata
   xorl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shl with metadata
-  \with \metadata
+.macro shl by metadata
+  \by \metadata
   movl vX, rA
   movl rA, %ecx
   shll %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shr with metadata
-  \with \metadata
+.macro shr by metadata
+  \by \metadata
   movl vX, rA
   movl rA, %ecx
   shrl %cl, vA
@@ -257,8 +257,8 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
-.macro jumpx with metadata
-  \with \metadata
+.macro jumpx by metadata
+  \by \metadata
   jmp vX
 .endm
 
@@ -334,8 +334,8 @@ space: .asciz " "
 .macro nop
 .endm
 
-.macro halt with metadata
-  \with \metadata
+.macro halt by metadata
+  \by \metadata
   movl vX, %eax
   jmp vm_exit
 .endm
@@ -421,7 +421,7 @@ vm_exit:
 .endm
 
 .macro RETURN
-  with_ptr_mm rsp
+  by_ptr_mm rsp
   jumpx
 .endm
 
@@ -433,7 +433,7 @@ vm_exit:
 .endm
 
 .macro UNBRANCH
-  with_at linkr
+  by_at linkr
   jumpx
 .endm
 
@@ -446,7 +446,7 @@ vm_exit:
     CALL countdown
 
   end:
-    halt with 0
+    halt by 0
 
   initProgram:
     lit rs_base
@@ -463,14 +463,14 @@ vm_exit:
 
   litMaxInt:
     lit 0x7fffff
-    shl with 0x8
-    or with 0xff
+    shl by 0x8
+    or by 0xff
     CALL bar
     RETURN
 
   countdown:
     from base
-    sub with 1
+    sub by 1
     to base
     jmpgz countdown
     RETURN
