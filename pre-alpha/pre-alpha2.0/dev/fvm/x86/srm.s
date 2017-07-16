@@ -92,7 +92,7 @@ space: .asciz " "
       - shl, shr, and, or, xor = 5
       - reserved1, reserved2, nop, halt = 3
   - jumps: always absolute
-      - xjmp, jmp, jz, jnz, jlz, jgz, jo = 6 (maybe add <= and >=)(maybe decleq)
+      - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe add <= and >=)(maybe decleq)
       - note: 10 spare instructions here, rethink
   - 24 bits: metadata
 
@@ -196,44 +196,59 @@ space: .asciz " "
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
-  src \metadata
-  rA_mem_vA
+  movl $\metadata, rA
+  movl memory(,rA,1), vA
 .endm
 
 .macro from_at metadata
-  src_at \metadata
-  rA_mem_vA
+  movl $\metadata, rA
+  movl memory(,rA,1), rA
+  movl memory(,rA,1), vA
 .endm
 
 .macro from_pp metadata
-  src_pp \metadata
-  rA_mem_vA
+  movl $\metadata, rC
+  movl memory(,rC,1), rA
+  addl $4, memory(,rC,1)
+  movl memory(,rA,1), vA
 .endm
 
 .macro from_mm metadata
-  src_mm \metadata
-  rA_mem_vA
+  movl $\metadata, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl memory(,rC,1), vA
 .endm
 # ----------------------------------------------------------------------------
+.macro litx metadata
+  movl $\metadata, vX
+.endm
+
 .macro with metadata
-  src \metadata
-  rA_to_vX
+  movl $\metadata, rA
+  movl memory(,rA,1), vX
 .endm
 
 .macro with_at metadata
-  src_at \metadata
-  rA_mem_vX
+  movl $\metadata, rA
+  movl memory(,rA,1), rA
+  movl memory(,rA,1), vX
 .endm
 
 .macro with_pp metadata
-  src_pp \metadata
-  rA_mem_vX
+  movl $\metadata, rC
+  movl memory(,rC,1), rA
+  addl $4, memory(,rC,1)
+  movl memory(,rA,1), vX
 .endm
 
 .macro with_mm metadata
-  src_mm \metadata
-  movl memory(,rA,1), rA
-  movl memory(,rA,1), vX
+  movl $\metadata, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl memory(,rC,1), vX
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
@@ -358,6 +373,22 @@ space: .asciz " "
   leal \label, rA
   cmp $0, vA
   jle 1f
+    jmp rA
+  1:
+.endm
+
+.macro jmplez label
+  leal \label, rA
+  cmp $0, vA
+  jg 1f
+    jmp rA
+  1:
+.endm
+
+.macro jmpgez label
+  leal \label, rA
+  cmp $0, vA
+  jl 1f
     jmp rA
   1:
 .endm
@@ -503,16 +534,16 @@ main:
 
   litMaxInt:
     lit 0x7fffff
-    with 0x8
+    litx 0x8
     shl
-    with 0xff
+    litx 0xff
     or
     calling foo
     returning
 
   countdown:
     from base
-    with 1
+    litx 1
     sub
     to base
     jmpgz countdown
