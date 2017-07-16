@@ -193,20 +193,25 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro add
+.macro add with metadata
+  \with \metadata
   addl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro sub
+.macro sub with metadata
+  \with \metadata
   subl vX, vA
 .endm
+
 # ----------------------------------------------------------------------------
-.macro mul
+.macro mul with metadata
+  \with \metadata
   mull vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro div # untested
-  pushl vX
+.macro div with metadata
+  \with \metadata
+  pushl vX        # untested
   movl vA, %eax
   movl vX, %ebx
   test %ebx, %ebx
@@ -223,25 +228,30 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro or
+.macro or with metadata
+  \with \metadata
   orl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro and
+.macro and with metadata
+  \with \metadata
   andl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro xor
+.macro xor with metadata
+  \with \metadata
   xorl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shl
+.macro shl with metadata
+  \with \metadata
   movl vX, rA
   movl rA, %ecx
   shll %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shr
+.macro shr with metadata
+  \with \metadata
   movl vX, rA
   movl rA, %ecx
   shrl %cl, vA
@@ -249,7 +259,8 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
-.macro jumpx
+.macro jumpx with metadata
+  \with \metadata
   jmp vX
 .endm
 
@@ -463,17 +474,14 @@ vm_exit:
 
   litMaxInt:
     lit 0x7fffff
-    with 0x8
-    shl
-    with 0xff
-    or
+    shl with 0x8
+    or with 0xff
     CALL bar
     RETURN
 
   countdown:
     from base
-    with 1
-    sub
+    sub with 1
     to base
     jmpgz countdown
     RETURN
