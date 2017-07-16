@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170715+
-Version:    pre-alpha-0.0.0.6 for FVM 2.0
+Version:    pre-alpha-0.0.0.7 for FVM 2.0
 
 
                               This Edition:
@@ -57,6 +57,7 @@ Alternative if no imports:
 # ============================================================================
 .equ MM_BYTES, 0x1000000
 .equ vA, %ebx
+.equ vX, %edx # Might be some conflict with div here
 .equ rA, %eax
 .equ rC, %ecx
 
@@ -75,7 +76,10 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack
+  LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack,
+                       maybe grow stacks downwards instead
+
+        Trying having 'with' and vX to reduce lines of code herein
 
   - FW32
   - word-addressing, 32-bit address space
@@ -133,12 +137,22 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                                 LOAD MACROS
 # ----------------------------------------------------------------------------
-# This may be used after each of the @ below
+# This may be used after each
 .macro rA_mem_vA
   movl memory(,rA,1), vA
 .endm
 
-# This may be used after each of the @@ below
+# This may be used after each
+.macro rA_mem_vX
+  movl memory(,rA,1), vX
+.endm
+
+# This may be used after each
+.macro rA_to_vX
+  movl rA, vX
+.endm
+
+# This may be used after each
 .macro rA_mem_at_rA
   movl memory(,rA,1), rA
   movl memory(,rA,1), rA
@@ -264,6 +278,26 @@ space: .asciz " "
   rA_mem_vA
 .endm
 # ----------------------------------------------------------------------------
+.macro with metadata
+  src \metadata
+  rA_to_vX
+.endm
+
+.macro with_at metadata
+  src_at \metadata
+  rA_mem_vX
+.endm
+
+.macro with_pp metadata
+  src_pp \metadata
+  rA_mem_vX
+.endm
+
+.macro with_mm metadata
+  src_mm \metadata
+  rA_mem_vX
+.endm
+# ----------------------------------------------------------------------------
 .macro to metadata
   dst \metadata
 .endm
@@ -301,8 +335,8 @@ space: .asciz " "
   addl rA, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro sub metadata
-  subl $\metadata, vA
+.macro sub # FIXME changed for with
+  subl vX, vA
 .endm
 
 .macro sub_at metadata
@@ -741,6 +775,10 @@ main:
     to_at ptr
     unbranch
 
+  litTwo:
+    lit 2
+    returning
+
   litMaxInt:
     lit 0x7fffff
     shl 0x8
@@ -750,7 +788,8 @@ main:
 
   countdown:
     from base
-    sub 1
+    with 1
+    sub
     to base
     jmpgz countdown
     returning
