@@ -432,7 +432,7 @@ vm_exit:
   1:
 .endm
 
-.macro UNBRANCH
+.macro MERGE
   by_at linkr
   jumpx
 .endm
@@ -455,7 +455,7 @@ vm_exit:
     to foo_ptr
     CALL litMaxInt
     to_ptr foo_ptr
-    UNBRANCH
+    MERGE
 
   litTwo:
     lit 2
