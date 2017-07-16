@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170715+
-Version:    pre-alpha-0.0.0.7 for FVM 2.0
+Updated:    20170716+
+Version:    pre-alpha-0.0.0.8 for FVM 2.0
 
 
                               This Edition:
@@ -376,7 +376,28 @@ memory: .lcomm mm, MM_BYTES
 .endm
 
 # ============================================================================
-#                            EXAMPLE VARIABLES
+.section .text #             EXIT POINTS for the VM
+# ============================================================================
+vm_illegal:
+
+  TRACE_STR $illegal
+  TRACE_HEX8 rA
+  TRACE_STR $newline
+  ret
+
+vm_exit:
+
+  TRACE_STR $exit
+  TRACE_HEX8 rA
+  TRACE_STR $newline
+  ret
+
+# ============================================================================
+# ============================================================================
+# ========================= EXAMPLE PROGRAM ==================================
+# ============================================================================
+# ============================================================================
+#                 EXAMPLE VARIABLES for an example program
 # ============================================================================
 .equ a, 0x00
 .equ b, 0x04
@@ -390,7 +411,7 @@ memory: .lcomm mm, MM_BYTES
 .equ rs_base, 0x30
 
 # ============================================================================
-#               EXAMPLE MACROS (not part of the instruction set!)
+#   EXAMPLE MACROS for an example program (not part of the instruction set!)
 # ============================================================================
 .macro CALLING label
   lit 1f
@@ -415,23 +436,6 @@ memory: .lcomm mm, MM_BYTES
   with_at linkr
   jumpx
 .endm
-
-# ============================================================================
-.section .text #                EXIT POINTS
-# ============================================================================
-vm_illegal:
-
-  TRACE_STR $illegal
-  TRACE_HEX8 rA
-  TRACE_STR $newline
-  ret
-
-vm_exit:
-
-  TRACE_STR $exit
-  TRACE_HEX8 rA
-  TRACE_STR $newline
-  ret
 
 # ============================================================================
 #                     ENTRY POINT for an example program
