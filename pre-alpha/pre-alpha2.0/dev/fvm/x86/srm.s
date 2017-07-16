@@ -109,7 +109,7 @@ space: .asciz " "
   movl $\metadata, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro from_at metadata
+.macro from metadata
   movl $\metadata, rA
   movl memory(,rA,1), vA
 .endm
@@ -413,26 +413,26 @@ vm_exit:
 # ============================================================================
 #   EXAMPLE MACROS for an example program (not part of the instruction set!)
 # ============================================================================
-.macro CALLING label
+.macro CALL label
   lit 1f
   to_ptr_pp rsp
   jump \label
   1:
 .endm
 
-.macro RETURNING
+.macro RETURN
   with_ptr_mm rsp
   jumpx
 .endm
 
-.macro BRANCHING label
+.macro BRANCH label
   lit 1f
   to linkr
   jump \label
   1:
 .endm
 
-.macro UNBRANCHING
+.macro UNBRANCH
   with_at linkr
   jumpx
 .endm
@@ -442,8 +442,8 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    BRANCHING initProgram
-    CALLING countdown
+    BRANCH initProgram
+    CALL countdown
 
   end:
     halt 0
@@ -453,13 +453,13 @@ vm_exit:
     to rsp
     lit base
     to foo_ptr
-    CALLING litMaxInt
+    CALL litMaxInt
     to_ptr foo_ptr
-    UNBRANCHING
+    UNBRANCH
 
   litTwo:
     lit 2
-    RETURNING
+    RETURN
 
   litMaxInt:
     lit 0x7fffff
@@ -467,22 +467,22 @@ vm_exit:
     shl
     with 0xff
     or
-    CALLING bar
-    RETURNING
+    CALL bar
+    RETURN
 
   countdown:
-    from_at base
+    from base
     with 1
     sub
     to base
     jmpgz countdown
-    RETURNING
+    RETURN
 
   bar:
-    CALLING baz
-    RETURNING
+    CALL baz
+    RETURN
 
   baz:
-    RETURNING
+    RETURN
 
 # ============================================================================
