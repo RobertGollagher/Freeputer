@@ -184,23 +184,6 @@ space: .asciz " "
   movl rC, memory(,rA,1)
 .endm
 # ----------------------------------------------------------------------------
-#                                ARITHMETIC MACROS   TODO /-1
-# ----------------------------------------------------------------------------
-.macro divide metadata
-  movl vA, %eax
-  movl $\metadata, %ebx
-
-  test %ebx, %ebx
-  je 1f
-
-  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
-  idivl %ebx      # %edx:eax is the implied dividend
-  jmp 2f
-  1: # Division by zero
-    movl $0, vA
-  2:
-.endm
-# ----------------------------------------------------------------------------
 #                                   JUMP MACROS
 # ----------------------------------------------------------------------------
 .macro indirectJump
@@ -316,188 +299,53 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro add metadata
-  addl $\metadata, vA
-.endm
-
-.macro add_at metadata
-  src_at \metadata
-  addl rA, vA
-.endm
-
-.macro add_pp metadata
-  src_pp \metadata
-  addl rA, vA
-.endm
-
-.macro add_mm metadata
-  src_mm \metadata
-  addl rA, vA
+.macro add
+  addl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro sub # FIXME changed for with
+.macro sub
   subl vX, vA
 .endm
-
-.macro sub_at metadata
-  src_at \metadata
-  subl rA, vA
-.endm
-
-.macro sub_pp metadata
-  src_pp \metadata
-  subl rA, vA
-.endm
-
-.macro sub_mm metadata
-  src_mm \metadata
-  subl rA, vA
+# ----------------------------------------------------------------------------
+.macro mul
+  mull vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro mul metadata
-  mull $\metadata, vA
-.endm
-
-.macro mul_at metadata
-  src_at \metadata
-  mull rA, vA
-.endm
-
-.macro mul_pp metadata
-  src_pp \metadata
-  mull rA, vA
-.endm
-
-.macro mul_mm metadata
-  src_mm \metadata
-  mull rA, vA
-.endm
-# ----------------------------------------------------------------------------
-.macro div metadata
-  divide \metadata
-.endm
-
-.macro div_at metadata
-  src_at \metadata
-  rA_mem_vA
-  divide \metadata
-.endm
-
-.macro div_pp metadata
-  src_pp \metadata
-  rA_mem_vA
-  divide \metadata
-.endm
-
-.macro div_mm metadata
-  src_mm \metadata
-  rA_mem_vA
-  divide \metadata
+.macro div
+  movl vA, %eax
+  movl vX, %ebx
+  test %ebx, %ebx
+  je 1f
+  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
+  idivl %ebx      # %edx:eax is the implied dividend
+  jmp 2f
+  1: # Division by zero
+    movl $0, vA
+  2:
 .endm
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro or metadata
-  orl $\metadata, vA
-.endm
-
-.macro or_at metadata
-  src_at \metadata
-  orl rA, vA
-.endm
-
-.macro or_pp metadata
-  src_pp \metadata
-  orl rA, vA
-.endm
-
-.macro or_mm metadata
-  src_mm \metadata
-  orl rA, vA
+.macro or
+  orl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro and metadata
-  andl $\metadata, vA
-.endm
-
-.macro and_at metadata
-  src_at \metadata
-  andl rA, vA
-.endm
-
-.macro and_pp metadata
-  src_pp \metadata
-  andl rA, vA
-.endm
-
-.macro and_mm metadata
-  src_mm \metadata
-  andl rA, vA
+.macro and
+  andl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro xor metadata
-  xorl $\metadata, vA
-.endm
-
-.macro xor_at metadata
-  src_at \metadata
-  xorl rA, vA
-.endm
-
-.macro xor_pp metadata
-  src_pp \metadata
-  xorl rA, vA
-.endm
-
-.macro xor_mm metadata
-  src_mm \metadata
-  xorl rA, vA
+.macro xor
+  xorl vX, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shl metadata
-  movl $\metadata, rA
-  movl rA, %ecx
-  shll %cl, vA
-.endm
-
-.macro shl_at metadata
-  src_at \metadata
-  movl rA, %ecx
-  shll %cl, vA
-.endm
-
-.macro shl_pp metadata
-  src_pp \metadata
-  movl rA, %ecx
-  shll %cl, vA
-.endm
-
-.macro shl_mm metadata
-  src_mm \metadata
+.macro shl
+  movl vX, rA
   movl rA, %ecx
   shll %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shr metadata
-  movl $\metadata, rA
-  movl rA, %ecx
-  shrl %cl, vA
-.endm
-
-.macro shr_at metadata
-  src_at \metadata
-  movl rA, %ecx
-  shrl %cl, vA
-.endm
-
-.macro shr_pp metadata
-  src_pp \metadata
-  movl rA, %ecx
-  shrl %cl, vA
-.endm
-
-.macro shr_mm metadata
-  src_mm \metadata
+.macro shr
+  movl vX, rA
   movl rA, %ecx
   shrl %cl, vA
 .endm
@@ -642,7 +490,7 @@ space: .asciz " "
   doJmpgt
 .endm
 # ----------------------------------------------------------------------------
-#                            OTHER INSTRUCTIONS
+#                            OTHER INSTRUCTIONS   FIXME make use vX
 # ----------------------------------------------------------------------------
 .macro nop
 .endm
@@ -771,7 +619,7 @@ main:
     to rsp
     lit base
     to ptr
-    calling litMaxInt
+    calling litTwo
     to_at ptr
     unbranch
 
@@ -781,8 +629,10 @@ main:
 
   litMaxInt:
     lit 0x7fffff
-    shl 0x8
-    or 0xff
+    with 0x8
+    shl
+    with 0xff
+    or
     calling foo
     returning
 
