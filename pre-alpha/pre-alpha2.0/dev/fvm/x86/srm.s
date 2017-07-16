@@ -440,8 +440,7 @@ vm_exit:
 .endm
 
 .macro RETURN
-  by_ptr_mm rsp
-  jumpx
+  jumpx by_ptr_mm rsp
 .endm
 
 .macro BRANCH label
@@ -452,8 +451,7 @@ vm_exit:
 .endm
 
 .macro MERGE
-  by_at linkr
-  jumpx
+  jumpx by_at linkr
 .endm
 
 # ============================================================================
