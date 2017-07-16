@@ -77,7 +77,7 @@ space: .asciz " "
 /*
 
   LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack,
-                       maybe grow stacks downwards instead
+                       maybe grow stacks downwards instead, maybe swap
 
         Trying having 'with' and vX to reduce lines of code herein
 
