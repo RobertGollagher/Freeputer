@@ -338,18 +338,6 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                 COMPOSITE MACROS Note: no overflow checks
 # ----------------------------------------------------------------------------
-.macro calling label
-  lit 1f
-  to_ptr_pp rsp
-  jump \label
-  1:
-.endm
-
-.macro returning
-  with_ptr_mm rsp
-  jumpx
-.endm
-
 .macro branch label
   lit 1f
   to lr
@@ -435,7 +423,11 @@ vm_exit:
 main:
 
     branch initProgram
-    calling countdown
+    # call:
+      lit 1f
+      to_ptr_pp rsp
+      jump countdown
+      1:
 
   end:
     halt 0
@@ -445,14 +437,19 @@ main:
     to rsp
     lit base
     to ptr
-    calling litMaxInt
+    # call:
+      lit 1f
+      to_ptr_pp rsp
+      jump litMaxInt
+      1:
     to_ptr ptr
     unbranch
 
   litTwo:
     lit 2
-    with_ptr_mm rsp
-    jumpx
+    # return:
+      with_ptr_mm rsp
+      jumpx
 
   litMaxInt:
     lit 0x7fffff
@@ -460,8 +457,14 @@ main:
     shl
     with 0xff
     or
-    calling foo
-    returning
+    # call:
+      lit 1f
+      to_ptr_pp rsp
+      jump foo
+      1:
+    # return:
+      with_ptr_mm rsp
+      jumpx
 
   countdown:
     from_at base
@@ -469,13 +472,23 @@ main:
     sub
     to base
     jmpgz countdown
-    returning
+    # return:
+      with_ptr_mm rsp
+      jumpx
 
   foo:
-    calling bar
-    returning
+    # call:
+      lit 1f
+      to_ptr_pp rsp
+      jump bar
+      1:
+    # return:
+      with_ptr_mm rsp
+      jumpx
 
   bar:
-    returning
+    # return:
+      with_ptr_mm rsp
+      jumpx
 
 # ============================================================================
