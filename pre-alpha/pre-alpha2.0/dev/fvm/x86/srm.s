@@ -104,7 +104,7 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro from_lit metadata
+.macro lit metadata
   movl $\metadata, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -134,7 +134,7 @@ space: .asciz " "
   movl memory(,rC,1), vA
 .endm
 # ----------------------------------------------------------------------------
-.macro with_lit metadata
+.macro with metadata
   movl $\metadata, vX
 .endm
 
@@ -339,7 +339,7 @@ space: .asciz " "
 #                 COMPOSITE MACROS Note: no overflow checks
 # ----------------------------------------------------------------------------
 .macro calling label
-  from_lit 1f
+  lit 1f
   to_ptr_pp rsp
   jump \label
   1:
@@ -351,7 +351,7 @@ space: .asciz " "
 .endm
 
 .macro branch label
-  from_lit 1f
+  lit 1f
   to lr
   jump \label
   1:
@@ -361,6 +361,7 @@ space: .asciz " "
   with_at lr
   jumpx
 .endm
+
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
@@ -440,31 +441,31 @@ main:
     halt 0
 
   initProgram:
-    from_lit rs_base
+    lit rs_base
     to rsp
-    from_lit base
+    lit base
     to ptr
-    calling litTwo
+    calling litMaxInt
     to_ptr ptr
     unbranch
 
   litTwo:
-    from_lit 2
+    lit 2
     with_ptr_mm rsp
     jumpx
 
   litMaxInt:
-    from_lit 0x7fffff
-    with_lit 0x8
+    lit 0x7fffff
+    with 0x8
     shl
-    with_lit 0xff
+    with 0xff
     or
     calling foo
     returning
 
   countdown:
     from_at base
-    with_lit 1
+    with 1
     sub
     to base
     jmpgz countdown
