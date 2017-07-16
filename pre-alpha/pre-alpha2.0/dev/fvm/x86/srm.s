@@ -77,8 +77,7 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:   ?sign, sign-extending, pc at runtime for return stack,
-                       maybe grow stacks downwards instead, maybe swap
+  LATEST THOUGHTS:   ?sign, sign-extending
 
   - FW32
   - word-addressing, 32-bit address space
@@ -95,10 +94,6 @@ space: .asciz " "
       - note: 7 spare instructions here, rethink
   - 24 bits: metadata
 
-  PREFERRED:
-
-  - bit-30 overflow solutions and 15-bit mul, not sure div ?? carry, overflow
-
 */
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
@@ -106,8 +101,22 @@ space: .asciz " "
 .macro lit metadata
   movl $\metadata, vA
 .endm
+
+.macro litx metadata
+  movl $\metadata, vA
+  movl $0x00800000, rC
+  andl vA, rC
+  jz 1f
+    orl $0xff000000, vA
+  1:
+.endm
 # ----------------------------------------------------------------------------
 .macro from metadata
+  movl $\metadata, rA
+  movl memory(,rA,1), vA
+.endm
+
+.macro fromx metadata
   movl $\metadata, rA
   movl memory(,rA,1), vA
 .endm
@@ -135,6 +144,15 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 .macro by metadata
   movl $\metadata, vX
+.endm
+
+.macro byx metadata
+  movl $\metadata, vX
+  movl $0x00800000, rC
+  andl vX, rC
+  jz 1f
+    orl $0xff000000, vX
+  1:
 .endm
 
 .macro by_at metadata
@@ -204,7 +222,7 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 .macro mul by metadata
   \by \metadata
-  mull vX, vA
+  mull vX, vA     # TODO consider limiting to 15-bit mul so cannot overflow
 .endm
 # ----------------------------------------------------------------------------
 .macro div by metadata
@@ -213,11 +231,11 @@ space: .asciz " "
   movl vA, %eax
   movl vX, %ebx
   test %ebx, %ebx
-  je 1f
+  je 1f           # TODO consider what to do on /-1
   cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
   idivl %ebx      # %edx:eax is the implied dividend
   jmp 2f
-  1: # Division by zero
+  1: # Division by zero shall yield 0
     movl $0, vA
   2:
   movl %eax, vA
@@ -267,6 +285,7 @@ space: .asciz " "
   jmp rA
 .endm
 
+# This provides a nice bit-30 overflow-detection solution
 .macro jmpo label
   leal \label, rA
   andl vA, $0x80000000
@@ -453,7 +472,7 @@ vm_exit:
     to rsp
     lit base
     to foo_ptr
-    CALL litMaxInt
+    CALL lit0xffffffff
     to_ptr foo_ptr
     MERGE
 
@@ -465,21 +484,17 @@ vm_exit:
     lit 0x7fffff
     shl by 0x8
     or by 0xff
-    CALL bar
+    RETURN
+
+  lit0xffffffff:
+    litx 0xffffff
     RETURN
 
   countdown:
     from base
     sub by 1
     to base
-    jmpgz countdown
-    RETURN
-
-  bar:
-    CALL baz
-    RETURN
-
-  baz:
+    jmpnz countdown
     RETURN
 
 # ============================================================================
