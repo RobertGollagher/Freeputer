@@ -403,8 +403,8 @@ vm_exit:
 .equ b, 0x04
 .equ c, 0x08
 .equ d, 0x0c
-.equ base, 0x10
-.equ top,  0x1c
+.equ base, 0x10 # Bottom of area foo_ptr shall point to
+.equ top,  0x1c # Top of area foo_ptr might point to
 .equ foo_ptr, 0x20 # An example of an arbitrary pointer called foo_ptr
 .equ rsp, 0x24 # Here being used like a return-stack pointer
 .equ linkr, 0x28 # Here being used like a link register
