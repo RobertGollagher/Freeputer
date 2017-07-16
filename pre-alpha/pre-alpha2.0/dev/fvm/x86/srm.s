@@ -101,93 +101,6 @@ space: .asciz " "
   - bit-30 overflow solutions and 15-bit mul, not sure div ?? carry, overflow
 
 */
-
-# ----------------------------------------------------------------------------
-#                                STORE MACROS
-# ----------------------------------------------------------------------------
-# @x = vA
-.macro dst x
-  movl $\x, rA
-  movl vA, memory(,rA,1)
-.endm
-
-# @@x = vA
-.macro dst_at x
-  movl $\x, rA
-  movl memory(,rA,1), rA
-  movl vA, memory(,rA,1)
-.endm
-
-# @@x++ = vA
-.macro dst_pp x
-  movl $\x, rC
-  movl memory(,rC,1), rA
-  movl vA, memory(,rA,1)
-  addl $4, memory(,rC,1)
-.endm
-
-# --@@x = vA
-.macro dst_mm x
-  movl $\x, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl vA, memory(,rC,1)
-.endm
-# ----------------------------------------------------------------------------
-#                                 LOAD MACROS
-# ----------------------------------------------------------------------------
-# This may be used after each
-.macro rA_mem_vA
-  movl memory(,rA,1), vA
-.endm
-
-# This may be used after some
-.macro vX_mem_vX
-  movl memory(,vX,1), vX
-.endm
-
-# This may be used after each
-.macro rA_mem_vX
-  movl memory(,rA,1), vX
-.endm
-
-# This may be used after each
-.macro rA_to_vX
-  movl rA, vX
-.endm
-
-# This may be used after each
-.macro rA_mem_at_rA
-  movl memory(,rA,1), rA
-  movl memory(,rA,1), rA
-.endm
-
-# vA = @x when followed by rA_mem_vA
-.macro src x
-  movl $\x, rA
-.endm
-
-# vA = @@x when followed by rA_mem_vA
-.macro src_at x
-  movl $\x, rA
-  movl memory(,rA,1), rA
-.endm
-
-# vA = @@x++ when followed by rA_mem_vA
-.macro src_pp x
-  movl $\x, rC
-  movl memory(,rC,1), rA
-  addl $4, memory(,rC,1)
-.endm
-
-# vA = --@@x when followed by rA_mem_vA
-.macro src_mm x
-  movl $\x, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-.endm
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -200,20 +113,20 @@ space: .asciz " "
   movl memory(,rA,1), vA
 .endm
 
-.macro from_at metadata
+.macro from_ptr metadata
   movl $\metadata, rA
   movl memory(,rA,1), rA
   movl memory(,rA,1), vA
 .endm
 
-.macro from_pp metadata
+.macro from_ptr_pp metadata
   movl $\metadata, rC
   movl memory(,rC,1), rA
   addl $4, memory(,rC,1)
   movl memory(,rA,1), vA
 .endm
 
-.macro from_mm metadata
+.macro from_ptr_mm metadata
   movl $\metadata, rA
   movl memory(,rA,1), rC
   subl $4, rC
@@ -230,20 +143,20 @@ space: .asciz " "
   movl memory(,rA,1), vX
 .endm
 
-.macro with_at metadata
+.macro with_ptr metadata
   movl $\metadata, rA
   movl memory(,rA,1), rA
   movl memory(,rA,1), vX
 .endm
 
-.macro with_pp metadata
+.macro with_ptr_pp metadata
   movl $\metadata, rC
   movl memory(,rC,1), rA
   addl $4, memory(,rC,1)
   movl memory(,rA,1), vX
 .endm
 
-.macro with_mm metadata
+.macro with_ptr_mm metadata
   movl $\metadata, rA
   movl memory(,rA,1), rC
   subl $4, rC
@@ -252,19 +165,29 @@ space: .asciz " "
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
-  dst \metadata
+  movl $\metadata, rA
+  movl vA, memory(,rA,1)
 .endm
 
-.macro to_at metadata
-  dst_at \metadata
+.macro to_ptr metadata
+  movl $\metadata, rA
+  movl memory(,rA,1), rA
+  movl vA, memory(,rA,1)
 .endm
 
-.macro to_pp metadata
-  dst_pp \metadata
+.macro to_ptr_pp metadata
+  movl $\metadata, rC
+  movl memory(,rC,1), rA
+  movl vA, memory(,rA,1)
+  addl $4, memory(,rC,1)
 .endm
 
-.macro to_mm metadata
-  dst_mm \metadata
+.macro to_ptr_mm metadata
+  movl $\metadata, rA
+  movl memory(,rA,1), rC
+  subl $4, rC
+  movl rC, memory(,rA,1)
+  movl vA, memory(,rC,1)
 .endm
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
@@ -413,19 +336,17 @@ space: .asciz " "
   jmp vm_exit
 .endm
 # ----------------------------------------------------------------------------
-#                             COMPOSITE MACROS
+#                 COMPOSITE MACROS Note: no overflow checks
 # ----------------------------------------------------------------------------
-# FIXME overflow check
 .macro calling label
   lit 1f
-  to_pp rsp
+  to_ptr_pp rsp
   jump \label
   1:
 .endm
 
-# FIXME overflow check
 .macro returning
-  with_mm rsp
+  with_ptr_mm rsp
   jumpx
 .endm
 
@@ -437,8 +358,8 @@ space: .asciz " "
 .endm
 
 .macro unbranch
-  src_at lr
-  jmp rA
+  with lr
+  jumpx
 .endm
 # ============================================================================
 .section .bss #                  VARIABLES
@@ -524,12 +445,12 @@ main:
     lit base
     to ptr
     calling litTwo
-    to_at ptr
+    to_ptr ptr
     unbranch
 
   litTwo:
     lit 2
-    with_mm rsp
+    with_ptr_mm rsp
     jumpx
 
   litMaxInt:
