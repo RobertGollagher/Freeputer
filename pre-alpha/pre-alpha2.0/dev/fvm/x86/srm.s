@@ -91,10 +91,10 @@ space: .asciz " "
       - lit, from, to = 3
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
-      - branch, unbranch, nop, halt = 3
+      - reserved1, reserved1, nop, halt = 4
   - jumps: always absolute
-      - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe add <= and >=)(maybe decleq)
-      - note: 10 spare instructions here, rethink
+      - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
+      - note: 7 spare instructions here, rethink
   - 24 bits: metadata
 
   PREFERRED:
@@ -386,8 +386,35 @@ memory: .lcomm mm, MM_BYTES
 .equ top,  0x1c
 .equ foo_ptr, 0x20 # An example of an arbitrary pointer called foo_ptr
 .equ rsp, 0x24 # Here being used like a return-stack pointer
-.equ lr, 0x28 # Here being used like a link register
+.equ linkr, 0x28 # Here being used like a link register
 .equ rs_base, 0x30
+
+# ============================================================================
+#               EXAMPLE MACROS (not part of the instruction set!)
+# ============================================================================
+.macro CALLING label
+  lit 1f
+  to_ptr_pp rsp
+  jump \label
+  1:
+.endm
+
+.macro RETURNING
+  with_ptr_mm rsp
+  jumpx
+.endm
+
+.macro BRANCHING label
+  lit 1f
+  to linkr
+  jump \label
+  1:
+.endm
+
+.macro UNBRANCHING
+  with_at linkr
+  jumpx
+.endm
 
 # ============================================================================
 .section .text #                EXIT POINTS
@@ -411,16 +438,8 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    # branch:
-      lit 1f
-      to lr
-      jump initProgram
-      1:
-    # call:
-      lit 1f
-      to_ptr_pp rsp
-      jump countdown
-      1:
+    BRANCHING initProgram
+    CALLING countdown
 
   end:
     halt 0
@@ -430,21 +449,13 @@ vm_exit:
     to rsp
     lit base
     to foo_ptr
-    # call:
-      lit 1f
-      to_ptr_pp rsp
-      jump litMaxInt
-      1:
+    CALLING litMaxInt
     to_ptr foo_ptr
-    # unbranch:
-      with_at lr
-      jumpx
+    UNBRANCHING
 
   litTwo:
     lit 2
-    # return:
-      with_ptr_mm rsp
-      jumpx
+    RETURNING
 
   litMaxInt:
     lit 0x7fffff
@@ -452,14 +463,8 @@ vm_exit:
     shl
     with 0xff
     or
-    # call:
-      lit 1f
-      to_ptr_pp rsp
-      jump bar
-      1:
-    # return:
-      with_ptr_mm rsp
-      jumpx
+    CALLING bar
+    RETURNING
 
   countdown:
     from_at base
@@ -467,23 +472,13 @@ vm_exit:
     sub
     to base
     jmpgz countdown
-    # return:
-      with_ptr_mm rsp
-      jumpx
+    RETURNING
 
   bar:
-    # call:
-      lit 1f
-      to_ptr_pp rsp
-      jump baz
-      1:
-    # return:
-      with_ptr_mm rsp
-      jumpx
+    CALLING baz
+    RETURNING
 
   baz:
-    # return:
-      with_ptr_mm rsp
-      jumpx
+    RETURNING
 
 # ============================================================================
