@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170716+
-Version:    pre-alpha-0.0.0.9 for FVM 2.0
+Updated:    20170717+
+Version:    pre-alpha-0.0.0.10 for FVM 2.0
 
 
                               This Edition:
@@ -80,18 +80,15 @@ space: .asciz " "
   LATEST THOUGHTS:   ?sign, sign-extending
 
   - FW32
-  - word-addressing, 32-bit address space
-  - 1 bit: instruction format (regular, jump)
+  - word-addressing, 30-bit address space
   - 3 bits: mode (imm,@,@@,@@++,--@@) (not orthogonal)
-  - 4 bits: opcode: (all one-directional M->R)
-      - lit, from, to = 3
+  - 5 bits: opcode: (all one-directional M->R)
+      - lit, litx, litm, by, byx, bym, from, to = 8
       - add, sub, mul, div = 4
       - shl, shr, and, or, xor = 5
-      - halt = 2
-      - note: 2 spare instructions here, rethink
-  - jumps: always absolute
+      - halt = 1
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
-      - note: 7 spare instructions here, rethink
+      - 5 spare
   - 24 bits: metadata
 
 */
@@ -109,6 +106,13 @@ space: .asciz " "
   jz 1f
     orl $0xff000000, vA
   1:
+.endm
+
+.macro litm metadata
+  movl $\metadata, rA
+  shll $8, rA
+  andl $0x00ffffff, vA
+  orl rA, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
@@ -153,6 +157,13 @@ space: .asciz " "
   jz 1f
     orl $0xff000000, vX
   1:
+.endm
+
+.macro bym metadata
+  movl $\metadata, rA
+  shll $8, rA
+  andl $0x00ffffff, vX
+  orl rA, vX
 .endm
 
 .macro by_at metadata
@@ -470,7 +481,7 @@ vm_exit:
     to rsp
     lit base
     to foo_ptr
-    CALL lit0xffffffff
+    CALL litMaxInt
     to_ptr foo_ptr
     MERGE
 
@@ -479,9 +490,8 @@ vm_exit:
     RETURN
 
   litMaxInt:
-    lit 0x7fffff
-    shl by 0x8
-    or by 0xff
+    lit 0xffffff
+    litm 0x7f0000
     RETURN
 
   lit0xffffffff:
