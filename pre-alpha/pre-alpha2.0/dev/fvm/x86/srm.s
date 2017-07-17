@@ -51,6 +51,7 @@ Alternative if no imports:
 #                                IMPORTS
 # ============================================================================
 .extern printf
+.extern putchar
 
 # ============================================================================
 #                                SYMBOLS
@@ -88,10 +89,31 @@ space: .asciz " "
       - shl, shr, and, or, xor = 5
       - halt = 1
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
-      - 5 spare
+      - 5 spare: try for fun read/write for now (not permanent solution)
   - 24 bits: metadata
 
 */
+# ----------------------------------------------------------------------------
+#                   I/O INSTRUCTIONS just for fun for now
+# ----------------------------------------------------------------------------
+.macro read port
+  movl $\port, rA
+  andl $0xffffffff, rA
+  jnz 1f
+    # Only port 0 supported for now = byte stdin
+    # FIXME impl
+  1:
+.endm
+
+.macro write port
+  movl $\port, rA
+  andl $0xfffffff7, rA
+  jnz 1f
+    # Only port 1 supported for now = byte stdout
+    call printf
+    addl $4, %esp
+  1:
+.endm
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -470,11 +492,23 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    BRANCH initProgram
-    CALL countdown
+    lit 'A'
+//    BRANCH putchar
+
+  movl $1, rA
+  andl $0x00000001, rA
+  jnz 1f
+    # Only port 1 supported for now = byte stdout
+    call printf
+    addl $4, %esp
+  1:
 
   end:
     halt by 0
+
+  putchar:
+    write 0
+    MERGE
 
   initProgram:
     lit rs_base
