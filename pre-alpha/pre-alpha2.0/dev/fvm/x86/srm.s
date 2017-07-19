@@ -96,17 +96,19 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   I/O INSTRUCTIONS just for fun for now
 # ----------------------------------------------------------------------------
-.macro read port
-  movl $\port, rA
-  andl $0xffffffff, rA
+.macro in by port
+  \by \port
+  movl vX, rA
+  orl $0x00000000, rA
   jnz 1f
     # Only port 0 supported for now = byte stdin
-    # FIXME impl
+    call getchar
   1:
 .endm
 
-.macro write port
-  movl $\port, rA
+.macro out by port
+  \by \port
+  movl vX, rA
   andl $0x00000001, rA
   jz 1f
     # Only port 1 supported for now = byte stdout
@@ -493,19 +495,20 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    lit 'B'
+    lit '?'
     to base
     BRANCH put_char
     lit '\n'
     to base
     BRANCH put_char
+    in by 0
 
   end:
     halt by 0
 
   put_char:
     from base
-    write 1
+    out by 1
     MERGE
 
   initProgram:
