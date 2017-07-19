@@ -107,10 +107,11 @@ space: .asciz " "
 
 .macro write port
   movl $\port, rA
-  andl $0xfffffff7, rA
-  jnz 1f
+  andl $0x00000001, rA
+  jz 1f
     # Only port 1 supported for now = byte stdout
-    call printf
+    pushl vA
+    call putchar
     addl $4, %esp
   1:
 .endm
@@ -465,7 +466,7 @@ vm_exit:
 # ============================================================================
 #   EXAMPLE MACROS for an example program (not part of the instruction set!)
 # ============================================================================
-.macro CALL label
+.macro CALLING label
   lit 1f
   to_ptr_pp rsp
   jump \label
@@ -492,22 +493,19 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    lit 'A'
-//    BRANCH putchar
-
-  movl $1, rA
-  andl $0x00000001, rA
-  jnz 1f
-    # Only port 1 supported for now = byte stdout
-    call printf
-    addl $4, %esp
-  1:
+    lit 'B'
+    to base
+    BRANCH put_char
+    lit '\n'
+    to base
+    BRANCH put_char
 
   end:
     halt by 0
 
-  putchar:
-    write 0
+  put_char:
+    from base
+    write 1
     MERGE
 
   initProgram:
@@ -515,7 +513,7 @@ vm_exit:
     to rsp
     lit base
     to foo_ptr
-    CALL litMaxInt
+    CALLING litMaxInt
     to_ptr foo_ptr
     MERGE
 
