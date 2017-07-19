@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170717+
-Version:    pre-alpha-0.0.0.10 for FVM 2.0
+Updated:    20170719+
+Version:    pre-alpha-0.0.0.11 for FVM 2.0
 
 
                               This Edition:
@@ -78,7 +78,25 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:   ?sign, sign-extending
+  LATEST THOUGHTS:
+
+  - This is a meta-machine. It runs natively on the target platform.
+  - The meta-machine is effectively Harvard architecture.
+  - The meta-machine is effectively a set of strictly standardized macros.
+  - We do not care what the word size is of the meta-machine's hardware.
+  - We do care what the word size of the data space is: always 32 bits.
+  - Thus the meta-machine can be used either to:
+      - run a previously prepared program (embedded environment); or
+      - virtualize a machine in its data space!
+  - Memory-access exceptions can occur since:
+      - size of the data space is not standardized; and
+      - this is for reasons of flexibility and portability.
+
+  NEXT STEPS:
+
+  - Therefore the next step is to virtualize this machine in itself.
+
+  SOME FUNDAMENTALS:
 
   - FW32
   - word-addressing, 30-bit address space
@@ -89,7 +107,8 @@ space: .asciz " "
       - shl, shr, and, or, xor = 5
       - halt = 1
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
-      - 5 spare: try for fun read/write for now (not permanent solution)
+      - in, out = 2
+      - a few spare
   - 24 bits: metadata
 
 */
