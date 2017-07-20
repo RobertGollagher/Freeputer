@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170720+
-Version:    pre-alpha-0.0.0.13 for FVM 2.0
+Version:    pre-alpha-0.0.0.14 for FVM 2.0
 
 
                               This Edition:
@@ -109,7 +109,7 @@ space: .asciz " "
       - halt = 1
       - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
       - in, out = 2
-      - a few spare
+      - jumprel
   - 24 bits: metadata
 
 */
@@ -276,7 +276,7 @@ space: .asciz " "
 .endm
 
 # ----------------------------------------------------------------------------
-.macro mul by metadata
+.macro multi by metadata # FIXME broken
   \by \metadata
   mull vX, vA     # TODO consider limiting to 15-bit mul so cannot overflow
 .endm
@@ -331,6 +331,12 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
+.macro jumprel baseAddr
+  # A bit dicey
+  leal \baseAddr(,vA,WORD_SIZE), %eax
+  jmp *(%eax)
+.endm
+
 .macro jumpx by metadata
   \by \metadata
   jmp vX
@@ -560,29 +566,23 @@ vm_exit:
   next:
     from_ptr_pp v_pc
     to instr
-
-    # Even as is this counts down from 7fffffff in 18.4 seconds
-    # TODO replace this with a vector table
-    xor by 1
-    jmpz i1
-
-    from instr
-    xor by 2
-    jmpz i2
-
-    from instr
-    xor by 3
-    jmpz i3
-
-    from instr
-    xor by 4
-    jmpz i4
+    # counts down from 7fffffff in 11.6 seconds
+    # (ie as a VM within a VM... not bad considering)
+    jumprel vectorTable
 
   illeg:
     halt by 1
 
   end:
     halt by 0
+
+  # TODO replace by memory version
+  vectorTable:
+    .long illeg
+    .long i1
+    .long i2
+    .long i3
+    .long i4
 
   i1:
     # lit 0x7fffffff (cheating)
