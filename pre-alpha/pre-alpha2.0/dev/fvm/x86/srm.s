@@ -482,7 +482,7 @@ vm_exit:
 #                 EXAMPLE VARIABLES for an example program
 # ============================================================================
 .equ v_memory, 0
-.equ rsp, v_memory + WORD_SIZE
+.equ rsp, v_memory + 16
 .equ linkr, rsp + WORD_SIZE
 .equ v_vA, linkr + WORD_SIZE
 .equ v_vX, v_vA + WORD_SIZE
@@ -520,6 +520,18 @@ vm_exit:
 .global main
   main:
 
+/* # 4.0 seconds
+    lit  0xffffff
+    litm 0x7f0000
+    to 0
+    loop:
+      from 0
+      sub by 1
+      to 0
+      jmpgz loop
+    halt by 0
+*/
+
   init:
 
     lit 0
@@ -542,15 +554,29 @@ vm_exit:
     lit 3
     to 8
 
-    lit 0
+    lit 4
     to 12
 
   next:
     from_ptr_pp v_pc
     to instr
 
+    # Even as is this counts down from 7fffffff in 18.4 seconds
+    # TODO replace this with a vector table
     xor by 1
     jmpz i1
+
+    from instr
+    xor by 2
+    jmpz i2
+
+    from instr
+    xor by 3
+    jmpz i3
+
+    from instr
+    xor by 4
+    jmpz i4
 
   illeg:
     halt by 1
@@ -559,14 +585,25 @@ vm_exit:
     halt by 0
 
   i1:
+    # lit 0x7fffffff (cheating)
+    lit 0x7fffffff
+    to v_vA
     jump next
   i2:
+    # sub by 1
+    from v_vA
+    sub by 1
+    to v_vA
     jump next
   i3:
-    jump next
+    # jmpgz 4
+    from v_vA
+    jmplez 2f
+      lit 4
+      to v_pc
+    2:
+      jump next
   i4:
-
-
-
+    jump end
 
 # ============================================================================
