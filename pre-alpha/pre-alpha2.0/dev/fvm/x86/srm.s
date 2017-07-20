@@ -7,8 +7,12 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170720+
-Version:    pre-alpha-0.0.0.14 for FVM 2.0
+Updated:    20170721+
+Version:    pre-alpha-0.0.0.15 for FVM 2.0
+
+Notes: This is promising. Parking this experiment for now.
+This is an order of magnitude simpler than FVM 1.0 but still powerful.
+The next experiment is to try two orders of magnitude simpler.
 
 
                               This Edition:
@@ -566,7 +570,7 @@ vm_exit:
   next:
     from_ptr_pp v_pc
     to instr
-    # counts down from 7fffffff in 11.6 seconds
+    # counts down from 7fffffff in 11.6 seconds (laptop 7.7 secs)
     # (ie as a VM within a VM... not bad considering)
     jumprel vectorTable
 
