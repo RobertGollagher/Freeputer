@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
 Updated:    20170720+
-Version:    pre-alpha-0.0.0.12 for FVM 2.0
+Version:    pre-alpha-0.0.0.13 for FVM 2.0
 
 
                               This Edition:
@@ -548,21 +548,25 @@ vm_exit:
   next:
     from_ptr_pp v_pc
     to instr
-    swap
 
-    lit 1
-    xor
-
-
-    jmpz illeg
-
-    jmp next
+    xor by 1
+    jmpz i1
 
   illeg:
     halt by 1
 
   end:
     halt by 0
+
+  i1:
+    jump next
+  i2:
+    jump next
+  i3:
+    jump next
+  i4:
+
+
 
 
 # ============================================================================
