@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170709
-Updated:    20170719+
-Version:    pre-alpha-0.0.0.11 for FVM 2.0
+Updated:    20170720+
+Version:    pre-alpha-0.0.0.12 for FVM 2.0
 
 
                               This Edition:
@@ -57,6 +57,7 @@ Alternative if no imports:
 #                                SYMBOLS
 # ============================================================================
 .equ MM_BYTES, 0x1000000
+.equ WORD_SIZE, 4
 .equ vA, %ebx
 .equ vX, %edx
 .equ vL, %edi
@@ -405,6 +406,12 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
+.macro swap
+  movl vA, rC
+  movl vX, vA
+  movl rC, vX
+.endm
+
 .macro nop
 .endm
 
@@ -417,6 +424,7 @@ space: .asciz " "
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
+# For the meta-machine
 memory: .lcomm mm, MM_BYTES
 
 # ============================================================================
@@ -473,16 +481,13 @@ vm_exit:
 # ============================================================================
 #                 EXAMPLE VARIABLES for an example program
 # ============================================================================
-.equ a, 0x00
-.equ b, 0x04
-.equ c, 0x08
-.equ d, 0x0c
-.equ base, 0x10 # Bottom of area foo_ptr shall point to
-.equ top,  0x1c # Top of area foo_ptr might point to
-.equ foo_ptr, 0x20 # An example of an arbitrary pointer called foo_ptr
-.equ rsp, 0x24 # Here being used like a return-stack pointer
-.equ linkr, 0x28 # Here being used like a link register
-.equ rs_base, 0x30
+.equ v_memory, 0
+.equ rsp, v_memory + WORD_SIZE
+.equ linkr, rsp + WORD_SIZE
+.equ v_vA, linkr + WORD_SIZE
+.equ v_vX, v_vA + WORD_SIZE
+.equ v_pc, v_vX + WORD_SIZE
+.equ instr, v_pc + WORD_SIZE
 
 # ============================================================================
 #   EXAMPLE MACROS for an example program (not part of the instruction set!)
@@ -514,49 +519,50 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-    lit '?'
-    to base
-    BRANCH put_char
-    lit '\n'
-    to base
-    BRANCH put_char
-    in by 0
+
+  init:
+
+    lit 0
+    to v_vA
+
+    lit 0
+    to v_vX
+
+    lit 0
+    to v_pc
+
+  loadProg:
+
+    lit 1
+    to 0
+
+    lit 2
+    to 4
+
+    lit 3
+    to 8
+
+    lit 0
+    to 12
+
+  next:
+    from_ptr_pp v_pc
+    to instr
+    swap
+
+    lit 1
+    xor
+
+
+    jmpz illeg
+
+    jmp next
+
+  illeg:
+    halt by 1
 
   end:
     halt by 0
 
-  put_char:
-    from base
-    out by 1
-    MERGE
-
-  initProgram:
-    lit rs_base
-    to rsp
-    lit base
-    to foo_ptr
-    CALLING litMaxInt
-    to_ptr foo_ptr
-    MERGE
-
-  litTwo:
-    lit 2
-    RETURN
-
-  litMaxInt:
-    lit 0xffffff
-    litm 0x7f0000
-    RETURN
-
-  lit0xffffffff:
-    litx 0xffffff
-    RETURN
-
-  countdown:
-    from base
-    sub by 1
-    to base
-    jmpnz countdown
-    RETURN
 
 # ============================================================================
