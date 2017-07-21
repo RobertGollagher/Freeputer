@@ -84,38 +84,7 @@ space: .asciz " "
 # ============================================================================
 /*
 
-  LATEST THOUGHTS:
 
-  - This is a meta-machine. It runs natively on the target platform.
-  - The meta-machine is effectively Harvard architecture.
-  - The meta-machine is effectively a set of strictly standardized macros.
-  - We do not care what the word size is of the meta-machine's hardware.
-  - We do care what the word size of the data space is: always 32 bits.
-  - Thus the meta-machine can be used either to:
-      - run a previously prepared program (embedded environment); or
-      - virtualize a machine in its data space!
-  - Memory-access exceptions can occur since:
-      - size of the data space is not standardized; and
-      - this is for reasons of flexibility and portability.
-
-  NEXT STEPS:
-
-  - Therefore the next step is to virtualize this machine in itself.
-
-  SOME FUNDAMENTALS:
-
-  - FW32
-  - word-addressing, 30-bit address space
-  - 3 bits: mode (imm,@,@@,@@++,--@@) (not orthogonal)
-  - 5 bits: opcode: (all one-directional M->R)
-      - lit, litx, litm, by, byx, bym, from, to = 8
-      - add, sub, mul, div = 4
-      - shl, shr, and, or, xor = 5
-      - halt = 1
-      - xjmp, jmp, jz, jnz, jlz, jgz, jle, jge, jo = 9 (maybe decleq)
-      - in, out = 2
-      - jumprel
-  - 24 bits: metadata
 
 */
 # ----------------------------------------------------------------------------
@@ -530,85 +499,7 @@ vm_exit:
 # ============================================================================
 .global main
   main:
-
-/* # 4.0 seconds
-    lit  0xffffff
-    litm 0x7f0000
-    to 0
-    loop:
-      from 0
-      sub by 1
-      to 0
-      jmpgz loop
     halt by 0
-*/
-
-  init:
-
-    lit 0
-    to v_vA
-
-    lit 0
-    to v_vX
-
-    lit 0
-    to v_pc
-
-  loadProg:
-
-    lit 1
-    to 0
-
-    lit 2
-    to 4
-
-    lit 3
-    to 8
-
-    lit 4
-    to 12
-
-  next:
-    from_ptr_pp v_pc
-    to instr
-    # counts down from 7fffffff in 11.6 seconds (laptop 7.7 secs)
-    # (ie as a VM within a VM... not bad considering)
-    jumprel vectorTable
-
-  illeg:
-    halt by 1
-
-  end:
-    halt by 0
-
-  # TODO replace by memory version
-  vectorTable:
-    .long illeg
-    .long i1
-    .long i2
-    .long i3
-    .long i4
-
-  i1:
-    # lit 0x7fffffff (cheating)
-    lit 0x7fffffff
-    to v_vA
-    jump next
-  i2:
-    # sub by 1
-    from v_vA
-    sub by 1
-    to v_vA
-    jump next
-  i3:
-    # jmpgz 4
-    from v_vA
-    jmplez 2f
-      lit 4
-      to v_pc
-    2:
-      jump next
-  i4:
-    jump end
 
 # ============================================================================
+
