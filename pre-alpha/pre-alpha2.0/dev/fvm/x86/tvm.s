@@ -11,7 +11,7 @@ Updated:    20170722+
 Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
-It attemps to be about two orders of magnitude simpler than FVM 2.0.
+It attemps to be about an order of magnitude simpler than FVM 2.0.
 The initial version of tvm.s is identical to srm.s.
 It will be progressively cut down and simplified.
 
@@ -57,6 +57,7 @@ Simplicity:
 Other:
 
   - For now, multiply and divide are not included (to be reconsidered)
+  - TODO change from byte- to word-addressing
 
 Assessment:
 
@@ -530,6 +531,7 @@ vm_success:
 #         The example shall virtualize this VM within itself!
 #     Labels starting with vm_ are used by the parent native VM.
 #     Labels starting with v_ are used by the child virtualized VM.
+#     The child shall use fixed-width 32-bit instructions (FW32).
 # ============================================================================
 .equ v_data_memory, 0
 .equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
@@ -538,6 +540,9 @@ vm_success:
 .equ v_vB, v_vA + WORD_SIZE
 .equ v_vL, v_vB + WORD_SIZE
 .equ v_vZ, v_vL + WORD_SIZE
+# Just using arbitrary opcode designations for now:
+.equ v_LIT,   0x010000
+.equ v_HALT,  0x1f0000
 
 # ============================================================================
 #                     ENTRY POINT
@@ -546,6 +551,20 @@ vm_success:
 main:
 vm_init: # parent
   do_init
+
+vm_load_program_for_child:
+  # lit 0x123456 = 0x01123456
+  lit 0x123456
+  to 0
+  litm v_LIT
+  to 0
+
+  # halt by 0 = 0x1f000000
+  lit 0x000000
+  to 4
+  litm v_HALT
+  to 4
+
 v_init:  # child
   lit 0
   to v_rPC
