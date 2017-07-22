@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.6 for FVM 2.0
+Version:    pre-alpha-0.0.0.8 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -26,7 +26,25 @@ It will be progressively cut down and simplified.
 This experimental version uses macros and is compiled to native x86.
 Therefore this can easily be ported to other architectures such as ARM.
 Once experimentation is complete an interpreted VM will also be implemented.
-Note: it perhaps makes sense to make this a Harvard architecture.
+
+Note:
+
+  - Simple yet useful and practical
+  - Designed for extreme ease of porting
+  - Harvard architecture (here an advantage not a disadvantage)
+  - Program space is essentially just a bunch of standard macros and:
+      - can use any suitably capable architecture
+      - can use variable-width instructions
+      - can use any word size
+      - can be of any size
+      - can be native
+  - Program space uses more than 32 'instruction' macros
+  - Data space has 32-bit words and a defined architecture
+  - Data space has a standard maximum size but is allowed to be smaller
+  - Out-of-bounds memory access of data space causes runtime exception
+  - Otherwise robust: there are no other runtime exceptions
+  - Designed for virtualizing other virtual machines
+  - Can easily virtualize itself
 
 ==============================================================================
                             BUILDING FOR i386
@@ -64,7 +82,7 @@ Alternative if no imports:
 .equ SUCCESS, 0
 .equ FAILURE, 1
 # Size of the virtual machine:
-.equ MM_BYTES, 0x1000000
+.equ DM_BYTES, 0x1000000
 .equ WORD_SIZE, 4
 # Registers of the virtual machine:
 .equ vA, %ebx # accumulator
@@ -101,7 +119,7 @@ Alternative if no imports:
 .endm
 
 .macro reg_ptr_pp regPtr
-  addl $WORD_SIZE, memory(,\regPtr,1)
+  addl $WORD_SIZE, data_memory(,\regPtr,1)
 .endm
 
 .macro reg_mm regPtr
@@ -116,11 +134,11 @@ Alternative if no imports:
 .endm
 
 .macro reg_store regSrc regDst
-  movl \regSrc, memory(,\regDst,1)
+  movl \regSrc, data_memory(,\regDst,1)
 .endm
 
 .macro reg_load regSrc regDst
-  movl memory(,\regSrc,1), \regDst
+  movl data_memory(,\regSrc,1), \regDst
 .endm
 
 .macro i_add
@@ -166,9 +184,9 @@ Alternative if no imports:
 .endm
 
 .macro do_swap reg1 reg2
-  movl reg1, rBuf
-  movl reg2, reg1
-  movl rBuf, reg2
+  movl \reg1, rBuf
+  movl \reg2, \reg1
+  movl rBuf, \reg2
 .endm
 
 .macro i_swapAB
@@ -205,24 +223,17 @@ Alternative if no imports:
 .endm
 
 .macro i_jump label
-  leal \label, rTmp
-  jmp rTmp
+  jmp \label
 .endm
 
 .macro i_jmpz label
-  leal \label, rTmp
   xorl $0, vA
-  jnz 1f
-    jmp rTmp
-  1:
+  jz \label
 .endm
 
 .macro i_jmpnz label
-  leal \label, rTmp
   xorl $0, vA
-  jz 1f
-    jmp rTmp
-  1:
+  jnz \label
 .endm
 
 # ============================================================================
@@ -265,7 +276,7 @@ Alternative if no imports:
 .endm
 
 .macro litm x
-  reg_m vA
+  reg_m \x vA
 .endm
 # ----------------------------------------------------------------------------
 .macro from x
@@ -293,7 +304,7 @@ Alternative if no imports:
 .endm
 
 .macro bym x
-  reg_m vB
+  reg_m \x vB
 .endm
 
 .macro by_at x
@@ -305,7 +316,7 @@ Alternative if no imports:
 .endm
 
 .macro by_ptr_pp x
-  reg_ptr_load_pp x vB 
+  reg_ptr_load_pp x vB
 .endm
 
 .macro by_ptr_mm x
@@ -343,22 +354,22 @@ Alternative if no imports:
 
 .macro sub by x
   \by \x
-  i_subl
+  i_sub
 .endm
 # ----------------------------------------------------------------------------
 .macro or by x
   \by \x
-  i_orl
+  i_or
 .endm
 
 .macro and by x
   \by \x
-  andl vB, vA
+  i_and
 .endm
 
 .macro xor by x
   \by \x
-  i_xorl
+  i_xor
 .endm
 
 .macro shl by x
@@ -385,6 +396,16 @@ Alternative if no imports:
 
 .macro jmpnz label
   i_jmpnz \label
+.endm
+
+# Experimental
+.macro decgz label
+  i_decgz \label
+.endm
+
+# Experimental
+.macro subgz label
+  i_subgz \label
 .endm
 # ----------------------------------------------------------------------------
 .macro branch label
@@ -415,7 +436,7 @@ Alternative if no imports:
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
-memory: .lcomm mm, MM_BYTES
+data_memory: .lcomm mm, DM_BYTES
 
 # ============================================================================
 .section .text #             EXIT POINTS for the VM
@@ -437,9 +458,14 @@ vm_success:
 #                     ENTRY POINT for example program
 # ============================================================================
 .global main
-  main:
-    lit 1
-    halt by 0
+main:
+  lit 0x0000ff
+  litm 0x7fffff
+countdown: # 1.4 seconds
+  sub by 1
+  jmpnz countdown
+end:
+  halt by 0
 
 # ============================================================================
 
