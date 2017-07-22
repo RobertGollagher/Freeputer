@@ -38,7 +38,8 @@ Note:
       - can use any word size
       - can be of any size
       - can be native
-  - Program space uses more than 32 'instruction' macros
+  - Program space has about 32+ instruction macros
+  - Many of these support multiple addressing modes
   - Data space has 32-bit words and a defined architecture
   - Data space has a standard maximum size but is allowed to be smaller
   - Out-of-bounds memory access of data space causes runtime exception
@@ -88,6 +89,7 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
+.equ vZ, %esi # buffer register
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -197,6 +199,10 @@ Alternative if no imports:
   do_swap vA vL
 .endm
 
+.macro i_swapAZ
+  do_swap vA vZ
+.endm
+
 .macro i_nop
   nop
 .endm
@@ -216,8 +222,17 @@ Alternative if no imports:
   ret
 .endm
 
+.macro do_init
+  xorl vA, vA
+  xorl vB, vB
+  xorl vL, vL
+  xorl vZ, vZ
+  xorl rTmp, rTmp
+  xorl rBuf, rBuf
+.endm
+
+# FIXME Not robust!
 .macro i_jmpr baseAddr
-  # FIXME a bit dicey
   leal \baseAddr(,vA,WORD_SIZE), %eax
   jmp *(%eax)
 .endm
@@ -236,10 +251,29 @@ Alternative if no imports:
   jnz \label
 .endm
 
+.macro i_jmpgz label
+  xorl $0, vA
+  jg \label
+.endm
+
+.macro i_jmplz label
+  xorl $0, vA
+  jl \label
+.endm
+
+.macro i_jmpgez label
+  xorl $0, vA
+  jge \label
+.endm
+
+.macro i_jmplez label
+  xorl $0, vA
+  jle \label
+.endm
+
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
-
 .macro reg_at x reg
   reg_imm \x rTmp
   reg_load rTmp \reg
@@ -262,6 +296,34 @@ Alternative if no imports:
   reg_mm rBuf
   reg_store rBuf rTmp
   reg_load rBuf vA
+.endm
+# ----------------------------------------------------------------------------
+.macro by x
+  reg_imm \x vB
+.endm
+
+.macro byx x
+  reg_sign_extend \x vB
+.endm
+
+.macro bym x
+  reg_m \x vB
+.endm
+
+.macro by_at x
+  reg_at \x vB
+.endm
+
+.macro by_ptr x
+  reg_ptr_load x vB
+.endm
+
+.macro by_ptr_pp x
+  reg_ptr_load_pp x vB
+.endm
+
+.macro by_ptr_mm x
+  reg_ptr_load_pp x vB
 .endm
 
 # ============================================================================
@@ -293,34 +355,6 @@ Alternative if no imports:
 
 .macro from_ptr_mm x
   reg_ptr_load_mm x vA
-.endm
-# ----------------------------------------------------------------------------
-.macro by x
-  reg_imm \x vB
-.endm
-
-.macro byx x
-  reg_sign_extend \x vB
-.endm
-
-.macro bym x
-  reg_m \x vB
-.endm
-
-.macro by_at x
-  reg_at \x vB
-.endm
-
-.macro by_ptr x
-  reg_ptr_load x vB
-.endm
-
-.macro by_ptr_pp x
-  reg_ptr_load_pp x vB
-.endm
-
-.macro by_ptr_mm x
-  reg_ptr_load_pp x vB
 .endm
 # ----------------------------------------------------------------------------
 .macro to x
@@ -398,14 +432,20 @@ Alternative if no imports:
   i_jmpnz \label
 .endm
 
-# Experimental
-.macro decgz label
-  i_decgz \label
+.macro jmpgz label
+  i_jmpgz \label
 .endm
 
-# Experimental
-.macro subgz label
-  i_subgz \label
+.macro jmplz label
+  i_jmplz \label
+.endm
+
+.macro jmpgez label
+  i_jmpgez \label
+.endm
+
+.macro jmplez label
+  i_jmplez \label
 .endm
 # ----------------------------------------------------------------------------
 .macro branch label
@@ -422,6 +462,10 @@ Alternative if no imports:
 
 .macro swapAL
   i_swapAL
+.endm
+
+.macro swapAZ
+  i_swapAZ
 .endm
 
 .macro noop
@@ -459,11 +503,19 @@ vm_success:
 # ============================================================================
 .global main
 main:
+vm_init:
+  do_init
+program:
   lit 0x0000ff
   litm 0x7fffff
-countdown: # 1.4 seconds
+countdown: # 3.6 seconds
+  swapAZ
+
+  # do stuff here
+
+  swapAZ
   sub by 1
-  jmpnz countdown
+  jmpgz countdown
 end:
   halt by 0
 
