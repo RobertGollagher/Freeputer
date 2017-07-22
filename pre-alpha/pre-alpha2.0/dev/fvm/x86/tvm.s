@@ -93,32 +93,6 @@ Alternative if no imports:
   movl $\metadata, \reg
 .endm
 
-.macro reg_load regSrc regDst
-  movl memory(,\regSrc,1), \regDst
-.endm
-
-.macro reg_ptr_load regPtr regToLoad
-  movl memory(,\regPtr,1), \regPtr
-  movl memory(,\regPtr,1), \regToLoad
-.endm
-
-.macro reg_ptr_load_pp regPtr regToLoad
-  movl memory(,\regPtr,1), rA
-  addl $WORD_SIZE, memory(,regPtr,1)
-  movl memory(,rA,1), regToLoad
-.endm
-
-.macro reg_ptr_load_mm regPtr regToLoad
-  movl memory(,\regPtr,1), rC
-  subl $WORD_SIZE, rC
-  movl rC, memory(,regPtr,1)
-  movl memory(,rC,1), vA
-.endm
-
-.macro reg_store regSrc regDst
-  movl \regSrc, memory(,\regDst,1)
-.endm
-
 .macro reg_sign_extend reg
   reg_imm 0x00800000 rC
   andl \reg, rC
@@ -127,10 +101,44 @@ Alternative if no imports:
   1:
 .endm
 
+.macro reg_ptr_pp regPtr
+  addl $WORD_SIZE, memory(,\regPtr,1)
+.endm
+
+.macro reg_mm regPtr
+  subl $WORD_SIZE, \regPtr
+.endm
+
 .macro reg_m metadata reg
   shll $8, rA
   andl $0x00ffffff, \reg
   orl rA, \reg
+.endm
+
+.macro reg_store regSrc regDst
+  movl \regSrc, memory(,\regDst,1)
+.endm
+
+.macro reg_load regSrc regDst
+  movl memory(,\regSrc,1), \regDst
+.endm
+
+.macro reg_ptr_load regPtr regToLoad
+  reg_load \regPtr, \regPtr
+  reg_load \regPtr, \regToLoad
+.endm
+
+.macro reg_ptr_load_pp regPtr regToLoad
+  reg_load \regPtr rA
+  reg_ptr_pp \regPtr
+  reg_load rA regToLoad
+.endm
+
+.macro reg_ptr_load_mm regPtr regToLoad
+  reg_load \regPtr rC
+  reg_mm rC
+  reg_store rC \regPtr
+  reg_load rC vA
 .endm
 
 # ============================================================================
@@ -223,13 +231,13 @@ Alternative if no imports:
   reg_imm \metadata rC
   reg_load rC rA
   reg_store vA rA
-  addl $WORD_SIZE, memory(,rC,1)
+  reg_ptr_pp rC
 .endm
 
 .macro to_ptr_mm metadata
   reg_imm \metadata rA
   reg_load rA rC
-  subl $WORD_SIZE, rC
+  reg_mm rC
   reg_store rC rA
   reg_store vA rC
 .endm
