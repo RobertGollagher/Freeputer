@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.6 for FVM 2.0
+Version:    pre-alpha-0.0.0.7 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -26,7 +26,25 @@ It will be progressively cut down and simplified.
 This experimental version uses macros and is compiled to native x86.
 Therefore this can easily be ported to other architectures such as ARM.
 Once experimentation is complete an interpreted VM will also be implemented.
-Note: it perhaps makes sense to make this a Harvard architecture.
+
+Note:
+
+  - Simple yet useful and practical
+  - Designed for extreme ease of porting
+  - Harvard architecture (here an advantage not a disadvantage)
+  - Program space is essentially just a bunch of standard macros and:
+      - can use any suitably capable architecture
+      - can use variable-width instructions
+      - can use any word size
+      - can be of any size
+      - can be native
+  - Program space uses more than 32 'instruction' macros
+  - Data space has 32-bit words and a defined architecture
+  - Data space has a standard maximum size but is allowed to be smaller
+  - Out-of-bounds memory access of data space causes runtime exception
+  - Otherwise robust: there are no other runtime exceptions
+  - Designed for virtualizing other virtual machines
+  - Can easily virtualize itself
 
 ==============================================================================
                             BUILDING FOR i386
@@ -64,7 +82,7 @@ Alternative if no imports:
 .equ SUCCESS, 0
 .equ FAILURE, 1
 # Size of the virtual machine:
-.equ MM_BYTES, 0x1000000
+.equ DM_BYTES, 0x1000000
 .equ WORD_SIZE, 4
 # Registers of the virtual machine:
 .equ vA, %ebx # accumulator
@@ -101,7 +119,7 @@ Alternative if no imports:
 .endm
 
 .macro reg_ptr_pp regPtr
-  addl $WORD_SIZE, memory(,\regPtr,1)
+  addl $WORD_SIZE, data_memory(,\regPtr,1)
 .endm
 
 .macro reg_mm regPtr
@@ -116,11 +134,11 @@ Alternative if no imports:
 .endm
 
 .macro reg_store regSrc regDst
-  movl \regSrc, memory(,\regDst,1)
+  movl \regSrc, data_memory(,\regDst,1)
 .endm
 
 .macro reg_load regSrc regDst
-  movl memory(,\regSrc,1), \regDst
+  movl data_memory(,\regSrc,1), \regDst
 .endm
 
 .macro i_add
@@ -415,7 +433,7 @@ Alternative if no imports:
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
-memory: .lcomm mm, MM_BYTES
+data_memory: .lcomm mm, DM_BYTES
 
 # ============================================================================
 .section .text #             EXIT POINTS for the VM
