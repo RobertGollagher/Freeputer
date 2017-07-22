@@ -52,11 +52,6 @@ Alternative if no imports:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-/*
-
-
-
-*/
 # ============================================================================
 #                                IMPORTS
 # ============================================================================
@@ -68,6 +63,7 @@ Alternative if no imports:
 # ============================================================================
 .equ SUCCESS, 0
 .equ FAILURE, 1
+# Size of the virtual machine:
 .equ MM_BYTES, 0x1000000
 .equ WORD_SIZE, 4
 # Registers of the virtual machine:
@@ -79,7 +75,7 @@ Alternative if no imports:
 .equ rBuf, %ecx # secondary temporary register
 
 # ============================================================================
-#                            MACROS: PRIMITIVES
+# ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
 .macro OUTCHAR reg
   pushl \reg
@@ -93,11 +89,6 @@ Alternative if no imports:
 
 .macro reg_imm x reg
   movl $\x, \reg
-.endm
-
-.macro reg_at x reg
-  reg_imm \x rTmp
-  reg_load rTmp \reg
 .endm
 
 .macro reg_sign_extend x reg
@@ -174,10 +165,18 @@ Alternative if no imports:
   jmp vL
 .endm
 
-.macro i_swap
-  movl vA, rBuf
-  movl vB, vA
-  movl rBuf, vB
+.macro do_swap reg1 reg2
+  movl reg1, rBuf
+  movl reg2, reg1
+  movl rBuf, reg2
+.endm
+
+.macro i_swapAB
+  do_swap vA vB
+.endm
+
+.macro i_swapAL
+  do_swap vA vL
 .endm
 
 .macro i_nop
@@ -199,9 +198,41 @@ Alternative if no imports:
   ret
 .endm
 
+.macro i_jmpr baseAddr
+  # FIXME a bit dicey
+  leal \baseAddr(,vA,WORD_SIZE), %eax
+  jmp *(%eax)
+.endm
+
+.macro i_jump label
+  leal \label, rTmp
+  jmp rTmp
+.endm
+
+.macro i_jmpz label
+  leal \label, rTmp
+  xorl $0, vA
+  jnz 1f
+    jmp rTmp
+  1:
+.endm
+
+.macro i_jmpnz label
+  leal \label, rTmp
+  xorl $0, vA
+  jz 1f
+    jmp rTmp
+  1:
+.endm
+
 # ============================================================================
-#                            MACROS: DERIVED
+# ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
+
+.macro reg_at x reg
+  reg_imm \x rTmp
+  reg_load rTmp \reg
+.endm
 
 .macro reg_ptr_load x reg
   reg_at rTmp
@@ -225,10 +256,6 @@ Alternative if no imports:
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
-# ----------------------------------------------------------------------------
-#                           MOVE INSTRUCTIONS - keep these
-# ----------------------------------------------------------------------------
-# IDEA: make word 8-bits and use indirection a lot, in 2 layers
 .macro lit x
   reg_imm \x vA
 .endm
@@ -309,122 +336,56 @@ Alternative if no imports:
   reg_store vA rBuf
 .endm
 # ----------------------------------------------------------------------------
-#                           ARITHMETIC INSTRUCTIONS
-# ----------------------------------------------------------------------------
 .macro add by x
   \by \x
   i_add
 .endm
-# ----------------------------------------------------------------------------
+
 .macro sub by x
   \by \x
   i_subl
 .endm
 # ----------------------------------------------------------------------------
-#                               BITWISE INSTRUCTIONS
-# ----------------------------------------------------------------------------
 .macro or by x
   \by \x
   i_orl
 .endm
-# ----------------------------------------------------------------------------
+
 .macro and by x
   \by \x
   andl vB, vA
 .endm
-# ----------------------------------------------------------------------------
+
 .macro xor by x
   \by \x
   i_xorl
 .endm
-# ----------------------------------------------------------------------------
+
 .macro shl by x
   \by \x
   i_shl
 .endm
-# ----------------------------------------------------------------------------
+
 .macro shr by x
   \by \x
   i_shr
 .endm
 # ----------------------------------------------------------------------------
-#                   JUMP INSTRUCTIONS maybe decleq
-# ----------------------------------------------------------------------------
 .macro jmpr baseAddr
-  # FIXME a bit dicey
-  leal \baseAddr(,vA,WORD_SIZE), %eax
-  jmp *(%eax)
+  i_jmpr \baseAddr
 .endm
 
 .macro jump label
-  leal \label, rTmp
-  jmp rTmp
-.endm
-
-# This provides a nice bit-30 overflow-detection solution
-.macro jmpo label
-  leal \label, rTmp
-  andl vA, $0x80000000
-  jz positive
-    andl vA, $0x40000000
-    jnz ok
-      jmp rTmp
-  positive:
-    andl vA, $0x40000000
-    jz ok
-      jmp rTmp \label
-  ok:
+  i_jump \label
 .endm
 
 .macro jmpz label
-  leal \label, rTmp
-  xorl $0, vA
-  jnz 1f
-    jmp rTmp
-  1:
+  i_jmpz \label
 .endm
 
 .macro jmpnz label
-  leal \label, rTmp
-  xorl $0, vA
-  jz 1f
-    jmp rTmp
-  1:
+  i_jmpnz \label
 .endm
-
-.macro jmplz label
-  leal \label, rTmp
-  cmp $0, vA
-  jge 1f
-    jmp rTmp
-  1:
-.endm
-
-.macro jmpgz label
-  leal \label, rTmp
-  cmp $0, vA
-  jle 1f
-    jmp rTmp
-  1:
-.endm
-
-.macro jmplez label
-  leal \label, rTmp
-  cmp $0, vA
-  jg 1f
-    jmp rTmp
-  1:
-.endm
-
-.macro jmpgez label
-  leal \label, rTmp
-  cmp $0, vA
-  jl 1f
-    jmp rTmp
-  1:
-.endm
-# ----------------------------------------------------------------------------
-#                     BRANCH/MERGE using vL link register
 # ----------------------------------------------------------------------------
 .macro branch label
   i_branch \label
@@ -434,13 +395,15 @@ Alternative if no imports:
   i_merge
 .endm
 # ----------------------------------------------------------------------------
-#                            OTHER INSTRUCTIONS
-# ----------------------------------------------------------------------------
-.macro swap
-  i_swap
+.macro swapAB
+  i_swapAB
 .endm
 
-.macro nop
+.macro swapAL
+  i_swapAL
+.endm
+
+.macro noop
   i_nop
 .endm
 
