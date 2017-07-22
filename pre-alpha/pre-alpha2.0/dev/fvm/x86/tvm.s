@@ -120,11 +120,6 @@ Alternative if no imports:
   movl memory(,rA,1), vA
 .endm
 
-.macro fromx metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), vA
-.endm
-
 .macro from_ptr metadata
   movl $\metadata, rA
   movl memory(,rA,1), rA
@@ -263,13 +258,13 @@ Alternative if no imports:
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
-.macro jumprel baseAddr
+.macro jumprel baseAddr # FIXME harmonize
   # A bit dicey
   leal \baseAddr(,vA,WORD_SIZE), %eax
   jmp *(%eax)
 .endm
 
-.macro jumpx by metadata
+.macro jumpx by metadata # FIXME harmonize
   \by \metadata
   jmp vX
 .endm
