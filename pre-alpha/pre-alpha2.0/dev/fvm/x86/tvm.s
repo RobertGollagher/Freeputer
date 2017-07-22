@@ -61,6 +61,8 @@ Alternative if no imports:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
+.equ SUCCESS, 0
+.equ FAILURE, 1
 .equ MM_BYTES, 0x1000000
 .equ WORD_SIZE, 4
 .equ vA, %ebx
@@ -90,27 +92,17 @@ space: .asciz " "
 # ----------------------------------------------------------------------------
 #                   I/O INSTRUCTIONS just for fun for now
 # ----------------------------------------------------------------------------
-.macro in by port
-  \by \port
-  movl vX, rA
-  orl $0x00000000, rA
-  jnz 1f
-    # Only port 0 supported for now = byte stdin
-    call getchar
-  1:
+.macro OUTCHAR reg
+  pushl \reg
+  call putchar
+  addl $4, %esp
 .endm
 
-.macro out by port
-  \by \port
-  movl vX, rA
-  andl $0x00000001, rA
-  jz 1f
-    # Only port 1 supported for now = byte stdout
-    pushl vA
-    call putchar
-    addl $4, %esp
-  1:
+.macro INCHAR
+  call getchar
 .endm
+
+
 # ----------------------------------------------------------------------------
 #                             MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
@@ -398,7 +390,7 @@ space: .asciz " "
 .macro halt by metadata
   \by \metadata
   movl vX, %eax
-  jmp vm_exit
+  jmp vm_success
 .endm
 
 # ============================================================================
@@ -408,50 +400,16 @@ space: .asciz " "
 memory: .lcomm mm, MM_BYTES
 
 # ============================================================================
-#                                 TRACING
-# ============================================================================
-.macro TRACE_STR strz
-  SAVE_REGS
-  pushl \strz
-  call printf
-  addl $4, %esp
-  RESTORE_REGS
-.endm
-
-.macro TRACE_HEX8 rSrc
-  SAVE_REGS
-  pushl %eax
-  pushl \rSrc
-  pushl $format_hex8
-  call printf
-  addl $8, %esp
-  popl %eax
-  RESTORE_REGS
-.endm
-
-.macro SAVE_REGS
-  pushal
-.endm
-
-.macro RESTORE_REGS
-  popal
-.endm
-
-# ============================================================================
 .section .text #             EXIT POINTS for the VM
 # ============================================================================
-vm_illegal:
+vm_failure:
 
-  TRACE_STR $illegal
-  TRACE_HEX8 rA
-  TRACE_STR $newline
+  movl $FAILURE, rA
   ret
 
-vm_exit:
+vm_success:
 
-  TRACE_STR $exit
-  TRACE_HEX8 rA
-  TRACE_STR $newline
+  movl $SUCCESS, rA
   ret
 
 # ============================================================================
