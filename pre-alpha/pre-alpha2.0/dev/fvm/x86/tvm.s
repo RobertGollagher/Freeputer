@@ -203,6 +203,14 @@ Alternative if no imports:
   do_swap vA vZ
 .endm
 
+.macro i_toz
+  movl vA, vZ
+.endm
+
+.macro i_fromz
+  movl vZ, vA
+.endm
+
 .macro i_nop
   nop
 .endm
@@ -468,6 +476,14 @@ Alternative if no imports:
   i_swapAZ
 .endm
 
+.macro toz
+  i_toz
+.endm
+
+.macro fromz
+  i_fromz
+.endm
+
 .macro noop
   i_nop
 .endm
@@ -508,12 +524,12 @@ vm_init:
 program:
   lit 0x0000ff
   litm 0x7fffff
-countdown: # 3.6 seconds
-  swapAZ
+countdown: # 2.8 seconds
+  toz
 
   # do stuff here
 
-  swapAZ
+  fromz
   sub by 1
   jmpgz countdown
 end:
