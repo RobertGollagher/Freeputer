@@ -127,6 +127,73 @@ Alternative if no imports:
   movl memory(,\regSrc,1), \regDst
 .endm
 
+.macro i_add
+  addl vB, vA
+.endm
+
+.macro i_sub
+  subl vB, vA
+.endm
+
+.macro i_or
+  orl vB, vA
+.endm
+
+.macro i_and
+  andl vB, vA
+.endm
+
+.macro i_xor
+  xorl vB, vA
+.endm
+
+.macro i_shl
+  movl vB, rTmp
+  movl rTmp, %ecx
+  shll %cl, vA
+.endm
+
+.macro i_shr
+  movl vB, rTmp
+  movl rTmp, %ecx
+  shrl %cl, vA
+.endm
+
+.macro i_branch label
+  movl 1f, vL
+  jump \label
+  1:
+.endm
+
+.macro i_merge
+  jmp vL
+.endm
+
+.macro i_swap
+  movl vA, rBuf
+  movl vB, vA
+  movl rBuf, vB
+.endm
+
+.macro i_nop
+  nop
+.endm
+
+.macro i_halt
+  movl vB, %eax
+  jmp vm_success
+.endm
+
+.macro do_failure
+  movl $FAILURE, rTmp
+  ret
+.endm
+
+.macro do_success
+  movl $SUCCESS, rTmp
+  ret
+.endm
+
 # ============================================================================
 #                            MACROS: DERIVED
 # ============================================================================
@@ -247,19 +314,19 @@ Alternative if no imports:
 # ----------------------------------------------------------------------------
 .macro add by x
   \by \x
-  addl vB, vA
+  i_add
 .endm
 # ----------------------------------------------------------------------------
 .macro sub by x
   \by \x
-  subl vB, vA
+  i_subl
 .endm
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro or by x
   \by \x
-  orl vB, vA
+  i_orl
 .endm
 # ----------------------------------------------------------------------------
 .macro and by x
@@ -269,21 +336,17 @@ Alternative if no imports:
 # ----------------------------------------------------------------------------
 .macro xor by x
   \by \x
-  xorl vB, vA
+  i_xorl
 .endm
 # ----------------------------------------------------------------------------
 .macro shl by x
   \by \x
-  movl vB, rTmp
-  movl rTmp, %ecx
-  shll %cl, vA
+  i_shl
 .endm
 # ----------------------------------------------------------------------------
 .macro shr by x
   \by \x
-  movl vB, rTmp
-  movl rTmp, %ecx
-  shrl %cl, vA
+  i_shr
 .endm
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
@@ -370,30 +433,26 @@ Alternative if no imports:
 #                     BRANCH/MERGE using vL link register
 # ----------------------------------------------------------------------------
 .macro branch label
-  movl 1f, vL
-  jump \label
-  1:
+  i_branch \label
 .endm
 
 .macro merge
-  jmp vL
+  i_merge
 .endm
 # ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro swap
-  movl vA, rBuf
-  movl vB, vA
-  movl rBuf, vB
+  i_swap
 .endm
 
 .macro nop
+  i_nop
 .endm
 
 .macro halt by x
   \by \x
-  movl vB, %eax
-  jmp vm_success
+  i_halt
 .endm
 
 # ============================================================================
@@ -406,13 +465,11 @@ memory: .lcomm mm, MM_BYTES
 # ============================================================================
 vm_failure:
 
-  movl $FAILURE, rTmp
-  ret
+  do_failure
 
 vm_success:
 
-  movl $SUCCESS, rTmp
-  ret
+  do_success
 
 # ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
