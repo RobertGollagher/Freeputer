@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.5 for FVM 2.0
+Version:    pre-alpha-0.0.0.6 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -70,11 +70,13 @@ Alternative if no imports:
 .equ FAILURE, 1
 .equ MM_BYTES, 0x1000000
 .equ WORD_SIZE, 4
-.equ vA, %ebx
-.equ vX, %edx
-.equ vL, %edi
-.equ rA, %eax
-.equ rC, %ecx
+# Registers of the virtual machine:
+.equ vA, %ebx # accumulator
+.equ vB, %edx # operand register
+.equ vL, %edi # link register
+# Registers of the implementation:
+.equ rTmp, %eax # primary temporary register
+.equ rBuf, %ecx # secondary temporary register
 
 # ============================================================================
 #                            MACROS: PRIMITIVES
@@ -89,14 +91,14 @@ Alternative if no imports:
   call getchar
 .endm
 
-.macro reg_imm metadata reg
-  movl $\metadata, \reg
+.macro reg_imm x reg
+  movl $\x, \reg
 .endm
 
-.macro reg_sign_extend metadata reg
-  reg_imm \metadata \reg
-  reg_imm 0x00800000 rC
-  andl \reg, rC
+.macro reg_sign_extend x reg
+  reg_imm \x \reg
+  reg_imm 0x00800000 rBuf
+  andl \reg, rBuf
   jz 1f
     orl $0xff000000, \reg
   1:
@@ -110,11 +112,11 @@ Alternative if no imports:
   subl $WORD_SIZE, \regPtr
 .endm
 
-.macro reg_m metadata reg
-  reg_imm \metadata rA
-  shll $8, rA
+.macro reg_m x reg
+  reg_imm \x rTmp
+  shll $8, rTmp
   andl $0x00ffffff, \reg
-  orl rA, \reg
+  orl rTmp, \reg
 .endm
 
 .macro reg_store regSrc regDst
@@ -129,25 +131,25 @@ Alternative if no imports:
 #                            MACROS: DERIVED
 # ============================================================================
 
-.macro reg_ptr_load metadata regToLoad
-  reg_imm \metadata rA
-  reg_load rA rA
-  reg_load rA \regToLoad
+.macro reg_ptr_load x regToLoad
+  reg_imm \x rTmp
+  reg_load rTmp rTmp
+  reg_load rTmp \regToLoad
 .endm
 
-.macro reg_ptr_load_pp metadata regToLoad
-  reg_imm \metadata rC
-  reg_load rC rA
-  reg_ptr_pp rC
-  reg_load rA regToLoad
+.macro reg_ptr_load_pp x regToLoad
+  reg_imm \x rBuf
+  reg_load rBuf rTmp
+  reg_ptr_pp rBuf
+  reg_load rTmp regToLoad
 .endm
 
-.macro reg_ptr_load_mm metadata regToLoad
-  reg_imm \metadata rA
-  reg_load \rA rC
-  reg_mm rC
-  reg_store rC \rA
-  reg_load rC vA
+.macro reg_ptr_load_mm x regToLoad
+  reg_imm \x rTmp
+  reg_load \rTmp rBuf
+  reg_mm rBuf
+  reg_store rBuf \rTmp
+  reg_load rBuf vA
 .endm
 
 # ============================================================================
@@ -157,130 +159,130 @@ Alternative if no imports:
 #                           MOVE INSTRUCTIONS - keep these
 # ----------------------------------------------------------------------------
 # IDEA: make word 8-bits and use indirection a lot, in 2 layers
-.macro lit metadata
-  reg_imm \metadata vA
+.macro lit x
+  reg_imm \x vA
 .endm
 
-.macro litx metadata
-  reg_sign_extend \metadata vA
+.macro litx x
+  reg_sign_extend \x vA
 .endm
 
-.macro litm metadata
+.macro litm x
   reg_m vA
 .endm
 # ----------------------------------------------------------------------------
-.macro from metadata
-  reg_imm \metadata rA
-  reg_load rA vA
+.macro from x
+  reg_imm \x rTmp
+  reg_load rTmp vA
 .endm
 
-.macro from_ptr metadata
-  reg_ptr_load metadata vA
+.macro from_ptr x
+  reg_ptr_load x vA
 .endm
 
-.macro from_ptr_pp metadata
-  reg_ptr_load_pp metadata vA
+.macro from_ptr_pp x
+  reg_ptr_load_pp x vA
 .endm
 
-.macro from_ptr_mm metadata
-  reg_ptr_load_mm metadata vA
+.macro from_ptr_mm x
+  reg_ptr_load_mm x vA
 .endm
 # ----------------------------------------------------------------------------
-.macro by metadata
-  reg_imm \metadata vX
+.macro by x
+  reg_imm \x vB
 .endm
 
-.macro byx metadata
-  reg_sign_extend \metadata vX
+.macro byx x
+  reg_sign_extend \x vB
 .endm
 
-.macro bym metadata
-  reg_m vX
+.macro bym x
+  reg_m vB
 .endm
 
-.macro by_at metadata
-  reg_imm \metadata rA
-  reg_load rA vX
+.macro by_at x
+  reg_imm \x rTmp
+  reg_load rTmp vB
 .endm
 
-.macro by_ptr metadata
-  reg_ptr_load metadata vX
+.macro by_ptr x
+  reg_ptr_load x vB
 .endm
 
-.macro by_ptr_pp metadata
-  reg_ptr_load_pp metadata vX 
+.macro by_ptr_pp x
+  reg_ptr_load_pp x vB 
 .endm
 
-.macro by_ptr_mm metadata
-  reg_ptr_load_pp metadata vX
+.macro by_ptr_mm x
+  reg_ptr_load_pp x vB
 .endm
 # ----------------------------------------------------------------------------
-.macro to metadata
-  reg_imm \metadata rA
-  reg_store vA rA
+.macro to x
+  reg_imm \x rTmp
+  reg_store vA rTmp
 .endm
 
-.macro to_ptr metadata
-  reg_imm \metadata rA
-  reg_load rA rA
-  reg_store vA rA
+.macro to_ptr x
+  reg_imm \x rTmp
+  reg_load rTmp rTmp
+  reg_store vA rTmp
 .endm
 
-.macro to_ptr_pp metadata
-  reg_imm \metadata rC
-  reg_load rC rA
-  reg_store vA rA
-  reg_ptr_pp rC
+.macro to_ptr_pp x
+  reg_imm \x rBuf
+  reg_load rBuf rTmp
+  reg_store vA rTmp
+  reg_ptr_pp rBuf
 .endm
 
-.macro to_ptr_mm metadata
-  reg_imm \metadata rA
-  reg_load rA rC
-  reg_mm rC
-  reg_store rC rA
-  reg_store vA rC
+.macro to_ptr_mm x
+  reg_imm \x rTmp
+  reg_load rTmp rBuf
+  reg_mm rBuf
+  reg_store rBuf rTmp
+  reg_store vA rBuf
 .endm
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro add by metadata
-  \by \metadata
-  addl vX, vA
+.macro add by x
+  \by \x
+  addl vB, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro sub by metadata
-  \by \metadata
-  subl vX, vA
+.macro sub by x
+  \by \x
+  subl vB, vA
 .endm
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
 # ----------------------------------------------------------------------------
-.macro or by metadata
-  \by \metadata
-  orl vX, vA
+.macro or by x
+  \by \x
+  orl vB, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro and by metadata
-  \by \metadata
-  andl vX, vA
+.macro and by x
+  \by \x
+  andl vB, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro xor by metadata
-  \by \metadata
-  xorl vX, vA
+.macro xor by x
+  \by \x
+  xorl vB, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shl by metadata
-  \by \metadata
-  movl vX, rA
-  movl rA, %ecx
+.macro shl by x
+  \by \x
+  movl vB, rTmp
+  movl rTmp, %ecx
   shll %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro shr by metadata
-  \by \metadata
-  movl vX, rA
-  movl rA, %ecx
+.macro shr by x
+  \by \x
+  movl vB, rTmp
+  movl rTmp, %ecx
   shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
@@ -292,76 +294,76 @@ Alternative if no imports:
   jmp *(%eax)
 .endm
 
-.macro jumpx by metadata # FIXME harmonize
-  \by \metadata
-  jmp vX
+.macro jumpx by x # FIXME harmonize
+  \by \x
+  jmp vB
 .endm
 
 .macro jump label
-  leal \label, rA
-  jmp rA
+  leal \label, rTmp
+  jmp rTmp
 .endm
 
 # This provides a nice bit-30 overflow-detection solution
 .macro jmpo label
-  leal \label, rA
+  leal \label, rTmp
   andl vA, $0x80000000
   jz positive
     andl vA, $0x40000000
     jnz ok
-      jmp rA
+      jmp rTmp
   positive:
     andl vA, $0x40000000
     jz ok
-      jmp rA \label
+      jmp rTmp \label
   ok:
 .endm
 
 .macro jmpz label
-  leal \label, rA
+  leal \label, rTmp
   xorl $0, vA
   jnz 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 
 .macro jmpnz label
-  leal \label, rA
+  leal \label, rTmp
   xorl $0, vA
   jz 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 
 .macro jmplz label
-  leal \label, rA
+  leal \label, rTmp
   cmp $0, vA
   jge 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 
 .macro jmpgz label
-  leal \label, rA
+  leal \label, rTmp
   cmp $0, vA
   jle 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 
 .macro jmplez label
-  leal \label, rA
+  leal \label, rTmp
   cmp $0, vA
   jg 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 
 .macro jmpgez label
-  leal \label, rA
+  leal \label, rTmp
   cmp $0, vA
   jl 1f
-    jmp rA
+    jmp rTmp
   1:
 .endm
 # ----------------------------------------------------------------------------
@@ -380,17 +382,17 @@ Alternative if no imports:
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro swap
-  movl vA, rC
-  movl vX, vA
-  movl rC, vX
+  movl vA, rBuf
+  movl vB, vA
+  movl rBuf, vB
 .endm
 
 .macro nop
 .endm
 
-.macro halt by metadata
-  \by \metadata
-  movl vX, %eax
+.macro halt by x
+  \by \x
+  movl vB, %eax
   jmp vm_success
 .endm
 
@@ -404,12 +406,12 @@ memory: .lcomm mm, MM_BYTES
 # ============================================================================
 vm_failure:
 
-  movl $FAILURE, rA
+  movl $FAILURE, rTmp
   ret
 
 vm_success:
 
-  movl $SUCCESS, rA
+  movl $SUCCESS, rTmp
   ret
 
 # ============================================================================
