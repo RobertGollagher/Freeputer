@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
-Updated:    20170721+
-Version:    pre-alpha-0.0.0.1 for FVM 2.0
+Updated:    20170722+
+Version:    pre-alpha-0.0.0.4 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -52,6 +52,11 @@ Alternative if no imports:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
+/*
+
+
+
+*/
 # ============================================================================
 #                                IMPORTS
 # ============================================================================
@@ -72,26 +77,8 @@ Alternative if no imports:
 .equ rC, %ecx
 
 # ============================================================================
-.section .data #                CONSTANTS
+#                            GENERAL MACROS
 # ============================================================================
-version: .asciz "SRM 0.0.0.0\n"
-exit: .asciz "SRM exit code: "
-illegal: .asciz "SRM illegal opcode with metadata: "
-format_hex8: .asciz "%08x"
-newline: .asciz "\n"
-space: .asciz " "
-
-# ============================================================================
-#                             INSTRUCTION SET
-# ============================================================================
-/*
-
-
-
-*/
-# ----------------------------------------------------------------------------
-#                   I/O INSTRUCTIONS just for fun for now
-# ----------------------------------------------------------------------------
 .macro OUTCHAR reg
   pushl \reg
   call putchar
@@ -102,9 +89,11 @@ space: .asciz " "
   call getchar
 .endm
 
-
+# ============================================================================
+.section .data #             INSTRUCTION SET
+# ============================================================================
 # ----------------------------------------------------------------------------
-#                             MOVE INSTRUCTIONS
+#                           MOVE INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro lit metadata
   movl $\metadata, vA
@@ -239,29 +228,6 @@ space: .asciz " "
 .macro sub by metadata
   \by \metadata
   subl vX, vA
-.endm
-
-# ----------------------------------------------------------------------------
-.macro multi by metadata # FIXME broken
-  \by \metadata
-  mull vX, vA     # TODO consider limiting to 15-bit mul so cannot overflow
-.endm
-# ----------------------------------------------------------------------------
-.macro div by metadata
-  \by \metadata
-  pushl vX        # untested
-  movl vA, %eax
-  movl vX, %ebx
-  test %ebx, %ebx
-  je 1f           # TODO consider what to do on /-1
-  cdq             # MUST widen %eax here to %edx:eax or (neg) div wrong
-  idivl %ebx      # %edx:eax is the implied dividend
-  jmp 2f
-  1: # Division by zero shall yield 0
-    movl $0, vA
-  2:
-  movl %eax, vA
-  popl vX
 .endm
 # ----------------------------------------------------------------------------
 #                               BITWISE INSTRUCTIONS
@@ -441,6 +407,7 @@ vm_success:
   jumpx by_ptr_mm rsp
 .endm
 
+# FIXME make brl instruction using vL and merge instruction
 .macro BRANCH label
   lit 1f
   to linkr
