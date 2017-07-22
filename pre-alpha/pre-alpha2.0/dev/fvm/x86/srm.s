@@ -12,7 +12,9 @@ Version:    pre-alpha-0.0.0.15 for FVM 2.0
 
 Notes: This is promising. Parking this experiment for now.
 This is an order of magnitude simpler than FVM 1.0 but still powerful.
-The next experiment is to try two orders of magnitude simpler.
+
+Note at 20170722: this 'srm.s' has been superseded by 'tvm.s'.
+This is not really a single-register machine so the name is misleading.
 
 
                               This Edition:

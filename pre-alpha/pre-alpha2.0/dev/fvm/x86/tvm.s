@@ -1,5 +1,5 @@
 /*
-                      TINY VIRTUAL MACHINE (TVM)
+                      SPARSE REGISTER MACHINE (SRM)
 
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.8 for FVM 2.0
+Version:    pre-alpha-0.0.0.10 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -46,6 +46,22 @@ Note:
   - Otherwise robust: there are no other runtime exceptions
   - Designed for virtualizing other virtual machines
   - Can easily virtualize itself
+
+Simplicity:
+
+  - Arguably this is still a little heavy
+  - However, it is just a set of macros easily ported
+  - An underlying MISC CPU could be used beneath these macros
+  - These macros are a sweet spot between simplicity and performance
+
+Other:
+
+  - For now, multiply and divide are not included (to be reconsidered)
+
+Assessment:
+
+  - This 'tvm.s' is now the front-runner for implementing FVM 2.0
+    and as of 20170722 is considered superior to 'srm.s' and Plan A.
 
 ==============================================================================
                             BUILDING FOR i386
@@ -89,7 +105,7 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
-.equ vZ, %esi # buffer register  FIXME maybe a code smell?
+.equ vZ, %esi # buffer register
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -199,15 +215,15 @@ Alternative if no imports:
   do_swap vA vL
 .endm
 
-.macro i_swapAZ # FIXME maybe a code smell?
+.macro i_swapAZ
   do_swap vA vZ
 .endm
 
-.macro i_toz # FIXME maybe a code smell?
+.macro i_toz
   movl vA, vZ
 .endm
 
-.macro i_fromz # FIXME maybe a code smell?
+.macro i_fromz
   movl vZ, vA
 .endm
 
@@ -472,15 +488,15 @@ Alternative if no imports:
   i_swapAL
 .endm
 
-.macro swapAZ # FIXME maybe a code smell?
+.macro swapAZ
   i_swapAZ
 .endm
 
-.macro toz # FIXME maybe a code smell?
+.macro toz
   i_toz
 .endm
 
-.macro fromz # FIXME maybe a code smell?
+.macro fromz
   i_fromz
 .endm
 
@@ -525,11 +541,11 @@ program:
   lit 0x0000ff
   litm 0x7fffff
 countdown: # 2.8 seconds
-  swapAZ
+  toz
 
   # do stuff here
 
-  swapAZ
+  fromz
   sub by 1
   jmpgz countdown
 end:
