@@ -95,6 +95,11 @@ Alternative if no imports:
   movl $\x, \reg
 .endm
 
+.macro reg_at x reg
+  reg_imm \x rTmp
+  reg_load rTmp \reg
+.endm
+
 .macro reg_sign_extend x reg
   reg_imm \x \reg
   reg_imm 0x00800000 rBuf
@@ -198,24 +203,22 @@ Alternative if no imports:
 #                            MACROS: DERIVED
 # ============================================================================
 
-.macro reg_ptr_load x regToLoad
-  reg_imm \x rTmp
-  reg_load rTmp rTmp
-  reg_load rTmp \regToLoad
+.macro reg_ptr_load x reg
+  reg_at rTmp
+  reg_load rTmp \reg
 .endm
 
-.macro reg_ptr_load_pp x regToLoad
+.macro reg_ptr_load_pp x reg
   reg_imm \x rBuf
   reg_load rBuf rTmp
   reg_ptr_pp rBuf
-  reg_load rTmp regToLoad
+  reg_load rTmp reg
 .endm
 
-.macro reg_ptr_load_mm x regToLoad
-  reg_imm \x rTmp
-  reg_load \rTmp rBuf
+.macro reg_ptr_load_mm x reg
+  reg_at \x rBuf
   reg_mm rBuf
-  reg_store rBuf \rTmp
+  reg_store rBuf rTmp
   reg_load rBuf vA
 .endm
 
@@ -239,8 +242,7 @@ Alternative if no imports:
 .endm
 # ----------------------------------------------------------------------------
 .macro from x
-  reg_imm \x rTmp
-  reg_load rTmp vA
+  reg_at \x vA
 .endm
 
 .macro from_ptr x
@@ -268,8 +270,7 @@ Alternative if no imports:
 .endm
 
 .macro by_at x
-  reg_imm \x rTmp
-  reg_load rTmp vB
+  reg_at \x vB
 .endm
 
 .macro by_ptr x
@@ -290,8 +291,7 @@ Alternative if no imports:
 .endm
 
 .macro to_ptr x
-  reg_imm \x rTmp
-  reg_load rTmp rTmp
+  reg_at \x rTmp
   reg_store vA rTmp
 .endm
 
@@ -303,8 +303,7 @@ Alternative if no imports:
 .endm
 
 .macro to_ptr_mm x
-  reg_imm \x rTmp
-  reg_load rTmp rBuf
+  reg_at \x rBuf
   reg_mm rBuf
   reg_store rBuf rTmp
   reg_store vA rBuf
@@ -351,15 +350,10 @@ Alternative if no imports:
 # ----------------------------------------------------------------------------
 #                   JUMP INSTRUCTIONS maybe decleq
 # ----------------------------------------------------------------------------
-.macro jumprel baseAddr # FIXME harmonize
-  # A bit dicey
+.macro jmpr baseAddr
+  # FIXME a bit dicey
   leal \baseAddr(,vA,WORD_SIZE), %eax
   jmp *(%eax)
-.endm
-
-.macro jumpx by x # FIXME harmonize
-  \by \x
-  jmp vB
 .endm
 
 .macro jump label
