@@ -89,7 +89,7 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
-.equ vZ, %esi # buffer register
+.equ vZ, %esi # buffer register  FIXME maybe a code smell?
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -199,15 +199,15 @@ Alternative if no imports:
   do_swap vA vL
 .endm
 
-.macro i_swapAZ
+.macro i_swapAZ # FIXME maybe a code smell?
   do_swap vA vZ
 .endm
 
-.macro i_toz
+.macro i_toz # FIXME maybe a code smell?
   movl vA, vZ
 .endm
 
-.macro i_fromz
+.macro i_fromz # FIXME maybe a code smell?
   movl vZ, vA
 .endm
 
@@ -472,15 +472,15 @@ Alternative if no imports:
   i_swapAL
 .endm
 
-.macro swapAZ
+.macro swapAZ # FIXME maybe a code smell?
   i_swapAZ
 .endm
 
-.macro toz
+.macro toz # FIXME maybe a code smell?
   i_toz
 .endm
 
-.macro fromz
+.macro fromz # FIXME maybe a code smell?
   i_fromz
 .endm
 
@@ -525,11 +525,11 @@ program:
   lit 0x0000ff
   litm 0x7fffff
 countdown: # 2.8 seconds
-  toz
+  swapAZ
 
   # do stuff here
 
-  fromz
+  swapAZ
   sub by 1
   jmpgz countdown
 end:
