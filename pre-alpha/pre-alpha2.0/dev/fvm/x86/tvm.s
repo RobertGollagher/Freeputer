@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.4 for FVM 2.0
+Version:    pre-alpha-0.0.0.5 for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -60,8 +60,8 @@ Alternative if no imports:
 # ============================================================================
 #                                IMPORTS
 # ============================================================================
-.extern printf
 .extern putchar
+.extern getchar
 
 # ============================================================================
 #                                SYMBOLS
@@ -77,7 +77,7 @@ Alternative if no imports:
 .equ rC, %ecx
 
 # ============================================================================
-#                            GENERAL MACROS
+#                            MACROS: PRIMITIVES
 # ============================================================================
 .macro OUTCHAR reg
   pushl \reg
@@ -93,7 +93,8 @@ Alternative if no imports:
   movl $\metadata, \reg
 .endm
 
-.macro reg_sign_extend reg
+.macro reg_sign_extend metadata reg
+  reg_imm \metadata \reg
   reg_imm 0x00800000 rC
   andl \reg, rC
   jz 1f
@@ -110,6 +111,7 @@ Alternative if no imports:
 .endm
 
 .macro reg_m metadata reg
+  reg_imm \metadata rA
   shll $8, rA
   andl $0x00ffffff, \reg
   orl rA, \reg
@@ -123,21 +125,28 @@ Alternative if no imports:
   movl memory(,\regSrc,1), \regDst
 .endm
 
-.macro reg_ptr_load regPtr regToLoad
-  reg_load \regPtr, \regPtr
-  reg_load \regPtr, \regToLoad
+# ============================================================================
+#                            MACROS: DERIVED
+# ============================================================================
+
+.macro reg_ptr_load metadata regToLoad
+  reg_imm \metadata rA
+  reg_load rA rA
+  reg_load rA \regToLoad
 .endm
 
-.macro reg_ptr_load_pp regPtr regToLoad
-  reg_load \regPtr rA
-  reg_ptr_pp \regPtr
+.macro reg_ptr_load_pp metadata regToLoad
+  reg_imm \metadata rC
+  reg_load rC rA
+  reg_ptr_pp rC
   reg_load rA regToLoad
 .endm
 
-.macro reg_ptr_load_mm regPtr regToLoad
-  reg_load \regPtr rC
+.macro reg_ptr_load_mm metadata regToLoad
+  reg_imm \metadata rA
+  reg_load \rA rC
   reg_mm rC
-  reg_store rC \regPtr
+  reg_store rC \rA
   reg_load rC vA
 .endm
 
@@ -153,13 +162,11 @@ Alternative if no imports:
 .endm
 
 .macro litx metadata
-  reg_imm \metadata vA
-  reg_sign_extend vA
+  reg_sign_extend \metadata vA
 .endm
 
 .macro litm metadata
-  reg_imm \metadata rA
-  reg_m rA
+  reg_m vA
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
@@ -168,18 +175,15 @@ Alternative if no imports:
 .endm
 
 .macro from_ptr metadata
-  reg_imm \metadata rA
-  reg_ptr_load rA vA
+  reg_ptr_load metadata vA
 .endm
 
 .macro from_ptr_pp metadata
-  reg_imm \metadata rC
-  reg_ptr_load_pp rC vA
+  reg_ptr_load_pp metadata vA
 .endm
 
 .macro from_ptr_mm metadata
-  reg_imm \metadata rA
-  reg_ptr_load_mm rA vA
+  reg_ptr_load_mm metadata vA
 .endm
 # ----------------------------------------------------------------------------
 .macro by metadata
@@ -187,12 +191,10 @@ Alternative if no imports:
 .endm
 
 .macro byx metadata
-  reg_imm \metadata vX
-  reg_sign_extend vX
+  reg_sign_extend \metadata vX
 .endm
 
 .macro bym metadata
-  reg_imm \metadata rA
   reg_m vX
 .endm
 
@@ -202,18 +204,15 @@ Alternative if no imports:
 .endm
 
 .macro by_ptr metadata
-  reg_imm \metadata rA
-  reg_ptr_load rA vX
+  reg_ptr_load metadata vX
 .endm
 
 .macro by_ptr_pp metadata
-  reg_imm \metadata rC
-  reg_ptr_load_pp rC vX 
+  reg_ptr_load_pp metadata vX 
 .endm
 
 .macro by_ptr_mm metadata
-  reg_imm \metadata rA
-  reg_ptr_load_pp rA vX
+  reg_ptr_load_pp metadata vX
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
@@ -366,6 +365,18 @@ Alternative if no imports:
   1:
 .endm
 # ----------------------------------------------------------------------------
+#                     BRANCH/MERGE using vL link register
+# ----------------------------------------------------------------------------
+.macro branch label
+  movl 1f, vL
+  jump \label
+  1:
+.endm
+
+.macro merge
+  jmp vL
+.endm
+# ----------------------------------------------------------------------------
 #                            OTHER INSTRUCTIONS
 # ----------------------------------------------------------------------------
 .macro swap
@@ -386,7 +397,6 @@ Alternative if no imports:
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
-# For the meta-machine
 memory: .lcomm mm, MM_BYTES
 
 # ============================================================================
@@ -403,48 +413,12 @@ vm_success:
   ret
 
 # ============================================================================
-# ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
 # ============================================================================
-# ============================================================================
-#                 EXAMPLE VARIABLES for an example program
-# ============================================================================
 .equ v_memory, 0
-.equ rsp, v_memory + 16
-.equ linkr, rsp + WORD_SIZE
-.equ v_vA, linkr + WORD_SIZE
-.equ v_vX, v_vA + WORD_SIZE
-.equ v_pc, v_vX + WORD_SIZE
-.equ instr, v_pc + WORD_SIZE
 
 # ============================================================================
-#   EXAMPLE MACROS for an example program (not part of the instruction set!)
-# ============================================================================
-.macro CALLING label
-  lit 1f
-  to_ptr_pp rsp
-  jump \label
-  1:
-.endm
-
-.macro RETURN
-  jumpx by_ptr_mm rsp
-.endm
-
-# FIXME make brl instruction using vL and merge instruction
-.macro BRANCH label
-  lit 1f
-  to linkr
-  jump \label
-  1:
-.endm
-
-.macro MERGE
-  jumpx by_at linkr
-.endm
-
-# ============================================================================
-#                     ENTRY POINT for an example program
+#                     ENTRY POINT for example program
 # ============================================================================
 .global main
   main:
