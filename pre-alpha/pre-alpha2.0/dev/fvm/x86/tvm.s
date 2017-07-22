@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170722+
-Version:    pre-alpha-0.0.0.10 for FVM 2.0
+Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about two orders of magnitude simpler than FVM 2.0.
@@ -99,7 +99,7 @@ Alternative if no imports:
 .equ SUCCESS, 0
 .equ FAILURE, 1
 # Size of the virtual machine:
-.equ DM_BYTES, 0x1000000
+.equ DM_BYTES, 0x1000000 # could be up to 0x100000000
 .equ WORD_SIZE, 4
 # Registers of the virtual machine:
 .equ vA, %ebx # accumulator
@@ -527,27 +527,33 @@ vm_success:
 
 # ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
+#         The example shall virtualize this VM within itself!
+#     Labels starting with vm_ are used by the parent native VM.
+#     Labels starting with v_ are used by the child virtualized VM.
 # ============================================================================
-.equ v_memory, 0
+.equ v_data_memory, 0
+.equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
+.equ v_rPC, v_data_memory + DM_BYTES # Note: parent has no explicit rPC
+.equ v_vA, v_rPC + WORD_SIZE
+.equ v_vB, v_vA + WORD_SIZE
+.equ v_vL, v_vB + WORD_SIZE
+.equ v_vZ, v_vL + WORD_SIZE
 
 # ============================================================================
-#                     ENTRY POINT for example program
+#                     ENTRY POINT
 # ============================================================================
 .global main
 main:
-vm_init:
+vm_init: # parent
   do_init
-program:
-  lit 0x0000ff
-  litm 0x7fffff
-countdown: # 2.8 seconds
-  toz
+v_init:  # child
+  lit 0
+  to v_rPC
+  to v_vA
+  to v_vB
+  to v_vL
+  to v_vZ
 
-  # do stuff here
-
-  fromz
-  sub by 1
-  jmpgz countdown
 end:
   halt by 0
 
