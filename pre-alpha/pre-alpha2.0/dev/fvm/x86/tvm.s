@@ -82,7 +82,7 @@ Alternative if no imports:
 .macro OUTCHAR reg
   pushl \reg
   call putchar
-  addl $4, %esp
+  addl $WORD_SIZE, %esp
 .endm
 
 .macro INCHAR
@@ -104,15 +104,19 @@ Alternative if no imports:
 
 .macro reg_ptr_load_pp regPtr regToLoad
   movl memory(,\regPtr,1), rA
-  addl $4, memory(,regPtr,1)
+  addl $WORD_SIZE, memory(,regPtr,1)
   movl memory(,rA,1), regToLoad
 .endm
 
 .macro reg_ptr_load_mm regPtr regToLoad
   movl memory(,\regPtr,1), rC
-  subl $4, rC
+  subl $WORD_SIZE, rC
   movl rC, memory(,regPtr,1)
   movl memory(,rC,1), vA
+.endm
+
+.macro reg_store regSrc regDst
+  movl \regSrc, memory(,\regDst,1)
 .endm
 
 .macro reg_sign_extend reg
@@ -206,28 +210,28 @@ Alternative if no imports:
 # ----------------------------------------------------------------------------
 .macro to metadata
   reg_imm \metadata rA
-  movl vA, memory(,rA,1)
+  reg_store vA rA
 .endm
 
 .macro to_ptr metadata
   reg_imm \metadata rA
-  movl memory(,rA,1), rA
-  movl vA, memory(,rA,1)
+  reg_load rA rA
+  reg_store vA rA
 .endm
 
 .macro to_ptr_pp metadata
   reg_imm \metadata rC
-  movl memory(,rC,1), rA
-  movl vA, memory(,rA,1)
-  addl $4, memory(,rC,1)
+  reg_load rC rA
+  reg_store vA rA
+  addl $WORD_SIZE, memory(,rC,1)
 .endm
 
 .macro to_ptr_mm metadata
   reg_imm \metadata rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl vA, memory(,rC,1)
+  reg_load rA rC
+  subl $WORD_SIZE, rC
+  reg_store rC rA
+  reg_store vA rC
 .endm
 # ----------------------------------------------------------------------------
 #                           ARITHMETIC INSTRUCTIONS
