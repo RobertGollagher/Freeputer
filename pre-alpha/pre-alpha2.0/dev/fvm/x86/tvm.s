@@ -89,124 +89,141 @@ Alternative if no imports:
   call getchar
 .endm
 
+.macro reg_imm metadata reg
+  movl $\metadata, \reg
+.endm
+
+.macro reg_load regSrc regDst
+  movl memory(,\regSrc,1), \regDst
+.endm
+
+.macro reg_ptr_load regPtr regToLoad
+  movl memory(,\regPtr,1), \regPtr
+  movl memory(,\regPtr,1), \regToLoad
+.endm
+
+.macro reg_ptr_load_pp regPtr regToLoad
+  movl memory(,\regPtr,1), rA
+  addl $4, memory(,regPtr,1)
+  movl memory(,rA,1), regToLoad
+.endm
+
+.macro reg_ptr_load_mm regPtr regToLoad
+  movl memory(,\regPtr,1), rC
+  subl $4, rC
+  movl rC, memory(,regPtr,1)
+  movl memory(,rC,1), vA
+.endm
+
+.macro reg_sign_extend reg
+  reg_imm 0x00800000 rC
+  andl \reg, rC
+  jz 1f
+    orl $0xff000000, \reg
+  1:
+.endm
+
+.macro reg_m metadata reg
+  shll $8, rA
+  andl $0x00ffffff, \reg
+  orl rA, \reg
+.endm
+
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
 # ----------------------------------------------------------------------------
-#                           MOVE INSTRUCTIONS
+#                           MOVE INSTRUCTIONS - keep these
 # ----------------------------------------------------------------------------
+# IDEA: make word 8-bits and use indirection a lot, in 2 layers
 .macro lit metadata
-  movl $\metadata, vA
+  reg_imm \metadata vA
 .endm
 
 .macro litx metadata
-  movl $\metadata, vA
-  movl $0x00800000, rC
-  andl vA, rC
-  jz 1f
-    orl $0xff000000, vA
-  1:
+  reg_imm \metadata vA
+  reg_sign_extend vA
 .endm
 
 .macro litm metadata
-  movl $\metadata, rA
-  shll $8, rA
-  andl $0x00ffffff, vA
-  orl rA, vA
+  reg_imm \metadata rA
+  reg_m rA
 .endm
 # ----------------------------------------------------------------------------
 .macro from metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), vA
+  reg_imm \metadata rA
+  reg_load rA vA
 .endm
 
 .macro from_ptr metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), rA
-  movl memory(,rA,1), vA
+  reg_imm \metadata rA
+  reg_ptr_load rA vA
 .endm
 
 .macro from_ptr_pp metadata
-  movl $\metadata, rC
-  movl memory(,rC,1), rA
-  addl $4, memory(,rC,1)
-  movl memory(,rA,1), vA
+  reg_imm \metadata rC
+  reg_ptr_load_pp rC vA
 .endm
 
 .macro from_ptr_mm metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl memory(,rC,1), vA
+  reg_imm \metadata rA
+  reg_ptr_load_mm rA vA
 .endm
 # ----------------------------------------------------------------------------
 .macro by metadata
-  movl $\metadata, vX
+  reg_imm \metadata vX
 .endm
 
 .macro byx metadata
-  movl $\metadata, vX
-  movl $0x00800000, rC
-  andl vX, rC
-  jz 1f
-    orl $0xff000000, vX
-  1:
+  reg_imm \metadata vX
+  reg_sign_extend vX
 .endm
 
 .macro bym metadata
-  movl $\metadata, rA
-  shll $8, rA
-  andl $0x00ffffff, vX
-  orl rA, vX
+  reg_imm \metadata rA
+  reg_m vX
 .endm
 
 .macro by_at metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), vX
+  reg_imm \metadata rA
+  reg_load rA vX
 .endm
 
 .macro by_ptr metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), rA
-  movl memory(,rA,1), vX
+  reg_imm \metadata rA
+  reg_ptr_load rA vX
 .endm
 
 .macro by_ptr_pp metadata
-  movl $\metadata, rC
-  movl memory(,rC,1), rA
-  addl $4, memory(,rC,1)
-  movl memory(,rA,1), vX
+  reg_imm \metadata rC
+  reg_ptr_load_pp rC vX 
 .endm
 
 .macro by_ptr_mm metadata
-  movl $\metadata, rA
-  movl memory(,rA,1), rC
-  subl $4, rC
-  movl rC, memory(,rA,1)
-  movl memory(,rC,1), vX
+  reg_imm \metadata rA
+  reg_ptr_load_pp rA vX
 .endm
 # ----------------------------------------------------------------------------
 .macro to metadata
-  movl $\metadata, rA
+  reg_imm \metadata rA
   movl vA, memory(,rA,1)
 .endm
 
 .macro to_ptr metadata
-  movl $\metadata, rA
+  reg_imm \metadata rA
   movl memory(,rA,1), rA
   movl vA, memory(,rA,1)
 .endm
 
 .macro to_ptr_pp metadata
-  movl $\metadata, rC
+  reg_imm \metadata rC
   movl memory(,rC,1), rA
   movl vA, memory(,rA,1)
   addl $4, memory(,rC,1)
 .endm
 
 .macro to_ptr_mm metadata
-  movl $\metadata, rA
+  reg_imm \metadata rA
   movl memory(,rA,1), rC
   subl $4, rC
   movl rC, memory(,rA,1)
@@ -419,6 +436,7 @@ vm_success:
 # ============================================================================
 .global main
   main:
+    lit 1
     halt by 0
 
 # ============================================================================
