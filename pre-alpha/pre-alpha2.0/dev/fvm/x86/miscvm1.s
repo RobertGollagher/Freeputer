@@ -60,14 +60,12 @@ Alternative if no imports:
   - Removed by (code duplication of from)
   - Replaced to,from with load,store,pull,put,pop,push (1 stack direction)
   - Experimental: vS, vD; lit goes to vB!
+  - Removed litx, litm (code smell)
 
-  NEED TO ADD:
+  NOTES:
 
-  - Some other way to populate vB (now that by is removed)
-
-  RETAINING:
-
-  - swapAL so long as retaining branch and merge (useful)
+  - need space for up to 64 opcodes
+  - so have 2 spare bits
 
 
 */
@@ -107,12 +105,6 @@ Alternative if no imports:
   movl %eax, vA
 .endm
 
-.macro do_swap reg1 reg2
-  movl \reg1, rTmp
-  movl \reg2, \reg1
-  movl rTmp, \reg2
-.endm
-
 .macro do_failure
   movl $FAILURE, rTmp
   ret
@@ -135,27 +127,9 @@ Alternative if no imports:
 # ============================================================================
 .section .data #             INSTRUCTION SET  #FIXME maybe go 32 not 24?
 # ============================================================================
-# Wipes the MSB and populates the 3 LSBs
+# FIXME NEXT is it 8:24 etc or 8:8 etc?
 .macro lit x
   movl $\x, vB
-.endm
-
-# Populates the 3 LSBs and sign-extends to the MSB
-.macro litx x
-  movl $\x vB
-  reg_imm $0x00800000 rTmp
-  andl vB, rTmp
-  jz 1f
-    orl $0xff000000, vB
-  1:
-.endm
-
-# Populates the MSB, ors the middle two bytes, does not change the LSB
-.macro litm x
-  movl $\x, rTmp
-  shll $8, rTmp
-  andl $0x00ffffff, vB
-  orl rTmp, vB
 .endm
 # ----------------------------------------------------------------------------
 .macro load # replaces from x
@@ -261,13 +235,13 @@ Alternative if no imports:
   jle \label
 .endm
 # ----------------------------------------------------------------------------
-.macro branch label
+.macro lcall label
   movl 1f, vL
   jump \label
   1:
 .endm
 
-.macro merge
+.macro lret
   jmp vL
 .endm
 # ----------------------------------------------------------------------------
@@ -355,8 +329,7 @@ vm_success:
 main:
   do_init
 
-  lit 0xffffff
-  litm 0x7f0000
+  lit 0x7fffffff
   movba
 
   loop: # 1.4 seconds
