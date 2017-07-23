@@ -59,7 +59,7 @@ Alternative if no imports:
   - Removed metadata from general-purpose instructions (act on vA, vB)
   - Removed by (code duplication of from)
   - Replaced to,from with load,store,pull,put,pop,push (1 stack direction)
-      and added toAddr,fromAddr
+  - Experimental: vS, vD; lit goes to vB!
 
   NEED TO ADD:
 
@@ -88,8 +88,9 @@ Alternative if no imports:
 # Registers of the virtual machine:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
-.equ vL, %edi # link register
-.equ vAddr, %esi # address register
+# .equ vL, %??? # link register # FIXME maybe remove this
+.equ vS, %esi # source address register
+.equ vD, %edi # destination address register
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -126,8 +127,9 @@ Alternative if no imports:
 .macro do_init
   xorl vA, vA
   xorl vB, vB
-  xorl vL, vL
-  xorl vAddr, vAddr
+  # xorl vL, vL
+  xorl vD, vD
+  xorl vS, vS
   xorl rTmp, rTmp
   xorl rBuf, rBuf
 .endm
@@ -137,16 +139,16 @@ Alternative if no imports:
 # ============================================================================
 # Wipes the MSB and populates the 3 LSBs
 .macro lit x
-  movl $\x, vA
+  movl $\x, vB
 .endm
 
 # Populates the 3 LSBs and sign-extends to the MSB
 .macro litx x
-  movl $\x vA
+  movl $\x vB
   reg_imm $0x00800000 rBuf
-  andl vA, rBuf
+  andl vB, rBuf
   jz 1f
-    orl $0xff000000, vA
+    orl $0xff000000, vB
   1:
 .endm
 
@@ -154,36 +156,36 @@ Alternative if no imports:
 .macro litm x
   movl $\x, rTmp
   shll $8, rTmp
-  andl $0x00ffffff, vA
-  orl rTmp, vA
+  andl $0x00ffffff, vB
+  orl rTmp, vB
 .endm
 # ----------------------------------------------------------------------------
 .macro load # replaces from x
-  movl data_memory(,vAddr,1), vA
+  movl data_memory(,vS,1), vA
 .endm
 
 .macro store # replaces to x
-  movl vA, data_memory(,vAddr,1)
+  movl vA, data_memory(,vD,1)
 .endm
 
 .macro pull # replaces from_ptr x
-  movl data_memory(,vAddr,1), rTmp
+  movl data_memory(,vS,1), rTmp
   movl data_memory(,rTmp,1), vA
 .endm
 
 .macro put # replaces to_ptr x
-  movl data_memory(,vAddr,1), rTmp
+  movl data_memory(,vD,1), rTmp
   movl vA, data_memory(,rTmp,1)
 .endm
 
 .macro push # replaces to_ptr_pp and to_ptr_mm
-  subl $WORD_SIZE, vAddr
+  subl $WORD_SIZE, vS
   put
 .endm
 
-.macro pop # replaces from_ptr_pp and from_ptr_mm 
+.macro pop # replaces from_ptr_pp and from_ptr_mm
   pull
-  addl $WORD_SIZE, vAddr
+  addl $WORD_SIZE, vS
 .endm
 # ----------------------------------------------------------------------------
 .macro add
@@ -257,7 +259,7 @@ Alternative if no imports:
   jle \label
 .endm
 # ----------------------------------------------------------------------------
-.macro branch label
+/*.macro branch label
   movl 1f, vL
   jump \label
   1:
@@ -265,7 +267,7 @@ Alternative if no imports:
 
 .macro merge
   jmp vL
-.endm
+.endm*/
 # ----------------------------------------------------------------------------
 .macro in # FIXME
   INCHAR
@@ -275,16 +277,32 @@ Alternative if no imports:
   OUTCHAR vA
 .endm
 # ----------------------------------------------------------------------------
-.macro swapAL
+.macro swapAL # FIXME
   do_swap vA vL
 .endm
 
-.macro toAddr
-  movl vA, vAddr
+.macro movab
+  movl vA, vB
 .endm
 
-.macro fromAddr
-  movl vAddr, vA
+.macro movad
+  movl vA, vD
+.endm
+
+.macro movas
+  movl vA, vS
+.endm
+
+.macro movba
+  movl vB, vA
+.endm
+
+.macro movbs
+  movl vB, vS
+.endm
+
+.macro movbd
+  movl vB, vD
 .endm
 
 .macro halt
@@ -318,6 +336,16 @@ vm_success:
 .global main
 main:
   do_init
+
+  lit 0xffffff
+  litm 0x7f0000
+  movba
+
+  loop: # 1.4 seconds
+    lit 1
+    sub
+    jmpgz loop
+
   halt
 
 # ============================================================================
