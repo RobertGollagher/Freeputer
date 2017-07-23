@@ -8,7 +8,7 @@ Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
 Updated:    20170723+
-Version:    pre-alpha-0.0.0.3+ for FVM 2.0
+Version:    pre-alpha-0.0.0.4+ for FVM 2.0
 
 Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
 and attempts to further simplify that by another order of magnitude.
@@ -151,19 +151,7 @@ Alternative if no imports:
   movl vm_sp, %esp
 .endm
 
-.macro do_failure
-  do_restore_sys_sp
-  movl $FAILURE, rTmp
-  ret
-.endm
-
-.macro do_success
-  do_restore_sys_sp
-  movl $SUCCESS, rTmp
-  ret
-.endm
-
-.macro do_init
+.macro vm_init
   do_save_sys_sp
   xorl vA, vA
   xorl vB, vB
@@ -175,7 +163,7 @@ Alternative if no imports:
 .endm
 
 # ============================================================================
-.section .data #             INSTRUCTION SET  #FIXME maybe go 32 not 24?
+.section .data #             INSTRUCTION SET
 # ============================================================================
 .macro lit x
   movl $\x, vA
@@ -452,11 +440,15 @@ Alternative if no imports:
 # ============================================================================
 vm_failure:
 
-  do_failure
+  do_restore_sys_sp
+  movl $FAILURE, rTmp
+  ret
 
 vm_success:
 
-  do_success
+  do_restore_sys_sp
+  movl $SUCCESS, rTmp
+  ret
 
 # ============================================================================
 #                             HANDY SUBROUTINES
@@ -465,16 +457,16 @@ vm_success:
 
 
 # ============================================================================
-#                            PARENT SUBROUTINES
+#                        PARENT SUBROUTINES AND MACROS
 #  These are not part of the child virtualized VM. They belong to the parent.
 # ============================================================================
-vm_load_program_for_child:
+.macro vm_load_program_for_child
   dst 0
   lit v_LIT + 0x123456
   put_pp
   lit v_HALT
   put_pp
-  done
+.endm
 # ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
 #         The example shall virtualize this VM within itself!
@@ -525,9 +517,8 @@ v_clear_regs:
 # ============================================================================
 .global main
 main:
-vm_init:
-  do_init
-  do vm_load_program_for_child
+  vm_init
+  vm_load_program_for_child
 v_init:
   do v_clear_regs
 v_next:
@@ -536,6 +527,7 @@ v_next:
   dst v_instr
   store
   
+# TODO NEXT: 1. vector table for opcodes; 2. reconsider 24/32
 
 end:
   halt
