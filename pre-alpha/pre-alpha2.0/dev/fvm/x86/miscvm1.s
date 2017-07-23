@@ -135,7 +135,7 @@ Alternative if no imports:
 .endm
 
 # ============================================================================
-.section .data #             INSTRUCTION SET
+.section .data #             INSTRUCTION SET  #FIXME maybe go 32 not 24?
 # ============================================================================
 # Wipes the MSB and populates the 3 LSBs
 .macro lit x
@@ -178,13 +178,19 @@ Alternative if no imports:
   movl vA, data_memory(,rTmp,1)
 .endm
 
-.macro push # replaces to_ptr_pp and to_ptr_mm
+.macro decs
   subl $WORD_SIZE, vS
-  put
 .endm
 
-.macro pop # replaces from_ptr_pp and from_ptr_mm
-  pull
+.macro incs
+  addl $WORD_SIZE, vS
+.endm
+
+.macro decd
+  subl $WORD_SIZE, vS
+.endm
+
+.macro incd
   addl $WORD_SIZE, vS
 .endm
 # ----------------------------------------------------------------------------
@@ -303,6 +309,14 @@ Alternative if no imports:
 
 .macro movbd
   movl vB, vD
+.endm
+
+.macro movda
+  movl vS, vA
+.endm
+
+.macro movsa
+  movl vS, vA
 .endm
 
 .macro halt
