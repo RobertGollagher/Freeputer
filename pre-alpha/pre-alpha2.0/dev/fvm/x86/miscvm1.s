@@ -139,61 +139,10 @@ Alternative if no imports:
   movl data_memory(,\regSrc,1), \regDst
 .endm
 
-.macro i_add
-  addl vB, vA
-.endm
-
-.macro i_sub
-  subl vB, vA
-.endm
-
-.macro i_or
-  orl vB, vA
-.endm
-
-.macro i_and
-  andl vB, vA
-.endm
-
-.macro i_xor
-  xorl vB, vA
-.endm
-
-.macro i_shl
-  movl vB, rTmp
-  movl rTmp, %ecx
-  shll %cl, vA
-.endm
-
-.macro i_shr
-  movl vB, rTmp
-  movl rTmp, %ecx
-  shrl %cl, vA
-.endm
-
-.macro i_branch label
-  movl 1f, vL
-  jump \label
-  1:
-.endm
-
-.macro i_merge
-  jmp vL
-.endm
-
 .macro do_swap reg1 reg2
   movl \reg1, rBuf
   movl \reg2, \reg1
   movl rBuf, \reg2
-.endm
-
-.macro i_swapAL
-  do_swap vA vL
-.endm
-
-.macro i_halt
-  movl vB, %eax
-  jmp vm_success
 .endm
 
 .macro do_failure
@@ -212,46 +161,6 @@ Alternative if no imports:
   xorl vL, vL
   xorl rTmp, rTmp
   xorl rBuf, rBuf
-.endm
-
-# FIXME Not robust!
-.macro i_jmpr baseAddr
-  leal \baseAddr(,vA,WORD_SIZE), %eax
-  jmp *(%eax)
-.endm
-
-.macro i_jump label
-  jmp \label
-.endm
-
-.macro i_jmpz label
-  xorl $0, vA
-  jz \label
-.endm
-
-.macro i_jmpnz label
-  xorl $0, vA
-  jnz \label
-.endm
-
-.macro i_jmpgz label
-  xorl $0, vA
-  jg \label
-.endm
-
-.macro i_jmplz label
-  xorl $0, vA
-  jl \label
-.endm
-
-.macro i_jmpgez label
-  xorl $0, vA
-  jge \label
-.endm
-
-.macro i_jmplez label
-  xorl $0, vA
-  jle \label
 .endm
 
 # ============================================================================
@@ -336,80 +245,94 @@ Alternative if no imports:
 .endm
 # ----------------------------------------------------------------------------
 .macro add
-  i_add
+  addl vB, vA
 .endm
 
 .macro sub
-  i_sub
+  subl vB, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro or
-  i_or
+  orl vB, vA
 .endm
 
 .macro and
-  i_and
+  andl vB, vA
 .endm
 
 .macro xor
-  i_xor
+  xorl vB, vA
 .endm
 
 .macro shl
-  i_shl
+  movl vB, rTmp
+  movl rTmp, %ecx
+  shll %cl, vA
 .endm
 
 .macro shr
-  i_shr
+  movl vB, rTmp
+  movl rTmp, %ecx
+  shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro jmpr baseAddr
-  i_jmpr \baseAddr
+  leal \baseAddr(,vA,WORD_SIZE), %eax
+  jmp *(%eax)
 .endm
 
 .macro jump label
-  i_jump \label
+  jmp \label
 .endm
 
 .macro jmpz label
-  i_jmpz \label
+  xorl $0, vA
+  jz \label
 .endm
 
 .macro jmpnz label
-  i_jmpnz \label
+  xorl $0, vA
+  jnz \label
 .endm
 
 .macro jmpgz label
-  i_jmpgz \label
+  xorl $0, vA
+  jg \label
 .endm
 
 .macro jmplz label
-  i_jmplz \label
+  xorl $0, vA
+  jl \label
 .endm
 
 .macro jmpgez label
-  i_jmpgez \label
+  xorl $0, vA
+  jge \label
 .endm
 
 .macro jmplez label
-  i_jmplez \label
+  xorl $0, vA
+  jle \label
 .endm
 # ----------------------------------------------------------------------------
 .macro branch label
-  i_branch \label
+  movl 1f, vL
+  jump \label
+  1:
 .endm
 
 .macro merge
-  i_merge
+  jmp vL
 .endm
 # ----------------------------------------------------------------------------
 
 .macro swapAL
-  i_swapAL
+  do_swap vA vL
 .endm
 
 .macro halt
-  i_halt
+  movl vB, %eax
+  jmp vm_success
 .endm
 
 # ============================================================================
