@@ -86,14 +86,13 @@ Alternative if no imports:
 .equ DM_BYTES, 0x1000000 # could be up to 0x100000000
 .equ WORD_SIZE, 4
 # Registers of the virtual machine:
-.equ vA, %ebx # accumulator
-.equ vB, %edx # operand register
-# .equ vL, %??? # link register # FIXME maybe remove this
+.equ vA, %eax # was %ebx # accumulator
+.equ vB, %ebx # was %edx # operand register
+.equ vL, %edx # was %eax # link register # FIXME maybe remove this
 .equ vS, %esi # source address register
 .equ vD, %edi # destination address register
 # Registers of the implementation:
-.equ rTmp, %eax # primary temporary register
-.equ rBuf, %ecx # secondary temporary register
+.equ rTmp, %ecx # temporary register (must be %ecx because of shl, shr)
 
 # ============================================================================
 # ============================================================================
@@ -109,9 +108,9 @@ Alternative if no imports:
 .endm
 
 .macro do_swap reg1 reg2
-  movl \reg1, rBuf
+  movl \reg1, rTmp
   movl \reg2, \reg1
-  movl rBuf, \reg2
+  movl rTmp, \reg2
 .endm
 
 .macro do_failure
@@ -127,11 +126,10 @@ Alternative if no imports:
 .macro do_init
   xorl vA, vA
   xorl vB, vB
-  # xorl vL, vL
+  xorl vL, vL
   xorl vD, vD
   xorl vS, vS
   xorl rTmp, rTmp
-  xorl rBuf, rBuf
 .endm
 
 # ============================================================================
@@ -145,8 +143,8 @@ Alternative if no imports:
 # Populates the 3 LSBs and sign-extends to the MSB
 .macro litx x
   movl $\x vB
-  reg_imm $0x00800000 rBuf
-  andl vB, rBuf
+  reg_imm $0x00800000 rTmp
+  andl vB, rTmp
   jz 1f
     orl $0xff000000, vB
   1:
@@ -215,20 +213,18 @@ Alternative if no imports:
 .endm
 
 .macro shl
-  movl vB, rTmp
-  movl rTmp, %ecx
+  movl vB, %ecx
   shll %cl, vA
 .endm
 
 .macro shr
-  movl vB, rTmp
-  movl rTmp, %ecx
+  movl vB, %ecx
   shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro jmpr baseAddr
-  leal \baseAddr(,vA,WORD_SIZE), %eax
-  jmp *(%eax)
+  leal \baseAddr(,vA,WORD_SIZE), rTmp
+  jmp *(rTmp)
 .endm
 
 .macro jump label
@@ -265,7 +261,7 @@ Alternative if no imports:
   jle \label
 .endm
 # ----------------------------------------------------------------------------
-/*.macro branch label
+.macro branch label
   movl 1f, vL
   jump \label
   1:
@@ -273,7 +269,7 @@ Alternative if no imports:
 
 .macro merge
   jmp vL
-.endm*/
+.endm
 # ----------------------------------------------------------------------------
 .macro in # FIXME
   INCHAR
@@ -283,16 +279,16 @@ Alternative if no imports:
   OUTCHAR vA
 .endm
 # ----------------------------------------------------------------------------
-.macro swapAL # FIXME
-  do_swap vA vL
-.endm
-
 .macro movab
   movl vA, vB
 .endm
 
 .macro movad
   movl vA, vD
+.endm
+
+.macro moval
+  movl vA, vL
 .endm
 
 .macro movas
@@ -303,16 +299,24 @@ Alternative if no imports:
   movl vB, vA
 .endm
 
-.macro movbs
-  movl vB, vS
-.endm
-
 .macro movbd
   movl vB, vD
 .endm
 
+.macro movbl
+  movl vB, vD
+.endm
+
+.macro movbs
+  movl vB, vS
+.endm
+
 .macro movda
   movl vS, vA
+.endm
+
+.macro movla
+  movl vL, vA
 .endm
 
 .macro movsa
