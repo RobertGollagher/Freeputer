@@ -1,5 +1,5 @@
 /*
-                              MISC VM 1
+                      SPARSE REGISTER MACHINE (SRM)
 
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
@@ -12,6 +12,7 @@ Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
 Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
 and attempts to further simplify that by another order of magnitude.
+This 'miscvm1.s' supersedes 'tvm.s' and the earlier 'srm.s'.
 
 
                               This Edition:
