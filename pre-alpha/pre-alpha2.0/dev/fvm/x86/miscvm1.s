@@ -8,7 +8,7 @@ Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
 Updated:    20170723+
-Version:    pre-alpha-0.0.0.1+ for FVM 2.0
+Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
 Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
 and attempts to further simplify that by another order of magnitude.
@@ -67,6 +67,13 @@ Alternative if no imports:
   - need space for up to 64 opcodes
   - so have 2 spare bits
 
+  DECISIONS:
+
+  - Harvard architecture is critical to success
+  - Lits and jumps need to be followed by a full word
+  - Therefore must have 2 instruction types, not fixed width
+  - Or very wasteful encoding similar to FVM 1
+  - not 16 bit, must be 32 bit
 
 */
 # ============================================================================
@@ -127,7 +134,6 @@ Alternative if no imports:
 # ============================================================================
 .section .data #             INSTRUCTION SET  #FIXME maybe go 32 not 24?
 # ============================================================================
-# FIXME NEXT is it 8:24 etc or 8:8 etc?
 .macro lit x
   movl $\x, vB
 .endm
