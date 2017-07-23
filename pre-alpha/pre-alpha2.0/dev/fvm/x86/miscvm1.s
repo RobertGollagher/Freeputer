@@ -58,6 +58,8 @@ Alternative if no imports:
   - Removed vZ (code smell: adds complexity)
   - Removed metadata from general-purpose instructions (act on vA, vB)
   - Removed by (code duplication of from)
+  - Replaced to,from with load,store,pull,put,pop,push (1 stack direction)
+      and added toAddr,fromAddr
 
   NEED TO ADD:
 
@@ -87,6 +89,7 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
+.equ vAddr, %esi # address register
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -99,44 +102,9 @@ Alternative if no imports:
   addl $WORD_SIZE, %esp
 .endm
 
-.macro INCHAR
+.macro INCHAR #FIXME
   call getchar
-.endm
-
-.macro reg_imm x reg
-  movl $\x, \reg
-.endm
-
-.macro reg_sign_extend x reg
-  reg_imm \x \reg
-  reg_imm 0x00800000 rBuf
-  andl \reg, rBuf
-  jz 1f
-    orl $0xff000000, \reg
-  1:
-.endm
-
-.macro reg_ptr_pp regPtr
-  addl $WORD_SIZE, data_memory(,\regPtr,1)
-.endm
-
-.macro reg_mm regPtr
-  subl $WORD_SIZE, \regPtr
-.endm
-
-.macro reg_m x reg
-  reg_imm \x rTmp
-  shll $8, rTmp
-  andl $0x00ffffff, \reg
-  orl rTmp, \reg
-.endm
-
-.macro reg_store regSrc regDst
-  movl \regSrc, data_memory(,\regDst,1)
-.endm
-
-.macro reg_load regSrc regDst
-  movl data_memory(,\regSrc,1), \regDst
+  movl %eax, vA
 .endm
 
 .macro do_swap reg1 reg2
@@ -159,89 +127,63 @@ Alternative if no imports:
   xorl vA, vA
   xorl vB, vB
   xorl vL, vL
+  xorl vAddr, vAddr
   xorl rTmp, rTmp
   xorl rBuf, rBuf
 .endm
 
 # ============================================================================
-# ============================================================================
-.macro reg_at x reg
-  reg_imm \x rTmp
-  reg_load rTmp \reg
-.endm
-
-.macro reg_ptr_load x reg
-  reg_at rTmp
-  reg_load rTmp \reg
-.endm
-
-.macro reg_ptr_load_pp x reg
-  reg_imm \x rBuf
-  reg_load rBuf rTmp
-  reg_ptr_pp rBuf
-  reg_load rTmp reg
-.endm
-
-.macro reg_ptr_load_mm x reg
-  reg_at \x rBuf
-  reg_mm rBuf
-  reg_store rBuf rTmp
-  reg_load rBuf vA
-.endm
-# ----------------------------------------------------------------------------
-# ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
+# Wipes the MSB and populates the 3 LSBs
 .macro lit x
-  reg_imm \x vA
+  movl $\x, vA
 .endm
 
+# Populates the 3 LSBs and sign-extends to the MSB
 .macro litx x
-  reg_sign_extend \x vA
+  movl $\x vA
+  reg_imm $0x00800000 rBuf
+  andl vA, rBuf
+  jz 1f
+    orl $0xff000000, vA
+  1:
 .endm
 
+# Populates the MSB, ors the middle two bytes, does not change the LSB
 .macro litm x
-  reg_m \x vA
+  movl $\x, rTmp
+  shll $8, rTmp
+  andl $0x00ffffff, vA
+  orl rTmp, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro from x
-  reg_at \x vA
+.macro load # replaces from x
+  movl data_memory(,vAddr,1), vA
 .endm
 
-.macro from_ptr x
-  reg_ptr_load x vA
+.macro store # replaces to x
+  movl vA, data_memory(,vAddr,1)
 .endm
 
-.macro from_ptr_pp x
-  reg_ptr_load_pp x vA
+.macro pull # replaces from_ptr x
+  movl data_memory(,vAddr,1), rTmp
+  movl data_memory(,rTmp,1), vA
 .endm
 
-.macro from_ptr_mm x
-  reg_ptr_load_mm x vA
-.endm
-# ----------------------------------------------------------------------------
-.macro to x
-  reg_imm \x rTmp
-  reg_store vA rTmp
+.macro put # replaces to_ptr x
+  movl data_memory(,vAddr,1), rTmp
+  movl vA, data_memory(,rTmp,1)
 .endm
 
-.macro to_ptr x
-  reg_at \x rTmp
-  reg_store vA rTmp
+.macro push # replaces to_ptr_pp and to_ptr_mm
+  subl $WORD_SIZE, vAddr
+  put
 .endm
 
-.macro to_ptr_pp x
-  reg_imm \x rBuf
-  reg_load rBuf rTmp
-  reg_store vA rTmp
-  reg_ptr_pp rBuf
-.endm
-
-.macro to_ptr_mm x
-  reg_at \x rBuf
-  reg_mm rBuf
-  reg_store rBuf rTmp
-  reg_store vA rBuf
+.macro pop # replaces from_ptr_pp and from_ptr_mm 
+  pull
+  addl $WORD_SIZE, vAddr
 .endm
 # ----------------------------------------------------------------------------
 .macro add
@@ -325,9 +267,24 @@ Alternative if no imports:
   jmp vL
 .endm
 # ----------------------------------------------------------------------------
+.macro in # FIXME
+  INCHAR
+.endm
 
+.macro out # FIXME
+  OUTCHAR vA
+.endm
+# ----------------------------------------------------------------------------
 .macro swapAL
   do_swap vA vL
+.endm
+
+.macro toAddr
+  movl vA, vAddr
+.endm
+
+.macro fromAddr
+  movl vAddr, vA
 .endm
 
 .macro halt
