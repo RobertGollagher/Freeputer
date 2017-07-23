@@ -8,7 +8,7 @@ Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
 Updated:    20170723+
-Version:    pre-alpha-0.0.0.0+ for FVM 2.0
+Version:    pre-alpha-0.0.0.1+ for FVM 2.0
 
 Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
 and attempts to further simplify that by another order of magnitude.
@@ -49,6 +49,26 @@ Alternative if no imports:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
+/*
+  SIMPLIFICATIONS COMPARED TO 'tvm.s':
+
+  - Removed instructions:
+      - noop (unnecessary)
+      - swapAB (code smell: B should be silent)
+  - Removed vZ (code smell: adds complexity)
+  - Removed metadata from general-purpose instructions (act on vA, vB)
+  - Removed by (code duplication of from)
+
+  NEED TO ADD:
+
+  - Some other way to populate vB (now that by is removed)
+
+  RETAINING:
+
+  - swapAL so long as retaining branch and merge (useful)
+
+
+*/
 # ============================================================================
 #                                IMPORTS
 # ============================================================================
@@ -67,13 +87,11 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
-.equ vZ, %esi # buffer register
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
 
 # ============================================================================
-# ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
 .macro OUTCHAR reg
   pushl \reg
@@ -169,28 +187,8 @@ Alternative if no imports:
   movl rBuf, \reg2
 .endm
 
-.macro i_swapAB
-  do_swap vA vB
-.endm
-
 .macro i_swapAL
   do_swap vA vL
-.endm
-
-.macro i_swapAZ
-  do_swap vA vZ
-.endm
-
-.macro i_toz
-  movl vA, vZ
-.endm
-
-.macro i_fromz
-  movl vZ, vA
-.endm
-
-.macro i_nop
-  nop
 .endm
 
 .macro i_halt
@@ -212,7 +210,6 @@ Alternative if no imports:
   xorl vA, vA
   xorl vB, vB
   xorl vL, vL
-  xorl vZ, vZ
   xorl rTmp, rTmp
   xorl rBuf, rBuf
 .endm
@@ -258,7 +255,6 @@ Alternative if no imports:
 .endm
 
 # ============================================================================
-# ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
 .macro reg_at x reg
   reg_imm \x rTmp
@@ -284,34 +280,6 @@ Alternative if no imports:
   reg_load rBuf vA
 .endm
 # ----------------------------------------------------------------------------
-.macro by x
-  reg_imm \x vB
-.endm
-
-.macro byx x
-  reg_sign_extend \x vB
-.endm
-
-.macro bym x
-  reg_m \x vB
-.endm
-
-.macro by_at x
-  reg_at \x vB
-.endm
-
-.macro by_ptr x
-  reg_ptr_load x vB
-.endm
-
-.macro by_ptr_pp x
-  reg_ptr_load_pp x vB
-.endm
-
-.macro by_ptr_mm x
-  reg_ptr_load_pp x vB
-.endm
-
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
@@ -367,38 +335,31 @@ Alternative if no imports:
   reg_store vA rBuf
 .endm
 # ----------------------------------------------------------------------------
-.macro add by x
-  \by \x
+.macro add
   i_add
 .endm
 
-.macro sub by x
-  \by \x
+.macro sub
   i_sub
 .endm
 # ----------------------------------------------------------------------------
-.macro or by x
-  \by \x
+.macro or
   i_or
 .endm
 
-.macro and by x
-  \by \x
+.macro and
   i_and
 .endm
 
-.macro xor by x
-  \by \x
+.macro xor
   i_xor
 .endm
 
-.macro shl by x
-  \by \x
+.macro shl
   i_shl
 .endm
 
-.macro shr by x
-  \by \x
+.macro shr
   i_shr
 .endm
 # ----------------------------------------------------------------------------
@@ -442,32 +403,12 @@ Alternative if no imports:
   i_merge
 .endm
 # ----------------------------------------------------------------------------
-.macro swapAB
-  i_swapAB
-.endm
 
 .macro swapAL
   i_swapAL
 .endm
 
-.macro swapAZ
-  i_swapAZ
-.endm
-
-.macro toz
-  i_toz
-.endm
-
-.macro fromz
-  i_fromz
-.endm
-
-.macro noop
-  i_nop
-.endm
-
-.macro halt by x
-  \by \x
+.macro halt
   i_halt
 .endm
 
@@ -489,53 +430,15 @@ vm_success:
 
 # ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
-#         The example shall virtualize this VM within itself!
-#     Labels starting with vm_ are used by the parent native VM.
-#     Labels starting with v_ are used by the child virtualized VM.
-#     The child shall use fixed-width 32-bit instructions (FW32).
 # ============================================================================
-.equ v_data_memory, 0
-.equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
-.equ v_rPC, v_data_memory + DM_BYTES # Note: parent has no explicit rPC
-.equ v_vA, v_rPC + WORD_SIZE
-.equ v_vB, v_vA + WORD_SIZE
-.equ v_vL, v_vB + WORD_SIZE
-.equ v_vZ, v_vL + WORD_SIZE
-# Just using arbitrary opcode designations for now:
-.equ v_LIT,   0x010000
-.equ v_HALT,  0x1f0000
 
 # ============================================================================
-#                     ENTRY POINT
+#                             ENTRY POINT
 # ============================================================================
 .global main
 main:
-vm_init: # parent
   do_init
-
-vm_load_program_for_child:
-  # lit 0x123456 = 0x01123456
-  lit 0x123456
-  to 0
-  litm v_LIT
-  to 0
-
-  # halt by 0 = 0x1f000000
-  lit 0x000000
-  to 4
-  litm v_HALT
-  to 4
-
-v_init:  # child
-  lit 0
-  to v_rPC
-  to v_vA
-  to v_vB
-  to v_vL
-  to v_vZ
-
-end:
-  halt by 0
+  halt
 
 # ============================================================================
 
