@@ -107,7 +107,7 @@ Alternative if no imports:
 # Registers of the virtual machine:
 .equ vA, %eax # was %ebx # accumulator
 .equ vB, %ebx # was %edx # operand register
-.equ vL, %edx # was %eax # link register # FIXME maybe remove this
+.equ vL, %edx # was %eax # link register
 .equ vS, %esi # source address register
 .equ vD, %edi # destination address register
 .equ vP, %esp # stack pointer
@@ -170,7 +170,7 @@ Alternative if no imports:
   xorl vL, vL
   xorl vD, vD
   xorl vS, vS
-  xorl vP, vP
+  leal data_memory, vP
   xorl rTmp, rTmp
 .endm
 
@@ -205,16 +205,6 @@ Alternative if no imports:
   movl vA, data_memory(,vD,1)
 .endm
 
-.macro pull
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-.endm
-
-.macro put
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-.endm
-
 .macro decs
   subl $WORD_SIZE, vS
 .endm
@@ -224,13 +214,87 @@ Alternative if no imports:
 .endm
 
 .macro decd
-  subl $WORD_SIZE, vS
+  subl $WORD_SIZE, vD
 .endm
 
 .macro incd
-  addl $WORD_SIZE, vS
+  addl $WORD_SIZE, vD
 .endm
 
+.macro pull
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+.endm
+
+.macro pull_pp
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+  incs
+.endm
+
+.macro pull_mm
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+  decs
+.endm
+
+.macro pp_pull
+  incs
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+  incs
+.endm
+
+.macro mm_pull
+  decs
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+  decs
+.endm
+
+.macro put
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+.endm
+
+.macro put_pp
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+  incd
+.endm
+
+.macro put_mm
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+  decd
+.endm
+
+.macro pp_put
+  incd
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+.endm
+
+.macro mm_put
+  decd
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+.endm
+
+# FIXME think about all this some more
+.macro pushsd
+  decs
+  decd
+  put
+.endm
+
+.macro popsd
+  incd
+  incs
+  pull
+.endm
+
+#FIXME native speed but not robust
 .macro push
   pushl vA
 .endm
@@ -309,13 +373,13 @@ Alternative if no imports:
   jle \label
 .endm
 # ----------------------------------------------------------------------------
-.macro lcall label
-  movl 1f, vL
+.macro do label
+  leal 1f, vL
   jump \label
   1:
 .endm
 
-.macro lret
+.macro done
   jmp vL
 .endm
 # ----------------------------------------------------------------------------
@@ -395,11 +459,28 @@ vm_success:
   do_success
 
 # ============================================================================
+#                             HANDY SUBROUTINES
+#    These are perhaps candidates to be added to the instruction set.
+# ============================================================================
+
+
+# ============================================================================
+#                            PARENT SUBROUTINES
+#  These are not part of the child virtualized VM. They belong to the parent.
+# ============================================================================
+vm_load_program_for_child:
+  dst 0
+  lit v_LIT + 0x123456
+  put_pp
+  lit v_HALT
+  put_pp
+  done
+# ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
 #         The example shall virtualize this VM within itself!
 #     Labels starting with vm_ are used by the parent native VM.
 #     Labels starting with v_ are used by the child virtualized VM.
-#     The child shall use ???-wide instructions (two formats).
+#     The child shall use ???-wide instructions (two formats?).
 # ============================================================================
 .equ v_data_memory, 0
 .equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
@@ -409,58 +490,56 @@ vm_success:
 .equ v_vL, v_vB + WORD_SIZE
 .equ v_vS, v_vL + WORD_SIZE
 .equ v_vD, v_vS + WORD_SIZE
+.equ v_vP, v_vD + WORD_SIZE
+.equ v_vTmp, v_vP + WORD_SIZE
+.equ v_instr, v_vTmp + WORD_SIZE
+.equ v_opcode, v_instr + WORD_SIZE
+.equ v_metadata, v_opcode + WORD_SIZE
 # Just using arbitrary opcode designations for now:
 .equ v_LIT,   0x01000000
 .equ v_HALT,  0x1f000000
 
 # ============================================================================
-#                     ENTRY POINT
+#                           CHILD SUBROUTINES
+# ============================================================================
+v_clear_regs:
+  lit 0
+  dst v_rPC
+  store
+  dst v_vA
+  store
+  dst v_vB
+  store
+  dst v_vL
+  store
+  dst v_vS
+  store
+  lit v_vD
+  store
+  lit v_vP
+  store
+  done
+
+# ============================================================================
+#                             ENTRY POINT
 # ============================================================================
 .global main
 main:
-vm_init: # parent
+vm_init:
   do_init
-
-vm_load_program_for_child:
-  dst 0
-
-  lit v_LIT + 0x00123456
+  do vm_load_program_for_child
+v_init:
+  do v_clear_regs
+v_next:
+  src v_rPC
+  load
+  dst v_instr
   store
-  incd
-
-  lit v_HALT + 0x0
-  store
-  incd
-
-v_init:  # child
-  lit 0
-
-  dst v_rPC
-  store
-
-  dst v_vA
-  store
-
-  dst v_vB
-  store
-
-  dst v_vL
-  store
-
-  dst v_vS
-  store
-
-  lit v_vD
-  movbd
-  store
+  
 
 end:
   halt
 
-to:
-  movbd
-  store
-  lret
 
 # ============================================================================
 
