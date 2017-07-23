@@ -10,6 +10,8 @@ Created:    20170721
 Updated:    20170722+
 Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 
+AS of 20170723 this 'tvm.s' has been superseded by 'miscvm1.s'.
+
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about an order of magnitude simpler than FVM 2.0.
 The initial version of tvm.s is identical to srm.s.

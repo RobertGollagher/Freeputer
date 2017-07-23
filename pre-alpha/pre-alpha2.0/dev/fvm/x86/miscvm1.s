@@ -72,8 +72,21 @@ Alternative if no imports:
   - Harvard architecture is critical to success
   - Lits and jumps need to be followed by a full word
   - Therefore must have 2 instruction types, not fixed width
-  - Or very wasteful encoding similar to FVM 1
+  - 8,32=8 or 42 or very wasteful encoding 32,32=32 or 64 similar to FVM 1
   - not 16 bit, must be 32 bit
+
+  DECISION TIME:
+
+  - Therefore it is this with 8,32 or 32,32 or it is tvm.s with 32
+  - This miscvm1.s has simpler VM implementation but more complex binaries
+  - Whereas tvm.s has more complex VM implementation but simpler binaries
+
+  DECISION:
+
+  - In principal this miscvm1.s is better because:
+      - tvm.s will lead to a weird no-man's land of addresses above 0xffffff
+      - tvm.s is more tiring to port
+  - Thus miscvm1.s is hereby chosen as the basis for further work
 
 */
 # ============================================================================
