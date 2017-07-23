@@ -8,7 +8,7 @@ Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
 Updated:    20170723+
-Version:    pre-alpha-0.0.0.4+ for FVM 2.0
+Version:    pre-alpha-0.0.0.5+ for FVM 2.0
 
 Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
 and attempts to further simplify that by another order of magnitude.
@@ -51,43 +51,12 @@ Alternative if no imports:
  experimentation and nothing more.
 ============================================================================*/
 /*
-  SIMPLIFICATIONS COMPARED TO 'tvm.s':
+  BEST COMPROMISE:
 
-  - Removed instructions:
-      - noop (unnecessary)
-      - swapAB (code smell: B should be silent)
-  - Removed vZ (code smell: adds complexity)
-  - Removed metadata from general-purpose instructions (act on vA, vB)
-  - Removed by (code duplication of from)
-  - Replaced to,from with load,store,pull,put,pop,push (1 stack direction)
-  - Experimental: vS, vD; lit goes to vB!
-  - Removed litx, litm (code smell)
-
-  NOTES:
-
-  - need space for up to 64 opcodes
-  - so have 2 spare bits
-
-  DECISIONS:
-
-  - Harvard architecture is critical to success
-  - Lits and jumps need to be followed by a full word
-  - Therefore must have 2 instruction types, not fixed width
-  - 8,32=8 or 42 or very wasteful encoding 32,32=32 or 64 similar to FVM 1
-  - not 16 bit, must be 32 bit
-
-  DECISION TIME:
-
-  - Therefore it is this with 8,32 or 32,32 or it is tvm.s with 32
-  - This miscvm1.s has simpler VM implementation but more complex binaries
-  - Whereas tvm.s has more complex VM implementation but simpler binaries
-
-  DECISION:
-
-  - In principal this miscvm1.s is better because:
-      - tvm.s will lead to a weird no-man's land of addresses above 0xffffff
-      - tvm.s is more tiring to port
-  - Thus miscvm1.s is hereby chosen as the basis for further work
+    - Harvard architecture
+    - Program space 24-bits max
+    - Data space 32-bits max
+    - FW32
 
 */
 # ============================================================================
@@ -162,27 +131,87 @@ Alternative if no imports:
   xorl rTmp, rTmp
 .endm
 
+.macro reg_imm x reg
+  movl $\x, \reg
+.endm
+
+.macro reg_sign_extend x reg
+  reg_imm \x \reg
+  reg_imm 0x00800000 rTmp
+  andl \reg, rTmp
+  jz 1f
+    orl $0xff000000, \reg
+  1:
+.endm
+
+.macro reg_m x reg
+  reg_imm \x rTmp
+  shll $8, rTmp
+  andl $0x00ffffff, \reg
+  orl rTmp, \reg
+.endm
+
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
 .macro lit x
-  movl $\x, vA
+  reg_imm \x vA
+.endm
+
+.macro litm x
+  reg_m \x vA
+.endm
+
+.macro litx x
+  reg_sign_extend \x vA
 .endm
 
 .macro op x
-  movl $\x, vB
+  reg_imm \x vA
+.endm
+
+.macro opm x
+  reg_m \x vB
+.endm
+
+.macro opx x
+  reg_sign_extend \x vB
 .endm
 
 .macro src x
-  movl $\x, vS
+  reg_imm \x vA
+.endm
+
+.macro srcm x
+  reg_m \x vS
+.endm
+
+.macro srcx x
+  reg_sign_extend \x vS
 .endm
 
 .macro dst x
-  movl $\x, vD
+  reg_imm \x vA
+.endm
+
+.macro dstm x
+  reg_m \x vD
+.endm
+
+.macro dstx x
+  reg_sign_extend \x vD
 .endm
 
 .macro link x
-  movl $\x, vD
+  reg_imm \x vA
+.endm
+
+.macro linkm x
+  reg_m \x vL
+.endm
+
+.macro linkx x
+  reg_sign_extend \x vL
 .endm
 # ----------------------------------------------------------------------------
 .macro load
@@ -214,75 +243,12 @@ Alternative if no imports:
   movl data_memory(,rTmp,1), vA
 .endm
 
-.macro pull_pp
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-  incs
-.endm
-
-.macro pull_mm
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-  decs
-.endm
-
-.macro pp_pull
-  incs
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-  incs
-.endm
-
-.macro mm_pull
-  decs
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-  decs
-.endm
-
 .macro put
   movl data_memory(,vD,1), rTmp
   movl vA, data_memory(,rTmp,1)
 .endm
 
-.macro put_pp
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-  incd
-.endm
-
-.macro put_mm
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-  decd
-.endm
-
-.macro pp_put
-  incd
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-.endm
-
-.macro mm_put
-  decd
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-.endm
-
-# FIXME think about all this some more
-.macro pushsd
-  decs
-  decd
-  put
-.endm
-
-.macro popsd
-  incd
-  incs
-  pull
-.endm
-
-#FIXME native speed but not robust
+#FIXME not robust
 .macro push
   pushl vA
 .endm
@@ -460,19 +426,32 @@ vm_success:
 #                        PARENT SUBROUTINES AND MACROS
 #  These are not part of the child virtualized VM. They belong to the parent.
 # ============================================================================
+.macro ops opcode # Simple instruction
+  lit 0x000000
+  litm \opcode
+  store
+  incd
+.endm
+
+.macro opc opcode metadata # Complex instruction
+  lit \metadata
+  litm \opcode
+  store
+  incd
+.endm
+
 .macro vm_load_program_for_child
   dst 0
-  lit v_LIT + 0x123456
-  put_pp
-  lit v_HALT
-  put_pp
+  opc v_LIT 0x123456
+  ops v_HALT
 .endm
+
 # ============================================================================
 # ========================= EXAMPLE PROGRAM ==================================
 #         The example shall virtualize this VM within itself!
 #     Labels starting with vm_ are used by the parent native VM.
 #     Labels starting with v_ are used by the child virtualized VM.
-#     The child shall use ???-wide instructions (two formats?).
+#     The child shall use 32-bit-wide instructions (FW32).
 # ============================================================================
 .equ v_data_memory, 0
 .equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
@@ -488,8 +467,8 @@ vm_success:
 .equ v_opcode, v_instr + WORD_SIZE
 .equ v_metadata, v_opcode + WORD_SIZE
 # Just using arbitrary opcode designations for now:
-.equ v_LIT,   0x01000000
-.equ v_HALT,  0x1f000000
+.equ v_LIT,   0x010000
+.equ v_HALT,  0x1f0000
 
 # ============================================================================
 #                           CHILD SUBROUTINES
@@ -526,8 +505,8 @@ v_next:
   load
   dst v_instr
   store
-  
-# TODO NEXT: 1. vector table for opcodes; 2. reconsider 24/32
+
+# TODO NEXT: 1. vector table for opcodes
 
 end:
   halt
