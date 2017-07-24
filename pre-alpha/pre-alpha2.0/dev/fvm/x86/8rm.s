@@ -210,18 +210,6 @@ Alternative if no imports:
 .macro dstx x
   reg_sign_extend \x vD
 .endm
-
-.macro link x
-  reg_imm \x vA
-.endm
-
-.macro linkm x
-  reg_m \x vL
-.endm
-
-.macro linkx x
-  reg_sign_extend \x vL
-.endm
 # ----------------------------------------------------------------------------
 .macro load
   movl data_memory(,vS,1), vA
@@ -362,10 +350,6 @@ Alternative if no imports:
   movl vA, vD
 .endm
 
-.macro moval
-  movl vA, vL
-.endm
-
 .macro movas
   movl vA, vS
 .endm
@@ -388,10 +372,6 @@ Alternative if no imports:
 
 .macro movda
   movl vS, vA
-.endm
-
-.macro movla
-  movl vL, vA
 .endm
 
 .macro movsa
