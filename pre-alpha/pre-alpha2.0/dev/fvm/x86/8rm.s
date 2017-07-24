@@ -1,5 +1,5 @@
 /*
-                      SPARSE REGISTER MACHINE (SRM)
+                          8 REGISTER MACHINE (8RM)
 
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
@@ -7,17 +7,11 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
-Updated:    20170723+
-Version:    pre-alpha-0.0.0.5+ for FVM 2.0
+Updated:    20170723
+Version:    pre-alpha-0.0.0.0 for FVM 2.0
 
-Notes: This is a MISC experiment which takes 'tvm.s' as its starting point
-and attempts to further simplify that by another order of magnitude.
-This 'miscvm1.s' supersedes 'tvm.s' and the earlier 'srm.s'.
-
-And this 'miscvm1.s' is about to be superseded by '8rm.s'.
-
-
-
+Notes: This '8rm.s' takes 'miscvm1.s' as its starting point.
+This supersedes 'miscvm1.s', 'tvm.s' and 'srm.s'.
 
                               This Edition:
                            32-bit i386 native
