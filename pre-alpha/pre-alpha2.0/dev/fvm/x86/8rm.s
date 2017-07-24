@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
-Updated:    20170723
-Version:    pre-alpha-0.0.0.0 for FVM 2.0
+Updated:    20170723+
+Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
 Notes: This '8rm.s' takes 'miscvm1.s' as its starting point.
 This supersedes 'miscvm1.s', 'tvm.s' and 'srm.s'.
@@ -59,11 +59,7 @@ Alternative if no imports:
   IDEA FOR FURTHER FACTORING AND SIMPLIFICATION:
 
     - Reduce to almost 1:1 relationship with typical 32-bit CPU instructions
-    - This makes a JIT compiler or AOT compiler easy to write
-    - Add a second stack pointer for various benefits
-    - Accept that 8 non-orthogonal registers is the best compromise
-    - This moves us away from sparse register to 8-register design
-    - Rename 8rm instead of srm, use '8rm.s' instead of 'miscvm1.s'
+    - Each register should do only one thing
 
 */
 # ============================================================================
@@ -87,6 +83,7 @@ Alternative if no imports:
 .equ vS, %esi # source address register
 .equ vD, %edi # destination address register
 .equ vP, %esp # stack pointer
+.equ vQ, %ebp # second stack pointer
 # Registers of the implementation:
 .equ rTmp, %ecx # temporary register (must be %ecx because of shl, shr)
 
@@ -113,18 +110,22 @@ Alternative if no imports:
 
 .macro do_save_sys_sp
   movl %esp, sys_sp
+  movl %ebp, sys_bp
 .endm
 
 .macro do_restore_sys_sp
   movl sys_sp, %esp
+  movl sys_bp, %ebp
 .endm
 
 .macro do_save_vm_sp
   movl %esp, vm_sp
+  movl %ebp, vm_bp
 .endm
 
 .macro do_restore_vm_sp
   movl vm_sp, %esp
+  movl vm_bp, %ebp
 .endm
 
 .macro vm_init
@@ -135,6 +136,7 @@ Alternative if no imports:
   xorl vD, vD
   xorl vS, vS
   leal data_memory, vP
+  leal data_memory, vQ
   xorl rTmp, rTmp
 .endm
 
@@ -406,6 +408,7 @@ Alternative if no imports:
 # ============================================================================
 .lcomm data_memory, DM_BYTES
 .lcomm sys_sp, WORD_SIZE
+.lcomm sys_bp, WORD_SIZE
 .lcomm vm_sp, WORD_SIZE
 
 # ============================================================================
