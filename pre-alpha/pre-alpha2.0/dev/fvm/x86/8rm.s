@@ -79,7 +79,7 @@ Alternative if no imports:
 # Registers of the virtual machine:
 .equ vA, %eax # was %ebx # accumulator
 .equ vB, %ebx # was %edx # operand register
-.equ vL, %edx # was %eax # link register
+.equ vL, %edx # was %eax # link register             SIMPLIFIED
 .equ vS, %esi # source address register
 .equ vD, %edi # destination address register
 .equ vP, %esp # stack pointer
@@ -140,75 +140,23 @@ Alternative if no imports:
   xorl rTmp, rTmp
 .endm
 
-.macro reg_imm x reg
-  movl $\x, \reg
-.endm
-
-.macro reg_sign_extend x reg
-  reg_imm \x \reg
-  reg_imm 0x00800000 rTmp
-  andl \reg, rTmp
-  jz 1f
-    orl $0xff000000, \reg
-  1:
-.endm
-
-.macro reg_m x reg
-  reg_imm \x rTmp
-  shll $8, rTmp
-  andl $0x00ffffff, \reg
-  orl rTmp, \reg
-.endm
-
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
 .macro lit x
-  reg_imm \x vA
-.endm
-
-.macro litm x
-  reg_m \x vA
-.endm
-
-.macro litx x
-  reg_sign_extend \x vA
+  movl $\x, vA
 .endm
 
 .macro op x
-  reg_imm \x vA
-.endm
-
-.macro opm x
-  reg_m \x vB
-.endm
-
-.macro opx x
-  reg_sign_extend \x vB
+  movl $\x, vA
 .endm
 
 .macro src x
-  reg_imm \x vA
-.endm
-
-.macro srcm x
-  reg_m \x vS
-.endm
-
-.macro srcx x
-  reg_sign_extend \x vS
+  movl $\x, vA
 .endm
 
 .macro dst x
-  reg_imm \x vA
-.endm
-
-.macro dstm x
-  reg_m \x vD
-.endm
-
-.macro dstx x
-  reg_sign_extend \x vD
+  movl $\x, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro load
@@ -418,14 +366,14 @@ vm_success:
 # ============================================================================
 .macro ops opcode # Simple instruction
   lit 0x000000
-  litm \opcode
+  #litm \opcode
   store
   incd
 .endm
 
 .macro opc opcode metadata # Complex instruction
   lit \metadata
-  litm \opcode
+  #litm \opcode
   store
   incd
 .endm
