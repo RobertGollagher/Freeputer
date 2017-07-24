@@ -511,6 +511,13 @@ v_next:
 end:
   halt
 
-
+v_opcodeTable:
+  .equ v_NOP, 0
+  .equ v_LIT, 1
+  .equ v_HALT, 2
+v_vectorTable:
+  .long v_NOP
+  .long v_LIT
+  .long v_HALT
 # ============================================================================
 
