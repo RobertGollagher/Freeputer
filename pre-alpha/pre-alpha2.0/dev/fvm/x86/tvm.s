@@ -18,6 +18,13 @@ Also, surprisingly, it actually has rather good performance:
   # This countdown is only 1.4 seconds
   lit    0xffffff
   litm 0x7f0000
+  toz
+  looping:
+    repeat looping
+
+  # This countdown is also only 1.4 seconds
+  lit    0xffffff
+  litm 0x7f0000
   looping:
     sub by 1
     jmpgz looping
@@ -139,7 +146,7 @@ Alternative if no imports:
 .equ vA, %ebx # accumulator
 .equ vB, %edx # operand register
 .equ vL, %edi # link register
-.equ vZ, %esi # buffer register
+.equ vZ, %esi # buffer register, also used for repeat
 # Registers of the implementation:
 .equ rTmp, %eax # primary temporary register
 .equ rBuf, %ecx # secondary temporary register
@@ -307,6 +314,12 @@ Alternative if no imports:
 .macro i_jmpnz label
   xorl $0, vA
   jnz \label
+.endm
+
+.macro i_djmpgz label
+  dec vZ
+  xorl $0, vZ
+  jg \label
 .endm
 
 .macro i_jmpgz label
@@ -500,6 +513,10 @@ Alternative if no imports:
 
 .macro jmpgez label
   i_jmpgez \label
+.endm
+
+.macro repeat label
+  i_djmpgz \label
 .endm
 
 .macro jmplez label
