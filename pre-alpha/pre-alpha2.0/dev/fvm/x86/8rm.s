@@ -8,7 +8,7 @@ Program:    miscvm1
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170723
 Updated:    20170723+
-Version:    pre-alpha-0.0.0.2+ for FVM 2.0
+Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
 Notes: This '8rm.s' takes 'miscvm1.s' as its starting point.
 This supersedes 'miscvm1.s', 'tvm.s' and 'srm.s'.
@@ -60,6 +60,9 @@ Alternative if no imports:
 
     - Reduce to almost 1:1 relationship with typical 32-bit CPU instructions
     - Each register should do only one thing
+    - Each instruction should do only one thing (no complex instructions)
+    - Operands should be implicit
+    - 16-bit isn't out of the question
 
 */
 # ============================================================================
@@ -167,6 +170,16 @@ Alternative if no imports:
   movl vA, data_memory(,vD,1)
 .endm
 
+.macro pull
+  movl data_memory(,vS,1), rTmp
+  movl data_memory(,rTmp,1), vA
+.endm
+
+.macro put
+  movl data_memory(,vD,1), rTmp
+  movl vA, data_memory(,rTmp,1)
+.endm
+
 .macro decs
   subl $WORD_SIZE, vS
 .endm
@@ -183,15 +196,7 @@ Alternative if no imports:
   addl $WORD_SIZE, vD
 .endm
 
-.macro pull
-  movl data_memory(,vS,1), rTmp
-  movl data_memory(,rTmp,1), vA
-.endm
 
-.macro put
-  movl data_memory(,vD,1), rTmp
-  movl vA, data_memory(,rTmp,1)
-.endm
 
 #FIXME not robust
 .macro push
@@ -435,6 +440,11 @@ v_clear_regs:
 .global main
 main:
   vm_init
+
+
+
+
+
   vm_load_program_for_child
 v_init:
   do v_clear_regs
