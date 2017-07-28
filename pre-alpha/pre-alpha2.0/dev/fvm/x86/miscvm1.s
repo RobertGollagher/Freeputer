@@ -16,6 +16,10 @@ This 'miscvm1.s' supersedes 'tvm.s' and the earlier 'srm.s'.
 
 And this 'miscvm1.s' is about to be superseded by '8rm.s'.
 
+OUTCOME: Like 'lm.s', this is REJECTED in favour of 'tvm.s'.
+Having so many registers is a mistake. Not easy to grok.
+The sweet spot between simplicity and performance really is 'tvm.s'.
+
 
 
 

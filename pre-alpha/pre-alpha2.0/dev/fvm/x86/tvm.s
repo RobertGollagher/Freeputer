@@ -10,7 +10,37 @@ Created:    20170721
 Updated:    20170722+
 Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 
-AS of 20170723 this 'tvm.s' has been superseded by 'miscvm1.s'.
+As of 20170729 this 'tvm.s' is again the front runner.
+It really is easier to grok than the alternatives which use more registers.
+Also, it is perfect for FW32 instruction encoding with simple decoding.
+Also, surprisingly, it actually has rather good performance:
+
+  # This countdown is only 1.4 seconds
+  lit    0xffffff
+  litm 0x7f0000
+  looping:
+    sub by 1
+    jmpgz looping
+
+  # This countdown is only 2.8 seconds
+  lit    0xffffff
+  litm 0x7f0000
+  looping:
+    toz
+    fromz
+    sub by 1
+    jmpgz looping
+
+  # This countdown is only 4.8 seconds
+  lit    0xffffff
+  litm 0x7f0000
+  looping:
+    to 0x100
+    from 0x100
+    sub by 1
+    jmpgz looping
+
+Performance is a lesser consideration than simplicity and portability.
 
 Notes: This is an experiment along the lines of srm.s but even simpler.
 It attemps to be about an order of magnitude simpler than FVM 2.0.
@@ -54,6 +84,7 @@ Simplicity:
   - Arguably this is still a little heavy
   - However, it is just a set of macros easily ported
   - An underlying MISC CPU could be used beneath these macros
+    - Yes, but doing so isn't relevant or worthwhile here
   - These macros are a sweet spot between simplicity and performance
 
 Other:
@@ -63,8 +94,8 @@ Other:
 
 Assessment:
 
-  - This 'tvm.s' is now the front-runner for implementing FVM 2.0
-    and as of 20170722 is considered superior to 'srm.s' and Plan A.
+  - This 'tvm.s' is again the front-runner for implementing FVM 2.0
+    as of 20170729
 
 ==============================================================================
                             BUILDING FOR i386

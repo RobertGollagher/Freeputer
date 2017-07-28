@@ -31,7 +31,7 @@ However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, 
 
 ## Shortlist
 
-### Proposed Design: Plan G: Sparse Register Machine
+### Proposed Design: Plan G: Sparse Register Machine (SRM)
 
 A portable register machine with very few visible registers.
 
@@ -39,9 +39,9 @@ This plan is moderately easy to implement but factoring is not especially easy.
 
 Performance is good and native compilation is possible. A simple versatile platform.
 
-For ongoing experiments see 'dev/fvm/x86/miscvm1.s'.
+For ongoing experiments see 'dev/fvm/x86/tvm.s'.
 
-This is now the front-runner for FVM 2.0. Other virtual machines could easily be virtualized on top of the sparse register machine, so the adoption of this approach does not preclude the use of stack-based languages. 
+This is now the front-runner for FVM 2.0. Other virtual machines could easily be virtualized on top of the SRM, so the adoption of this approach does not preclude the use of stack-based languages. Furthermore, the SRM itself could be virtualized on top of a MISC CPU although doing so is not immediately relevant here.
 
 ### Proposed Design: Plan A: Improved Stack Machine
 
@@ -256,7 +256,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 23 July 2017+ at 16:41+  
+This document was last updated on 29 July 2017+ at 00:01+  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

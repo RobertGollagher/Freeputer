@@ -13,6 +13,10 @@ Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 Notes: This '8rm.s' takes 'miscvm1.s' as its starting point.
 This supersedes 'miscvm1.s', 'tvm.s' and 'srm.s'.
 
+OUTCOME: Like 'lm.s', this is REJECTED in favour of 'tvm.s'.
+Having so many registers is a mistake. Not easy to grok.
+The sweet spot between simplicity and performance really is 'tvm.s'.
+
                               This Edition:
                            32-bit i386 native
                           x86 Assembly Language

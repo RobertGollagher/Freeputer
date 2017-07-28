@@ -20,6 +20,11 @@ Notes: This 'lm.s' is an experimental alternative approach. Values are:
     5. Mostly robust
     6. Nothing else matters
 
+OUTCOME: This is REJECTED in favour of 'tvm.s'.
+Having so many registers is a mistake. Not easy to grok.
+The sweet spot between simplicity and performance really is 'tvm.s'.
+
+
                               This Edition:
                            32-bit i386 native
                           x86 Assembly Language
