@@ -185,11 +185,6 @@ Alternative if no imports:
   shrl %cl, vA
 .endm
 # ----------------------------------------------------------------------------
-.macro jmpr baseAddr
-  leal \baseAddr(,vA,WORD_SIZE), rTmp
-  jmp *(rTmp)
-.endm
-
 .macro jump label
   jmp \label
 .endm
@@ -197,31 +192,6 @@ Alternative if no imports:
 .macro jmpz label
   xorl $0, vA
   jz \label
-.endm
-
-.macro jmpnz label
-  xorl $0, vA
-  jnz \label
-.endm
-
-.macro jmpgz label
-  xorl $0, vA
-  jg \label
-.endm
-
-.macro jmplz label
-  xorl $0, vA
-  jl \label
-.endm
-
-.macro jmpgez label
-  xorl $0, vA
-  jge \label
-.endm
-
-.macro jmplez label
-  xorl $0, vA
-  jle \label
 .endm
 # ----------------------------------------------------------------------------
 .macro do label
@@ -240,42 +210,6 @@ Alternative if no imports:
 
 .macro out # FIXME
   OUTCHAR vA
-.endm
-# ----------------------------------------------------------------------------
-.macro movab
-  movl vA, vB
-.endm
-
-.macro movad
-  movl vA, vD
-.endm
-
-.macro movas
-  movl vA, vS
-.endm
-
-.macro movba
-  movl vB, vA
-.endm
-
-.macro movbd
-  movl vB, vD
-.endm
-
-.macro movbl
-  movl vB, vD
-.endm
-
-.macro movbs
-  movl vB, vS
-.endm
-
-.macro movda
-  movl vS, vA
-.endm
-
-.macro movsa
-  movl vS, vA
 .endm
 # ----------------------------------------------------------------------------
 .macro halt
