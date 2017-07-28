@@ -60,9 +60,11 @@ Alternative if no imports:
 
   APPROACH:
 
-    - It's hard to predict how well this will work
-    - Let's just go to a 16-bit implementation and see what happens
-    - Now beginning the process of converting this 'lm.s' to 16-bit
+    - Use of 16-bit words is REJECTED:
+      - On modern hardware it makes asm implementation more difficult
+      - It just doesn't gain much overall due to greater software complexity
+    - However, 16-bit instruction width with 32-bit words looks promising
+      - Next let's try that
 
 */
 # ============================================================================
@@ -85,28 +87,61 @@ Alternative if no imports:
 .equ vL, %edx # was %eax # link register             SIMPLIFIED
 .equ vS, %esi # source address register
 .equ vD, %edi # destination address register
+.equ vP, %esp # stack pointer
+.equ vQ, %ebp # second stack pointer
 # Registers of the implementation:
 .equ rTmp, %ecx # temporary register (must be %ecx because of shl, shr)
 
 # ============================================================================
 # ============================================================================
 .macro OUTCHAR reg
+  do_save_vm_sp
+  do_restore_sys_sp
   pushl \reg
   call putchar
   addl $WORD_SIZE, %esp
+  do_save_sys_sp
+  do_restore_vm_sp
 .endm
 
 .macro INCHAR #FIXME
+  do_save_vm_sp
+  do_restore_sys_sp
   call getchar
   movl %eax, vA
+  do_save_sys_sp
+  do_restore_vm_sp
+.endm
+
+.macro do_save_sys_sp
+  movl %esp, sys_sp
+  movl %ebp, sys_bp
+.endm
+
+.macro do_restore_sys_sp
+  movl sys_sp, %esp
+  movl sys_bp, %ebp
+.endm
+
+.macro do_save_vm_sp
+  movl %esp, vm_sp
+  movl %ebp, vm_bp
+.endm
+
+.macro do_restore_vm_sp
+  movl vm_sp, %esp
+  movl vm_bp, %ebp
 .endm
 
 .macro vm_init
+  do_save_sys_sp
   xorl vA, vA
   xorl vB, vB
   xorl vL, vL
   xorl vD, vD
   xorl vS, vS
+  leal data_memory, vP
+  leal data_memory, vQ
   xorl rTmp, rTmp
 .endm
 
@@ -161,6 +196,17 @@ Alternative if no imports:
 
 .macro incd
   addl $WORD_SIZE, vD
+.endm
+
+
+
+#FIXME not robust
+.macro push
+  pushl vA
+.endm
+
+.macro pop
+  popl vA
 .endm
 
 # ----------------------------------------------------------------------------
@@ -296,17 +342,22 @@ Alternative if no imports:
 .section .bss #                  VARIABLES
 # ============================================================================
 .lcomm data_memory, DM_BYTES
+.lcomm sys_sp, WORD_SIZE
+.lcomm sys_bp, WORD_SIZE
+.lcomm vm_sp, WORD_SIZE
 
 # ============================================================================
 .section .text #             EXIT POINTS for the VM
 # ============================================================================
 vm_failure:
 
+  do_restore_sys_sp
   movl $FAILURE, rTmp
   ret
 
 vm_success:
 
+  do_restore_sys_sp
   movl $SUCCESS, rTmp
   ret
 
