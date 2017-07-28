@@ -154,17 +154,6 @@ Alternative if no imports:
   addl $WORD_SIZE, vD
 .endm
 
-
-
-#FIXME not robust
-.macro push
-  pushl vA
-.endm
-
-.macro pop
-  popl vA
-.endm
-
 # ----------------------------------------------------------------------------
 .macro add
   addl vB, vA
