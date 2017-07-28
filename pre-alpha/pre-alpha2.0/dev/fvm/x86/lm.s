@@ -4,16 +4,21 @@
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
 
-Program:    miscvm1
+Program:    lm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170728
 Updated:    20170728+
 Version:    pre-alpha-0.0.0.0+ for FVM 2.0
 
-Notes: This 'lm.s' is an experimental alternative approach.
-Its starting point is from '8rm.s'. This 'lm.s' is based on two ideas:
-  1. That hardware freedom is more important than having a large address space
-  2. That a small address space leads to better, more modular software.
+Notes: This 'lm.s' is an experimental alternative approach. Values are:
+
+  GETTING SERIOUS:
+    1. Effective
+    2. Extremely simple
+    3. Extremely portable
+    4. Entirely correct
+    5. Mostly robust
+    6. Nothing else matters
 
                               This Edition:
                            32-bit i386 native
@@ -50,23 +55,7 @@ Alternative if no imports:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-/*
-  BEST COMPROMISE:
 
-    - Internal address space not more than 64 kB
-    - Probably wise to be 4 to 64 times smaller than that
-    - Extreme simplification, extremely lightweight micro VM instances
-    - Compose applications by composing VM instances
-
-  APPROACH:
-
-    - Use of 16-bit words is REJECTED:
-      - On modern hardware it makes asm implementation more difficult
-      - It just doesn't gain much overall due to greater software complexity
-    - However, 16-bit instruction width with 32-bit words looks promising
-      - Next let's try that
-
-*/
 # ============================================================================
 #                                IMPORTS
 # ============================================================================
