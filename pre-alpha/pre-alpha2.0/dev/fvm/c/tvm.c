@@ -558,18 +558,50 @@ int main() {
 
 /*
   This is an example of a native program.
+  This example shall virtualize this VM within itself!
 
   IMPORTANT REMINDER: any use of literals longer than 24 bits is cheating.
   DO NOT USE METADATA LONGER THAN 24 BITS except for test purposes.
 */
 int exampleProgram() {
-  // With -O3 this takes 1.4 seconds:
-  add_by(0x7fffffff);
-  loop:
-    sub_by(1);
-    jmpgz(loop)
+#define v_data_memory 0
+// Smaller than parent DM_BYTES by arbitrary amount
+#define v_DM_BYTES 0x100000
+// Note: parent has no explicit rPC
+#define v_rPC v_data_memory + DM_BYTES
+#define v_vA v_rPC + WORD_SIZE
+#define v_vB v_vA + WORD_SIZE
+#define v_vL v_vB + WORD_SIZE
+#define v_vZ v_vL + WORD_SIZE
+// Just using arbitrary opcode designations for now:
+#define v_LIT 0x010000
+#define v_HALT 0x1f0000
 
-  return 0;
+vm_load_program_for_child:
+  // lit 0x123456 = 0x01123456
+  lit(0x123456);
+  to(0);
+  litm(v_LIT);
+  to(0);
+
+  // halt by 0 = 0x1f000000
+  lit(0x000000);
+  to(4);
+  litm(v_HALT);
+  to(4);
+
+v_init: // child
+  lit(0);
+  to(v_rPC);
+  to(v_vA);
+  to(v_vB);
+  to(v_vL);
+  to(v_vZ);
+
+  sub_by(1);
+
+end:
+  halt_by(0)
 }
 
 

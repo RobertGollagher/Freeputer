@@ -623,7 +623,7 @@ vm_load_program_for_child:
   litm v_HALT
   to 4
 
-v_init:  # child
+v_init: # child
   lit 0
   to v_rPC
   to v_vA
