@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
-Updated:    20170722+
-Version:    pre-alpha-0.0.0.11+ for FVM 2.0
+Updated:    20170729+
+Version:    pre-alpha-0.0.0.12+ for FVM 2.0
 
 As of 20170729 this 'tvm.s' is again the front runner.
 It really is easier to grok than the alternatives which use more registers.
@@ -93,6 +93,7 @@ Simplicity:
   - An underlying MISC CPU could be used beneath these macros
     - Yes, but doing so isn't relevant or worthwhile here
   - These macros are a sweet spot between simplicity and performance
+  - Consider pseudo-stack direction
 
 Other:
 
@@ -511,16 +512,16 @@ Alternative if no imports:
   i_jmplz \label
 .endm
 
+.macro jmplez label
+  i_jmplez \label
+.endm
+
 .macro jmpgez label
   i_jmpgez \label
 .endm
 
 .macro repeat label
   i_djmpgz \label
-.endm
-
-.macro jmplez label
-  i_jmplez \label
 .endm
 # ----------------------------------------------------------------------------
 .macro branch label
