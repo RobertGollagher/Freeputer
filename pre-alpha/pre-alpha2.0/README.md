@@ -31,19 +31,25 @@ However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, 
 
 ## Shortlist
 
-### Proposed Design: Plan G: Sparse Register Machine (SRM)
+### Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)
 
-A portable register machine with very few visible registers.
+A MISC machine which aims to have a core of less than 100 lines of code.
 
-This plan is moderately easy to implement but factoring is not especially easy.
+This plan is very easy to implement but factoring is not especially easy.
 
-Performance is good and native compilation is possible. A simple versatile platform.
+For ongoing experiments see 'dev/fvm/c/qmisc.s'.
 
-For ongoing experiments see 'dev/fvm/x86/tvm.s'.
+This is now the front-runner for FVM 2.0.
 
-This is now the front-runner for FVM 2.0. Other virtual machines could easily be virtualized on top of the SRM, so the adoption of this approach does not preclude the use of stack-based languages. Furthermore, the SRM itself could be virtualized on top of a MISC CPU although doing so is not immediately relevant here.
+Why? Quality (eliminate complexity and undefined behaviour).
+
+Quality matters more than performance.
+
+Quality requires simplicity.
 
 ### Proposed Design: Plan A: Improved Stack Machine
+
+Plan A is essentially rejected. However, it was interesting so it is listed here for future reference.
 
 A portable stack machine which is correct and robust by virtue of branching on failure.
 
@@ -256,7 +262,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 29 July 2017+ at 00:01+  
+This document was last updated on 29 July 2017+ at 22:44+  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

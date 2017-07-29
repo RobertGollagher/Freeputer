@@ -19,13 +19,16 @@
 <p>Freeputer 2.0 will not run unmodified Freeputer 1.0 programs.</p>
 <p>However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer 1.0 programs to run there.</p>
 <h2 id="shortlist">Shortlist</h2>
-<h3 id="proposed-design-plan-g-sparse-register-machine-srm">Proposed Design: Plan G: Sparse Register Machine (SRM)</h3>
-<p>A portable register machine with very few visible registers.</p>
-<p>This plan is moderately easy to implement but factoring is not especially easy.</p>
-<p>Performance is good and native compilation is possible. A simple versatile platform.</p>
-<p>For ongoing experiments see 'dev/fvm/x86/tvm.s'.</p>
-<p>This is now the front-runner for FVM 2.0. Other virtual machines could easily be virtualized on top of the SRM, so the adoption of this approach does not preclude the use of stack-based languages. Furthermore, the SRM itself could be virtualized on top of a MISC CPU although doing so is not immediately relevant here.</p>
+<h3 id="proposed-design-plan-g-minimal-instruction-set-computer-misc">Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)</h3>
+<p>A MISC machine which aims to have a core of less than 100 lines of code.</p>
+<p>This plan is very easy to implement but factoring is not especially easy.</p>
+<p>For ongoing experiments see 'dev/fvm/c/qmisc.s'.</p>
+<p>This is now the front-runner for FVM 2.0.</p>
+<p>Why? Quality (eliminate complexity and undefined behaviour).</p>
+<p>Quality matters more than performance.</p>
+<p>Quality requires simplicity.</p>
 <h3 id="proposed-design-plan-a-improved-stack-machine">Proposed Design: Plan A: Improved Stack Machine</h3>
+<p>Plan A is essentially rejected. However, it was interesting so it is listed here for future reference.</p>
 <p>A portable stack machine which is correct and robust by virtue of branching on failure.</p>
 <p>This plan is moderately difficult to implement but makes factoring easy.</p>
 <p>Performance is at least moderate. An excellent stack machine.</p>
@@ -322,7 +325,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 29 July 2017+ at 00:01+<br />
+This document was last updated on 29 July 2017+ at 22:44+<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

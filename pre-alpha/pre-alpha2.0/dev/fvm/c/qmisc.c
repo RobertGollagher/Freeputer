@@ -1,42 +1,16 @@
 /*
-                      SPARSE REGISTER MACHINE (SRM)
+             QUALITY MINIMAL INSTRUCTION SET COMPUTER (QMISC)
+               Core aims to be less than 100 lines of code
+                 and totally free of undefined behaviour
 
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
 
-Program:    srm
+Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
-Created:    20170721
+Created:    20170729
 Updated:    20170729+
-Version:    pre-alpha-0.0.0.2+ for FVM 2.0
-
-See 'tvm.s' (x86 assembly language). It is the primary implementation.
-This 'tvm.c' is a secondard implementation in C as a sanity check.
-The unusual comments are copied from 'tvm.s' for cross-checking.
-The unusual syntax and patterns are to correspond to 'tvm.s'.
-
-  // With -O3 this takes 1.4 seconds:
-  add_by(0x7fffffff);
-  loop:
-    sub_by(1);
-    jmpgz(loop)
-
-
-  UPDATE at 20170729 end-of-day regarding 'tvm.c' and 'tvm.s':
-    - REJECTED because:
-      - Preventing undefined behaviour in C is DIABOLICALLY DIFFICULT
-      - However, at 600+ lines, the VM remains unpleasantly large
-          to implement in assembly language on unfamiliar platforms
-      - Modern hardware is poisoned and FPGAs are one solution
-      - Putting this all together, what is needed is a MISC machine
-          about an order of magnitude smaller, say 60 to 100 lines
-      - Otherwise we are not gaining sufficient advantage over FVM 1.0
-          to be worth the effort; we need to go MISC
-      - This means FORGET ABOUT PERFORMANCE!!!
-          and instead create something that is about quality
-          which eliminates all complexity and all undefined behaviour
-      - Less is more
-
+Version:    pre-alpha-0.0.0.0+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -44,59 +18,15 @@ The unusual syntax and patterns are to correspond to 'tvm.s'.
 
                                ( ) [ ] { }
 
-==============================================================================
-                          SANITY CHECK: PROBLEMS
-==============================================================================
-
-  - 24-bit metadata is not a C type
-  - TODO maybe refactor to more C-like referencing and dereferencing
-  - this implementation is straightforward but tedious boilerplate
-  - still need to think about relative jumps (not impl here):
-      - they do not make sense in a native impl like this
-      - they make sense with a virtualized FW32 impl
-  - branch relies on "labels as values" gcc extension and might not work
-  - C undefined behaviour on signed int overflow: need to go to unsigned
-  - FIXME eliminate all undefined behaviour:
-      - this is non-trivial
-      - because of this, all effort will now switch to this C implementation
-        (that is, 'tvm.c') rather than other implementations (like 'tvm.s')
-        until all these problems have been solved in C; this will involve
-        drastic simplification and lessening of capability in order
-        to achieve defined behaviour under all circumstances
-        while also achieving SIMPLICITY and EASE OF IMPLEMENTATION
-  - Removing sign extension because VM now based on unsigned ints
-
-==============================================================================
-                                 BUILDING
-==============================================================================
-
-For now, since this is a pre-alpha implementation and thus performance is
-a secondary consideration, the recommended command to build the FVM executable
-for a Linux target with the provided Makefile is simply:
-
-  make
-
-Which is equivalent to:
-
-  gcc -o tvm tvm.c
-
-But performance is hopeless. For better performance do:
-
-  make good
-
-Which is equivalent to:
-
-  gcc -o tvm tvm.c -O3
-
-Then conveniently run and time the example program by:
-
-  time ./tvm; echo $?
+  Starting point is 'tvm.c' which will be dramatically cut down to
+     about 1/10th its original size.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
+
 #include <stdio.h>
 #include <inttypes.h>
 // SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:

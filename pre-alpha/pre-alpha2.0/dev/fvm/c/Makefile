@@ -5,7 +5,7 @@
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    2017
 # Updated:    20170729
-# Version:    pre-alpha-0.0.0.2
+# Version:    pre-alpha-0.0.0.3
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,13 +28,13 @@
 # 
 # =============================================================================
 #
-# To make on any Linux platform use:
+# To make 'foo.c' on any Linux platform use:
 # 
-#   make
+#   make OBJ=foo
 #
 # To make on any Linux platform with decent performance use:
 # 
-#   make good
+#   make good OBJ=foo
 # 
 # Some other options are provided below but are untested
 # and, in some cases, incomplete.
@@ -42,10 +42,10 @@
 # ============================================================================
 CC=gcc
 CPPC=g++
-OBJ=tvm
-SRCS=tvm.c
-DEPS=tvm.c
-all: tvm
+OBJ?=qmisc
+SRCS=$(OBJ).c
+DEPS=$(OBJ).c
+all: $(OBJ)
 tvm: $(DEPS)
 	$(CC) -o $(OBJ) $(SRCS)
 tvm32: $(DEPS)

@@ -10,6 +10,23 @@ Created:    20170721
 Updated:    20170729+
 Version:    pre-alpha-0.0.0.12+ for FVM 2.0
 
+  UPDATE at 20170729 end-of-day regarding 'tvm.c' and 'tvm.s':
+    - REJECTED because:
+      - Preventing undefined behaviour in C is DIABOLICALLY DIFFICULT
+      - However, at 600+ lines, the VM remains unpleasantly large
+          to implement in assembly language on unfamiliar platforms
+      - Modern hardware is poisoned and FPGAs are one solution
+      - Putting this all together, what is needed is a MISC machine
+          about an order of magnitude smaller, say 60 to 100 lines
+      - Otherwise we are not gaining sufficient advantage over FVM 1.0
+          to be worth the effort; we need to go MISC
+      - This means FORGET ABOUT PERFORMANCE!!!
+          and instead create something that is about quality
+          which eliminates all complexity and all undefined behaviour
+      - Less is more
+
+---
+
 As of 20170729 this 'tvm.s' is again the front runner.
 It really is easier to grok than the alternatives which use more registers.
 Also, it is perfect for FW32 instruction encoding with simple decoding.
