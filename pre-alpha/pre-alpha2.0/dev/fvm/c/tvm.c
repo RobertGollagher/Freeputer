@@ -10,8 +10,9 @@ Created:    20170721
 Updated:    20170729+
 Version:    pre-alpha-0.0.0.0+ for FVM 2.0
 
-See 'tvm.s'. It is the primary implementation.
+See 'tvm.s' (x86 assembly language). It is the primary implementation.
 This 'tvm.c' is a secondard implementation in C as a sanity check.
+The unusual comments are copied from 'tvm.s' for cross-checking.
 
                               This Edition:
                                Portable C 
@@ -38,3 +39,85 @@ Which is equivalent to:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
+// ===========================================================================
+//                               IMPORTS
+// ===========================================================================
+#include <stdio.h>
+#include <inttypes.h>
+#define WORD int32_t
+// ===========================================================================
+//                               SYMBOLS
+// ===========================================================================
+#define SUCCESS 0
+#define FAILURE 1
+// Size of the virtual machine:
+#define DM_BYTES 0x1000000 // could be up to 0x100000000
+#define WORD_SIZE 4
+// Registers of the virtual machine:
+WORD vA = 0; // (was %ebx) accumulator
+WORD vB = 0; // (was %edx operand register
+WORD vL = 0; // (was %edi) link register
+WORD vZ = 0; // (was %esi) buffer register, also used for repeat
+// Registers of the implementation:
+WORD rTmp = 0; // (was %eax) primary temporary register
+WORD rBuf = 0; // (was %ecx) secondary temporary register
+
+// ===========================================================================
+//                               VARIABLES
+// ===========================================================================
+WORD data_memory[DM_BYTES];
+
+// ===========================================================================
+// =================== START OF PLATFORM-SPECIFIC CODE =======================
+// ===========================================================================
+#define OUTCHAR(reg) putchar(reg);
+#define INCHAR getchar(); // FIXME
+#define reg_imm(x,reg) reg = x;
+#define reg_sign_extend(x,reg) \
+  reg = x; \
+  rBuf = x & 0x00800000; \
+  if (rBuf != 0) { \
+    reg = reg | 0xff000000; \
+  }
+#define reg_ptr_pp(regPtr) data_memory[regPtr] += WORD_SIZE;
+#define reg_mm(regPtr) regPtr -= WORD_SIZE;
+#define reg_m(x,reg) \
+  rTmp = x << 8; \
+  reg = reg & $0x00ffffff; \
+  reg = reg | rTmp;
+
+
+
+// ===========================================================================
+//                               ENTRY POINT
+// ===========================================================================
+main() {
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
