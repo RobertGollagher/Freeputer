@@ -558,6 +558,9 @@ int main() {
 
 /*
   This is an example of a native program.
+
+  IMPORTANT REMINDER: any use of literals longer than 24 bits is cheating.
+  DO NOT USE METADATA LONGER THAN 24 BITS except for test purposes.
 */
 int exampleProgram() {
   // With -O3 this takes 1.4 seconds:

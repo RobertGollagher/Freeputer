@@ -586,6 +586,10 @@ vm_success:
 #     Labels starting with vm_ are used by the parent native VM.
 #     Labels starting with v_ are used by the child virtualized VM.
 #     The child shall use fixed-width 32-bit instructions (FW32).
+#
+#  IMPORTANT REMINDER: any use of literals longer than 24 bits is cheating.
+#  DO NOT USE METADATA LONGER THAN 24 BITS except for test purposes.
+#
 # ============================================================================
 .equ v_data_memory, 0
 .equ v_DM_BYTES, 0x100000 # Smaller than parent DM_BYTES by arbitrary amount
