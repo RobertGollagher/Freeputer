@@ -38,6 +38,16 @@ The unusual syntax and patterns are to correspond to 'tvm.s'.
       - they do not make sense in a native impl like this
       - they make sense with a virtualized FW32 impl
   - branch relies on "labels as values" gcc extension and might not work
+  - C undefined behaviour on signed int overflow: need to go to unsigned
+  - FIXME eliminate all undefined behaviour:
+      - this is non-trivial
+      - because of this, all effort will now switch to this C implementation
+        (that is, 'tvm.c') rather than other implementations (like 'tvm.s')
+        until all these problems have been solved in C; this will involve
+        drastic simplification and lessening of capability in order
+        to achieve defined behaviour under all circumstances
+        while also achieving SIMPLICITY and EASE OF IMPLEMENTATION
+  - Removing sign extension because VM now based on unsigned ints
 
 ==============================================================================
                                  BUILDING
@@ -72,9 +82,16 @@ Then conveniently run and time the example program by:
 ============================================================================*/
 #include <stdio.h>
 #include <inttypes.h>
-#define WORD int32_t
-#define LINK_WORD uintptr_t // FIXME this makes swapAL impractical
-#define METADATA int32_t // FIXME PROBLEM: C has no int24_t
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+//    1. VM must be fundamentally build on unsigned integers
+#define WORD uint32_t
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. Allow neither direct access to vL nor swapAL
+#define LINK_WORD uintptr_t
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. bitwised values must be unsigned hence METADATA is uint32_t
+#define METADATA uint32_t // FIXME PROBLEM: C has no int24_t
+#define METADATA_MASK 0x00ffffff // so we use a mask here
 #define SUCCESS 0
 #define FAILURE 1
 // Size of the virtual machine:
@@ -94,14 +111,6 @@ int exampleProgram();
 // ===========================================================================
 //                THE PLUMBING (not to be used in programs)
 // ===========================================================================
-void reg_sign_extend(METADATA x, WORD *reg) {
-  *reg = x;
-  rBuf = x & 0x00800000;
-  if (rBuf != 0) {
-    *reg = *reg | 0xff000000;
-  }
-}
-
 void reg_m(METADATA x, WORD *reg) {
   rTmp = x << 8;
   *reg = *reg & 0x00ffffff;
@@ -148,61 +157,85 @@ void reg_ptr_load_mm(METADATA x, WORD *reg) {
   reg_store(&rBuf, &rTmp);
   reg_load(&rBuf, &vA);
 }
+
+// SIMPLEST SOLUTION TO PREVENT CHEATING:
+//   1. Mask out the unsigned METADATA value to enforce it being in range
+METADATA enrange(METADATA x) {
+  x = x & METADATA_MASK;
+}
 // ---------------------------------------------------------------------------
 void by(METADATA x) {
+  enrange(x);
   vB = x;
 }
 
-void byx(METADATA x) {
-  reg_sign_extend(x,&vB);
-}
-
 void bym(METADATA x) {
+  enrange(x);
   reg_m(x,&vB);
 }
 
 void by_at(METADATA x) {
+  enrange(x);
   reg_at(x,&vB);
 }
 
 void by_ptr(METADATA x) {
+  enrange(x);
   reg_ptr_load(x,&vB);
 }
 
 void by_ptr_pp(METADATA x) {
+  enrange(x);
   reg_ptr_load_pp(x,&vB);
 }
 
 void by_ptr_mm(METADATA x) {
-  reg_ptr_load_pp(x,&vB);
+  enrange(x);
+  reg_ptr_load_mm(x,&vB);
 }
 // ---------------------------------------------------------------------------
 void add() {
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. values must be unsigned hence WORD is uint32_t, wraps
   vA+=vB;
 }
 
 void sub() {
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. values must be unsigned hence WORD is uint32_t, wraps
   vA-=vB;
 }
 
 void or() {
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. values must be unsigned hence WORD is uint32_t
   vA = vA | vB;
 }
 
 void and() {
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. values must be unsigned hence WORD is uint32_t
   vA = vA & vB;
 }
 
 void xor() {
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. values must be unsigned hence WORD is uint32_t
   vA = vA ^ vB;
 }
 
 void shl() {
-  vA = vA << vB;
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. mask to max 31-bit shift; and
+  //    2. values must be unsigned hence WORD is uint32_t
+  vA = vA << (vB & 0x0000001f);
 }
 
 void shr() {
-  vA = vA >> vB;
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. mask to max 31-bit shift; and
+  //    2. values must be unsigned hence WORD is uint32_t
+  vA = vA >> (vB & 0x0000001f);
 }
 // ---------------------------------------------------------------------------
 void do_swap(WORD *reg1, WORD *reg2) {
@@ -211,47 +244,52 @@ void do_swap(WORD *reg1, WORD *reg2) {
   *reg2 = rBuf;
 }
 // ===========================================================================
-//                            INSTRUCTION SET
+//   INSTRUCTION SET
 // ===========================================================================
 void lit(METADATA x) {
+  enrange(x);
   vA = x;
 }
 
-void litx(METADATA x) {
-  reg_sign_extend(x,&vA);
-}
-
 void litm(METADATA x) {
+  enrange(x);
   reg_m(x,&vA);
 }
 // ---------------------------------------------------------------------------
 void from(METADATA x) {
+  enrange(x);
   reg_at(x,&vA);
 }
 
 void from_ptr(METADATA x) {
+  enrange(x);
   reg_ptr_load(x,&vA);
 }
 
 void from_ptr_pp(METADATA x) {
+  enrange(x);
   reg_ptr_load_pp(x,&vA);
 }
 
 void from_ptr_mm(METADATA x) {
+  enrange(x);
   reg_ptr_load_mm(x,&vA);
 }
 // ---------------------------------------------------------------------------
 void to(METADATA x) {
+  enrange(x);
   rTmp = x;
   reg_store(&vA,&rTmp);
 }
 
 void to_ptr(METADATA x) {
+  enrange(x);
   rTmp = x;
   reg_store(&vA,&rTmp);
 }
 
 void to_ptr_pp(METADATA x) {
+  enrange(x);
   rBuf = x;
   reg_load(&rBuf,&rTmp);
   reg_store(&vA,&rTmp);
@@ -259,6 +297,7 @@ void to_ptr_pp(METADATA x) {
 }
 
 void to_ptr_mm(METADATA x) {
+  enrange(x);
   reg_at(x,&rBuf);
   reg_mm(&rBuf);
   reg_store(&rBuf,&rTmp);
@@ -272,11 +311,6 @@ void add_by(METADATA x) {
 
 void add_bym(METADATA x) {
   bym(x);
-  add();
-}
-
-void add_byx(METADATA x) {
-  byx(x);
   add();
 }
 
@@ -310,11 +344,6 @@ void sub_bym(METADATA x) {
   sub();
 }
 
-void sub_byx(METADATA x) {
-  byx(x);
-  sub();
-}
-
 void sub_by_at(METADATA x) {
   by_at(x);
   sub();
@@ -341,11 +370,6 @@ void or_by(METADATA x) {
 
 void or_bym(METADATA x) {
   bym(x);
-  or();
-}
-
-void or_byx(METADATA x) {
-  byx(x);
   or();
 }
 
@@ -379,11 +403,6 @@ void and_bym(METADATA x) {
   and();
 }
 
-void and_byx(METADATA x) {
-  byx(x);
-  and();
-}
-
 void and_by_at(METADATA x) {
   by_at(x);
   and();
@@ -411,11 +430,6 @@ void xor_by(METADATA x) {
 
 void xor_bym(METADATA x) {
   bym(x);
-  xor();
-}
-
-void xor_byx(METADATA x) {
-  byx(x);
   xor();
 }
 
@@ -449,11 +463,6 @@ void shl_bym(METADATA x) {
   shl();
 }
 
-void shl_byx(METADATA x) {
-  byx(x);
-  shl();
-}
-
 void shl_by_at(METADATA x) {
   by_at(x);
   shl();
@@ -481,11 +490,6 @@ void shr_by(METADATA x) {
 
 void shr_bym(METADATA x) {
   bym(x);
-  shr();
-}
-
-void shr_byx(METADATA x) {
-  byx(x);
   shr();
 }
 
@@ -526,12 +530,10 @@ void shr_by_ptr_pp(METADATA x) {
 }
 #define merge goto *vL;
 // ---------------------------------------------------------------------------
+// SIMPLEST UNDEFINED BEHAVIOUR SOLUTION:
+  //    1. Allow neither direct access to vL nor swapAL
 void swapAB() {
   do_swap(&vA,&vB);
-}
-
-void swapAL() {
-  do_swap(&vA,&vL);
 }
 
 void swapAZ() {
