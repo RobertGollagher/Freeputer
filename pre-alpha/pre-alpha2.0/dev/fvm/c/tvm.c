@@ -31,7 +31,6 @@ The unusual comments are copied from 'tvm.s' for cross-checking.
 ==============================================================================
 
   - 24-bit metadata is not a C type
-  - FIXME properly address compiler warnings
 
 ==============================================================================
                                  BUILDING
@@ -82,22 +81,23 @@ WORD vZ = 0; // (was %esi) buffer register, also used for repeat
 WORD rTmp = 0; // (was %eax) primary temporary register
 WORD rBuf = 0; // (was %ecx) secondary temporary register
 WORD data_memory[DM_BYTES];
+int exampleProgram();
 
 // ===========================================================================
 //                THE PLUMBING (not to be used in programs)
 // ===========================================================================
 void reg_sign_extend(METADATA x, WORD *reg) {
-  reg = x;
+  *reg = x;
   rBuf = x & 0x00800000;
   if (rBuf != 0) {
-    reg = *reg | 0xff000000;
+    *reg = *reg | 0xff000000;
   }
 }
 
 void reg_m(METADATA x, WORD *reg) {
   rTmp = x << 8;
-  reg = *reg & 0x00ffffff;
-  reg = rTmp | *reg;
+  *reg = *reg & 0x00ffffff;
+  *reg = rTmp | *reg;
 }
 
 void by(METADATA x) {
@@ -105,11 +105,11 @@ void by(METADATA x) {
 }
 
 void byx(METADATA x) {
-  reg_sign_extend(x,vB);
+  reg_sign_extend(x,&vB);
 }
 
 void bym(METADATA x) {
-  reg_m(x,vB);
+  reg_m(x,&vB);
 }
 
 void add() {
