@@ -8,17 +8,30 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170729+
-Version:    pre-alpha-0.0.0.0+ for FVM 2.0
+Version:    pre-alpha-0.0.0.1+ for FVM 2.0
 
 See 'tvm.s' (x86 assembly language). It is the primary implementation.
 This 'tvm.c' is a secondard implementation in C as a sanity check.
 The unusual comments are copied from 'tvm.s' for cross-checking.
 
+  // With -O3 this takes 1.4 seconds:
+  add_by(0x7fffffff);
+  loop:
+    sub_by(1);
+    jmpgz(loop)
+
                               This Edition:
-                               Portable C 
+                               Portable C
                             for Linux and gcc
 
                                ( ) [ ] { }
+
+==============================================================================
+                          SANITY CHECK: PROBLEMS
+==============================================================================
+
+  - 24-bit metadata is not a C type
+  - FIXME properly address compiler warnings
 
 ==============================================================================
                                  BUILDING
@@ -32,7 +45,19 @@ for a Linux target with the provided Makefile is simply:
 
 Which is equivalent to:
 
-  gcc -o fvm fvm.c
+  gcc -o tvm tvm.c
+
+But performance is hopeless. For better performance do:
+
+  make good
+
+Which is equivalent to:
+
+  gcc -o tvm tvm.c -O3
+
+Then conveniently run and time the example program by:
+
+  time ./tvm; echo $?
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -42,6 +67,7 @@ Which is equivalent to:
 #include <stdio.h>
 #include <inttypes.h>
 #define WORD int32_t
+#define METADATA int32_t // FIXME PROBLEM: C has no int24_t
 #define SUCCESS 0
 #define FAILURE 1
 // Size of the virtual machine:
@@ -57,25 +83,76 @@ WORD rTmp = 0; // (was %eax) primary temporary register
 WORD rBuf = 0; // (was %ecx) secondary temporary register
 WORD data_memory[DM_BYTES];
 
-#define reg_sign_extend(x,reg) \
-  reg = x; \
-  rBuf = x & 0x00800000; \
-  if (rBuf != 0) { \
-    reg = reg | 0xff000000; \
+// ===========================================================================
+//                THE PLUMBING (not to be used in programs)
+// ===========================================================================
+void reg_sign_extend(METADATA x, WORD *reg) {
+  reg = x;
+  rBuf = x & 0x00800000;
+  if (rBuf != 0) {
+    reg = *reg | 0xff000000;
   }
+}
 
-#define reg_m(x,reg) \
-  rTmp = x << 8; \
-  reg = reg & $0x00ffffff; \
-  reg = reg | rTmp;
+void reg_m(METADATA x, WORD *reg) {
+  rTmp = x << 8;
+  reg = *reg & 0x00ffffff;
+  reg = rTmp | *reg;
+}
 
+void by(METADATA x) {
+  vB = x;
+}
 
+void byx(METADATA x) {
+  reg_sign_extend(x,vB);
+}
 
+void bym(METADATA x) {
+  reg_m(x,vB);
+}
+
+void add() {
+  vA+=vB;
+}
+
+void sub() {
+  vA-=vB;
+}
+
+// ===========================================================================
+//                            INSTRUCTION SET
+// ===========================================================================
+void add_by(METADATA x) {
+  by(x);
+  add();
+}
+
+void sub_by(METADATA x) {
+  by(x);
+  sub();
+}
+
+#define jmpgz(label) if (vA > 0) { goto label; }
 // ===========================================================================
 //                               ENTRY POINT
 // ===========================================================================
-main() {
+int main() {
+  int outcome = exampleProgram();
+  return outcome;
+}
 
+/*
+  This is an example of a native program.
+*/
+int exampleProgram() {
+  // With -O3 this takes 1.4 seconds:
+  add_by(0x7fffffff);
+  loop:
+    sub_by(1);
+    jmpgz(loop)
+
+  return 0;
 }
 
 

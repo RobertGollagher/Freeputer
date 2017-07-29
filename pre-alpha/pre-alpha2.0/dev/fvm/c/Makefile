@@ -5,7 +5,7 @@
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    2017
 # Updated:    20170729
-# Version:    pre-alpha-0.0.0.1
+# Version:    pre-alpha-0.0.0.2
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@
 # To make on any Linux platform use:
 # 
 #   make
+#
+# To make on any Linux platform with decent performance use:
+# 
+#   make good
 # 
 # Some other options are provided below but are untested
 # and, in some cases, incomplete.
@@ -38,14 +42,16 @@
 # ============================================================================
 CC=gcc
 CPPC=g++
-OBJ=fvm
-SRCS=fvm.c
-DEPS=fvm.c rom.h
-all: fvm
-fvm: $(DEPS)
+OBJ=tvm
+SRCS=tvm.c
+DEPS=tvm.c
+all: tvm
+tvm: $(DEPS)
 	$(CC) -o $(OBJ) $(SRCS)
-fvm32: $(DEPS)
+tvm32: $(DEPS)
 	$(CC) -o $(OBJ) $(SRCS) -m32
+good: $(DEPS)
+	$(CC) -o $(OBJ) $(SRCS) -O3
 cpp: $(DEPS)
 	$(CPPC) -o $(OBJ) $(SRCS)
 x86: $(DEPS)
