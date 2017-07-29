@@ -8,7 +8,7 @@ Program:    srm
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170721
 Updated:    20170729+
-Version:    pre-alpha-0.0.0.1+ for FVM 2.0
+Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
 See 'tvm.s' (x86 assembly language). It is the primary implementation.
 This 'tvm.c' is a secondard implementation in C as a sanity check.
@@ -179,6 +179,26 @@ void add() {
 void sub() {
   vA-=vB;
 }
+
+void or() {
+  vA = vA | vB;
+}
+
+void and() {
+  vA = vA & vB;
+}
+
+void xor() {
+  vA = vA ^ vB;
+}
+
+void shl() {
+  vA = vA << vB;
+}
+
+void shr() {
+  vA = vA >> vB;
+}
 // ===========================================================================
 //                            INSTRUCTION SET
 // ===========================================================================
@@ -302,7 +322,182 @@ void sub_by_ptr_mm(METADATA x) {
 void sub_by_ptr_pp(METADATA x) {
   by_ptr_pp(x);
   sub();
+}// ---------------------------------------------------------------------------
+void or_by(METADATA x) {
+  by(x);
+  or();
 }
+
+void or_bym(METADATA x) {
+  bym(x);
+  or();
+}
+
+void or_byx(METADATA x) {
+  byx(x);
+  or();
+}
+
+void or_by_at(METADATA x) {
+  by_at(x);
+  or();
+}
+
+void or_by_ptr(METADATA x) {
+  by_ptr(x);
+  or();
+}
+
+void or_by_ptr_mm(METADATA x) {
+  by_ptr_mm(x);
+  or();
+}
+
+void or_by_ptr_pp(METADATA x) {
+  by_ptr_pp(x);
+  or();
+}
+// ---------------------------------------------------------------------------
+void and_by(METADATA x) {
+  by(x);
+  and();
+}
+
+void and_bym(METADATA x) {
+  bym(x);
+  and();
+}
+
+void and_byx(METADATA x) {
+  byx(x);
+  and();
+}
+
+void and_by_at(METADATA x) {
+  by_at(x);
+  and();
+}
+
+void and_by_ptr(METADATA x) {
+  by_ptr(x);
+  and();
+}
+
+void and_by_ptr_mm(METADATA x) {
+  by_ptr_mm(x);
+  and();
+}
+
+void and_by_ptr_pp(METADATA x) {
+  by_ptr_pp(x);
+  and();
+}
+// ---------------------------------------------------------------------------
+void xor_by(METADATA x) {
+  by(x);
+  xor();
+}
+
+void xor_bym(METADATA x) {
+  bym(x);
+  xor();
+}
+
+void xor_byx(METADATA x) {
+  byx(x);
+  xor();
+}
+
+void xor_by_at(METADATA x) {
+  by_at(x);
+  xor();
+}
+
+void xor_by_ptr(METADATA x) {
+  by_ptr(x);
+  xor();
+}
+
+void xor_by_ptr_mm(METADATA x) {
+  by_ptr_mm(x);
+  xor();
+}
+
+void xor_by_ptr_pp(METADATA x) {
+  by_ptr_pp(x);
+  xor();
+}
+// ---------------------------------------------------------------------------
+void shl_by(METADATA x) {
+  by(x);
+  shl();
+}
+
+void shl_bym(METADATA x) {
+  bym(x);
+  shl();
+}
+
+void shl_byx(METADATA x) {
+  byx(x);
+  shl();
+}
+
+void shl_by_at(METADATA x) {
+  by_at(x);
+  shl();
+}
+
+void shl_by_ptr(METADATA x) {
+  by_ptr(x);
+  shl();
+}
+
+void shl_by_ptr_mm(METADATA x) {
+  by_ptr_mm(x);
+  shl();
+}
+
+void shl_by_ptr_pp(METADATA x) {
+  by_ptr_pp(x);
+  shl();
+}
+// ---------------------------------------------------------------------------
+void shr_by(METADATA x) {
+  by(x);
+  shr();
+}
+
+void shr_bym(METADATA x) {
+  bym(x);
+  shr();
+}
+
+void shr_byx(METADATA x) {
+  byx(x);
+  shr();
+}
+
+void shr_by_at(METADATA x) {
+  by_at(x);
+  shr();
+}
+
+void shr_by_ptr(METADATA x) {
+  by_ptr(x);
+  shr();
+}
+
+void shr_by_ptr_mm(METADATA x) {
+  by_ptr_mm(x);
+  shr();
+}
+
+void shr_by_ptr_pp(METADATA x) {
+  by_ptr_pp(x);
+  shr();
+}
+
 // ---------------------------------------------------------------------------
 
 #define jmpgz(label) if (vA > 0) { goto label; }
