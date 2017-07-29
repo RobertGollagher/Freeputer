@@ -352,7 +352,7 @@ Alternative if no imports:
 .endm
 
 .macro reg_ptr_load x reg
-  reg_at rTmp
+  reg_at x rTmp
   reg_load rTmp \reg
 .endm
 
@@ -623,6 +623,8 @@ v_init:  # child
   to v_vB
   to v_vL
   to v_vZ
+
+  sub by 1
 
 end:
   halt by 0
