@@ -39,15 +39,9 @@ Which is equivalent to:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-// ===========================================================================
-//                               IMPORTS
-// ===========================================================================
 #include <stdio.h>
 #include <inttypes.h>
 #define WORD int32_t
-// ===========================================================================
-//                               SYMBOLS
-// ===========================================================================
 #define SUCCESS 0
 #define FAILURE 1
 // Size of the virtual machine:
@@ -61,26 +55,15 @@ WORD vZ = 0; // (was %esi) buffer register, also used for repeat
 // Registers of the implementation:
 WORD rTmp = 0; // (was %eax) primary temporary register
 WORD rBuf = 0; // (was %ecx) secondary temporary register
-
-// ===========================================================================
-//                               VARIABLES
-// ===========================================================================
 WORD data_memory[DM_BYTES];
 
-// ===========================================================================
-// =================== START OF PLATFORM-SPECIFIC CODE =======================
-// ===========================================================================
-#define OUTCHAR(reg) putchar(reg);
-#define INCHAR getchar(); // FIXME
-#define reg_imm(x,reg) reg = x;
 #define reg_sign_extend(x,reg) \
   reg = x; \
   rBuf = x & 0x00800000; \
   if (rBuf != 0) { \
     reg = reg | 0xff000000; \
   }
-#define reg_ptr_pp(regPtr) data_memory[regPtr] += WORD_SIZE;
-#define reg_mm(regPtr) regPtr -= WORD_SIZE;
+
 #define reg_m(x,reg) \
   rTmp = x << 8; \
   reg = reg & $0x00ffffff; \
