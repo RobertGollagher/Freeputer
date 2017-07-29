@@ -73,6 +73,7 @@ Then conveniently run and time the example program by:
 #include <stdio.h>
 #include <inttypes.h>
 #define WORD int32_t
+#define LINK_WORD uintptr_t // FIXME this makes swapAL impractical
 #define METADATA int32_t // FIXME PROBLEM: C has no int24_t
 #define SUCCESS 0
 #define FAILURE 1
@@ -82,7 +83,7 @@ Then conveniently run and time the example program by:
 // Registers of the virtual machine:
 WORD vA = 0; // (was %ebx) accumulator
 WORD vB = 0; // (was %edx operand register
-WORD vL = 0; // (was %edi) link register
+LINK_WORD vL = 0; // (was %edi) link register
 WORD vZ = 0; // (was %esi) buffer register, also used for repeat
 // Registers of the implementation:
 WORD rTmp = 0; // (was %eax) primary temporary register
@@ -517,10 +518,12 @@ void shr_by_ptr_pp(METADATA x) {
 #define jmplez(label) if (vA <= 0) { goto label; }
 #define jmpgez(label) if (vA >= 0) { goto label; }
 #define repeat(label) if (--vZ > 0) { goto label; }
-#define branch(label) \
-  vL = &&1f \
-  goto label \
-  1:
+#define branch(label) { \
+  __label__ returnHere; \
+  vL = (LINK_WORD)&&returnHere; \
+  goto label; \
+  returnHere: ;\
+}
 #define merge goto *vL;
 // ---------------------------------------------------------------------------
 void swapAB() {
@@ -598,10 +601,21 @@ v_init: // child
   to(v_vL);
   to(v_vZ);
 
-  sub_by(1);
+testBranching:
+  branch(sub1)
+  branch(sub3)
 
 end:
   halt_by(0)
+
+sub1:
+  sub_by(1);
+  merge
+
+sub3:
+  sub_by(3);
+  merge
+
 }
 
 
