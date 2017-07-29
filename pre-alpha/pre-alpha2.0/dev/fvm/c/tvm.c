@@ -601,20 +601,8 @@ v_init: // child
   to(v_vL);
   to(v_vZ);
 
-testBranching:
-  branch(sub1)
-  branch(sub3)
-
 end:
   halt_by(0)
-
-sub1:
-  sub_by(1);
-  merge
-
-sub3:
-  sub_by(3);
-  merge
 
 }
 
