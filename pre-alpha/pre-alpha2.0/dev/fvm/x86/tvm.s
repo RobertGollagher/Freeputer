@@ -297,11 +297,14 @@ Alternative if no imports:
   xorl rBuf, rBuf
 .endm
 
-# FIXME Not robust!
+/*
+# FIXME Not robust! Not suitable here!?
+# But then we should have some kind of relative jump?
 .macro i_jmpr baseAddr
   leal \baseAddr(,vA,WORD_SIZE), %eax
   jmp *(%eax)
 .endm
+*/
 
 .macro i_jump label
   jmp \label

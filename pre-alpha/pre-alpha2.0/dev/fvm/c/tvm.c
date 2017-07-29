@@ -34,6 +34,10 @@ The unusual syntax and patterns are to correspond to 'tvm.s'.
   - 24-bit metadata is not a C type
   - TODO maybe refactor to more C-like referencing and dereferencing
   - this implementation is straightforward but tedious boilerplate
+  - still need to think about relative jumps (not impl here):
+      - they do not make sense in a native impl like this
+      - they make sense with a virtualized FW32 impl
+  - branch relies on "labels as values" gcc extension and might not work
 
 ==============================================================================
                                  BUILDING
@@ -198,6 +202,12 @@ void shl() {
 
 void shr() {
   vA = vA >> vB;
+}
+// ---------------------------------------------------------------------------
+void do_swap(WORD *reg1, WORD *reg2) {
+  rBuf = *reg1;
+  *reg1 = *reg2;
+  *reg2 = rBuf;
 }
 // ===========================================================================
 //                            INSTRUCTION SET
@@ -497,10 +507,47 @@ void shr_by_ptr_pp(METADATA x) {
   by_ptr_pp(x);
   shr();
 }
-
 // ---------------------------------------------------------------------------
-
+#define jump(label) goto label;
 #define jmpgz(label) if (vA > 0) { goto label; }
+#define jmpz(label) if (vA == 0) { goto label; }
+#define jmpnz(label) if (vA != 0) { goto label; }
+#define jmpgz(label) if (vA > 0) { goto label; }
+#define jmplz(label) if (vA < 0) { goto label; }
+#define jmplez(label) if (vA <= 0) { goto label; }
+#define jmpgez(label) if (vA >= 0) { goto label; }
+#define repeat(label) if (--vZ > 0) { goto label; }
+#define branch(label) \
+  vL = &&1f \
+  goto label \
+  1:
+#define merge goto *vL;
+// ---------------------------------------------------------------------------
+void swapAB() {
+  do_swap(&vA,&vB);
+}
+
+void swapAL() {
+  do_swap(&vA,&vL);
+}
+
+void swapAZ() {
+  do_swap(&vA,&vZ);
+}
+
+void toz() {
+  vZ = vA;
+}
+
+void fromz() {
+  vA = vZ;
+}
+
+void noop() {
+  //no-op
+}
+
+#define halt_by(x) return x;
 // ===========================================================================
 //                               ENTRY POINT
 // ===========================================================================
