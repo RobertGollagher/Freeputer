@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170730+
-Version:    pre-alpha-0.0.0.1+ for FVM 2.0
+Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -62,9 +62,9 @@ Version:    pre-alpha-0.0.0.1+ for FVM 2.0
 #include <inttypes.h>
 #include <assert.h>
 #define WORD size_t
-#define WORD_SIZE sizeof(size_t)
+#define WORD_SIZE 4
 #define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
-#define BIG_MASK 0x40000000 // If absolute value >= 0x3fffffff.
+#define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
 #define LINK uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x00ffffff
@@ -127,28 +127,28 @@ int main() {
 // ---------------------------------------------------------------------------
 // Example: to be a QMISC FW32 implementation
 int exampleProgram() {
-  #define v_DM_BYTES 0x100000 // Need to switch to word-indexing
-  #define v_dm 0
-  #define v_rPC v_DM_BYTES
-  #define v_vA v_rPC + WORD_SIZE
-  #define v_vB v_vA + WORD_SIZE
-  #define v_vL v_vB + WORD_SIZE
-  #define v_vR v_vL + WORD_SIZE
-  #define v_vT v_vR + WORD_SIZE
-  #define v_dst v_vT + WORD_SIZE
-  vm_init:
-    lit(0);
-    to(v_rPC);
-    to(v_vA);
-    to(v_vB);
-    to(v_vL);
-    to(v_vR);
-    to(v_vT);
-    branch(clearDm);
-  end:
-    halt(SUCCESS);
+#define v_DM_BYTES 0x100000 // Need to switch to word-indexing
+#define v_dm 0
+#define v_rPC v_DM_BYTES
+#define v_vA v_rPC + WORD_SIZE
+#define v_vB v_vA + WORD_SIZE
+#define v_vL v_vB + WORD_SIZE
+#define v_vR v_vL + WORD_SIZE
+#define v_vT v_vR + WORD_SIZE
+#define v_dst v_vT + WORD_SIZE
+vm_init:
+  lit(0);
+  to(v_rPC);
+  to(v_vA);
+  to(v_vB);
+  to(v_vL);
+  to(v_vR);
+  to(v_vT);
+  branch(clearDm);
+end:
+  halt(SUCCESS);
 
-  clearDm:
-    merge
+clearDm:
+  merge
 }
 
