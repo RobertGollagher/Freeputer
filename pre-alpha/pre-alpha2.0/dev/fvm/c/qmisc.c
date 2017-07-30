@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170730+
-Version:    pre-alpha-0.0.0.2+ for FVM 2.0
+Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -52,7 +52,12 @@ Version:    pre-alpha-0.0.0.2+ for FVM 2.0
         - QMISC makes it easy to treat bit 30 as a smart overflow bit; and
         - QMISC makes it easy to treat bit 31 as a sign bit; and
         - this is perfectly in harmony with word-addressing.
-  
+
+  TODO:
+
+    - Consider that first 24-bit region of 32-bit data memory will
+        be the most-used region. Is that a concern?
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -71,13 +76,13 @@ Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define DM_BYTES 0x1000000
+#define DM_WORDS 0x1000000
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LINK vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
-WORD dm[DM_BYTES]; // data memory (Harvard architecture)
+WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
@@ -95,6 +100,7 @@ void shl()              { vA<<=enshift(vB); }
 void shr()              { vA>>=enshift(vB); }
 void lit(METADATA x)    { enrange(x); vA = x; }
 void by(METADATA x)     { enrange(x); vB = x; }
+void times(METADATA x)  { enrange(x); vR = x; }
 void from(METADATA x)   { enrange(x); vA = dm[x]; }
 void with(METADATA x)   { enrange(x); vB = dm[x]; }
 void pull(METADATA x)   { enrange(x); vA = dm[dm[x]]; }
@@ -125,17 +131,19 @@ int main() {
   return exampleProgram();
 }
 // ---------------------------------------------------------------------------
-// Example: to be a QMISC FW32 implementation
+// Example: to be a small QMISC FW32 implementation
 int exampleProgram() {
-#define v_DM_BYTES 0x100000 // Need to switch to word-indexing
-#define v_dm 0
-#define v_rPC v_DM_BYTES
-#define v_vA v_rPC + WORD_SIZE
-#define v_vB v_vA + WORD_SIZE
-#define v_vL v_vB + WORD_SIZE
-#define v_vR v_vL + WORD_SIZE
-#define v_vT v_vR + WORD_SIZE
-#define v_dst v_vT + WORD_SIZE
+#define v_PM_WORDS 0x1000
+#define v_DM_WORDS 0x1000
+#define v_pm 0
+#define v_dm v_PM_WORDS
+#define v_rPC v_dm + v_DM_WORDS
+#define v_vA v_rPC + 1
+#define v_vB v_vA + 1
+#define v_vL v_vB + 1
+#define v_vR v_vL + 1
+#define v_vT v_vR + 1
+#define v_dst v_vT + 1
 vm_init:
   lit(0);
   to(v_rPC);
@@ -144,11 +152,35 @@ vm_init:
   to(v_vL);
   to(v_vR);
   to(v_vT);
-  branch(clearDm);
+  branch(setupToClearPM);
+  branch(doFill);
+  branch(setupToClearDM);
+  branch(doFill);
 end:
   halt(SUCCESS);
 
-clearDm:
+// Setup to doFill so as to clear program memory
+setupToClearPM:
+  lit(v_pm);
+  to(v_dst);
+  lit(0);
+  times(v_PM_WORDS);
   merge
-}
+
+// Setup to doFill so as to clear data memory
+setupToClearDM:
+  lit(v_dm);
+  to(v_dst);
+  lit(0);
+  times(v_DM_WORDS);
+  merge
+
+// Fill vR words at v_dst with value in vA
+doFill:
+  put(v_dst);
+  inc(v_dst);
+  repeat(doFill)
+  merge
+
+} // end ofexampleProgram
 
