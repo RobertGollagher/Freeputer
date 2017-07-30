@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170730+
-Version:    pre-alpha-0.0.0.3+ for FVM 2.0
+Version:    pre-alpha-0.0.0.4+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -22,6 +22,8 @@ Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
     - QMISC eliminates undefined behaviour.
     - QMISC values QUALITY and SIMPLICITY over performance.
+        - Nevertheless, native QMISC N performance is reasonable:
+            - doFill in exampleProgram() fills 1 GB in about 0.5 seconds.
     - QMISC is intended for EASY COMPREHENSION BY HUMANS not compilers.
     - QMISC is intended as a platform for virtualizing other virtual machines.
     - QMISC itself uses a Harvard architecture to ease native implementation.
@@ -57,6 +59,8 @@ Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
     - Consider that first 24-bit region of 32-bit data memory will
         be the most-used region. Is that a concern?
+    - Consider if v_src and v_dst should exist as registers in parent;
+        maybe but not necessarily better that way.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -76,7 +80,7 @@ Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define DM_WORDS 0x1000000
+#define DM_WORDS 0x10000000
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LINK vL = 0; // link register
@@ -143,39 +147,23 @@ int exampleProgram() {
 #define v_vL v_vB + 1
 #define v_vR v_vL + 1
 #define v_vT v_vR + 1
+#define v_src v_vT + 1
 #define v_dst v_vT + 1
 vm_init:
-  lit(0);
-  to(v_rPC);
-  to(v_vA);
-  to(v_vB);
-  to(v_vL);
-  to(v_vR);
-  to(v_vT);
-  branch(setupToClearPM);
-  branch(doFill);
-  branch(setupToClearDM);
+  branch(setupToClearParent);
   branch(doFill);
 end:
   halt(SUCCESS);
 
-// Setup to doFill so as to clear program memory
-setupToClearPM:
-  lit(v_pm);
-  to(v_dst);
+// Setup to doFill so as to clear entire data memory of parent
+setupToClearParent:
   lit(0);
-  times(v_PM_WORDS);
+  to(v_dst);
+  times(DM_WORDS);
   merge
 
-// Setup to doFill so as to clear data memory
-setupToClearDM:
-  lit(v_dm);
-  to(v_dst);
-  lit(0);
-  times(v_DM_WORDS);
-  merge
-
-// Fill vR words at v_dst with value in vA
+// Fill vR words at v_dst with value in vA.
+// (Note: this will fill 1 GB in about 0.5 seconds)
 doFill:
   put(v_dst);
   inc(v_dst);
