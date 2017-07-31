@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170730+
-Version:    pre-alpha-0.0.0.4+ for FVM 2.0
+Updated:    20170731+
+Version:    pre-alpha-0.0.0.6+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -32,10 +32,11 @@ Version:    pre-alpha-0.0.0.4+ for FVM 2.0
     - QMISC uses sensible bounds for efficient computing:
         - 32-bit word size for all registers and for data memory
         - 32-bit data-memory address space (word-addressed)
-        - 24-bit program-memory address space
+        - 24-bit program-memory address space (in QMISC FW32 flavour)
     - QMISC comes in two flavours:
         - QMISC N: (e.g. this 'qmisc.c' itself)
             - program memory can use any word size; and
+            - program memory can be of any size; and
             - program memory need not use fixed-width instructions; but
             - all registers and data memory must use 32-bit word size.
         - QMISC FW32: (e.g. exampleProgram() below)
@@ -46,7 +47,8 @@ Version:    pre-alpha-0.0.0.4+ for FVM 2.0
             - never to depend on word size of program memory; and
             - never to depend on instruction size of program memory; and
             - never to depend on program memory size; and
-            - never to depend on program memory structure.
+            - never to depend on program memory structure; and
+            - never to write programs larger than QNICE FW32 program memory.
     - QMISC supports the use of 32-bit words in the normal manner.
     - QMISC also makes it easy to use optional strategies such as:
         - QMISC makes it easy to treat MAX_NEG (0x80000000) as NaN; and
@@ -59,8 +61,6 @@ Version:    pre-alpha-0.0.0.4+ for FVM 2.0
 
     - Consider that first 24-bit region of 32-bit data memory will
         be the most-used region. Is that a concern?
-    - Consider if v_src and v_dst should exist as registers in parent;
-        maybe but not necessarily better that way.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
