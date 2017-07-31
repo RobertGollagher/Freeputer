@@ -56,16 +56,6 @@ Version:    pre-alpha-0.0.0.7+ for FVM 2.0
         - QMISC makes it easy to treat bit 30 as a smart overflow bit; and
         - QMISC makes it easy to treat bit 31 as a sign bit; and
         - this is perfectly in harmony with word-addressing.
-    - QMISC, by convention, considers the first 256 words of data memory:
-        - to be high-speed and suitable for use as index registers; and
-        - to be effectively a zero page; but
-        - it is safer to assume either:
-            - these words may not in reality be high-speed; or
-            - to assume only words 0 to 7 are high-speed; or
-            - to assume only words 0 and 1 are high-speed.
-        - By convention:
-            - word 0 is known as w_src
-            - word 1 is known as w_dst
 
   TODO:
 
@@ -96,8 +86,6 @@ WORD vB = 0; // operand register
 LINK vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
-#define w_src 0
-#define w_dst 1
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -119,12 +107,15 @@ void by(METADATA x)     { enrange(x); vB = x; }
 void times(METADATA x)  { enrange(x); vR = x; }
 void from(METADATA x)   { enrange(x); vA = dm[x]; }
 void with(METADATA x)   { enrange(x); vB = dm[x]; }
+
+// These would be better off acting on index registers
 void pull(METADATA x)   { enrange(x); vA = dm[dm[x]]; }
 void using(METADATA x)  { enrange(x); vB = dm[dm[x]]; }
 void to(METADATA x)     { enrange(x); dm[x] = vA; }
 void put(METADATA x)    { enrange(x); dm[dm[x]] = vA; }
 void inc(METADATA x)    { enrange(x); dm[x]++; }
 void dec(METADATA x)    { enrange(x); dm[x]--; }
+
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -159,6 +150,8 @@ int exampleProgram() {
 #define v_vL v_vB + 1
 #define v_vR v_vL + 1
 #define v_vT v_vR + 1
+#define v_src v_vT + 1
+#define v_dst v_src + 1
 vm_init:
   branch(setupToClearParent);
   branch(doFill);
@@ -167,16 +160,16 @@ end:
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  lit(0);
-  to(w_dst);
+  lit(0); // FIXME convert this to using index registers, 
+  to(v_dst); // since as it is it is too inconvenient.
   times(DM_WORDS);
   merge
 
 // Fill vR words at v_dst with value in vA.
 // (Note: this will fill 1 GB in about 0.5 seconds)
 doFill:
-  put(w_dst);
-  inc(w_dst);
+  put(v_dst);
+  inc(v_dst);
   repeat(doFill)
   merge
 
