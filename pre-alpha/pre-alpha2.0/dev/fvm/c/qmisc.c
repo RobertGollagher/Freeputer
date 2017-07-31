@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170731+
-Version:    pre-alpha-0.0.0.7+ for FVM 2.0
+Updated:    20170801+
+Version:    pre-alpha-0.0.0.8+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -86,6 +86,8 @@ WORD vB = 0; // operand register
 LINK vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
+WORD vS = 0; // source register
+WORD vD = 0; // destination register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -108,13 +110,19 @@ void times(METADATA x)  { enrange(x); vR = x; }
 void from(METADATA x)   { enrange(x); vA = dm[x]; }
 void with(METADATA x)   { enrange(x); vB = dm[x]; }
 
-// These would be better off acting on index registers
-void pull(METADATA x)   { enrange(x); vA = dm[dm[x]]; }
-void using(METADATA x)  { enrange(x); vB = dm[dm[x]]; }
-void to(METADATA x)     { enrange(x); dm[x] = vA; }
-void put(METADATA x)    { enrange(x); dm[dm[x]] = vA; }
-void inc(METADATA x)    { enrange(x); dm[x]++; }
-void dec(METADATA x)    { enrange(x); dm[x]--; }
+// These are being converted to act on index registers
+void pull()   { vA = dm[dm[vS]]; }
+void using()  { vB = dm[dm[vS]]; }
+void to()     { dm[vD] = vA; }
+void put()    { dm[dm[vD]] = vA; }
+void incs()   { vS++; }
+void decs()   { vS--; }
+void incd()   { vD++; }
+void decd()   { vD--; }
+
+// Added to support index registers
+void src(METADATA x)    { enrange(x); vS = x; }
+void dst(METADATA x)    { enrange(x); vS = x; }
 
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
@@ -127,9 +135,13 @@ void dec(METADATA x)    { enrange(x); dm[x]--; }
 void tob()    { vB = vA; }
 void tot()    { vT = vA; }
 void tor()    { vR = vA; }
+void tos()    { vS = vA; }
+void tod()    { vD = vA; }
 void fromb()  { vA = vB; }
 void fromt()  { vA = vT; }
 void fromr()  { vA = vR; }
+void froms()  { vA = vS; }
+void fromd()  { vA = vD; }
 void nop()    { ; }
 #define halt(x) return x;
 // ---------------------------------------------------------------------------
@@ -160,16 +172,15 @@ end:
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  lit(0); // FIXME convert this to using index registers, 
-  to(v_dst); // since as it is it is too inconvenient.
+  dst(0);
   times(DM_WORDS);
   merge
 
 // Fill vR words at v_dst with value in vA.
 // (Note: this will fill 1 GB in about 0.5 seconds)
 doFill:
-  put(v_dst);
-  inc(v_dst);
+  put();
+  incd();
   repeat(doFill)
   merge
 
