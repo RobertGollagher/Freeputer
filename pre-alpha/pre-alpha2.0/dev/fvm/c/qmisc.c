@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170801+
-Version:    pre-alpha-0.0.0.9+ for FVM 2.0
+Version:    pre-alpha-0.0.0.10+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -18,49 +18,7 @@ Version:    pre-alpha-0.0.0.9+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  NOTES:
-
-    - QMISC eliminates undefined behaviour.
-    - QMISC values QUALITY and SIMPLICITY over performance.
-        - Nevertheless, native QMISC N performance is reasonable:
-            - doFill in exampleProgram() fills 1 GB in 0.5 seconds.
-    - QMISC is intended for EASY COMPREHENSION BY HUMANS not compilers.
-    - QMISC is intended as a platform for virtualizing other virtual machines.
-    - QMISC itself uses a Harvard architecture to ease native implementation.
-    - QMISC requires two's complement but uses only unsigned integers.
-    - QMISC has no status flags so as to ease implementation.
-    - QMISC uses sensible bounds for efficient computing:
-        - 32-bit word size for all registers and for data memory
-        - 32-bit data-memory address space (word-addressed)
-        - 24-bit program-memory address space (in QMISC FW32 flavour)
-    - QMISC comes in two flavours:
-        - QMISC N: (e.g. this 'qmisc.c' itself)
-            - program memory can use any word size; and
-            - program memory can be of any size; and
-            - program memory need not use fixed-width instructions; but
-            - all registers and data memory must use 32-bit word size.
-        - QMISC FW32: (e.g. exampleProgram() below)
-            - not only data memory but also program memory has:
-                - 32-bit word size; and
-                - fixed-width 32-bit instructions.
-        - Therefore for portability it is best practice for QMISC programs:
-            - never to depend on word size of program memory; and
-            - never to depend on instruction size of program memory; and
-            - never to depend on program memory size; and
-            - never to depend on program memory structure; and
-            - never to write programs larger than QNICE FW32 program memory.
-    - QMISC supports the use of 32-bit words in the normal manner.
-    - QMISC also makes it easy to use optional strategies such as:
-        - QMISC makes it easy to treat MAX_NEG (0x80000000) as NaN; and
-        - QMISC makes it easy to treat bits 29..0 as a 30-bit integer; and
-        - QMISC makes it easy to treat bit 30 as a smart overflow bit; and
-        - QMISC makes it easy to treat bit 31 as a sign bit; and
-        - this is perfectly in harmony with word-addressing.
-
-  TODO:
-
-    - Consider that first 24-bit region of 32-bit data memory will
-        be the most-used region. Is that a concern?
+  Removed notes so as not to prejudice lateral thinking during design.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -121,7 +79,7 @@ void incs()   { vS++; }
 void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
-
+// This can now be 31 bits as it is the only literal instruction
 void imm(METADATA x)    { enrange(x); vI = x; }
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
