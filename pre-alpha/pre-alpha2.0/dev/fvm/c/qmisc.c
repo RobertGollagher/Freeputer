@@ -108,13 +108,13 @@ void shl()    { vA<<=enshift(vB); }
 void shr()    { vA>>=enshift(vB); }
 void lit()    { vA = vI; }
 void by()     { vB = vI; }
-void times()  { vR = vI; }
+void num()    { vR = vI; }
 void src()    { vS = vI; }
 void dst()    { vD = vI; }
 void from()   { vA = dm[vS]; }
 void with()   { vB = dm[vS]; }
 void pull()   { vA = dm[dm[vS]]; }
-void using()  { vB = dm[dm[vS]]; }
+void use()    { vB = dm[dm[vS]]; }
 void to()     { dm[vD] = vA; }
 void put()    { dm[dm[vD]] = vA; }
 void incs()   { vS++; }
@@ -174,7 +174,7 @@ setupToClearParent:
   imm(0);
   dst();
   imm(DM_WORDS);
-  times();
+  num();
   merge
 
 // Fill vR words at v_dst with value in vA.
