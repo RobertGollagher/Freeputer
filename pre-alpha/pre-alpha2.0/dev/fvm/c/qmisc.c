@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170801+
-Version:    pre-alpha-0.0.0.8+ for FVM 2.0
+Version:    pre-alpha-0.0.0.9+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -23,7 +23,7 @@ Version:    pre-alpha-0.0.0.8+ for FVM 2.0
     - QMISC eliminates undefined behaviour.
     - QMISC values QUALITY and SIMPLICITY over performance.
         - Nevertheless, native QMISC N performance is reasonable:
-            - doFill in exampleProgram() fills 1 GB in about 0.5 seconds.
+            - doFill in exampleProgram() fills 1 GB in 0.5 seconds.
     - QMISC is intended for EASY COMPREHENSION BY HUMANS not compilers.
     - QMISC is intended as a platform for virtualizing other virtual machines.
     - QMISC itself uses a Harvard architecture to ease native implementation.
@@ -95,6 +95,7 @@ METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // TODO rel jumps?
+// TODO IDEA: go FW8 using a lit register
 void add()              { vA+=vB; }
 void sub()              { vA-=vB; }
 void or()               { vA|=vB; }
@@ -107,10 +108,10 @@ void shr()              { vA>>=enshift(vB); }
 void lit(METADATA x)    { enrange(x); vA = x; }
 void by(METADATA x)     { enrange(x); vB = x; }
 void times(METADATA x)  { enrange(x); vR = x; }
-void from(METADATA x)   { enrange(x); vA = dm[x]; }
-void with(METADATA x)   { enrange(x); vB = dm[x]; }
-
-// These are being converted to act on index registers
+void src(METADATA x)    { enrange(x); vS = x; }
+void dst(METADATA x)    { enrange(x); vS = x; }
+void from()   { vA = dm[vS]; }
+void with()   { vB = dm[vS]; }
 void pull()   { vA = dm[dm[vS]]; }
 void using()  { vB = dm[dm[vS]]; }
 void to()     { dm[vD] = vA; }
@@ -119,10 +120,6 @@ void incs()   { vS++; }
 void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
-
-// Added to support index registers
-void src(METADATA x)    { enrange(x); vS = x; }
-void dst(METADATA x)    { enrange(x); vS = x; }
 
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
