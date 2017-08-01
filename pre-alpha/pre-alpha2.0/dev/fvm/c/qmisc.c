@@ -88,6 +88,7 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
+WORD vI = 0; // immeduate register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -95,21 +96,21 @@ METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // TODO rel jumps?
-// TODO IDEA: go FW8 using a lit register
-void add()              { vA+=vB; }
-void sub()              { vA-=vB; }
-void or()               { vA|=vB; }
-void and()              { vA&=vB; }
-void xor()              { vA^=vB; }
-void not()              { vA=~vA; }
-void neg()              { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
-void shl()              { vA<<=enshift(vB); }
-void shr()              { vA>>=enshift(vB); }
-void lit(METADATA x)    { enrange(x); vA = x; }
-void by(METADATA x)     { enrange(x); vB = x; }
-void times(METADATA x)  { enrange(x); vR = x; }
-void src(METADATA x)    { enrange(x); vS = x; }
-void dst(METADATA x)    { enrange(x); vS = x; }
+// TODO IDEA: go FW8 using an imm register
+void add()    { vA+=vB; }
+void sub()    { vA-=vB; }
+void or()     { vA|=vB; }
+void and()    { vA&=vB; }
+void xor()    { vA^=vB; }
+void not()    { vA=~vA; }
+void neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
+void shl()    { vA<<=enshift(vB); }
+void shr()    { vA>>=enshift(vB); }
+void lit()    { vA = vI; }
+void by()     { vB = vI; }
+void times()  { vR = vI; }
+void src()    { vS = vI; }
+void dst()    { vD = vI; }
 void from()   { vA = dm[vS]; }
 void with()   { vB = dm[vS]; }
 void pull()   { vA = dm[dm[vS]]; }
@@ -121,6 +122,7 @@ void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
 
+void imm(METADATA x)    { enrange(x); vI = x; }
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -169,8 +171,10 @@ end:
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  dst(0);
-  times(DM_WORDS);
+  imm(0);
+  dst();
+  imm(DM_WORDS);
+  times();
   merge
 
 // Fill vR words at v_dst with value in vA.
