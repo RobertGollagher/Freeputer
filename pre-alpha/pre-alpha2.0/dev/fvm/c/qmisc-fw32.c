@@ -38,7 +38,7 @@ Version:    pre-alpha-0.0.0.10+ for FVM 2.0
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define DM_WORDS 0x10000000
+#define DM_WORDS 0x10000000 // FIXME Too wide
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LINK vL = 0; // link register
@@ -131,7 +131,7 @@ end:
 setupToClearParent:
   imm(0);
   dst();
-  imm(DM_WORDS);
+  imm(DM_WORDS); // FIXME effectively imm(0) due to enrange(METADATA)
   num();
   merge
 

@@ -33,15 +33,14 @@ Version:    pre-alpha-0.0.0.10+ for FVM 2.0
 #define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
 #define LINK uintptr_t
-#define METADATA WORD
-#define METADATA_MASK 0x3fffffff // Favouring 30-bit values
-#define SEXTET_MASK   0x0000003f
-#define SEXTET_0_MASK 0x0000003f
-#define SEXTET_1_MASK 0x0000003f
-#define SEXTET_2_MASK 0x000007ff
-#define SEXTET_3_MASK 0x0003ffff
-#define SEXTET_4_MASK 0x00ffffff
-#define SEXTET_5_MASK 0x3fffffff
+#define METADATA unsigned char   // Experimental FW8 strategy
+#define METADATA_MASK 0x0000003f
+#define i0_MASK 0x0000003f
+#define i1_MASK 0x000007ff
+#define i2_MASK 0x0003ffff
+#define i3_MASK 0x00ffffff
+#define iu_MASK 0x00fc0000
+#define it_MASK 0x00c00000
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
@@ -59,7 +58,6 @@ int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA ensix(METADATA x) { return x & METADATA_MASK; }
-SEXTET_MASK
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // TODO rel jumps?
@@ -88,11 +86,13 @@ void incs()   { vS++; }
 void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
-// These can now be 30 bits
-void imm(METADATA x)    { enrange(x); vI = x; }
-void imm(METADATA x)    { enrange(x); vI = x; }
-
-
+// Experimental FW8 strategy
+void i0(METADATA x)    { enrange(x); vI = x; }
+void i1(METADATA x)    { enrange(x); vI = x << 6 | vI; }
+void i2(METADATA x)    { enrange(x); vI = x << 12 | vI; }
+void i3(METADATA x)    { enrange(x); vI = x << 18 | vI; }
+void iu()              { vI = vI & ((vI & iu_MASK) << 6); }
+void it()              { vI = vI & ((vI & it_MASK) << 8); }
 
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
@@ -142,9 +142,15 @@ end:
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  imm(0);
+  i0(0x0f);
+  i1(0xf0);
+  i2(0x0f);
+  i3(0xf0);
+  i0(0);
   dst();
-  imm(DM_WORDS);
+  i3(0x20);
+  it();
+  i3(0);
   num();
   merge
 
