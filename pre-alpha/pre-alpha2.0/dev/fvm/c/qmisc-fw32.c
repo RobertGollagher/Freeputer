@@ -34,14 +34,7 @@ Version:    pre-alpha-0.0.0.10+ for FVM 2.0
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
 #define LINK uintptr_t
 #define METADATA WORD
-#define METADATA_MASK 0x3fffffff // Favouring 30-bit values
-#define SEXTET_MASK   0x0000003f
-#define SEXTET_0_MASK 0x0000003f
-#define SEXTET_1_MASK 0x0000003f
-#define SEXTET_2_MASK 0x000007ff
-#define SEXTET_3_MASK 0x0003ffff
-#define SEXTET_4_MASK 0x00ffffff
-#define SEXTET_5_MASK 0x3fffffff
+#define METADATA_MASK 0x00ffffff
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
@@ -58,8 +51,6 @@ WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
-METADATA ensix(METADATA x) { return x & METADATA_MASK; }
-SEXTET_MASK
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // TODO rel jumps?
@@ -88,12 +79,8 @@ void incs()   { vS++; }
 void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
-// These can now be 30 bits
+// This can now be 31 bits as it is the only literal instruction
 void imm(METADATA x)    { enrange(x); vI = x; }
-void imm(METADATA x)    { enrange(x); vI = x; }
-
-
-
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
