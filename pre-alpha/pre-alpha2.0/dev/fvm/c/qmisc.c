@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170801+
-Version:    pre-alpha-0.0.0.31+ for FVM 2.0
+Updated:    20170804+
+Version:    pre-alpha-0.0.0.32+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -47,6 +47,7 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
+WORD vP = 0; // stack pointer register
 WORD vI = 0; // immediate register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
@@ -71,19 +72,22 @@ void src()    { vS = vI; }
 void dst()    { vD = vI; }
 void from()   { vA = dm[vS]; }
 void with()   { vB = dm[vS]; }
-void pull()   { vA = dm[dm[vS]]; }
+void pull()   { vA = dm[dm[vS]]; } // FIXME none of this is robust (bounds)
 void use()    { vB = dm[dm[vS]]; }
 void to()     { dm[vD] = vA; }
 void put()    { dm[dm[vD]] = vA; }
 void incs()   { vS++; }
 void decs()   { vS--; }
-void incd()   { vD++; }
-void decd()   { vD--; }
-// This can now be 31 bits as it is the only literal instruction
+void incd()   { vD++; } // Do inc/dec/src/dst really make sense? Dynamic?
+void decd()   { vD--; } // TODO SPs? Jumps/width? Intptd/native? Factoring?
+void sp()     { vP = vI; }
+void pop()    { vA = dm[vP++]; }
+void push()   { dm[--vP] = vA; }
+// This can now be 31 bits as it is the only literal instruction  ?FW8 again?
 void imm(METADATA x)    { enrange(x); vI = x; }
 void set()    { vI|=SET_MASK; }
 
-// SLOWER but more consistent design, larger program space, 
+// SLOWER but more consistent design, larger program space,
 // FIXME not robust; also im macro is cheating
 #define im(label) imm((WORD)&&label)
 #define jmpz if (vA == 0) { goto *vI; } // ZERO
@@ -112,6 +116,7 @@ void tor()    { vR = vA; }
 void tos()    { vS = vA; }
 void tod()    { vD = vA; }
 void toi()    { vI = vA; }
+void top()    { vP = vA; } // need fromp?
 void fromb()  { vA = vB; }
 void fromt()  { vA = vT; }
 void fromr()  { vA = vR; }
@@ -145,6 +150,17 @@ vm_init:
   im(foo);
   jump
 end:
+  imm(1);
+  by();
+  imm(2);
+  sp();
+  lit();
+  push();
+  sub();
+  push();
+  pop();
+  pop();
+  pop();
   halt(SUCCESS);
 foo:
   im(end);
