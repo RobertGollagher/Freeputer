@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170801+
-Version:    pre-alpha-0.0.0.10+ for FVM 2.0
+Version:    pre-alpha-0.0.0.30+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -33,10 +33,9 @@ Version:    pre-alpha-0.0.0.10+ for FVM 2.0
 #define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
 #define LINK uintptr_t
-#define NORM uint16_t   // Experimental FW16 strategy
-#define NORM_MASK 0x00000fff
-#define UPR uint16_t
-#define UPR_MASK  0x000000ff
+#define METADATA WORD
+#define METADATA_MASK 0x7fffffff // 31-bits now
+#define SET_MASK 0x80000000 // Sets msb
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
@@ -48,16 +47,14 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
-WORD vI = 0; // immeduate register
+WORD vI = 0; // immediate register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
-NORM ennorm(NORM x) { return x & NORM_MASK; }
-NORM enupr(NORM x) { return x & UPR_MASK; }
-UPR enshift(UPR x) { return x & SHIFT_MASK; }
+METADATA enrange(METADATA x) { return x & METADATA_MASK; }
+METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// TODO rel jumps?
-// TODO IDEA: go FW8 using an imm register
+// TODO rel jumps? dyn jumps?
 void add()    { vA+=vB; }
 void sub()    { vA-=vB; }
 void or()     { vA|=vB; }
@@ -82,11 +79,9 @@ void incs()   { vS++; }
 void decs()   { vS--; }
 void incd()   { vD++; }
 void decd()   { vD--; }
-// Experimental FW16 strategy
-void low(NORM x)    { ennorm(x); vI = x; }
-void mid(NORM x)    { ennorm(x); vI = x << 12 | vI; }
-void upr(UPR x)     { enupr(x); vI = x << 24 | vI; }
-
+// This can now be 31 bits as it is the only literal instruction
+void imm(METADATA x)    { enrange(x); vI = x; }
+void set()    { vI|=SET_MASK; }
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -135,12 +130,9 @@ end:
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  low(0x678);
-  mid(0x345);
-  upr(0x12);
-  low(0);
+  imm(0);
   dst();
-  upr(0x10);
+  imm(DM_WORDS);
   num();
   merge
 
