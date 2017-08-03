@@ -56,36 +56,36 @@ METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // TODO rel jumps?
-void add()    { vA+=vB; }
-void sub()    { vA-=vB; }
-void or()     { vA|=vB; }
-void and()    { vA&=vB; }
-void xor()    { vA^=vB; }
-void not()    { vA=~vA; }
-void neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
-void shl()    { vA<<=enshift(vB); }
-void shr()    { vA>>=enshift(vB); }
-void lit()    { vA = vI; }
-void by()     { vB = vI; }
-void num()    { vR = vI; }
-void src()    { vS = vI; }
-void dst()    { vD = vI; }
-void from()   { vA = dm[vS]; }
-void with()   { vB = dm[vS]; }
-void pull()   { vA = dm[dm[vS]]; } // FIXME none of this is robust (bounds)
-void use()    { vB = dm[dm[vS]]; }
-void to()     { dm[vD] = vA; }
-void put()    { dm[dm[vD]] = vA; }
-void incs()   { vS++; }
-void decs()   { vS--; }
-void incd()   { vD++; } // Do inc/dec/src/dst really make sense? Dynamic?
-void decd()   { vD--; } // TODO SPs? Jumps/width? Intptd/native? Factoring?
-void sp()     { vP = vI; }
-void pop()    { vA = dm[vP++]; }
-void push()   { dm[--vP] = vA; }
+void Add()    { vA+=vB; }
+void Sub()    { vA-=vB; }
+void Or()     { vA|=vB; }
+void And()    { vA&=vB; }
+void Xor()    { vA^=vB; }
+void Not()    { vA=~vA; }
+void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
+void Shl()    { vA<<=enshift(vB); }
+void Shr()    { vA>>=enshift(vB); }
+void Lit()    { vA = vI; }
+void By()     { vB = vI; }
+void Num()    { vR = vI; }
+void Src()    { vS = vI; }
+void Dst()    { vD = vI; }
+void From()   { vA = dm[vS]; }
+void With()   { vB = dm[vS]; }
+void Pull()   { vA = dm[dm[vS]]; } // FIXME none of this is robust (bounds)
+void Use()    { vB = dm[dm[vS]]; }
+void To()     { dm[vD] = vA; }
+void Put()    { dm[dm[vD]] = vA; }
+void Incs()   { vS++; }
+void Decs()   { vS--; }
+void Incd()   { vD++; } // Do inc/dec/src/dst really make sense? Dynamic?
+void Decd()   { vD--; } // TODO SPs? Jumps/width? Intptd/native? Factoring?
+void Sp()     { vP = vI; }
+void Pop()    { vA = dm[vP++]; }
+void Push()   { dm[--vP] = vA; }
 // This can now be 31 bits as it is the only literal instruction  ?FW8 again?
 void imm(METADATA x)    { enrange(x); vI = x; }
-void set()    { vI|=SET_MASK; }
+void Set()    { vI|=SET_MASK; }
 
 // SLOWER but more consistent design, larger program space,
 // FIXME not robust; also im macro is cheating
@@ -110,25 +110,38 @@ void set()    { vI|=SET_MASK; }
 #define merge goto *vL;
 */
 
-void tob()    { vB = vA; }
-void tot()    { vT = vA; }
-void tor()    { vR = vA; }
-void tos()    { vS = vA; }
-void tod()    { vD = vA; }
-void toi()    { vI = vA; }
-void top()    { vP = vA; } // need fromp?
-void fromb()  { vA = vB; }
-void fromt()  { vA = vT; }
-void fromr()  { vA = vR; }
-void froms()  { vA = vS; }
-void fromd()  { vA = vD; }
-void nop()    { ; }
+void Tob()    { vB = vA; }
+void Tot()    { vT = vA; }
+void Tor()    { vR = vA; }
+void Tos()    { vS = vA; }
+void Tod()    { vD = vA; }
+void Toi()    { vI = vA; }
+void Top()    { vP = vA; } // need fromp?
+void Fromb()  { vA = vB; }
+void Fromt()  { vA = vT; }
+void Fromr()  { vA = vR; }
+void Froms()  { vA = vS; }
+void Fromd()  { vA = vD; }
+void Nop()    { ; }
 #define halt(x) return x;
 // ---------------------------------------------------------------------------
 int main() {
   assert(sizeof(WORD) == sizeof(size_t));
   return exampleProgram();
 }
+// ---------------------------------------------------------------------------
+#define by By();
+#define sp Sp();
+#define lit Lit();
+#define push Push();
+#define sub Sub();
+#define pop Pop();
+#define dst Dst();
+#define num Num();
+#define put Put();
+#define incd Incd();
+
+
 // ---------------------------------------------------------------------------
 // Example: to be a small QMISC FW32 implementation
 int exampleProgram() {
@@ -151,16 +164,16 @@ vm_init:
   jump
 end:
   imm(1);
-  by();
+  by
   imm(2);
-  sp();
-  lit();
-  push();
-  sub();
-  push();
-  pop();
-  pop();
-  pop();
+  sp
+  lit
+  push
+  sub
+  push
+  pop
+  pop
+  pop
   halt(SUCCESS);
 foo:
   im(end);
@@ -169,9 +182,9 @@ foo:
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
   imm(0);
-  dst();
+  dst
   imm(DM_WORDS);
-  num();
+  num
   merge
 
 // Fill vR words at v_dst with value in vA.
@@ -179,8 +192,8 @@ setupToClearParent:
 doFill:
   im(doFillLoop);
   doFillLoop:
-    put();
-    incd();
+    put
+    incd
     repeat
     merge
 
