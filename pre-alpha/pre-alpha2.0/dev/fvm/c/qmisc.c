@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170801+
-Version:    pre-alpha-0.0.0.30+ for FVM 2.0
+Version:    pre-alpha-0.0.0.31+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -54,7 +54,7 @@ int exampleProgram();
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// TODO rel jumps? dyn jumps?
+// TODO rel jumps?
 void add()    { vA+=vB; }
 void sub()    { vA-=vB; }
 void or()     { vA|=vB; }
@@ -82,6 +82,20 @@ void decd()   { vD--; }
 // This can now be 31 bits as it is the only literal instruction
 void imm(METADATA x)    { enrange(x); vI = x; }
 void set()    { vI|=SET_MASK; }
+
+// SLOWER but more consistent design, larger program space, 
+// FIXME not robust; also im macro is cheating
+#define im(label) imm((WORD)&&label)
+#define jmpz if (vA == 0) { goto *vI; } // ZERO
+#define jmpm if (vA == NEG_MASK) { goto *vI; } // MAX_NEG
+#define jmpn if ((vA & NEG_MASK) == NEG_MASK) { goto *vI; } // NEG
+#define jmpb if ((vA & BIG_MASK) == BIG_MASK) { goto *vI; } // BIG
+#define jump goto *vI; // UNCONDITIONAL
+#define repeat if (--vR > 0) { goto *vI; }
+#define branch(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
+#define merge goto *vL;
+
+/* // FASTER but cannot do with 31-bit literals, so <=28-bit program space
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -90,11 +104,14 @@ void set()    { vI|=SET_MASK; }
 #define repeat(label) if (--vR > 0) { goto label; }
 #define branch(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
 #define merge goto *vL;
+*/
+
 void tob()    { vB = vA; }
 void tot()    { vT = vA; }
 void tor()    { vR = vA; }
 void tos()    { vS = vA; }
 void tod()    { vD = vA; }
+void toi()    { vI = vA; }
 void fromb()  { vA = vB; }
 void fromt()  { vA = vT; }
 void fromr()  { vA = vR; }
@@ -125,8 +142,13 @@ int exampleProgram() {
 vm_init:
   branch(setupToClearParent);
   branch(doFill);
+  im(foo);
+  jump
 end:
   halt(SUCCESS);
+foo:
+  im(end);
+  jump
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
@@ -139,10 +161,12 @@ setupToClearParent:
 // Fill vR words at v_dst with value in vA.
 // (Note: this will fill 1 GB in about 0.5 seconds)
 doFill:
-  put();
-  incd();
-  repeat(doFill)
-  merge
+  im(doFillLoop);
+  doFillLoop:
+    put();
+    incd();
+    repeat
+    merge
 
 } // end ofexampleProgram
 
