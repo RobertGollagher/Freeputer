@@ -43,10 +43,7 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LINK vL = 0; // link register
-WORD v1 = 0; // temporary register 1
-WORD v2 = 0; // temporary register 2
-WORD v3 = 0; // temporary register 3
-WORD v4 = 0; // temporary register 4
+WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
@@ -114,14 +111,14 @@ void Set()    { vI|=SET_MASK; }
 */
 
 void Tob()    { vB = vA; }
-void Tot()    { v1 = vA; }
+void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tos()    { vS = vA; }
 void Tod()    { vD = vA; }
 void Toi()    { vI = vA; }
 void Top()    { vP = vA; }
 void Fromb()  { vA = vB; }
-void Fromt()  { vA = v1; }
+void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Froms()  { vA = vS; }
 void Fromd()  { vA = vD; }
