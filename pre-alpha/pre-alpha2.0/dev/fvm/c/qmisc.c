@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170804+
-Version:    pre-alpha-0.0.0.32+ for FVM 2.0
+Updated:    20170805+
+Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -43,7 +43,10 @@ Version:    pre-alpha-0.0.0.32+ for FVM 2.0
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LINK vL = 0; // link register
-WORD vT = 0; // temporary register
+WORD v1 = 0; // temporary register 1
+WORD v2 = 0; // temporary register 2
+WORD v3 = 0; // temporary register 3
+WORD v4 = 0; // temporary register 4
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
@@ -111,17 +114,18 @@ void Set()    { vI|=SET_MASK; }
 */
 
 void Tob()    { vB = vA; }
-void Tot()    { vT = vA; }
+void Tot()    { v1 = vA; }
 void Tor()    { vR = vA; }
 void Tos()    { vS = vA; }
 void Tod()    { vD = vA; }
 void Toi()    { vI = vA; }
-void Top()    { vP = vA; } // need fromp?
+void Top()    { vP = vA; }
 void Fromb()  { vA = vB; }
-void Fromt()  { vA = vT; }
+void Fromt()  { vA = v1; }
 void Fromr()  { vA = vR; }
 void Froms()  { vA = vS; }
 void Fromd()  { vA = vD; }
+void Fromp()  { vA = vP; }
 void Nop()    { ; }
 #define halt(x) return x;
 // ---------------------------------------------------------------------------
