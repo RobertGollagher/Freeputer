@@ -119,22 +119,7 @@ void Pto1()   { v1 = vP; }
 void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
-
-/*
-// SLOWER but more consistent design, larger program space,
-// FIXME not robust; also IMM macro is cheating. Rel jmps?
-#define IMM(label) Imm((WORD)&&label);
-#define JMPZ if (vA == 0) { goto *vI; } // ZERO
-#define JMPM if (vA == NEG_MASK) { goto *vI; } // MAX_NEG
-#define JMPN if ((vA & NEG_MASK) == NEG_MASK) { goto *vI; } // NEG
-#define JMPB if ((vA & BIG_MASK) == BIG_MASK) { goto *vI; } // BIG
-#define JUMP goto *vI; // UNCONDITIONAL
-#define REPEAT if (--vR > 0) { goto *vI; }
-#define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
-#define MERGE goto *vL;
-*/
-
-// FASTER but cannot do with 31-bit literals, so <=28-bit program space
+// Jumps (intentionally not dynamic)
 #define JMPZ(label) if (vA == 0) { goto label; } // ZERO
 #define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -143,7 +128,6 @@ void Pto4()   { v4 = vP; }
 #define REPEAT(label) if (--vR > 0) { goto label; }
 #define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
 #define MERGE goto *vL;
-
 // Other
 void Nop()    { ; }
 #define HALT(x) return x;
@@ -171,7 +155,6 @@ int exampleProgram() {
 vm_init:
   BRANCH(setupToClearParent)
   BRANCH(doFill)
-  //IMM(foo)
   JUMP(foo)
 end:
   Imm(1);
@@ -187,7 +170,6 @@ end:
   Pop();
   HALT(SUCCESS)
 foo:
-  //IMM(end)
   JUMP(end)
 
 // Setup to doFill so as to clear entire data memory of parent
@@ -201,7 +183,6 @@ setupToClearParent:
 // Fill vR words at v_dst with value in vA.
 // (Note: this will fill 1 GB in about 0.46/0.63 seconds varied by jump method)
 doFill:
-  //IMM(doFillLoop)
   doFillLoop:
     Put();
     IncD();
