@@ -83,12 +83,12 @@ void BFrom()  { vB = dm[vS]; }
 void BPull()  { vB = dm[dm[vS]]; }
 void BPop()   { vB = dm[vP++]; }
 // Increments
-void Incs()   { vS++; }
-void Decs()   { vS--; }
-void Incd()   { vD++; }
-void Decd()   { vD--; }
+void IncS()   { vS++; }
+void DecS()   { vS--; }
+void IncD()   { vD++; }
+void DecD()   { vD--; }
 // Immediates
-void imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
+void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
 void Set()    { vI|=SET_MASK; }                 // bit  32
 void ImmA()   { vA = vI; }
 void ImmB()   { vB = vI; }
@@ -120,51 +120,38 @@ void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
 
-
 // SLOWER but more consistent design, larger program space,
-// FIXME not robust; also im macro is cheating. Rel jmps?
-#define im(label) imm((WORD)&&label)
-#define jmpz if (vA == 0) { goto *vI; } // ZERO
-#define jmpm if (vA == NEG_MASK) { goto *vI; } // MAX_NEG
-#define jmpn if ((vA & NEG_MASK) == NEG_MASK) { goto *vI; } // NEG
-#define jmpb if ((vA & BIG_MASK) == BIG_MASK) { goto *vI; } // BIG
-#define jump goto *vI; // UNCONDITIONAL
-#define repeat if (--vR > 0) { goto *vI; }
-#define branch(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
-#define merge goto *vL;
+// FIXME not robust; also IMM macro is cheating. Rel jmps?
+#define IMM(label) Imm((WORD)&&label);
+#define JMPZ if (vA == 0) { goto *vI; } // ZERO
+#define JMPM if (vA == NEG_MASK) { goto *vI; } // MAX_NEG
+#define JMPN if ((vA & NEG_MASK) == NEG_MASK) { goto *vI; } // NEG
+#define JMPB if ((vA & BIG_MASK) == BIG_MASK) { goto *vI; } // BIG
+#define JUMP goto *vI; // UNCONDITIONAL
+#define REPEAT if (--vR > 0) { goto *vI; }
+#define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
+#define MERGE goto *vL;
 
 /* // FASTER but cannot do with 31-bit literals, so <=28-bit program space
-#define jmpz(label) if (vA == 0) { goto label; } // ZERO
-#define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
-#define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
-#define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
-#define jump(label) goto label; // UNCONDITIONAL
-#define repeat(label) if (--vR > 0) { goto label; }
-#define branch(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
-#define merge goto *vL;
+#define JMPZ(label) if (vA == 0) { goto label; } // ZERO
+#define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
+#define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
+#define JMPB(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
+#define JUMP(label) goto label; // UNCONDITIONAL
+#define REPEAT(label) if (--vR > 0) { goto label; }
+#define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
+#define MERGE goto *vL;
 */
 
 // Other
 void Nop()    { ; }
-#define halt(x) return x;
+#define HALT(x) return x;
 
 // ---------------------------------------------------------------------------
 int main() {
   assert(sizeof(WORD) == sizeof(size_t));
   return exampleProgram();
 }
-// ---------------------------------------------------------------------------
-// Convenience macros
-#define by ImmB();
-#define sp ImmP();
-#define immA ImmA();
-#define push Push();
-#define sub Sub();
-#define pop Pop();
-#define dst ImmD();
-#define num ImmR();
-#define put Put();
-#define incd Incd();
 // ---------------------------------------------------------------------------
 // Example: to be a small QMISC FW32 implementation
 int exampleProgram() {
@@ -181,44 +168,44 @@ int exampleProgram() {
 #define v_src v_vT + 1
 #define v_dst v_src + 1
 vm_init:
-  branch(setupToClearParent);
-  branch(doFill);
-  im(foo);
-  jump
+  BRANCH(setupToClearParent)
+  BRANCH(doFill)
+  IMM(foo)
+  JUMP
 end:
-  imm(1);
-  by
-  imm(2);
-  sp
-  immA
-  push
-  sub
-  push
-  pop
-  pop
-  pop
-  halt(SUCCESS);
+  Imm(1);
+  ImmB();
+  Imm(2);
+  ImmP();
+  ImmA();
+  Push();
+  Sub();
+  Push();
+  Pop();
+  Pop();
+  Pop();
+  HALT(SUCCESS)
 foo:
-  im(end);
-  jump
+  IMM(end)
+  JUMP
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
-  imm(0);
-  dst
-  imm(DM_WORDS);
-  num
-  merge
+  Imm(0);
+  ImmD();
+  Imm(DM_WORDS);
+  ImmR();
+  MERGE
 
 // Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.5 seconds)
+// (Note: this will fill 1 GB in about 0.5/0.63 seconds varied by jump method)
 doFill:
-  im(doFillLoop);
+  IMM(doFillLoop)
   doFillLoop:
-    put
-    incd
-    repeat
-    merge
+    Put();
+    IncD();
+    REPEAT
+    MERGE
 
 } // end ofexampleProgram
 // ---------------------------------------------------------------------------
