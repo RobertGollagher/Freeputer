@@ -48,6 +48,10 @@ WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
 WORD vP = 0; // stack pointer register
+WORD v1 = 0; // stack pointer parking register 1
+WORD v2 = 0; // stack pointer parking register 2
+WORD v3 = 0; // stack pointer parking register 3
+WORD v4 = 0; // stack pointer parking register 4
 WORD vI = 0; // immediate register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
@@ -65,24 +69,21 @@ void Not()    { vA=~vA; }
 void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-void Lit()    { vA = vI; }
-void By()     { vB = vI; }
-void Num()    { vR = vI; }
-void Src()    { vS = vI; }
-void Dst()    { vD = vI; }
+
 void From()   { vA = dm[vS]; }
 void With()   { vB = dm[vS]; }
 void Pull()   { vA = dm[dm[vS]]; } // FIXME none of this is robust (bounds)
 void Use()    { vB = dm[dm[vS]]; }
 void To()     { dm[vD] = vA; }
 void Put()    { dm[dm[vD]] = vA; }
+void Pop()    { vA = dm[vP++]; }
+void Push()   { dm[--vP] = vA; }
+
 void Incs()   { vS++; }
 void Decs()   { vS--; }
 void Incd()   { vD++; } // Do inc/dec/src/dst really make sense? Dynamic?
-void Decd()   { vD--; } // TODO SPs? Jumps/width? Intptd/native? Factoring?
-void Sp()     { vP = vI; }
-void Pop()    { vA = dm[vP++]; }
-void Push()   { dm[--vP] = vA; }
+void Decd()   { vD--; } // Jumps/width? Intptd/native? Factoring?
+
 // This can now be 31 bits as it is the only literal instruction  ?FW8 again?
 void imm(METADATA x)    { enrange(x); vI = x; }
 void Set()    { vI|=SET_MASK; }
@@ -110,6 +111,13 @@ void Set()    { vI|=SET_MASK; }
 #define merge goto *vL;
 */
 
+void Lit()    { vA = vI; }
+void By()     { vB = vI; }
+void Num()    { vR = vI; }
+void Src()    { vS = vI; }
+void Dst()    { vD = vI; }
+void Sp()     { vP = vI; }
+
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -123,7 +131,18 @@ void Fromr()  { vA = vR; }
 void Froms()  { vA = vS; }
 void Fromd()  { vA = vD; }
 void Fromp()  { vA = vP; }
+
+void Use1()   { vP = v1; }
+void Use2()   { vP = v2; }
+void Use3()   { vP = v3; }
+void Use4()   { vP = v4; }
+void Pto1()   { v1 = vP; }
+void Pto2()   { v2 = vP; }
+void Pto3()   { v3 = vP; }
+void Pto4()   { v4 = vP; }
+
 void Nop()    { ; }
+
 #define halt(x) return x;
 // ---------------------------------------------------------------------------
 int main() {
