@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170806+
-Version:    pre-alpha-0.0.0.37+ for FVM 2.0
+Version:    pre-alpha-0.0.0.38+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -99,6 +99,8 @@ void IncS()   { ++vS; }
 void DecS()   { --vS; }
 void IncD()   { ++vD; }
 void DecD()   { --vD; }
+void IncSD()  { ++vS; ++vD; } // Or consider separate pointer register?
+void DecSD()  { --vS; --vD; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
 void Set()    { vI|=SET_MASK; }                 // bit  32
@@ -107,6 +109,7 @@ void ImmB()   { vB = vI; }
 void ImmR()   { vR = vI; }
 void ImmS()   { vS = vI; }
 void ImmD()   { vD = vI; }
+void ImmSD()  { vS = vI; vD = vI; } // Or consider separate pointer register?
 void ImmP()   { vP = vI; }
 // Transfers
 void Tob()    { vB = vA; }
@@ -171,6 +174,8 @@ void Nop()    { ; }
 #define decs DecS();
 #define incd IncD();
 #define decd DecD();
+#define incsd IncSD();
+#define decsd DecSD();
 #define imm(x) Imm(x);
 #define set Set();
 #define imma ImmA();
@@ -178,6 +183,7 @@ void Nop()    { ; }
 #define immr ImmR();
 #define imms ImmS();
 #define immd ImmD();
+#define immsd ImmSD();
 #define immp ImmP();
 #define tob Tob();
 #define tot Tot();
@@ -244,8 +250,7 @@ vm_init:
 next: // FIXME faulty (and efficiency dubious)
 // prepare to use v_rPC
     imm(v_rPC)
-    imms
-    immd
+    immsd
 // increment v_rPC
     load
     inc
