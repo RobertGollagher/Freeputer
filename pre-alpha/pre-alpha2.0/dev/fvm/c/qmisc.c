@@ -32,7 +32,7 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 #define WORD_SIZE 4
 #define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
-#define LINK uintptr_t
+#define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31-bits now
 #define SET_MASK 0x80000000 // Sets msb
@@ -42,7 +42,7 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 #define DM_WORDS 0x10000000
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
-LINK vL = 0; // link register
+LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
@@ -126,8 +126,8 @@ void Pto4()   { v4 = vP; }
 #define JMPB(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
 #define JUMP(label) goto label; // UNCONDITIONAL
 #define REPEAT(label) if (--vR > 0) { goto label; }
-#define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
-#define MERGE goto *vL;
+#define BRANCH(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
+#define LINK goto *vL;
 // Other
 void Nop()    { ; }
 #define HALT(x) return x;
@@ -178,7 +178,7 @@ setupToClearParent:
   ImmD();
   Imm(DM_WORDS);
   ImmR();
-  MERGE
+  LINK
 
 // Fill vR words at v_dst with value in vA.
 // (Note: this will fill 1 GB in about 0.46/0.63 seconds varied by jump method)
@@ -187,7 +187,7 @@ doFill:
     Put();
     IncD();
     REPEAT(doFillLoop)
-    MERGE
+    LINK
 
 } // end ofexampleProgram
 // ---------------------------------------------------------------------------
