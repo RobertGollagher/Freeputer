@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170806+
-Version:    pre-alpha-0.0.0.35+ for FVM 2.0
+Version:    pre-alpha-0.0.0.37+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -24,6 +24,10 @@ Version:    pre-alpha-0.0.0.35+ for FVM 2.0
   Program memory: no limit if native.
 
     20170806: THIS NOW LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
+
+      FIXME NEXT: need to add a call/return solution as otherwise
+        native implementation is impractical (link insufficient).
+        Also a register to hold a PC for child would be good.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -89,6 +93,8 @@ void BFrom()  { vB = dm[vS&DM_MASK]; }
 void BPull()  { vB = dm[dm[vS&DM_MASK]]; }
 void BPop()   { vP = vP&DM_MASK; vB = dm[vP++]; vP = vP&DM_MASK; }
 // Increments
+void Inc()    { ++vA; }
+void Dec()    { --vD; }
 void IncS()   { ++vS; }
 void DecS()   { --vS; }
 void IncD()   { ++vD; }
@@ -159,6 +165,8 @@ void Nop()    { ; }
 #define bfrom BFrom();
 #define bpull BPull();
 #define bpop BPop();
+#define inc Inc();
+#define dec Dec();
 #define incs IncS();
 #define decs DecS();
 #define incd IncD();
@@ -228,36 +236,64 @@ int exampleProgram() {
 #define v_vI v_v4 + 1
 // ---------------------------------------------------------------------------
 vm_init:
-  br(AssertParentSize)
-  br(SetupToClearParent)
-  br(DoFill)
-  br(Load)
-  br(Run)
-end:
-  halt(SUCCESS)
+  br(assertParentSize)
+  br(setupToClearParent)
+  br(doFill)
+  jump(program)
 // ---------------------------------------------------------------------------
-Next:
-  imm(v_rPC)
-  imms
-  load
-  
-  
+next: // FIXME faulty (and efficiency dubious)
+// prepare to use v_rPC
+    imm(v_rPC)
+    imms
+    immd
+// increment v_rPC
+    load
+    inc
+    store
+// load instruction
+    pull
+    tot
+// case iNOP:
+    jmpz(Nop)
+// case iHALT:
+    fromt
+    imm(iHALT)
+    immb
+    sub
+    jmpz(Halt) 
+// default:
+    halt(8)
+// ---------------------------------------------------------------------------
+Nop:
+  link  
 // ---------------------------------------------------------------------------
 Halt:
   halt(9)
 // ---------------------------------------------------------------------------
-Load:
+// Program child's program memory then run program
+program:
   imm(0)
   immd
   imm(iNOP)
-  store
+  br(istore)
+  imm(iHALT)
+  br(istore)
+  jump(run)
 // ---------------------------------------------------------------------------
-Run:
-  br(Next)
-  jump(Run)
+// Store instruction in vI to v_pm[vD++] in child's program memory
+istore:
+  imma
+  store
+  incd
+  link
+// ---------------------------------------------------------------------------
+// Run child's program
+run:
+  br(next)
+  jump(run)
 // ---------------------------------------------------------------------------
 // Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
-DoFill:
+doFill:
   doFillLoop:
     put
     incd
@@ -265,7 +301,7 @@ DoFill:
     link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
-SetupToClearParent:
+setupToClearParent:
   imm(0)
   immd
   imm(DM_WORDS)
@@ -273,7 +309,7 @@ SetupToClearParent:
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
-AssertParentSize:
+assertParentSize:
   mdm
   imm(vm_DM_WORDS)
   immb
