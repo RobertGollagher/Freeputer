@@ -120,6 +120,7 @@ void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
 
+/*
 // SLOWER but more consistent design, larger program space,
 // FIXME not robust; also IMM macro is cheating. Rel jmps?
 #define IMM(label) Imm((WORD)&&label);
@@ -131,8 +132,9 @@ void Pto4()   { v4 = vP; }
 #define REPEAT if (--vR > 0) { goto *vI; }
 #define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
 #define MERGE goto *vL;
+*/
 
-/* // FASTER but cannot do with 31-bit literals, so <=28-bit program space
+// FASTER but cannot do with 31-bit literals, so <=28-bit program space
 #define JMPZ(label) if (vA == 0) { goto label; } // ZERO
 #define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -141,7 +143,7 @@ void Pto4()   { v4 = vP; }
 #define REPEAT(label) if (--vR > 0) { goto label; }
 #define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
 #define MERGE goto *vL;
-*/
+
 
 // Other
 void Nop()    { ; }
@@ -170,8 +172,8 @@ int exampleProgram() {
 vm_init:
   BRANCH(setupToClearParent)
   BRANCH(doFill)
-  IMM(foo)
-  JUMP
+  //IMM(foo)
+  JUMP(foo)
 end:
   Imm(1);
   ImmB();
@@ -186,8 +188,8 @@ end:
   Pop();
   HALT(SUCCESS)
 foo:
-  IMM(end)
-  JUMP
+  //IMM(end)
+  JUMP(end)
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
@@ -198,13 +200,13 @@ setupToClearParent:
   MERGE
 
 // Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.5/0.63 seconds varied by jump method)
+// (Note: this will fill 1 GB in about 0.45/0.63 seconds varied by jump method)
 doFill:
-  IMM(doFillLoop)
+  //IMM(doFillLoop)
   doFillLoop:
     Put();
     IncD();
-    REPEAT
+    REPEAT(doFillLoop)
     MERGE
 
 } // end ofexampleProgram
