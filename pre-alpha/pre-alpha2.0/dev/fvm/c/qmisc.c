@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170806+
-Version:    pre-alpha-0.0.0.34+ for FVM 2.0
+Version:    pre-alpha-0.0.0.35+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -126,74 +126,136 @@ void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define JMPZ(label) if (vA == 0) { goto label; } // ZERO
-#define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
-#define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
-#define JMPB(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
-#define JUMP(label) goto label; // UNCONDITIONAL
-#define REPEAT(label) if (--vR != 0) { goto label; }
-#define BRANCH(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
-#define LINK goto *vL;
+#define jmpz(label) if (vA == 0) { goto label; } // ZERO
+#define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
+#define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
+#define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
+#define jump(label) goto label; // UNCONDITIONAL
+#define repeat(label) if (--vR != 0) { goto label; }
+#define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
+#define link goto *vL;
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
 void Nop()    { ; }
-#define HALT(x) return x;
-// ---------------------------------------------------------------------------
+#define halt(x) return x;
+// ===========================================================================
+// Convenient macros to save typing
+#define add Add();
+#define sub Sub();
+#define or Or();
+#define and And();
+#define xor Xor();
+#define not Not();
+#define neg Neg();
+#define shl Shl();
+#define shr Shr();
+#define from From();
+#define to To();
+#define pull Pull();
+#define put Put();
+#define pop Pop();
+#define push Push();
+#define bfrom BFrom();
+#define bpull BPull();
+#define bpop BPop();
+#define incs IncS();
+#define decs DecS();
+#define incd IncD();
+#define decd DecD();
+#define imm(x) Imm(x);
+#define set Set();
+#define imma ImmA();
+#define immb ImmB();
+#define immr ImmR();
+#define imms ImmS();
+#define immd ImmD();
+#define immp ImmP();
+#define tob Tob();
+#define tot Tot();
+#define tor Tor();
+#define tos Tos();
+#define tod Tod();
+#define toi Toi();
+#define top Top();
+#define fromb Fromb();
+#define fromt Fromt();
+#define fromr Fromr();
+#define froms Froms();
+#define fromd Fromd();
+#define fromp Fromp();
+#define use1 Use1();
+#define use2 Use2();
+#define use3 Use3();
+#define use4 Use4();
+#define pto1 Pto1();
+#define pto2 Pto2();
+#define pto3 Pto3();
+#define pto4 Pto4();
+#define mdm Mdm();
+#define nop Nop();
+// ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
   return exampleProgram();
 }
-// ---------------------------------------------------------------------------
+// ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
 #define vm_DM_WORDS 0x10000000
-#define v_DM_WORDS 0x1000
-#define v_PM_WORDS 0x1000
-#define v_pm 0xff // Skip zero page
-#define v_dm v_PM_WORDS
-#define v_rPC v_dm + v_DM_WORDS
+#define v_DM_WORDS  0x1000
+#define v_PM_WORDS  0x1000
+#define v_dm 0
+#define v_pm v_DM_WORDS
+#define v_rPC v_pm + v_PM_WORDS
 #define v_vA v_rPC + 1
 #define v_vB v_vA + 1
 #define v_vL v_vB + 1
-#define v_vR v_vL + 1
-#define v_vT v_vR + 1
-#define v_src v_vT + 1
-#define v_dst v_src + 1
+#define v_vT v_vL + 1
+#define v_vR v_vT + 1
+#define v_vS v_vR + 1
+#define v_vD v_vS + 1
+#define v_vP v_vD + 1
+#define v_v1 v_vP + 1
+#define v_v2 v_v1 + 1
+#define v_v3 v_v2 + 1
+#define v_v4 v_v3 + 1
+#define v_vI v_v4 + 1
+// ---------------------------------------------------------------------------
 vm_init:
-  BRANCH(assertSize)
-  BRANCH(setupToClearParent)
-  BRANCH(doFill)
+  br(assertParentSize)
+  br(setupToClearParent)
+  br(doFill)
 end:
-  HALT(SUCCESS)
-
-// Assert that parent's data memory size is as expected
-assertSize:
-  Mdm();
-  Imm(vm_DM_WORDS);
-  ImmB();
-  Sub();
-  JMPZ(assertSize_passed)
-    HALT(FAILURE)
-  assertSize_passed:
-    LINK
-
-// Setup to doFill so as to clear entire data memory of parent
-setupToClearParent:
-  Imm(0);
-  ImmD();
-  Imm(DM_WORDS);
-  ImmR();
-  LINK
-
-// Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.36 seconds)
+  halt(SUCCESS)
+// ---------------------------------------------------------------------------
+// Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
 doFill:
   doFillLoop:
-    Put();
-    IncD();
-    REPEAT(doFillLoop)
-    LINK
+    put
+    incd
+    repeat(doFillLoop)
+    link
+// ---------------------------------------------------------------------------
+// Set up to doFill so as to fill entire data memory of parent with zeros
+setupToClearParent:
+  imm(0)
+  immd
+  imm(DM_WORDS)
+  immr
+  link
+// ---------------------------------------------------------------------------
+// Assert that size of parent's data memory is exactly vm_DM_WORDS
+assertParentSize:
+  mdm
+  imm(vm_DM_WORDS)
+  immb
+  sub
+  jmpz(assertedParentSize)
+    halt(FAILURE)
+  assertedParentSize:
+    link
+// ---------------------------------------------------------------------------
 
 } // end of exampleProgram
-// ---------------------------------------------------------------------------
+// ===========================================================================
