@@ -1,6 +1,6 @@
 /*
              QUALITY MINIMAL INSTRUCTION SET COMPUTER (QMISC)
-               Core aims to be less than 100 lines of code
+               Core aims to be less than 200 lines of code
                  and totally free of undefined behaviour.
 
 Copyright © 2017, Robert Gollagher.
@@ -18,7 +18,12 @@ Version:    pre-alpha-0.0.0.34+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  Removed notes so as not to prejudice lateral thinking during design.
+  Removed most notes so as not to prejudice lateral thinking during design.
+  Harvard architecture. Data memory: 32-bit address space.
+  Program memory: 24-bit program space if interpreted.
+  Program memory: no limit if native.
+
+    20170806: THIS NOW LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -120,7 +125,7 @@ void Pto1()   { v1 = vP; }
 void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
-// Jumps (static only) (an interpreter would assume a 24-bit program space)
+// Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define JMPZ(label) if (vA == 0) { goto label; } // ZERO
 #define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -162,7 +167,7 @@ vm_init:
 end:
   HALT(SUCCESS)
 
-// Assert that host data memory size is as expected
+// Assert that parent's data memory size is as expected
 assertSize:
   Mdm();
   Imm(vm_DM_WORDS);
@@ -190,5 +195,5 @@ doFill:
     REPEAT(doFillLoop)
     LINK
 
-} // end ofexampleProgram
+} // end of exampleProgram
 // ---------------------------------------------------------------------------
