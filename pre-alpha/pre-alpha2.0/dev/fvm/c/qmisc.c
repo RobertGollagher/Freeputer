@@ -90,12 +90,12 @@ void Decd()   { vD--; }
 // Immediates
 void imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
 void Set()    { vI|=SET_MASK; }                 // bit  32
-void Lit()    { vA = vI; }
-void By()     { vB = vI; }
-void Num()    { vR = vI; }
-void Src()    { vS = vI; }
-void Dst()    { vD = vI; }
-void Sp()     { vP = vI; }
+void ImmA()   { vA = vI; }
+void ImmB()   { vB = vI; }
+void ImmR()   { vR = vI; }
+void ImmS()   { vS = vI; }
+void ImmD()   { vD = vI; }
+void ImmP()   { vP = vI; }
 // Transfers
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
@@ -155,14 +155,14 @@ int main() {
 }
 // ---------------------------------------------------------------------------
 // Convenience macros
-#define by By();
-#define sp Sp();
-#define lit Lit();
+#define by ImmB();
+#define sp ImmP();
+#define immA ImmA();
 #define push Push();
 #define sub Sub();
 #define pop Pop();
-#define dst Dst();
-#define num Num();
+#define dst ImmD();
+#define num ImmR();
 #define put Put();
 #define incd Incd();
 // ---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ end:
   by
   imm(2);
   sp
-  lit
+  immA
   push
   sub
   push
