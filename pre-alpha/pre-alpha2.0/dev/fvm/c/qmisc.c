@@ -144,7 +144,6 @@ void Pto4()   { v4 = vP; }
 #define BRANCH(label) { __label__ lr; vL = (LINK)&&lr; goto label; lr: ; }
 #define MERGE goto *vL;
 
-
 // Other
 void Nop()    { ; }
 #define HALT(x) return x;
@@ -200,7 +199,7 @@ setupToClearParent:
   MERGE
 
 // Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.45/0.63 seconds varied by jump method)
+// (Note: this will fill 1 GB in about 0.46/0.63 seconds varied by jump method)
 doFill:
   //IMM(doFillLoop)
   doFillLoop:
