@@ -150,8 +150,8 @@ void Nop()    { ; }
 #define neg Neg();
 #define shl Shl();
 #define shr Shr();
-#define from From();
-#define to To();
+#define load From();
+#define store To();
 #define pull Pull();
 #define put Put();
 #define pop Pop();
@@ -195,6 +195,10 @@ void Nop()    { ; }
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
+// Opcodes for interpreter
+#define iNOP  0x00
+#define iHALT 0x7f
+// ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
   return exampleProgram();
@@ -205,10 +209,11 @@ int exampleProgram() {
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
-#define v_dm 0
-#define v_pm v_DM_WORDS
-#define v_rPC v_pm + v_PM_WORDS
-#define v_vA v_rPC + 1
+#define v_pm 0
+#define v_dm v_PM_WORDS
+#define v_rPC v_dm + v_DM_WORDS
+#define v_instr v_rPC + 1
+#define v_vA v_instr + 1
 #define v_vB v_vA + 1
 #define v_vL v_vB + 1
 #define v_vT v_vL + 1
@@ -223,14 +228,36 @@ int exampleProgram() {
 #define v_vI v_v4 + 1
 // ---------------------------------------------------------------------------
 vm_init:
-  br(assertParentSize)
-  br(setupToClearParent)
-  br(doFill)
+  br(AssertParentSize)
+  br(SetupToClearParent)
+  br(DoFill)
+  br(Load)
+  br(Run)
 end:
   halt(SUCCESS)
 // ---------------------------------------------------------------------------
+Next:
+  imm(v_rPC)
+  imms
+  load
+  
+  
+// ---------------------------------------------------------------------------
+Halt:
+  halt(9)
+// ---------------------------------------------------------------------------
+Load:
+  imm(0)
+  immd
+  imm(iNOP)
+  store
+// ---------------------------------------------------------------------------
+Run:
+  br(Next)
+  jump(Run)
+// ---------------------------------------------------------------------------
 // Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
-doFill:
+DoFill:
   doFillLoop:
     put
     incd
@@ -238,7 +265,7 @@ doFill:
     link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
-setupToClearParent:
+SetupToClearParent:
   imm(0)
   immd
   imm(DM_WORDS)
@@ -246,7 +273,7 @@ setupToClearParent:
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
-assertParentSize:
+AssertParentSize:
   mdm
   imm(vm_DM_WORDS)
   immb
