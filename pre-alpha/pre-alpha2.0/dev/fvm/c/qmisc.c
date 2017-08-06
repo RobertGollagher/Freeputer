@@ -59,37 +59,70 @@ int exampleProgram();
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// TODO rel jumps?
+// Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
+// Logic
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
 void Not()    { vA=~vA; }
 void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
+// Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-
+// A moves
 void From()   { vA = dm[vS]; }
-void With()   { vB = dm[vS]; }
-void Pull()   { vA = dm[dm[vS]]; } // FIXME none of this is robust (bounds)
-void Use()    { vB = dm[dm[vS]]; }
 void To()     { dm[vD] = vA; }
-void Put()    { dm[dm[vD]] = vA; }
+void Pull()   { vA = dm[dm[vS]]; }
+void Put()    { dm[dm[vD]] = vA; } // FIXME these are all not robust (bounds)
 void Pop()    { vA = dm[vP++]; }
 void Push()   { dm[--vP] = vA; }
-
+// B moves
+void BFrom()  { vB = dm[vS]; }
+void BPull()  { vB = dm[dm[vS]]; }
+void BPop()   { vB = dm[vP++]; }
+// Increments
 void Incs()   { vS++; }
 void Decs()   { vS--; }
-void Incd()   { vD++; } // Do inc/dec/src/dst really make sense? Dynamic?
-void Decd()   { vD--; } // Jumps/width? Intptd/native? Factoring?
+void Incd()   { vD++; }
+void Decd()   { vD--; }
+// Immediates
+void imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
+void Set()    { vI|=SET_MASK; }                 // bit  32
+void Lit()    { vA = vI; }
+void By()     { vB = vI; }
+void Num()    { vR = vI; }
+void Src()    { vS = vI; }
+void Dst()    { vD = vI; }
+void Sp()     { vP = vI; }
+// Transfers
+void Tob()    { vB = vA; }
+void Tot()    { vT = vA; }
+void Tor()    { vR = vA; }
+void Tos()    { vS = vA; }
+void Tod()    { vD = vA; }
+void Toi()    { vI = vA; }
+void Top()    { vP = vA; }
+void Fromb()  { vA = vB; }
+void Fromt()  { vA = vT; }
+void Fromr()  { vA = vR; }
+void Froms()  { vA = vS; }
+void Fromd()  { vA = vD; }
+void Fromp()  { vA = vP; }
+// Stack parking
+void Use1()   { vP = v1; }
+void Use2()   { vP = v2; }
+void Use3()   { vP = v3; }
+void Use4()   { vP = v4; }
+void Pto1()   { v1 = vP; }
+void Pto2()   { v2 = vP; }
+void Pto3()   { v3 = vP; }
+void Pto4()   { v4 = vP; }
 
-// This can now be 31 bits as it is the only literal instruction  ?FW8 again?
-void imm(METADATA x)    { enrange(x); vI = x; }
-void Set()    { vI|=SET_MASK; }
 
 // SLOWER but more consistent design, larger program space,
-// FIXME not robust; also im macro is cheating
+// FIXME not robust; also im macro is cheating. Rel jmps?
 #define im(label) imm((WORD)&&label)
 #define jmpz if (vA == 0) { goto *vI; } // ZERO
 #define jmpm if (vA == NEG_MASK) { goto *vI; } // MAX_NEG
@@ -111,45 +144,17 @@ void Set()    { vI|=SET_MASK; }
 #define merge goto *vL;
 */
 
-void Lit()    { vA = vI; }
-void By()     { vB = vI; }
-void Num()    { vR = vI; }
-void Src()    { vS = vI; }
-void Dst()    { vD = vI; }
-void Sp()     { vP = vI; }
-
-void Tob()    { vB = vA; }
-void Tot()    { vT = vA; }
-void Tor()    { vR = vA; }
-void Tos()    { vS = vA; }
-void Tod()    { vD = vA; }
-void Toi()    { vI = vA; }
-void Top()    { vP = vA; }
-void Fromb()  { vA = vB; }
-void Fromt()  { vA = vT; }
-void Fromr()  { vA = vR; }
-void Froms()  { vA = vS; }
-void Fromd()  { vA = vD; }
-void Fromp()  { vA = vP; }
-
-void Use1()   { vP = v1; }
-void Use2()   { vP = v2; }
-void Use3()   { vP = v3; }
-void Use4()   { vP = v4; }
-void Pto1()   { v1 = vP; }
-void Pto2()   { v2 = vP; }
-void Pto3()   { v3 = vP; }
-void Pto4()   { v4 = vP; }
-
+// Other
 void Nop()    { ; }
-
 #define halt(x) return x;
+
 // ---------------------------------------------------------------------------
 int main() {
   assert(sizeof(WORD) == sizeof(size_t));
   return exampleProgram();
 }
 // ---------------------------------------------------------------------------
+// Convenience macros
 #define by By();
 #define sp Sp();
 #define lit Lit();
@@ -160,8 +165,6 @@ int main() {
 #define num Num();
 #define put Put();
 #define incd Incd();
-
-
 // ---------------------------------------------------------------------------
 // Example: to be a small QMISC FW32 implementation
 int exampleProgram() {
@@ -218,4 +221,4 @@ doFill:
     merge
 
 } // end ofexampleProgram
-
+// ---------------------------------------------------------------------------
