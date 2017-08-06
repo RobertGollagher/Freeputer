@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170805+
-Version:    pre-alpha-0.0.0.33+ for FVM 2.0
+Updated:    20170806+
+Version:    pre-alpha-0.0.0.34+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -39,7 +39,8 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 #define SHIFT_MASK 0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define DM_WORDS 0x10000000
+#define DM_WORDS 0x10000000 // Must be power of 2
+#define DM_MASK  0x0fffffff
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LNKT vL = 0; // link register
@@ -72,21 +73,21 @@ void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // A moves
-void From()   { vA = dm[vS]; }
-void To()     { dm[vD] = vA; }
-void Pull()   { vA = dm[dm[vS]]; }
-void Put()    { dm[dm[vD]] = vA; } // FIXME these are all not robust (bounds)
-void Pop()    { vA = dm[vP++]; }
-void Push()   { dm[--vP] = vA; }
+void From()   { vA = dm[vS&DM_MASK]; }
+void To()     { dm[vD&DM_MASK] = vA; }
+void Pull()   { vA = dm[dm[vS&DM_MASK]]; }
+void Put()    { dm[dm[vD&DM_MASK]] = vA; }
+void Pop()    { vP = vP&DM_MASK; vA = dm[vP++]; vP = vP&DM_MASK; }
+void Push()   { --vP; dm[vP&DM_MASK] = vA; }
 // B moves
-void BFrom()  { vB = dm[vS]; }
-void BPull()  { vB = dm[dm[vS]]; }
-void BPop()   { vB = dm[vP++]; }
+void BFrom()  { vB = dm[vS&DM_MASK]; }
+void BPull()  { vB = dm[dm[vS&DM_MASK]]; }
+void BPop()   { vP = vP&DM_MASK; vB = dm[vP++]; vP = vP&DM_MASK; }
 // Increments
-void IncS()   { vS++; }
-void DecS()   { vS--; }
-void IncD()   { vD++; }
-void DecD()   { vD--; }
+void IncS()   { ++vS; }
+void DecS()   { --vS; }
+void IncD()   { ++vD; }
+void DecD()   { --vD; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
 void Set()    { vI|=SET_MASK; }                 // bit  32
@@ -125,9 +126,11 @@ void Pto4()   { v4 = vP; }
 #define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
 #define JMPB(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
 #define JUMP(label) goto label; // UNCONDITIONAL
-#define REPEAT(label) if (--vR > 0) { goto label; }
+#define REPEAT(label) if (--vR != 0) { goto label; }
 #define BRANCH(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define LINK goto *vL;
+// Machine metadata
+void Mdm()    { vA = DM_WORDS; }
 // Other
 void Nop()    { ; }
 #define HALT(x) return x;
@@ -137,10 +140,11 @@ int main() {
   return exampleProgram();
 }
 // ---------------------------------------------------------------------------
-// Example: to be a small QMISC FW32 implementation
+// Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
-#define v_PM_WORDS 0x1000
+#define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS 0x1000
+#define v_PM_WORDS 0x1000
 #define v_pm 0xff // Skip zero page
 #define v_dm v_PM_WORDS
 #define v_rPC v_dm + v_DM_WORDS
@@ -152,24 +156,22 @@ int exampleProgram() {
 #define v_src v_vT + 1
 #define v_dst v_src + 1
 vm_init:
+  BRANCH(assertSize)
   BRANCH(setupToClearParent)
   BRANCH(doFill)
-  JUMP(foo)
 end:
-  Imm(1);
-  ImmB();
-  Imm(2);
-  ImmP();
-  ImmA();
-  Push();
-  Sub();
-  Push();
-  Pop();
-  Pop();
-  Pop();
   HALT(SUCCESS)
-foo:
-  JUMP(end)
+
+// Assert that host data memory size is as expected
+assertSize:
+  Mdm();
+  Imm(vm_DM_WORDS);
+  ImmB();
+  Sub();
+  JMPZ(assertSize_passed)
+    HALT(FAILURE)
+  assertSize_passed:
+    LINK
 
 // Setup to doFill so as to clear entire data memory of parent
 setupToClearParent:
@@ -180,7 +182,7 @@ setupToClearParent:
   LINK
 
 // Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.37/0.63 seconds varied by jump method)
+// (Note: this will fill 1 GB in about 0.36 seconds)
 doFill:
   doFillLoop:
     Put();
