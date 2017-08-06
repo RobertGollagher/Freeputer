@@ -28,7 +28,7 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
-#define WORD size_t
+#define WORD uint32_t
 #define WORD_SIZE 4
 #define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
@@ -119,7 +119,7 @@ void Pto1()   { v1 = vP; }
 void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
 void Pto4()   { v4 = vP; }
-// Jumps (intentionally not dynamic)
+// Jumps (static only) (an interpreter would assume a 24-bit program space)
 #define JMPZ(label) if (vA == 0) { goto label; } // ZERO
 #define JMPM(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define JMPN(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
@@ -131,10 +131,9 @@ void Pto4()   { v4 = vP; }
 // Other
 void Nop()    { ; }
 #define HALT(x) return x;
-
 // ---------------------------------------------------------------------------
 int main() {
-  assert(sizeof(WORD) == sizeof(size_t));
+  assert(sizeof(WORD) == WORD_SIZE);
   return exampleProgram();
 }
 // ---------------------------------------------------------------------------
@@ -181,7 +180,7 @@ setupToClearParent:
   LINK
 
 // Fill vR words at v_dst with value in vA.
-// (Note: this will fill 1 GB in about 0.46/0.63 seconds varied by jump method)
+// (Note: this will fill 1 GB in about 0.37/0.63 seconds varied by jump method)
 doFill:
   doFillLoop:
     Put();
