@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170807+
-Version:    pre-alpha-0.0.0.39+ for FVM 2.0
+Updated:    20170815+
+Version:    pre-alpha-0.0.0.40+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -43,9 +43,11 @@ Version:    pre-alpha-0.0.0.39+ for FVM 2.0
 #define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
 #define LNKT uintptr_t
 #define METADATA WORD
-#define METADATA_MASK 0x7fffffff // 31-bits now
-#define SET_MASK 0x80000000 // Sets msb
-#define SHIFT_MASK 0x0000001f
+#define METADATA_MASK 0x00ffffff // 24 bits
+#define LSB_MASK      0x000000ff
+#define MSB_MASK      0xff000000
+#define SHIFT_MSB     0x00000018
+#define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
 #define DM_WORDS 0x10000000 // Must be power of 2
@@ -62,10 +64,11 @@ WORD v1 = 0; // stack pointer parking register 1
 WORD v2 = 0; // stack pointer parking register 2
 WORD v3 = 0; // stack pointer parking register 3
 WORD v4 = 0; // stack pointer parking register 4
-WORD vI = 0; // immediate register
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
+METADATA enbyte(METADATA x)  { return x & LSB_MASK; }
+METADATA enmsb(METADATA x)   { return enbyte(x)<<SHIFT_MSB; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
@@ -102,22 +105,26 @@ void DecD()   { --vD; }
 void IncSD()  { ++vS; ++vD; } // Or consider separate pointer register?
 void DecSD()  { --vS; --vD; }
 // Immediates
-void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
-void Set()    { vI|=SET_MASK; }                 // bit  32
-void ImmA()   { vA = vI; }
-void ImmB()   { vB = vI; }
-void ImmR()   { vR = vI; }
-void ImmS()   { vS = vI; }
-void ImmD()   { vD = vI; }
-void ImmSD()  { vS = vI; vD = vI; } // Or consider separate pointer register?
-void ImmP()   { vP = vI; }
+void ImmA(METADATA x)  { enrange(x); vA = x; }
+void ImmB(METADATA x)  { enrange(x); vB = x; }
+void ImmR(METADATA x)  { enrange(x); vR = x; }
+void ImmS(METADATA x)  { enrange(x); vS = x; }
+void ImmD(METADATA x)  { enrange(x); vD = x; }
+void ImmSD(METADATA x) { enrange(x); vS = x; vD = x; }
+void ImmP(METADATA x)  { enrange(x); vP = x; }
+void MsbA(METADATA x)  { vA |= enmsb(x); }
+void MsbB(METADATA x)  { vB |= enmsb(x); }
+void MsbR(METADATA x)  { vR |= enmsb(x); }
+void MsbS(METADATA x)  { vS |= enmsb(x); }
+void MsbD(METADATA x)  { vD |= enmsb(x); }
+void MsbSD(METADATA x) { vS |= enmsb(x); vD |= enmsb(x); }
+void MsbP(METADATA x)  { vP |= enmsb(x); }
 // Transfers
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tos()    { vS = vA; }
 void Tod()    { vD = vA; }
-void Toi()    { vI = vA; }
 void Top()    { vP = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
@@ -133,18 +140,18 @@ void Use4()   { vP = v4; }
 void Pto1()   { v1 = vP; }
 void Pto2()   { v2 = vP; }
 void Pto3()   { v3 = vP; }
-void Pto4()   { v4 = vP; }
+void Pto4()   { v4 = vP; } // ? Dynamic jumps
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
 #define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
-#define jmpeq(label) if (vA == vI) { goto label; } // ==
-#define jmpne(label) if (vA != vI) { goto label; } // !=
-#define jmple(label) if (vA <= vI) { goto label; } // <= (unsigned)
-#define jmpge(label) if (vA >= vI) { goto label; } // >= (unsigned)
-#define jmplt(label) if (vA < vI) { goto label; } // < (unsigned)
-#define jmpgt(label) if (vA > vI) { goto label; } // > (unsigned)
+#define jmpeq(label) if (vA == vB) { goto label; } // ==
+#define jmpne(label) if (vA != vB) { goto label; } // !=
+#define jmple(label) if (vA <= vB) { goto label; } // <= (unsigned)
+#define jmpge(label) if (vA >= vB) { goto label; } // >= (unsigned)
+#define jmplt(label) if (vA < vB) { goto label; } // < (unsigned)
+#define jmpgt(label) if (vA > vB) { goto label; } // > (unsigned)
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0) { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -182,21 +189,25 @@ void Nop()    { ; }
 #define decd DecD();
 #define incsd IncSD();
 #define decsd DecSD();
-#define imm(x) Imm(x);
-#define set Set();
-#define imma ImmA();
-#define immb ImmB();
-#define immr ImmR();
-#define imms ImmS();
-#define immd ImmD();
-#define immsd ImmSD();
-#define immp ImmP();
+#define imma(x) ImmA(x);
+#define immb(x) ImmB(x);
+#define immr(x) ImmR(x);
+#define imms(x) ImmS(x);
+#define immd(x) ImmD(x);
+#define immsd(x) ImmSD(x);
+#define immp(x) ImmP(x);
+#define msba(x) MsbA(x);
+#define msbb(x) MsbB(x);
+#define msbr(x) MsbR(x);
+#define msbs(x) MsbS(x);
+#define msbd(x) MsbD(x);
+#define msbsd(x) MsbSD(x);
+#define msbp(x) MsbP(x);
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
 #define tos Tos();
 #define tod Tod();
-#define toi Toi();
 #define top Top();
 #define fromb Fromb();
 #define fromt Fromt();
@@ -246,7 +257,6 @@ int exampleProgram() {
 #define v_v2 v_v1 + 1
 #define v_v3 v_v2 + 1
 #define v_v4 v_v3 + 1
-#define v_vI v_v4 + 1
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -256,8 +266,7 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Using vP and v1 for program counter
 begin:
-    imm(0)
-    immp
+    immp(0)
 // Process next instruction
 next:
     pop
@@ -266,7 +275,7 @@ next:
     jmpz(Nop)
 // case iHALT:
     fromt
-    imm(iHALT)
+    immb(iHALT)
     jmpeq(Halt)
 // default:
     halt(8)
@@ -279,17 +288,15 @@ Halt:
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
-  imm(0)
-  immd
-  imm(iNOP)
+  immd(0)
+  imma(iNOP)
   br(istore)
-  imm(iHALT)
+  imma(iHALT)
   br(istore)
   jump(run)
 // ---------------------------------------------------------------------------
-// Store instruction in vI to v_pm[vD++] in child's program memory
+// Store instruction in vA to v_pm[vD++] in child's program memory
 istore:
-  imma
   store
   incd
   link
@@ -309,17 +316,14 @@ doFill:
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
-  imm(0)
-  immd
-  imm(DM_WORDS)
-  immr
+  immd(0)
+  immr(DM_WORDS)
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
-  imm(vm_DM_WORDS)
-  immb
+  immb(vm_DM_WORDS)
   sub
   jmpz(assertedParentSize)
     halt(FAILURE)
