@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.40+ for FVM 2.0
+Version:    pre-alpha-0.0.0.41+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -59,6 +59,7 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
+// Note: vE treats vS and vD as a single duplicated register
 WORD vP = 0; // stack pointer register
 WORD v1 = 0; // stack pointer parking register 1
 WORD v2 = 0; // stack pointer parking register 2
@@ -102,22 +103,22 @@ void IncS()   { ++vS; }
 void DecS()   { --vS; }
 void IncD()   { ++vD; }
 void DecD()   { --vD; }
-void IncSD()  { ++vS; ++vD; } // Or consider separate pointer register?
-void DecSD()  { --vS; --vD; }
+void IncE()   { ++vS; ++vD; }
+void DecE()   { --vS; --vD; }
 // Immediates
 void ImmA(METADATA x)  { enrange(x); vA = x; }
 void ImmB(METADATA x)  { enrange(x); vB = x; }
 void ImmR(METADATA x)  { enrange(x); vR = x; }
 void ImmS(METADATA x)  { enrange(x); vS = x; }
 void ImmD(METADATA x)  { enrange(x); vD = x; }
-void ImmSD(METADATA x) { enrange(x); vS = x; vD = x; }
+void ImmE(METADATA x)  { enrange(x); vS = x; vD = x; }
 void ImmP(METADATA x)  { enrange(x); vP = x; }
 void MsbA(METADATA x)  { vA |= enmsb(x); }
 void MsbB(METADATA x)  { vB |= enmsb(x); }
 void MsbR(METADATA x)  { vR |= enmsb(x); }
 void MsbS(METADATA x)  { vS |= enmsb(x); }
 void MsbD(METADATA x)  { vD |= enmsb(x); }
-void MsbSD(METADATA x) { vS |= enmsb(x); vD |= enmsb(x); }
+void MsbE(METADATA x)  { vS |= enmsb(x); vD |= enmsb(x); }
 void MsbP(METADATA x)  { vP |= enmsb(x); }
 // Transfers
 void Tob()    { vB = vA; }
@@ -187,21 +188,21 @@ void Nop()    { ; }
 #define decs DecS();
 #define incd IncD();
 #define decd DecD();
-#define incsd IncSD();
-#define decsd DecSD();
+#define ince IncE();
+#define dece DecE();
 #define imma(x) ImmA(x);
 #define immb(x) ImmB(x);
 #define immr(x) ImmR(x);
 #define imms(x) ImmS(x);
 #define immd(x) ImmD(x);
-#define immsd(x) ImmSD(x);
+#define imme(x) ImmE(x);
 #define immp(x) ImmP(x);
 #define msba(x) MsbA(x);
 #define msbb(x) MsbB(x);
 #define msbr(x) MsbR(x);
 #define msbs(x) MsbS(x);
 #define msbd(x) MsbD(x);
-#define msbsd(x) MsbSD(x);
+#define msbe(x) MsbE(x);
 #define msbp(x) MsbP(x);
 #define tob Tob();
 #define tot Tot();
