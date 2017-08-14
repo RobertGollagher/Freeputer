@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170806+
-Version:    pre-alpha-0.0.0.38+ for FVM 2.0
+Updated:    20170807+
+Version:    pre-alpha-0.0.0.39+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -94,7 +94,7 @@ void BPull()  { vB = dm[dm[vS&DM_MASK]]; }
 void BPop()   { vP = vP&DM_MASK; vB = dm[vP++]; vP = vP&DM_MASK; }
 // Increments
 void Inc()    { ++vA; }
-void Dec()    { --vD; }
+void Dec()    { --vA; }
 void IncS()   { ++vS; }
 void DecS()   { --vS; }
 void IncD()   { ++vD; }
@@ -139,6 +139,12 @@ void Pto4()   { v4 = vP; }
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
 #define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
+#define jmpeq(label) if (vA == vI) { goto label; } // ==
+#define jmpne(label) if (vA != vI) { goto label; } // !=
+#define jmple(label) if (vA <= vI) { goto label; } // <= (unsigned)
+#define jmpge(label) if (vA >= vI) { goto label; } // >= (unsigned)
+#define jmplt(label) if (vA < vI) { goto label; } // < (unsigned)
+#define jmpgt(label) if (vA > vI) { goto label; } // > (unsigned)
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0) { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -225,6 +231,7 @@ int exampleProgram() {
 #define v_PM_WORDS  0x1000
 #define v_pm 0
 #define v_dm v_PM_WORDS
+// Actually not using v_rPC any more (using v1 instead)
 #define v_rPC v_dm + v_DM_WORDS
 #define v_instr v_rPC + 1
 #define v_vA v_instr + 1
@@ -247,30 +254,25 @@ vm_init:
   br(doFill)
   jump(program)
 // ---------------------------------------------------------------------------
-next: // FIXME faulty (and efficiency dubious)
-// prepare to use v_rPC
-    imm(v_rPC)
-    immsd
-// increment v_rPC
-    load
-    inc
-    store
-// load instruction
-    pull
+// Using vP and v1 for program counter
+begin:
+    imm(0)
+    immp
+// Process next instruction
+next:
+    pop
     tot
 // case iNOP:
     jmpz(Nop)
 // case iHALT:
     fromt
     imm(iHALT)
-    immb
-    sub
-    jmpz(Halt) 
+    jmpeq(Halt)
 // default:
     halt(8)
 // ---------------------------------------------------------------------------
 Nop:
-  link  
+  link
 // ---------------------------------------------------------------------------
 Halt:
   halt(9)
