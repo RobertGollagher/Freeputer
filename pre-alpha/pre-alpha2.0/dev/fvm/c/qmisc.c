@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.43+ for FVM 2.0
+Version:    pre-alpha-0.0.0.44+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -61,14 +61,6 @@ LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (only used by put)
 WORD vR = 0; // repeat register
-WORD vS = 0; // source register
-WORD vD = 0; // destination register
-// Note: vE treats vS and vD as a single duplicated register
-WORD vP = 0; // peek register
-WORD v1 = 0; // peek parking register 1
-WORD v2 = 0; // peek parking register 2
-WORD v3 = 0; // peek parking register 3
-WORD v4 = 0; // peek parking register 4
 WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
@@ -91,65 +83,32 @@ void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-// A moves (for inbound indirection use load,get or peek,get)
-void Load()   { vA = dm[safe(vS)]; }
-void Store()  { dm[safe(vD)] = vA; }
-void Get()    { vA = dm[safe(vA)]; } 
-void Peek()   { vA = dm[safe(vP)]; }
-void Keep()   { dm[safe(vP)] = vA; }
-// V moves (for outbound indirection use tov,load,put or tov,peek,put)
+// Moves
+void Get()    { vA = dm[safe(vA)]; }
 void Put()    { dm[safe(vA)] = vV; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
-void IncS()   { ++vS; }
-void DecS()   { --vS; }
-void IncD()   { ++vD; }
-void DecD()   { --vD; }
-void IncE()   { ++vS; ++vD; }
-void DecE()   { --vS; --vD; }
-void IncP()   { ++vP; }
-void DecP()   { --vP; }
 // Immediates
 void ImmA(METADATA x)  { enrange(x); vA = x; }
 void ImmB(METADATA x)  { enrange(x); vB = x; }
 void ImmR(METADATA x)  { enrange(x); vR = x; }
-void ImmS(METADATA x)  { enrange(x); vS = x; }
-void ImmD(METADATA x)  { enrange(x); vD = x; }
-void ImmE(METADATA x)  { enrange(x); vS = x; vD = x; }
-void ImmP(METADATA x)  { enrange(x); vP = x; }
+void ImmV(METADATA x)  { enrange(x); vV = x; }
 void MsbA(METADATA x)  { vA |= enmsb(x); }
 void MsbB(METADATA x)  { vB |= enmsb(x); }
 void MsbR(METADATA x)  { vR |= enmsb(x); }
-void MsbS(METADATA x)  { vS |= enmsb(x); }
-void MsbD(METADATA x)  { vD |= enmsb(x); }
-void MsbE(METADATA x)  { vS |= enmsb(x); vD |= enmsb(x); }
-void MsbP(METADATA x)  { vP |= enmsb(x); }
+void MsbV(METADATA x)  { vV |= enmsb(x); }
 // Transfers
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
-void Tos()    { vS = vA; }
-void Tod()    { vD = vA; }
-void Top()    { vP = vA; }
 void Tov()    { vV = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
-void Froms()  { vA = vS; }
-void Fromd()  { vA = vD; }
-void Fromp()  { vA = vP; }
 void Fromv()  { vA = vV; }
-// Stack parking
-void Use1()   { vP = v1; }
-void Use2()   { vP = v2; }
-void Use3()   { vP = v3; }
-void Use4()   { vP = v4; }
-void Pto1()   { v1 = vP; }
-void Pto2()   { v2 = vP; }
-void Pto3()   { v3 = vP; }
-void Pto4()   { v4 = vP; } // ? Dynamic jumps
+// ? Dynamic jumps
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0) { goto label; } // ZERO
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
@@ -181,60 +140,26 @@ void Nop()    { ; }
 #define neg Neg();
 #define shl Shl();
 #define shr Shr();
-#define load Load();
-#define store Store();
 #define get Get();
-#define putd PutD();
-#define putp PutP();
-#define peek Peek();
-#define keep Keep();
-#define swap Swap();
+#define put Put();
 #define inc Inc();
 #define dec Dec();
-#define incs IncS();
-#define decs DecS();
-#define incd IncD();
-#define decd DecD();
-#define ince IncE();
-#define dece DecE();
-#define incp IncP();
-#define decp DecP();
 #define imma(x) ImmA(x);
 #define immb(x) ImmB(x);
 #define immr(x) ImmR(x);
-#define imms(x) ImmS(x);
-#define immd(x) ImmD(x);
-#define imme(x) ImmE(x);
-#define immp(x) ImmP(x);
+#define immv(x) ImmV(x);
 #define msba(x) MsbA(x);
 #define msbb(x) MsbB(x);
 #define msbr(x) MsbR(x);
-#define msbs(x) MsbS(x);
-#define msbd(x) MsbD(x);
-#define msbe(x) MsbE(x);
-#define msbp(x) MsbP(x);
+#define msbv(x) MsbV(x);
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
-#define tos Tos();
-#define tod Tod();
-#define top Top();
 #define tov Tov();
 #define fromb Fromb();
 #define fromt Fromt();
 #define fromr Fromr();
-#define froms Froms();
-#define fromd Fromd();
-#define fromp Fromp();
 #define fromv Fromv();
-#define use1 Use1();
-#define use2 Use2();
-#define use3 Use3();
-#define use4 Use4();
-#define pto1 Pto1();
-#define pto2 Pto2();
-#define pto3 Pto3();
-#define pto4 Pto4();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -262,13 +187,7 @@ int exampleProgram() {
 #define v_vL v_vB + 1
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
-#define v_vS v_vR + 1
-#define v_vD v_vS + 1
-#define v_vP v_vD + 1
-#define v_v1 v_vP + 1
-#define v_v2 v_v1 + 1
-#define v_v3 v_v2 + 1
-#define v_v4 v_v3 + 1
+#define v_vV v_vR + 1
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -276,13 +195,18 @@ vm_init:
   br(doFill)
   jump(program)
 // ---------------------------------------------------------------------------
-// Using vP and v1 for program counter
-begin:
-    immp(0)
 // Process next instruction
 next:
-    peek
-    incp
+// increment v_rPC
+    imma(v_rPC)
+    get
+    tot
+    inc
+    tov
+    imma(v_rPC)
+    put
+// get current instr into vT
+    get
     tot
 // case iNOP:
     jmpz(Nop)
@@ -301,17 +225,17 @@ Halt:
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
-  immd(0)
-  imma(iNOP)
+  imma(0)
+  immv(iNOP)
   br(istore)
-  imma(iHALT)
+  immv(iHALT)
   br(istore)
   jump(run)
 // ---------------------------------------------------------------------------
-// Store instruction in vA to v_pm[vD++] in child's program memory
+// Store instruction in vV to v_pm[vA++] in child's program memory
 istore:
-  store
-  incd
+  put
+  inc
   link
 // ---------------------------------------------------------------------------
 // Run child's program
@@ -319,17 +243,17 @@ run:
   br(next)
   jump(run)
 // ---------------------------------------------------------------------------
-// Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
+// Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.36 seconds)
 doFill:
   doFillLoop:
-    store
-    incd
+    put
+    inc
     repeat(doFillLoop)
     link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
-  immd(0)
+  immv(0)
   immr(DM_WORDS)
   link
 // ---------------------------------------------------------------------------
