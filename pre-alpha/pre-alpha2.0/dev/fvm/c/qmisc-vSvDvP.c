@@ -276,7 +276,7 @@ vm_init:
   br(doFill)
   jump(program)
 // ---------------------------------------------------------------------------
-// Using vP and v1 for program counter
+// Using vP and v1 for program counter (actually this is cheating badly)
 begin:
     immp(0)
 // Process next instruction

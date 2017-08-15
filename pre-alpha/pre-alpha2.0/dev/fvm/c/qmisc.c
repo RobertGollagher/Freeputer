@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.44+ for FVM 2.0
+Version:    pre-alpha-0.0.0.45+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -99,7 +99,7 @@ void MsbB(METADATA x)  { vB |= enmsb(x); }
 void MsbR(METADATA x)  { vR |= enmsb(x); }
 void MsbV(METADATA x)  { vV |= enmsb(x); }
 // Transfers
-void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
+void Swap()   { rSwap = vA; vA = vV; vV = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -152,6 +152,7 @@ void Nop()    { ; }
 #define msbb(x) MsbB(x);
 #define msbr(x) MsbR(x);
 #define msbv(x) MsbV(x);
+#define swap Swap();
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
@@ -197,18 +198,16 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction
 next:
-// increment v_rPC
+// increment v_rPC after storing it in vT
     imma(v_rPC)
-    get
     tot
-    inc
-    tov
-    imma(v_rPC)
-    put
+    br(Incr)
 // get current instr into vT
+    fromt
     get
     tot
 // case iNOP:
+    fromt
     jmpz(Nop)
 // case iHALT:
     fromt
@@ -243,7 +242,7 @@ run:
   br(next)
   jump(run)
 // ---------------------------------------------------------------------------
-// Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.36 seconds)
+// Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
 doFill:
   doFillLoop:
     put
@@ -266,6 +265,15 @@ assertParentSize:
     halt(FAILURE)
   assertedParentSize:
     link
+// ---------------------------------------------------------------------------
+// Increment variable at dm[vA]
+Incr:
+  tov
+  get
+  inc
+  swap
+  put
+  link
 // ---------------------------------------------------------------------------
 
 } // end of exampleProgram
