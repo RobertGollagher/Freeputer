@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.42+ for FVM 2.0
+Version:    pre-alpha-0.0.0.43+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -28,6 +28,9 @@ Version:    pre-alpha-0.0.0.42+ for FVM 2.0
       FIXME NEXT: need to add a call/return solution as otherwise
         native implementation is impractical (link insufficient).
         Also a register to hold a PC for child would be good.
+
+      NOTE: vS, vD and vP could all be abolished if desired;
+        instead could use get and put with just vA, vV.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -56,6 +59,7 @@ WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
+WORD vV = 0; // value register (only used by put)
 WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
@@ -69,6 +73,7 @@ WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
+METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & LSB_MASK; }
 METADATA enmsb(METADATA x)   { return enbyte(x)<<SHIFT_MSB; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
@@ -86,14 +91,14 @@ void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-// A moves
-void Load()   { vA = dm[vS&DM_MASK]; }
-void Store()  { dm[vD&DM_MASK] = vA; }
-void Get()    { vA = dm[vA&DM_MASK]; } 
-void PutD()   { dm[dm[vD&DM_MASK]] = vA; }
-void PutP()   { dm[dm[vP&DM_MASK]] = vA; }
-void Peek()   { vA = dm[vP&DM_MASK]; }
-void Keep()   { dm[vP&DM_MASK] = vA; }
+// A moves (for inbound indirection use load,get or peek,get)
+void Load()   { vA = dm[safe(vS)]; }
+void Store()  { dm[safe(vD)] = vA; }
+void Get()    { vA = dm[safe(vA)]; } 
+void Peek()   { vA = dm[safe(vP)]; }
+void Keep()   { dm[safe(vP)] = vA; }
+// V moves (for outbound indirection use tov,load,put or tov,peek,put)
+void Put()    { dm[safe(vA)] = vV; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
@@ -128,12 +133,14 @@ void Tor()    { vR = vA; }
 void Tos()    { vS = vA; }
 void Tod()    { vD = vA; }
 void Top()    { vP = vA; }
+void Tov()    { vV = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Froms()  { vA = vS; }
 void Fromd()  { vA = vD; }
 void Fromp()  { vA = vP; }
+void Fromv()  { vA = vV; }
 // Stack parking
 void Use1()   { vP = v1; }
 void Use2()   { vP = v2; }
@@ -212,12 +219,14 @@ void Nop()    { ; }
 #define tos Tos();
 #define tod Tod();
 #define top Top();
+#define tov Tov();
 #define fromb Fromb();
 #define fromt Fromt();
 #define fromr Fromr();
 #define froms Froms();
 #define fromd Fromd();
 #define fromp Fromp();
+#define fromv Fromv();
 #define use1 Use1();
 #define use2 Use2();
 #define use3 Use3();
@@ -313,7 +322,7 @@ run:
 // Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
 doFill:
   doFillLoop:
-    putd
+    store
     incd
     repeat(doFillLoop)
     link
