@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.41+ for FVM 2.0
+Version:    pre-alpha-0.0.0.42+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -60,11 +60,11 @@ WORD vR = 0; // repeat register
 WORD vS = 0; // source register
 WORD vD = 0; // destination register
 // Note: vE treats vS and vD as a single duplicated register
-WORD vP = 0; // stack pointer register
-WORD v1 = 0; // stack pointer parking register 1
-WORD v2 = 0; // stack pointer parking register 2
-WORD v3 = 0; // stack pointer parking register 3
-WORD v4 = 0; // stack pointer parking register 4
+WORD vP = 0; // peek register
+WORD v1 = 0; // peek parking register 1
+WORD v2 = 0; // peek parking register 2
+WORD v3 = 0; // peek parking register 3
+WORD v4 = 0; // peek parking register 4
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -90,12 +90,12 @@ void From()   { vA = dm[vS&DM_MASK]; }
 void To()     { dm[vD&DM_MASK] = vA; }
 void Pull()   { vA = dm[dm[vS&DM_MASK]]; }
 void Put()    { dm[dm[vD&DM_MASK]] = vA; }
-void Pop()    { vP = vP&DM_MASK; vA = dm[vP++]; vP = vP&DM_MASK; }
-void Push()   { --vP; dm[vP&DM_MASK] = vA; }
+void Peek()   { vA = dm[vP&DM_MASK]; }
+void Keep()   { dm[vP&DM_MASK] = vA; }
 // B moves
 void BFrom()  { vB = dm[vS&DM_MASK]; }
 void BPull()  { vB = dm[dm[vS&DM_MASK]]; }
-void BPop()   { vP = vP&DM_MASK; vB = dm[vP++]; vP = vP&DM_MASK; }
+void BPeek() { vB = dm[vP&DM_MASK]; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
@@ -105,6 +105,8 @@ void IncD()   { ++vD; }
 void DecD()   { --vD; }
 void IncE()   { ++vS; ++vD; }
 void DecE()   { --vS; --vD; }
+void IncP()   { ++vP; }
+void DecP()   { --vP; }
 // Immediates
 void ImmA(METADATA x)  { enrange(x); vA = x; }
 void ImmB(METADATA x)  { enrange(x); vB = x; }
@@ -177,11 +179,18 @@ void Nop()    { ; }
 #define store To();
 #define pull Pull();
 #define put Put();
-#define pop Pop();
-#define push Push();
+
+#define peek Peek();
+#define keep Keep();
+//#define pop Pop();
+//#define push Push();
+
 #define bfrom BFrom();
 #define bpull BPull();
-#define bpop BPop();
+
+#define bpeek BPeek();
+//#define bpop BPop();
+
 #define inc Inc();
 #define dec Dec();
 #define incs IncS();
@@ -190,6 +199,11 @@ void Nop()    { ; }
 #define decd DecD();
 #define ince IncE();
 #define dece DecE();
+
+//  Experimental
+#define incp IncP();
+#define decp DecP();
+
 #define imma(x) ImmA(x);
 #define immb(x) ImmB(x);
 #define immr(x) ImmR(x);
@@ -270,7 +284,8 @@ begin:
     immp(0)
 // Process next instruction
 next:
-    pop
+    peek
+    incp
     tot
 // case iNOP:
     jmpz(Nop)
