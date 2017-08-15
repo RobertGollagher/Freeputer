@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.47+ for FVM 2.0
+Version:    pre-alpha-0.0.0.48+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -111,11 +111,6 @@ void Fromv()  { vA = vV; }
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
 #define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
 #define jmpeq(label) if (vA == vI) { goto label; } // ==
-#define jmpne(label) if (vA != vI) { goto label; } // !=
-#define jmple(label) if (vA <= vI) { goto label; } // <= (unsigned)
-#define jmpge(label) if (vA >= vI) { goto label; } // >= (unsigned)
-#define jmplt(label) if (vA < vI) { goto label; } // < (unsigned)
-#define jmpgt(label) if (vA > vI) { goto label; } // > (unsigned)
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0) { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
