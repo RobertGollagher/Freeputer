@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.45+ for FVM 2.0
+Version:    pre-alpha-0.0.0.46+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -27,10 +27,6 @@ Version:    pre-alpha-0.0.0.45+ for FVM 2.0
 
       FIXME NEXT: need to add a call/return solution as otherwise
         native implementation is impractical (link insufficient).
-        Also a register to hold a PC for child would be good.
-
-      NOTE: vS, vD and vP could all be abolished if desired;
-        instead could use get and put with just vA, vV.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -53,6 +49,7 @@ Version:    pre-alpha-0.0.0.45+ for FVM 2.0
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
+#define ILLEGAL 2
 #define DM_WORDS 0x10000000 // Must be power of 2
 #define DM_MASK  0x0fffffff
 WORD vA = 0; // accumulator
@@ -128,7 +125,7 @@ void Fromv()  { vA = vV; }
 void Mdm()    { vA = DM_WORDS; }
 // Other
 void Nop()    { ; }
-#define halt(x) return x;
+#define halt return enbyte(vA);
 // ===========================================================================
 // Convenient macros to save typing
 #define add Add();
@@ -214,13 +211,15 @@ next:
     immb(iHALT)
     jmpeq(Halt)
 // default:
-    halt(8)
+    imma(ILLEGAL)
+    halt
 // ---------------------------------------------------------------------------
 Nop:
   link
 // ---------------------------------------------------------------------------
 Halt:
-  halt(9)
+  imma(SUCCESS)
+  halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
@@ -262,7 +261,8 @@ assertParentSize:
   immb(vm_DM_WORDS)
   sub
   jmpz(assertedParentSize)
-    halt(FAILURE)
+    imma(FAILURE)
+    halt
   assertedParentSize:
     link
 // ---------------------------------------------------------------------------
