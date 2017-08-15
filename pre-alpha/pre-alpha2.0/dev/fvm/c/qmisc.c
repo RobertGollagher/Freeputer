@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.46+ for FVM 2.0
+Version:    pre-alpha-0.0.0.47+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -44,8 +44,7 @@ Version:    pre-alpha-0.0.0.46+ for FVM 2.0
 #define METADATA WORD
 #define METADATA_MASK 0x00ffffff // 24 bits
 #define LSB_MASK      0x000000ff
-#define MSB_MASK      0xff000000
-#define SHIFT_MSB     0x00000018
+#define SET_MASK 0x80000000 // Sets msbit
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
@@ -58,13 +57,13 @@ LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (only used by put)
 WORD vR = 0; // repeat register
+WORD vI = 0; // immediate register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & LSB_MASK; }
-METADATA enmsb(METADATA x)   { return enbyte(x)<<SHIFT_MSB; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
@@ -87,20 +86,20 @@ void Put()    { dm[safe(vA)] = vV; }
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
-void ImmA(METADATA x)  { enrange(x); vA = x; }
-void ImmB(METADATA x)  { enrange(x); vB = x; }
-void ImmR(METADATA x)  { enrange(x); vR = x; }
-void ImmV(METADATA x)  { enrange(x); vV = x; }
-void MsbA(METADATA x)  { vA |= enmsb(x); }
-void MsbB(METADATA x)  { vB |= enmsb(x); }
-void MsbR(METADATA x)  { vR |= enmsb(x); }
-void MsbV(METADATA x)  { vV |= enmsb(x); }
-// Transfers
+void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
+void Set()    { vI|=SET_MASK; }                 // bit  32
+void ImmA()   { vA = vI; }
+void ImmB()   { vB = vI; }
+void ImmR()   { vR = vI; }
+void ImmT()   { vT = vI; }
+void ImmV()   { vV = vI; }
+// Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vV; vV = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tov()    { vV = vA; }
+void Toi()    { vI = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
@@ -111,12 +110,12 @@ void Fromv()  { vA = vV; }
 #define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
 #define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
 #define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
-#define jmpeq(label) if (vA == vB) { goto label; } // ==
-#define jmpne(label) if (vA != vB) { goto label; } // !=
-#define jmple(label) if (vA <= vB) { goto label; } // <= (unsigned)
-#define jmpge(label) if (vA >= vB) { goto label; } // >= (unsigned)
-#define jmplt(label) if (vA < vB) { goto label; } // < (unsigned)
-#define jmpgt(label) if (vA > vB) { goto label; } // > (unsigned)
+#define jmpeq(label) if (vA == vI) { goto label; } // ==
+#define jmpne(label) if (vA != vI) { goto label; } // !=
+#define jmple(label) if (vA <= vI) { goto label; } // <= (unsigned)
+#define jmpge(label) if (vA >= vI) { goto label; } // >= (unsigned)
+#define jmplt(label) if (vA < vI) { goto label; } // < (unsigned)
+#define jmpgt(label) if (vA > vI) { goto label; } // > (unsigned)
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0) { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -141,10 +140,13 @@ void Nop()    { ; }
 #define put Put();
 #define inc Inc();
 #define dec Dec();
-#define imma(x) ImmA(x);
-#define immb(x) ImmB(x);
-#define immr(x) ImmR(x);
-#define immv(x) ImmV(x);
+#define imm(x) Imm(x);
+#define set Set();
+#define imma ImmA();
+#define immb ImmB();
+#define immr ImmR();
+#define immt ImmT();
+#define immv ImmV();
 #define msba(x) MsbA(x);
 #define msbb(x) MsbB(x);
 #define msbr(x) MsbR(x);
@@ -186,6 +188,7 @@ int exampleProgram() {
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
 #define v_vV v_vR + 1
+#define v_vI v_vV + 1
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -195,43 +198,53 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction
 next:
-// increment v_rPC after storing it in vT
-    imma(v_rPC)
+// get dm[v_rPC]
+    imm(v_rPC)
+    imma
+    tov // store v_rPC addr in vV
+    get // get val of v_rPC into vT
     tot
-    br(Incr)
+// increment dm[v_rPC]
+    inc
+    swap
+    put
 // get current instr into vT
-    fromt
-    get
+    fromt // retrieve val of v_rPC from vT
+    get   // get instr at dm[v_rPC] into vT
     tot
 // case iNOP:
-    fromt
     jmpz(Nop)
 // case iHALT:
     fromt
-    immb(iHALT)
+    imm(iHALT)
+    immb
     jmpeq(Halt)
 // default:
-    imma(ILLEGAL)
+    imm(ILLEGAL)
+    imma
     halt
 // ---------------------------------------------------------------------------
 Nop:
   link
 // ---------------------------------------------------------------------------
 Halt:
-  imma(SUCCESS)
+  imm(SUCCESS)
+  imma
   halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
-  imma(0)
-  immv(iNOP)
+  imm(0)
+  imma
+  imm(iNOP)
   br(istore)
-  immv(iHALT)
+  imm(iHALT)
   br(istore)
   jump(run)
 // ---------------------------------------------------------------------------
-// Store instruction in vV to v_pm[vA++] in child's program memory
+// Store instruction in vI to v_pm[vA++] in child's program memory
 istore:
+  immv
   put
   inc
   link
@@ -251,17 +264,21 @@ doFill:
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
-  immv(0)
-  immr(DM_WORDS)
+  imm(0)
+  immv
+  imm(DM_WORDS)
+  immr
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
-  immb(vm_DM_WORDS)
+  imm(vm_DM_WORDS)
+  immb
   sub
   jmpz(assertedParentSize)
-    imma(FAILURE)
+    imm(FAILURE)
+    imma
     halt
   assertedParentSize:
     link
@@ -273,7 +290,7 @@ Incr:
   inc
   swap
   put
-  link
+  link // FIXME clobbers vL
 // ---------------------------------------------------------------------------
 
 } // end of exampleProgram
