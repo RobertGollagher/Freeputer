@@ -65,6 +65,7 @@ WORD v1 = 0; // peek parking register 1
 WORD v2 = 0; // peek parking register 2
 WORD v3 = 0; // peek parking register 3
 WORD v4 = 0; // peek parking register 4
+WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -86,16 +87,13 @@ void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // A moves
-void From()   { vA = dm[vS&DM_MASK]; }
-void To()     { dm[vD&DM_MASK] = vA; }
-void Pull()   { vA = dm[dm[vS&DM_MASK]]; }
-void Put()    { dm[dm[vD&DM_MASK]] = vA; }
+void Load()   { vA = dm[vS&DM_MASK]; }
+void Store()  { dm[vD&DM_MASK] = vA; }
+void Get()    { vA = dm[vA&DM_MASK]; } 
+void PutD()   { dm[dm[vD&DM_MASK]] = vA; }
+void PutP()   { dm[dm[vP&DM_MASK]] = vA; }
 void Peek()   { vA = dm[vP&DM_MASK]; }
 void Keep()   { dm[vP&DM_MASK] = vA; }
-// B moves
-void BFrom()  { vB = dm[vS&DM_MASK]; }
-void BPull()  { vB = dm[dm[vS&DM_MASK]]; }
-void BPeek() { vB = dm[vP&DM_MASK]; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
@@ -123,6 +121,7 @@ void MsbD(METADATA x)  { vD |= enmsb(x); }
 void MsbE(METADATA x)  { vS |= enmsb(x); vD |= enmsb(x); }
 void MsbP(METADATA x)  { vP |= enmsb(x); }
 // Transfers
+void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -175,22 +174,14 @@ void Nop()    { ; }
 #define neg Neg();
 #define shl Shl();
 #define shr Shr();
-#define load From();
-#define store To();
-#define pull Pull();
-#define put Put();
-
+#define load Load();
+#define store Store();
+#define get Get();
+#define putd PutD();
+#define putp PutP();
 #define peek Peek();
 #define keep Keep();
-//#define pop Pop();
-//#define push Push();
-
-#define bfrom BFrom();
-#define bpull BPull();
-
-#define bpeek BPeek();
-//#define bpop BPop();
-
+#define swap Swap();
 #define inc Inc();
 #define dec Dec();
 #define incs IncS();
@@ -199,11 +190,8 @@ void Nop()    { ; }
 #define decd DecD();
 #define ince IncE();
 #define dece DecE();
-
-//  Experimental
 #define incp IncP();
 #define decp DecP();
-
 #define imma(x) ImmA(x);
 #define immb(x) ImmB(x);
 #define immr(x) ImmR(x);
@@ -325,7 +313,7 @@ run:
 // Fill vR words at v_dst with value in vA (fills 1 GB in about 0.36 seconds)
 doFill:
   doFillLoop:
-    put
+    putd
     incd
     repeat(doFillLoop)
     link
