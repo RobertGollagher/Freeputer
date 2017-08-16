@@ -142,9 +142,42 @@ void Nop()    { ; }
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
-// Opcodes for interpreter
-#define iNOP  0x00
-#define iHALT 0x7f
+// Opcodes for interpreter of child VM (mostly arbitrary for now)
+#define iNOP   0x00
+#define iADD   0x01
+#define iSUB   0x02
+#define iOR    0x03
+#define iAND   0x04
+#define iXOR   0x05
+#define iNOT   0x06
+#define iSHL   0x07
+#define iSHR   0x08
+#define iGET   0x09
+#define iPUT   0x0a
+#define iINC   0x0b
+#define iDEC   0x0c
+#define iIMM   0x70 // iIMM must be the only opcode with msbit set
+#define iNEG   0x0e
+#define iIMMR  0x12
+#define iIMMT  0x13
+#define iIMMV  0x14
+#define iSWAP  0x20
+#define iTOB   0x21
+#define iTOR   0x22
+#define iTOT   0x23
+#define iFROMB 0x31
+#define iFROMR 0x32
+#define iFROMT 0x33
+#define iFROMV 0x34
+#define iJMPZ  0x40
+#define iJMPE  0x41
+#define iJMPS  0x42
+#define iJMPU  0x43
+#define iRPT   0x4f
+#define iBR    0x50
+#define iLINK  0x60
+#define iMDM   0x61
+#define iHALT  0x6f
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
