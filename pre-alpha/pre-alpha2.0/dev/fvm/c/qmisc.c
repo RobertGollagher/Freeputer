@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.48+ for FVM 2.0
+Version:    pre-alpha-0.0.0.50+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -38,13 +38,11 @@ Version:    pre-alpha-0.0.0.48+ for FVM 2.0
 #include <assert.h>
 #define WORD uint32_t
 #define WORD_SIZE 4
-#define NEG_MASK 0x80000000 // If negative or MAX_NEG in two's complement.
-#define BIG_MASK 0x40000000 // If absolute value > 0x3fffffff.
+#define SET_MASK 0x80000000  // Topmost bit 1
 #define LNKT uintptr_t
 #define METADATA WORD
-#define METADATA_MASK 0x00ffffff // 24 bits
-#define LSB_MASK      0x000000ff
-#define SET_MASK 0x80000000 // Sets msbit
+#define METADATA_MASK 0x7fffffff // 31 bits
+#define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
@@ -63,12 +61,12 @@ WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
-METADATA enbyte(METADATA x)  { return x & LSB_MASK; }
+METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Arithmetic
-void Add()    { vA+=vB; }
+void Add()    { vA+=vB; } // Hard to know if overflowed, easy to know if can overflow
 void Sub()    { vA-=vB; }
 // Logic
 void Or()     { vA|=vB; }
@@ -106,11 +104,8 @@ void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // ? Dynamic jumps
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0) { goto label; } // ZERO
-#define jmpm(label) if (vA == NEG_MASK) { goto label; } // MAX_NEG
-#define jmpn(label) if ((vA & NEG_MASK) == NEG_MASK) { goto label; } // NEG
-#define jmpb(label) if ((vA & BIG_MASK) == BIG_MASK) { goto label; } // BIG
-#define jmpeq(label) if (vA == vI) { goto label; } // ==
+#define jmpz(label) if (vA == 0) { goto label; } // vA is zero
+#define jmpe(label) if (vI == vA) { goto label; } // vA equals vI
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0) { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -213,7 +208,7 @@ next:
     fromt
     imm(iHALT)
     immb
-    jmpeq(Halt)
+    jmpe(Halt)
 // default:
     imm(ILLEGAL)
     imma
