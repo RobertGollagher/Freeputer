@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170815+
-Version:    pre-alpha-0.0.0.50+ for FVM 2.0
+Version:    pre-alpha-0.0.0.51+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -19,6 +19,7 @@ Version:    pre-alpha-0.0.0.50+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
+  No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture. Data memory: 32-bit address space.
   Program memory: 24-bit program space if interpreted.
   Program memory: no limit if native.
@@ -104,10 +105,12 @@ void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // ? Dynamic jumps
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0) { goto label; } // vA is zero
-#define jmpe(label) if (vI == vA) { goto label; } // vA equals vI
+#define jmpz(label) if (vA == 0)     { goto label; } // vA is zero
+#define jmpe(label) if (vI == vA)    { goto label; } // vA equals vI
+#define jmps(label) if (vI == vA&vI) { goto label; } // vA has all 1s of vI
+#define jmpu(label) if (vI == vA|vI) { goto label; } // vA has all 0s of vI
 #define jump(label) goto label; // UNCONDITIONAL
-#define repeat(label) if (--vR != 0) { goto label; }
+#define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // Machine metadata
