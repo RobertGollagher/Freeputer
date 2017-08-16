@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170815+
-Version:    pre-alpha-0.0.0.51+ for FVM 2.0
+Updated:    20170816+
+Version:    pre-alpha-0.0.0.52+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -19,15 +19,13 @@ Version:    pre-alpha-0.0.0.51+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
+  This is a meta-machine: its purpose is to safely virtualize other VM types.
+  No call/return, no stack pointer: thus correct and robust without trapping.
+  Supports branch/link: uses a standalone, inaccessible link register.
   No undefined behaviour: everything is unsigned, no <= >= operators.
-  Harvard architecture. Data memory: 32-bit address space.
-  Program memory: 24-bit program space if interpreted.
-  Program memory: no limit if native.
+  Harvard architecture: allows easy native implementation.
 
-    20170806: THIS NOW LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
-
-      FIXME NEXT: need to add a call/return solution as otherwise
-        native implementation is impractical (link insufficient).
+  20170806/20170816: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -54,7 +52,7 @@ WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
-WORD vV = 0; // value register (only used by put)
+WORD vV = 0; // value register (for put)
 WORD vR = 0; // repeat register
 WORD vI = 0; // immediate register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
@@ -103,7 +101,6 @@ void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
-// ? Dynamic jumps
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)     { goto label; } // vA is zero
 #define jmpe(label) if (vI == vA)    { goto label; } // vA equals vI
