@@ -207,7 +207,6 @@ next:
 // case iHALT:
     fromt
     imm(iHALT)
-    immb
     jmpe(Halt)
 // default:
     imm(ILLEGAL)
@@ -215,7 +214,7 @@ next:
     halt
 // ---------------------------------------------------------------------------
 Nop:
-  link
+  jump(next)
 // ---------------------------------------------------------------------------
 Halt:
   imm(SUCCESS)
@@ -230,7 +229,7 @@ program:
   br(istore)
   imm(iHALT)
   br(istore)
-  jump(run)
+  jump(next)
 // ---------------------------------------------------------------------------
 // Store instruction in vI to v_pm[vA++] in child's program memory
 istore:
@@ -238,11 +237,6 @@ istore:
   put
   inc
   link
-// ---------------------------------------------------------------------------
-// Run child's program
-run:
-  br(next)
-  jump(run)
 // ---------------------------------------------------------------------------
 // Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
 doFill:
@@ -280,7 +274,7 @@ Incr:
   inc
   swap
   put
-  link // FIXME clobbers vL
+  link
 // ---------------------------------------------------------------------------
 
 } // end of exampleProgram
