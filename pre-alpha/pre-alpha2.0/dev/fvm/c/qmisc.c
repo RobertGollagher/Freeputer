@@ -130,10 +130,6 @@ void Nop()    { ; }
 #define immr ImmR();
 #define immt ImmT();
 #define immv ImmV();
-#define msba(x) MsbA(x);
-#define msbb(x) MsbB(x);
-#define msbr(x) MsbR(x);
-#define msbv(x) MsbV(x);
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -162,7 +158,6 @@ int exampleProgram() {
 #define v_PM_WORDS  0x1000
 #define v_pm 0
 #define v_dm v_PM_WORDS
-// Actually not using v_rPC any more (using v1 instead)
 #define v_rPC v_dm + v_DM_WORDS
 #define v_instr v_rPC + 1
 #define v_vA v_instr + 1
