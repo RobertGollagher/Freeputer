@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170816+
-Version:    pre-alpha-0.0.0.52+ for FVM 2.0
+Version:    pre-alpha-0.0.0.53+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -248,50 +248,55 @@ Nop:
 // ---------------------------------------------------------------------------
 Imm:
   xor // vB already contains iIMM, so this leaves the 31-bit literal in vA
-  tov
-  br(putB)
+  br(postB)
   jump(next)
 // ---------------------------------------------------------------------------
 Add:
-  br(getA)
-  tot
-  br(getB)
-  tob
-  fromt
+  br(preAB)
   add
-  tov
-  br(putA)
+  br(postA)
   jump(next)
 // ---------------------------------------------------------------------------
 Halt:
-  imm(SUCCESS)
+  //imm(SUCCESS)
+  br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
   fromb
   halt
 // ---------------------------------------------------------------------------
+// Get v_vA into vA and v_vB into vB prior to AB operation
+preAB:
+  imm(v_vA)
+  fromb
+  get
+  tot
+  imm(v_vB)
+  fromb
+  get
+  tob
+  fromt
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vA
+postA:
+  tov
+  imm(v_vA)
+  fromb
+  put
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vB
+postB:
+  tov
+  imm(v_vB)
+  fromb
+  put
+  link
+// ---------------------------------------------------------------------------
+// Get v_vA into vA
 getA:
   imm(v_vA)
   fromb
   get
-  link
-// ---------------------------------------------------------------------------
-getB:
-  imm(v_vB)
-  fromb
-  get
-  link
-// ---------------------------------------------------------------------------
-// Store value in vV to v_vA
-putA:
-  imm(v_vA)
-  fromb
-  put
-  link
-// ---------------------------------------------------------------------------
-// Store value in vV to v_vB
-putB:
-  imm(v_vB)
-  fromb
-  put
   link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
@@ -299,6 +304,14 @@ program:
   imm(0)
   fromb
   imm(iNOP)
+  br(istore)
+  imm(iIMM & 3)
+  br(istore)
+  imm(iADD)
+  br(istore)
+  imm(iIMM & 5)
+  br(istore)
+  imm(iADD)
   br(istore)
   imm(iHALT)
   br(istore)
