@@ -70,8 +70,7 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Not()    { vA=~vA; }
-void Neg()    { vA=~vA; ++vA; } // MAX_NEG unchanged (an advantage)
+void Not()    { vA=~vA; } // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
@@ -83,7 +82,7 @@ void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
-void Set()    { vB|=SET_MASK; }                 // bit  32
+void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
 void ImmV()   { vV = vB; }
