@@ -207,7 +207,7 @@ vm_init:
   br(doFill)
   jump(program)
 // ---------------------------------------------------------------------------
-// Process next instruction
+// Process next instruction (not optimized yet)
 next:
 // get dm[v_rPC]
     imm(v_rPC)
@@ -223,8 +223,17 @@ next:
     fromt // retrieve val of v_rPC from vT
     get   // get instr at dm[v_rPC] into vT
     tot
+// case iIMM:
+    fromt
+    imm(iIMM)
+    jmps(Imm)
 // case iNOP:
+    fromt
     jmpz(Nop)
+// case iADD:
+    fromt
+    imm(iADD)
+    jmpe(Add)
 // case iHALT:
     fromt
     imm(iHALT)
@@ -237,10 +246,53 @@ next:
 Nop:
   jump(next)
 // ---------------------------------------------------------------------------
+Imm:
+  xor // vB already contains iIMM, so this leaves the 31-bit literal in vA
+  tov
+  br(putB)
+  jump(next)
+// ---------------------------------------------------------------------------
+Add:
+  br(getA)
+  tot
+  br(getB)
+  tob
+  fromt
+  add
+  tov
+  br(putA)
+  jump(next)
+// ---------------------------------------------------------------------------
 Halt:
   imm(SUCCESS)
   fromb
   halt
+// ---------------------------------------------------------------------------
+getA:
+  imm(v_vA)
+  fromb
+  get
+  link
+// ---------------------------------------------------------------------------
+getB:
+  imm(v_vB)
+  fromb
+  get
+  link
+// ---------------------------------------------------------------------------
+// Store value in vV to v_vA
+putA:
+  imm(v_vA)
+  fromb
+  put
+  link
+// ---------------------------------------------------------------------------
+// Store value in vV to v_vB
+putB:
+  imm(v_vB)
+  fromb
+  put
+  link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
@@ -252,7 +304,7 @@ program:
   br(istore)
   jump(next)
 // ---------------------------------------------------------------------------
-// Store value in vB to v_pm[vA++] in child's program memory
+// Store value in vV to v_pm[vA++] in child's program memory
 istore:
   immv
   put
