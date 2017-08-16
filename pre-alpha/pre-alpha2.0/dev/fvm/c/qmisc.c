@@ -54,7 +54,6 @@ LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (for put)
 WORD vR = 0; // repeat register
-WORD vI = 0; // immediate register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
@@ -83,29 +82,26 @@ void Put()    { dm[safe(vA)] = vV; }
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
-void Imm(METADATA x)    { enrange(x); vI = x; } // bits 31..0
-void Set()    { vI|=SET_MASK; }                 // bit  32
-void ImmA()   { vA = vI; }
-void ImmB()   { vB = vI; }
-void ImmR()   { vR = vI; }
-void ImmT()   { vT = vI; }
-void ImmV()   { vV = vI; }
+void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
+void Set()    { vB|=SET_MASK; }                 // bit  32
+void ImmR()   { vR = vB; }
+void ImmT()   { vT = vB; }
+void ImmV()   { vV = vB; }
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vV; vV = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tov()    { vV = vA; }
-void Toi()    { vI = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)     { goto label; } // vA is zero
-#define jmpe(label) if (vI == vA)    { goto label; } // vA equals vI
-#define jmps(label) if (vI == vA&vI) { goto label; } // vA has all 1s of vI
-#define jmpu(label) if (vI == vA|vI) { goto label; } // vA has all 0s of vI
+#define jmpe(label) if (vB == vA)    { goto label; } // vA equals vB
+#define jmps(label) if (vB == vA&vB) { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == vA|vB) { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -132,8 +128,6 @@ void Nop()    { ; }
 #define dec Dec();
 #define imm(x) Imm(x);
 #define set Set();
-#define imma ImmA();
-#define immb ImmB();
 #define immr ImmR();
 #define immt ImmT();
 #define immv ImmV();
@@ -190,7 +184,7 @@ vm_init:
 next:
 // get dm[v_rPC]
     imm(v_rPC)
-    imma
+    fromb
     tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
     tot
@@ -210,7 +204,7 @@ next:
     jmpe(Halt)
 // default:
     imm(ILLEGAL)
-    imma
+    fromb
     halt
 // ---------------------------------------------------------------------------
 Nop:
@@ -218,20 +212,20 @@ Nop:
 // ---------------------------------------------------------------------------
 Halt:
   imm(SUCCESS)
-  imma
+  fromb
   halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
   imm(0)
-  imma
+  fromb
   imm(iNOP)
   br(istore)
   imm(iHALT)
   br(istore)
   jump(next)
 // ---------------------------------------------------------------------------
-// Store instruction in vI to v_pm[vA++] in child's program memory
+// Store value in vB to v_pm[vA++] in child's program memory
 istore:
   immv
   put
@@ -258,11 +252,10 @@ setupToClearParent:
 assertParentSize:
   mdm
   imm(vm_DM_WORDS)
-  immb
   sub
   jmpz(assertedParentSize)
     imm(FAILURE)
-    imma
+    fromb
     halt
   assertedParentSize:
     link
