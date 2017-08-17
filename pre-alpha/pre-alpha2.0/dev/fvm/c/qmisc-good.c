@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170816+
-Version:    pre-alpha-0.0.0.53+ for FVM 2.0
+Version:    pre-alpha-0.0.0.56+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -37,7 +37,7 @@ Version:    pre-alpha-0.0.0.53+ for FVM 2.0
 #include <assert.h>
 #define WORD uint32_t
 #define WORD_SIZE 4
-#define SET_MASK 0x80000000  // Topmost bit 1
+#define MSb 0x80000000 // Bit mask for most significant bit
 #define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
@@ -49,7 +49,7 @@ Version:    pre-alpha-0.0.0.53+ for FVM 2.0
 #define DM_WORDS 0x10000000 // Must be power of 2
 #define DM_MASK  0x0fffffff
 WORD vA = 0; // accumulator
-WORD vB = 0; // operand register
+WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (for put)
@@ -70,7 +70,8 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Not()    { vA=~vA; } // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
+void Not()    { vA=~vA; }  // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
+void Flip()   { vA^=MSb; } // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
@@ -83,6 +84,7 @@ void Dec()    { --vA; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
+void ImmA()   { vA = vB; }
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
 void ImmV()   { vV = vB; }
@@ -92,15 +94,16 @@ void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tov()    { vV = vA; }
-void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0)     { goto label; } // vA is zero
-#define jmpe(label) if (vB == vA)    { goto label; } // vA equals vB
-#define jmps(label) if (vB == vA&vB) { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == vA|vB) { goto label; } // vA has all 0s of vB
+#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
+#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
+#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
+#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
+#define jmps(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -118,6 +121,7 @@ void Nop()    { ; }
 #define and And();
 #define xor Xor();
 #define not Not();
+#define flip Flip();
 #define neg Neg();
 #define shl Shl();
 #define shr Shr();
@@ -125,59 +129,61 @@ void Nop()    { ; }
 #define put Put();
 #define inc Inc();
 #define dec Dec();
-#define imm(x) Imm(x);
+#define i(x) Imm(x);
 #define set Set();
-#define immr ImmR();
-#define immt ImmT();
-#define immv ImmV();
+#define ia ImmA();
+#define ir ImmR();
+#define it ImmT();
+#define iv ImmV();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
 #define tov Tov();
-#define fromb Fromb();
 #define fromt Fromt();
 #define fromr Fromr();
 #define fromv Fromv();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
-// Opcodes for interpreter of child VM (mostly arbitrary for now)
-#define iNOP   0x00
-#define iADD   0x01
-#define iSUB   0x02
-#define iOR    0x03
-#define iAND   0x04
-#define iXOR   0x05
-#define iNOT   0x06
-#define iSHL   0x07
-#define iSHR   0x08
-#define iGET   0x09
-#define iPUT   0x0a
-#define iINC   0x0b
-#define iDEC   0x0c
-#define iIMM   0x70 // iIMM must be the only opcode with msbit set
-#define iNEG   0x0e
-#define iIMMR  0x12
-#define iIMMT  0x13
-#define iIMMV  0x14
-#define iSWAP  0x20
-#define iTOB   0x21
-#define iTOR   0x22
-#define iTOT   0x23
-#define iFROMB 0x31
-#define iFROMR 0x32
-#define iFROMT 0x33
-#define iFROMV 0x34
-#define iJMPZ  0x40
-#define iJMPE  0x41
-#define iJMPS  0x42
-#define iJMPU  0x43
-#define iRPT   0x4f
-#define iBR    0x50
-#define iLINK  0x60
-#define iMDM   0x61
-#define iHALT  0x6f
+// Opcodes for interpreter of child VM (mostly arbitrary values for now).
+// Current scheme is FW32 (poor density but simple, portable).
+#define iNOP   0x00000000
+#define iADD   0x01000000
+#define iSUB   0x02000000
+#define iOR    0x03000000
+#define iAND   0x04000000
+#define iXOR   0x05000000
+#define iNOT   0x06000000
+#define iFLIP  0x07000000
+#define iSHL   0x08000000
+#define iSHR   0x09000000
+#define iGET   0x0a000000
+#define iPUT   0x0b000000
+#define iINC   0x0c000000
+#define iDEC   0x0d000000
+#define iIMM   0x80000000 // iIMM must be the only opcode with msbit set
+#define iNEG   0x0e000000
+#define iIMMR  0x12000000
+#define iIMMT  0x13000000
+#define iIMMV  0x14000000
+#define iSWAP  0x20000000
+#define iTOB   0x21000000
+#define iTOR   0x22000000
+#define iTOT   0x23000000
+#define iFROMB 0x31000000
+#define iFROMR 0x32000000
+#define iFROMT 0x33000000
+#define iFROMV 0x34000000
+#define iJMPZ  0x40000000
+#define iJMPE  0x41000000
+#define iJMPS  0x42000000
+#define iJMPU  0x43000000
+#define iRPT   0x4f000000
+#define iBR    0x50000000
+#define iLINK  0x60000000
+#define iMDM   0x61000000
+#define iHALT  0x6f000000
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
@@ -210,8 +216,8 @@ vm_init:
 // Process next instruction (not optimized yet)
 next:
 // get dm[v_rPC]
-    imm(v_rPC)
-    fromb
+    i(v_rPC)
+    ia
     tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
     tot
@@ -225,29 +231,28 @@ next:
     tot
 // case iIMM:
     fromt
-    imm(iIMM)
-    jmps(Imm)
+    jmpn(Imm)
 // case iNOP:
     fromt
     jmpz(Nop)
 // case iADD:
     fromt
-    imm(iADD)
+    i(iADD)
     jmpe(Add)
 // case iHALT:
     fromt
-    imm(iHALT)
+    i(iHALT)
     jmpe(Halt)
 // default:
-    imm(ILLEGAL)
-    fromb
+    i(ILLEGAL)
+    ia
     halt
 // ---------------------------------------------------------------------------
 Nop:
   jump(next)
 // ---------------------------------------------------------------------------
 Imm:
-  xor // vB already contains iIMM, so this leaves the 31-bit literal in vA
+  flip
   br(postB)
   jump(next)
 // ---------------------------------------------------------------------------
@@ -258,19 +263,18 @@ Add:
   jump(next)
 // ---------------------------------------------------------------------------
 Halt:
-  //imm(SUCCESS)
+  //i(SUCCESS)
   br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
-  fromb
   halt
 // ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
 preAB:
-  imm(v_vA)
-  fromb
+  i(v_vA)
+  ia
   get
   tot
-  imm(v_vB)
-  fromb
+  i(v_vB)
+  ia
   get
   tob
   fromt
@@ -279,47 +283,47 @@ preAB:
 // Save vA into v_vA
 postA:
   tov
-  imm(v_vA)
-  fromb
+  i(v_vA)
+  ia
   put
   link
 // ---------------------------------------------------------------------------
 // Save vA into v_vB
 postB:
   tov
-  imm(v_vB)
-  fromb
+  i(v_vB)
+  ia
   put
   link
 // ---------------------------------------------------------------------------
 // Get v_vA into vA
 getA:
-  imm(v_vA)
-  fromb
+  i(v_vA)
+  ia
   get
   link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
-  imm(0)
-  fromb
-  imm(iNOP)
+  i(0)
+  ia
+  i(iNOP)
   br(istore)
-  imm(iIMM & 3)
+  i(iIMM|3)
   br(istore)
-  imm(iADD)
+  i(iADD)
   br(istore)
-  imm(iIMM & 5)
+  i(iIMM|5)
   br(istore)
-  imm(iADD)
+  i(iADD)
   br(istore)
-  imm(iHALT)
+  i(iHALT)
   br(istore)
   jump(next)
 // ---------------------------------------------------------------------------
 // Store value in vV to v_pm[vA++] in child's program memory
 istore:
-  immv
+  iv
   put
   inc
   link
@@ -334,20 +338,20 @@ doFill:
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
-  imm(0)
-  immv
-  imm(DM_WORDS)
-  immr
+  i(0)
+  iv
+  i(DM_WORDS)
+  ir
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
-  imm(vm_DM_WORDS)
+  i(vm_DM_WORDS)
   sub
   jmpz(assertedParentSize)
-    imm(FAILURE)
-    fromb
+    i(FAILURE)
+    ia
     halt
   assertedParentSize:
     link

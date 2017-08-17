@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170816+
-Version:    pre-alpha-0.0.0.55+ for FVM 2.0
+Version:    pre-alpha-0.0.0.56+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -70,7 +70,8 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Not()    { vA=~vA; } // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
+void Not()    { vA=~vA; }  // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
+void Flip()   { vA^=MSb; } // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
@@ -97,12 +98,12 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0)      { goto label; } // vA is zero
-#define jmpe(label) if (vB == vA)     { goto label; } // vA equals vB
-#define jmpm(label) if (vA == MSb)    { goto label; } // vA has only msbit set
-#define jmpn(label) if (vA == vA&MSb) { goto label; } // vA has msbit set
-#define jmps(label) if (vB == vA&vB)  { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == vA|vB)  { goto label; } // vA has all 0s of vB
+#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
+#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
+#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
+#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
+#define jmps(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -120,6 +121,7 @@ void Nop()    { ; }
 #define and And();
 #define xor Xor();
 #define not Not();
+#define flip Flip();
 #define neg Neg();
 #define shl Shl();
 #define shr Shr();
@@ -153,13 +155,14 @@ void Nop()    { ; }
 #define iAND   0x04000000
 #define iXOR   0x05000000
 #define iNOT   0x06000000
-#define iSHL   0x07000000
-#define iSHR   0x08000000
-#define iGET   0x09000000
-#define iPUT   0x0a000000
-#define iINC   0x0b000000
-#define iDEC   0x0c000000
-#define iIMM   0x70000000 // iIMM must be the only opcode with msbit set
+#define iFLIP  0x07000000
+#define iSHL   0x08000000
+#define iSHR   0x09000000
+#define iGET   0x0a000000
+#define iPUT   0x0b000000
+#define iINC   0x0c000000
+#define iDEC   0x0d000000
+#define iIMM   0x80000000 // iIMM must be the only opcode with msbit set
 #define iNEG   0x0e000000
 #define iIMMR  0x12000000
 #define iIMMT  0x13000000
@@ -249,7 +252,7 @@ Nop:
   jump(next)
 // ---------------------------------------------------------------------------
 Imm:
-  xor // vB already contains iIMM, so this leaves the 31-bit literal in vA
+  flip
   br(postB)
   jump(next)
 // ---------------------------------------------------------------------------
@@ -262,7 +265,6 @@ Add:
 Halt:
   //i(SUCCESS)
   br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
-  ia
   halt
 // ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
@@ -307,11 +309,11 @@ program:
   ia
   i(iNOP)
   br(istore)
-  i(iIMM & 3)
+  i(iIMM|3)
   br(istore)
   i(iADD)
   br(istore)
-  i(iIMM & 5)
+  i(iIMM|5)
   br(istore)
   i(iADD)
   br(istore)
