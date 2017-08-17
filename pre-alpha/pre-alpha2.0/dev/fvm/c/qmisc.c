@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170816+
-Version:    pre-alpha-0.0.0.53+ for FVM 2.0
+Version:    pre-alpha-0.0.0.54+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -49,7 +49,7 @@ Version:    pre-alpha-0.0.0.53+ for FVM 2.0
 #define DM_WORDS 0x10000000 // Must be power of 2
 #define DM_MASK  0x0fffffff
 WORD vA = 0; // accumulator
-WORD vB = 0; // operand register
+WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (for put)
@@ -64,7 +64,7 @@ METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Arithmetic
-void Add()    { vA+=vB; } // Hard to know if overflowed, easy to know if can overflow
+void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
 // Logic
 void Or()     { vA|=vB; }
@@ -83,6 +83,7 @@ void Dec()    { --vA; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
+void ImmA()   { vA = vB; }
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
 void ImmV()   { vV = vB; }
@@ -92,7 +93,6 @@ void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tov()    { vV = vA; }
-void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
@@ -127,6 +127,7 @@ void Nop()    { ; }
 #define dec Dec();
 #define imm(x) Imm(x);
 #define set Set();
+#define imma ImmA();
 #define immr ImmR();
 #define immt ImmT();
 #define immv ImmV();
@@ -135,7 +136,6 @@ void Nop()    { ; }
 #define tot Tot();
 #define tor Tor();
 #define tov Tov();
-#define fromb Fromb();
 #define fromt Fromt();
 #define fromr Fromr();
 #define fromv Fromv();
@@ -211,7 +211,7 @@ vm_init:
 next:
 // get dm[v_rPC]
     imm(v_rPC)
-    fromb
+    imma
     tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
     tot
@@ -240,7 +240,7 @@ next:
     jmpe(Halt)
 // default:
     imm(ILLEGAL)
-    fromb
+    imma
     halt
 // ---------------------------------------------------------------------------
 Nop:
@@ -260,17 +260,17 @@ Add:
 Halt:
   //imm(SUCCESS)
   br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
-  fromb
+  imma
   halt
 // ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
 preAB:
   imm(v_vA)
-  fromb
+  imma
   get
   tot
   imm(v_vB)
-  fromb
+  imma
   get
   tob
   fromt
@@ -280,7 +280,7 @@ preAB:
 postA:
   tov
   imm(v_vA)
-  fromb
+  imma
   put
   link
 // ---------------------------------------------------------------------------
@@ -288,21 +288,21 @@ postA:
 postB:
   tov
   imm(v_vB)
-  fromb
+  imma
   put
   link
 // ---------------------------------------------------------------------------
 // Get v_vA into vA
 getA:
   imm(v_vA)
-  fromb
+  imma
   get
   link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
   imm(0)
-  fromb
+  imma
   imm(iNOP)
   br(istore)
   imm(iIMM & 3)
@@ -347,7 +347,7 @@ assertParentSize:
   sub
   jmpz(assertedParentSize)
     imm(FAILURE)
-    fromb
+    imma
     halt
   assertedParentSize:
     link
