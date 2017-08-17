@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170816+
-Version:    pre-alpha-0.0.0.54+ for FVM 2.0
+Version:    pre-alpha-0.0.0.55+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -37,7 +37,7 @@ Version:    pre-alpha-0.0.0.54+ for FVM 2.0
 #include <assert.h>
 #define WORD uint32_t
 #define WORD_SIZE 4
-#define SET_MASK 0x80000000  // Topmost bit 1
+#define MSb 0x80000000 // Bit mask for most significant bit
 #define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
@@ -97,10 +97,12 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0)     { goto label; } // vA is zero
-#define jmpe(label) if (vB == vA)    { goto label; } // vA equals vB
-#define jmps(label) if (vB == vA&vB) { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == vA|vB) { goto label; } // vA has all 0s of vB
+#define jmpz(label) if (vA == 0)      { goto label; } // vA is zero
+#define jmpe(label) if (vB == vA)     { goto label; } // vA equals vB
+#define jmpm(label) if (vA == MSb)    { goto label; } // vA has only msbit set
+#define jmpn(label) if (vA == vA&MSb) { goto label; } // vA has msbit set
+#define jmps(label) if (vB == vA&vB)  { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == vA|vB)  { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
 #define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -142,42 +144,43 @@ void Nop()    { ; }
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
-// Opcodes for interpreter of child VM (mostly arbitrary for now)
-#define iNOP   0x00
-#define iADD   0x01
-#define iSUB   0x02
-#define iOR    0x03
-#define iAND   0x04
-#define iXOR   0x05
-#define iNOT   0x06
-#define iSHL   0x07
-#define iSHR   0x08
-#define iGET   0x09
-#define iPUT   0x0a
-#define iINC   0x0b
-#define iDEC   0x0c
-#define iIMM   0x70 // iIMM must be the only opcode with msbit set
-#define iNEG   0x0e
-#define iIMMR  0x12
-#define iIMMT  0x13
-#define iIMMV  0x14
-#define iSWAP  0x20
-#define iTOB   0x21
-#define iTOR   0x22
-#define iTOT   0x23
-#define iFROMB 0x31
-#define iFROMR 0x32
-#define iFROMT 0x33
-#define iFROMV 0x34
-#define iJMPZ  0x40
-#define iJMPE  0x41
-#define iJMPS  0x42
-#define iJMPU  0x43
-#define iRPT   0x4f
-#define iBR    0x50
-#define iLINK  0x60
-#define iMDM   0x61
-#define iHALT  0x6f
+// Opcodes for interpreter of child VM (mostly arbitrary values for now).
+// Current scheme is FW32 (poor density but simple, portable).
+#define iNOP   0x00000000
+#define iADD   0x01000000
+#define iSUB   0x02000000
+#define iOR    0x03000000
+#define iAND   0x04000000
+#define iXOR   0x05000000
+#define iNOT   0x06000000
+#define iSHL   0x07000000
+#define iSHR   0x08000000
+#define iGET   0x09000000
+#define iPUT   0x0a000000
+#define iINC   0x0b000000
+#define iDEC   0x0c000000
+#define iIMM   0x70000000 // iIMM must be the only opcode with msbit set
+#define iNEG   0x0e000000
+#define iIMMR  0x12000000
+#define iIMMT  0x13000000
+#define iIMMV  0x14000000
+#define iSWAP  0x20000000
+#define iTOB   0x21000000
+#define iTOR   0x22000000
+#define iTOT   0x23000000
+#define iFROMB 0x31000000
+#define iFROMR 0x32000000
+#define iFROMT 0x33000000
+#define iFROMV 0x34000000
+#define iJMPZ  0x40000000
+#define iJMPE  0x41000000
+#define iJMPS  0x42000000
+#define iJMPU  0x43000000
+#define iRPT   0x4f000000
+#define iBR    0x50000000
+#define iLINK  0x60000000
+#define iMDM   0x61000000
+#define iHALT  0x6f000000
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
@@ -225,8 +228,7 @@ next:
     tot
 // case iIMM:
     fromt
-    i(iIMM)
-    jmps(Imm)
+    jmpn(Imm)
 // case iNOP:
     fromt
     jmpz(Nop)
