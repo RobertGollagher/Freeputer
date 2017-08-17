@@ -125,12 +125,12 @@ void Nop()    { ; }
 #define put Put();
 #define inc Inc();
 #define dec Dec();
-#define imm(x) Imm(x);
+#define i(x) Imm(x);
 #define set Set();
-#define imma ImmA();
-#define immr ImmR();
-#define immt ImmT();
-#define immv ImmV();
+#define ia ImmA();
+#define ir ImmR();
+#define it ImmT();
+#define iv ImmV();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -210,8 +210,8 @@ vm_init:
 // Process next instruction (not optimized yet)
 next:
 // get dm[v_rPC]
-    imm(v_rPC)
-    imma
+    i(v_rPC)
+    ia
     tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
     tot
@@ -225,22 +225,22 @@ next:
     tot
 // case iIMM:
     fromt
-    imm(iIMM)
+    i(iIMM)
     jmps(Imm)
 // case iNOP:
     fromt
     jmpz(Nop)
 // case iADD:
     fromt
-    imm(iADD)
+    i(iADD)
     jmpe(Add)
 // case iHALT:
     fromt
-    imm(iHALT)
+    i(iHALT)
     jmpe(Halt)
 // default:
-    imm(ILLEGAL)
-    imma
+    i(ILLEGAL)
+    ia
     halt
 // ---------------------------------------------------------------------------
 Nop:
@@ -258,19 +258,19 @@ Add:
   jump(next)
 // ---------------------------------------------------------------------------
 Halt:
-  //imm(SUCCESS)
+  //i(SUCCESS)
   br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
-  imma
+  ia
   halt
 // ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
 preAB:
-  imm(v_vA)
-  imma
+  i(v_vA)
+  ia
   get
   tot
-  imm(v_vB)
-  imma
+  i(v_vB)
+  ia
   get
   tob
   fromt
@@ -279,47 +279,47 @@ preAB:
 // Save vA into v_vA
 postA:
   tov
-  imm(v_vA)
-  imma
+  i(v_vA)
+  ia
   put
   link
 // ---------------------------------------------------------------------------
 // Save vA into v_vB
 postB:
   tov
-  imm(v_vB)
-  imma
+  i(v_vB)
+  ia
   put
   link
 // ---------------------------------------------------------------------------
 // Get v_vA into vA
 getA:
-  imm(v_vA)
-  imma
+  i(v_vA)
+  ia
   get
   link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
-  imm(0)
-  imma
-  imm(iNOP)
+  i(0)
+  ia
+  i(iNOP)
   br(istore)
-  imm(iIMM & 3)
+  i(iIMM & 3)
   br(istore)
-  imm(iADD)
+  i(iADD)
   br(istore)
-  imm(iIMM & 5)
+  i(iIMM & 5)
   br(istore)
-  imm(iADD)
+  i(iADD)
   br(istore)
-  imm(iHALT)
+  i(iHALT)
   br(istore)
   jump(next)
 // ---------------------------------------------------------------------------
 // Store value in vV to v_pm[vA++] in child's program memory
 istore:
-  immv
+  iv
   put
   inc
   link
@@ -334,20 +334,20 @@ doFill:
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
-  imm(0)
-  immv
-  imm(DM_WORDS)
-  immr
+  i(0)
+  iv
+  i(DM_WORDS)
+  ir
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
-  imm(vm_DM_WORDS)
+  i(vm_DM_WORDS)
   sub
   jmpz(assertedParentSize)
-    imm(FAILURE)
-    imma
+    i(FAILURE)
+    ia
     halt
   assertedParentSize:
     link
