@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.60+ for FVM 2.0
+Version:    pre-alpha-0.0.0.61+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -27,12 +27,17 @@ Version:    pre-alpha-0.0.0.60+ for FVM 2.0
 
   20170806/20170818: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
 
+  FIXME NEXT:
+
+    1. Can VM design be improved to make child faster?
+    2. Should parent always itself be interpreted rather than native?
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-// #define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -59,6 +64,7 @@ WORD vR = 0; // repeat register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
+int interpretedExperiment();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
@@ -132,7 +138,7 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
-#define set Set();
+#define neg Neg();
 #define imma ImmA();
 #define immr ImmR();
 #define immt ImmT();
@@ -150,6 +156,7 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 // ===========================================================================
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
+#define iIMM   0x80000000 // DONE
 #define iNOP   0x00000000 // DONE
 #define iADD   0x01000000 // DONE
 #define iSUB   0x02000000
@@ -164,37 +171,83 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define iPUT   0x0b000000
 #define iINC   0x0c000000
 #define iDEC   0x0d000000
-#define iIMM   0x80000000  // DONE
 #define iNEG   0x0e000000
-#define iIMMR  0x12000000
-#define iIMMT  0x13000000
-#define iIMMV  0x14000000
-#define iSWAP  0x20000000
-#define iTOB   0x21000000
-#define iTOR   0x22000000
-#define iTOT   0x23000000
-#define iFROMB 0x31000000
-#define iFROMR 0x32000000
-#define iFROMT 0x33000000
-#define iFROMV 0x34000000
-#define iJMPZ  0x40000000
-#define iJMPE  0x41000000
-#define iJMPS  0x42000000
-#define iJMPU  0x43000000
-#define iRPT   0x4f000000
-#define iBR    0x50000000
-#define iLINK  0x60000000
-#define iMDM   0x61000000
-#define iHALT  0x6f000000 // DONE
+#define iIMMA  0x0f000000
+#define iIMMR  0x10000000
+#define iIMMT  0x11000000
+#define iIMMV  0x12000000
+#define iSWAP  0x13000000
+#define iTOB   0x14000000
+#define iTOR   0x15000000
+#define iTOT   0x16000000
+#define iFROMR 0x17000000
+#define iFROMT 0x18000000
+#define iFROMV 0x19000000
+#define iJMPZ  0x1a000000
+#define iJMPE  0x1b000000
+#define iJMPM  0x1c000000
+#define iJMPN  0x1d000000
+#define iJMPS  0x1e000000
+#define iJMPU  0x1f000000
+#define iJUMP  0x20000000
+#define iRPT   0x21000000
+#define iBR    0x22000000
+#define iLINK  0x23000000
+#define iMDM   0x24000000
+#define iHALT  0x25000000 // DONE
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
-  return exampleProgram();
+  return interpretedExperiment();
+  //return exampleProgram();
+}
+// ===========================================================================
+// Experiment: the parent itself as a QMISC FW32 implementation
+#define OPCODE_MASK     0xff000000
+WORD prg[] = {iNOP, iHALT};
+void JmpZ() {}; // TODO implement these
+void JmpE() {};
+void JmpM() {};
+void JmpN() {};
+void JmpS() {};
+void JmpU() {};
+void Jump() {};
+void Rpt() {};
+void Br() {};
+void Link() {};
+void (*ifuncs[])() = {
+  Nop,Add,Sub,Or,And,Xor,Not,Flip,Shl,Shr,Get,Put,Inc,Dec,Neg,
+  ImmR,ImmT,ImmV,Swap,Tob,Tor,Tot,Fromr,Fromt,Fromv,
+  JmpZ,JmpE,JmpS,JmpU,Jump,
+  Rpt,Br,Link,Mdm
+}; 
+WORD vPC = 0;
+int interpretedExperiment() {
+  WORD instr;
+  WORD opcode;
+  WORD m;
+  next:
+    instr = prg[vPC++];
+    opcode = instr&OPCODE_MASK;
+#ifdef DEBUG
+printf("\n%08x %08x %02x",vPC,instr,opcode);
+#endif
+    if (opcode == iIMM) {
+      m = instr&METADATA_MASK;
+      Imm(m);
+    } else if (opcode < iHALT) {
+      ifuncs[opcode]();
+    } else if (opcode == iHALT) {
+      return SUCCESS;
+    } else {
+      return ILLEGAL;
+    }
+    goto next;
 }
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
-/*
+
  // For native parent VM speed comparison:
 i(0x7fffffff)
 immr
@@ -202,7 +255,7 @@ foo:
   nop
   rpt(foo)
   return 0;
-*/
+
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
