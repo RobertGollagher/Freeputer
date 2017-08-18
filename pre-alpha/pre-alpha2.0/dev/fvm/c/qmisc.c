@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.59+ for FVM 2.0
+Version:    pre-alpha-0.0.0.60+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -113,7 +113,7 @@ void Fromv()  { vA = vV; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void v_Nop()    { ; }
+void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define halt return enbyte(vA);
 // ===========================================================================
 // Convenient macros to save typing
@@ -194,10 +194,12 @@ int main() {
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
-/* // For native parent VM speed comparison:
-i(0x10000000)
+/*
+ // For native parent VM speed comparison:
+i(0x7fffffff)
 immr
 foo:
+  nop
   rpt(foo)
   return 0;
 */
