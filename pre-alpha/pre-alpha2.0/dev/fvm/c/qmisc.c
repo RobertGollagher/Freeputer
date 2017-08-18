@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.61+ for FVM 2.0
+Version:    pre-alpha-0.0.0.62+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -40,7 +40,7 @@ Version:    pre-alpha-0.0.0.61+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -210,7 +210,7 @@ int main() {
 #define OPCODE_MASK 0xff000000
 #define LABEL_MASK  0x00ffffff
 WORD vPC = 0;
-WORD prg[] = {iIMM|0x7fffffff, iIMMR, iNOP, iRPT|2, iHALT};
+WORD prg[] = {iIMM|2, iIMMR, iNOP, iRPT|2, iHALT};
 void JmpZ() {}; // TODO implement these
 void JmpE() {};
 void JmpM() {};
@@ -221,44 +221,57 @@ void Jump() {}; // Note: all cell addresses need to be limited to 24 bits
 void Rpt(WORD cell) { if (--vR != 0) { vPC = cell; } };
 void Br() {};
 void Link() {};
-void (*ifuncs[])() = {
-Nop,Add,Sub,Or,And,Xor,Not,Flip,Shl,Shr,Get,Put,Inc,Dec,Neg,ImmA,
-ImmR,ImmT,ImmV,Swap,Tob,Tor,Tot,Fromr,Fromt,Fromv,JmpZ,JmpE,JmpM,JmpN,JmpS,JmpU,
-Jump,Rpt,Br,Link,Mdm
-};
+
 int interpretedExperiment() {
   WORD instr;
   WORD opcode;
   WORD m;
-  next:
-#ifdef DEBUG
-printf("\n%08x ",vPC);
-#endif
+  while(1) {
+    #ifdef DEBUG
+    printf("\n%08x ",vPC);
+    #endif
     instr = prg[vPC++];
     opcode = (instr&OPCODE_MASK) >> 24;
-#ifdef DEBUG
-printf("%08x %02x ",instr,opcode);
-#endif
-    // FIXME use switch instead
+    #ifdef DEBUG
+    printf("%08x %02x ",instr,opcode);
+    #endif
+
     if (0x80 == (opcode&0x80)) {
       m = instr&METADATA_MASK;
       Imm(m);
-    /* } else if ((opcode >= iJMPZ) && (opcode <= iJUMP)) {
-      m = instr&LABEL_MASK; */
-    } else if (opcode == 0x21) { //iRPT
-      m = instr&LABEL_MASK;
-#ifdef DEBUG
-printf("label: %08x vR: %08x",m,vR);
-#endif
-      Rpt(m);
-    } else if (opcode < 0x25) {
-      ifuncs[opcode]();
-    } else if (opcode == 0x25) {
-      return SUCCESS;
+      #ifdef DEBUG
+      printf("imm   m: %08x vB: %08x",m,vB);
+      #endif
     } else {
-      return ILLEGAL;
-    }
-    goto next;
+      switch(opcode) {
+        case 0x10:
+          ImmR();
+          #ifdef DEBUG
+          printf("immr vR: %08x",m,vR);
+          #endif
+          break;
+        case 0x21: //iRPT
+          m = instr&LABEL_MASK;
+          #ifdef DEBUG
+          printf("rpt label: %08x vR: %08x",m,vR);
+          #endif
+        Rpt(m);
+          break;
+        case 0x00:
+          asm("nop");
+          #ifdef DEBUG
+          printf("nop");
+          #endif
+          break;
+        case 0x25: // iHALT
+          return SUCCESS;
+          break;
+        default:
+          return ILLEGAL;
+          break;
+      } // switch
+    } // else
+  } // while(true)
 }
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
