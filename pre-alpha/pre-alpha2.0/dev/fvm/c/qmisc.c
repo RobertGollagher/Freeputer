@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.58+ for FVM 2.0
+Version:    pre-alpha-0.0.0.59+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -25,14 +25,14 @@ Version:    pre-alpha-0.0.0.58+ for FVM 2.0
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
 
-  20170806/20170816: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
+  20170806/20170818: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+// #define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -104,10 +104,10 @@ void Fromv()  { vA = vV; }
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
 #define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
 #define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
-#define jmps(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
+#define jmps(label) if (vB == (vA&vB)) { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == (vA|vB)) { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if (--vR != 0)  { goto label; }
+#define rpt(label) if (--vR != 0)  { asm(""); goto label; } // prevents optmzn
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // Machine metadata
@@ -194,6 +194,13 @@ int main() {
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
+/* // For native parent VM speed comparison:
+i(0x10000000)
+immr
+foo:
+  rpt(foo)
+  return 0;
+*/
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
@@ -298,6 +305,11 @@ printf("add  v_vA: %08x ",vA);
   br(setA)
   jump(next)
 // ---------------------------------------------------------------------------
+/* PERFORMANCE of CHILD VM (virtualized within the parent VM):
+    0x10000000 empty repeats in 2.6 sec, 0x7fffffff in 20.6 sec.
+    Native empty repeat is 0.18 sec, 1.4 sec respectively, forced by asm("").
+    Thus the child VM is about 15 times slower than its parent.
+*/
 v_Rpt:
   br(getR)
 
@@ -438,7 +450,7 @@ program:
   i(iADD)
   br(si)
 */
-  i(iIMM|0x10)
+  i(iIMM|0x10000000) // Performance test (these repeats take about 2.6 sec)
   br(si)
   i(iTOR)
   br(si)
