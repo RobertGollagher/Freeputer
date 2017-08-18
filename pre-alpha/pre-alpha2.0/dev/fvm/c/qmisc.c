@@ -30,14 +30,17 @@ Version:    pre-alpha-0.0.0.61+ for FVM 2.0
   FIXME NEXT:
 
     1. Can VM design be improved to make child faster?
+       ANSWER: to be considered.
     2. Should parent always itself be interpreted rather than native?
+       ANSWER: if so it will be perhaps 8 times slower...
+       Hard to justify, given Harvard architecture.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -156,6 +159,7 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 // ===========================================================================
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
+// These should be further optimized by grouping (interpreter vs FPGA...).
 #define iIMM   0x80000000 // DONE
 #define iNOP   0x00000000 // DONE
 #define iADD   0x01000000 // DONE
@@ -203,41 +207,53 @@ int main() {
 }
 // ===========================================================================
 // Experiment: the parent itself as a QMISC FW32 implementation
-#define OPCODE_MASK     0xff000000
-WORD prg[] = {iNOP, iHALT};
+#define OPCODE_MASK 0xff000000
+#define LABEL_MASK  0x00ffffff
+WORD vPC = 0;
+WORD prg[] = {iIMM|0x7fffffff, iIMMR, iNOP, iRPT|2, iHALT};
 void JmpZ() {}; // TODO implement these
 void JmpE() {};
 void JmpM() {};
 void JmpN() {};
 void JmpS() {};
 void JmpU() {};
-void Jump() {};
-void Rpt() {};
+void Jump() {}; // Note: all cell addresses need to be limited to 24 bits
+void Rpt(WORD cell) { if (--vR != 0) { vPC = cell; } };
 void Br() {};
 void Link() {};
 void (*ifuncs[])() = {
-  Nop,Add,Sub,Or,And,Xor,Not,Flip,Shl,Shr,Get,Put,Inc,Dec,Neg,
-  ImmR,ImmT,ImmV,Swap,Tob,Tor,Tot,Fromr,Fromt,Fromv,
-  JmpZ,JmpE,JmpS,JmpU,Jump,
-  Rpt,Br,Link,Mdm
-}; 
-WORD vPC = 0;
+Nop,Add,Sub,Or,And,Xor,Not,Flip,Shl,Shr,Get,Put,Inc,Dec,Neg,ImmA,
+ImmR,ImmT,ImmV,Swap,Tob,Tor,Tot,Fromr,Fromt,Fromv,JmpZ,JmpE,JmpM,JmpN,JmpS,JmpU,
+Jump,Rpt,Br,Link,Mdm
+};
 int interpretedExperiment() {
   WORD instr;
   WORD opcode;
   WORD m;
   next:
-    instr = prg[vPC++];
-    opcode = instr&OPCODE_MASK;
 #ifdef DEBUG
-printf("\n%08x %08x %02x",vPC,instr,opcode);
+printf("\n%08x ",vPC);
 #endif
-    if (opcode == iIMM) {
+    instr = prg[vPC++];
+    opcode = (instr&OPCODE_MASK) >> 24;
+#ifdef DEBUG
+printf("%08x %02x ",instr,opcode);
+#endif
+    // FIXME use switch instead
+    if (0x80 == (opcode&0x80)) {
       m = instr&METADATA_MASK;
       Imm(m);
-    } else if (opcode < iHALT) {
+    /* } else if ((opcode >= iJMPZ) && (opcode <= iJUMP)) {
+      m = instr&LABEL_MASK; */
+    } else if (opcode == 0x21) { //iRPT
+      m = instr&LABEL_MASK;
+#ifdef DEBUG
+printf("label: %08x vR: %08x",m,vR);
+#endif
+      Rpt(m);
+    } else if (opcode < 0x25) {
       ifuncs[opcode]();
-    } else if (opcode == iHALT) {
+    } else if (opcode == 0x25) {
       return SUCCESS;
     } else {
       return ILLEGAL;
@@ -364,6 +380,11 @@ printf("add  v_vA: %08x ",vA);
     0x10000000 empty repeats in 2.6 sec, 0x7fffffff in 20.6 sec.
     Native empty repeat is 0.18 sec, 1.4 sec respectively, forced by asm("").
     Thus the child VM is about 15 times slower than its parent.
+
+    Update: interpretedExperiment() parent is 1.4 sec, 11.5 sec respectively,
+    which is 8 times slower than native parent. Which would in turn make
+    its child about 120 times slower than native parent.
+        
 */
 v_Rpt:
   br(getR)
