@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.62+ for FVM 2.0
+Version:    pre-alpha-0.0.0.63+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -32,7 +32,7 @@ Version:    pre-alpha-0.0.0.62+ for FVM 2.0
     1. Can VM design be improved to make child faster?
        ANSWER: to be considered.
     2. Should parent always itself be interpreted rather than native?
-       ANSWER: if so it will be perhaps 8 times slower...
+       ANSWER: if so it will be perhaps 6 times slower...
        Hard to justify, given Harvard architecture.
 
 ==============================================================================
@@ -40,7 +40,7 @@ Version:    pre-alpha-0.0.0.62+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+// #define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -210,7 +210,7 @@ int main() {
 #define OPCODE_MASK 0xff000000
 #define LABEL_MASK  0x00ffffff
 WORD vPC = 0;
-WORD prg[] = {iIMM|2, iIMMR, iNOP, iRPT|2, iHALT};
+WORD prg[] = {iIMM|0x7fffffff, iIMMR, iNOP, iRPT|2, iHALT};
 void JmpZ() {}; // TODO implement these
 void JmpE() {};
 void JmpM() {};
@@ -394,9 +394,9 @@ printf("add  v_vA: %08x ",vA);
     Native empty repeat is 0.18 sec, 1.4 sec respectively, forced by asm("").
     Thus the child VM is about 15 times slower than its parent.
 
-    Update: interpretedExperiment() parent is 1.4 sec, 11.5 sec respectively,
-    which is 8 times slower than native parent. Which would in turn make
-    its child about 120 times slower than native parent.
+    Update: interpretedExperiment() parent is 1.1 sec, 8.7 sec respectively,
+    which is 6 times slower than native parent. Which would in turn make
+    its child about 90 times slower than native parent.
         
 */
 v_Rpt:
