@@ -32,6 +32,8 @@ Version:    pre-alpha-0.0.0.58+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
+#define DEBUG // Comment out unless debugging
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -105,13 +107,13 @@ void Fromv()  { vA = vV; }
 #define jmps(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
 #define jmpu(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
 #define jump(label) goto label; // UNCONDITIONAL
-#define repeat(label) if (--vR != 0)  { goto label; }
+#define rpt(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Nop()    { ; }
+void v_Nop()    { ; }
 #define halt return enbyte(vA);
 // ===========================================================================
 // Convenient macros to save typing
@@ -148,8 +150,8 @@ void Nop()    { ; }
 // ===========================================================================
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
-#define iNOP   0x00000000
-#define iADD   0x01000000
+#define iNOP   0x00000000 // DONE
+#define iADD   0x01000000 // DONE
 #define iSUB   0x02000000
 #define iOR    0x03000000
 #define iAND   0x04000000
@@ -162,7 +164,7 @@ void Nop()    { ; }
 #define iPUT   0x0b000000
 #define iINC   0x0c000000
 #define iDEC   0x0d000000
-#define iIMM   0x80000000 // iIMM must be the only opcode with msbit set
+#define iIMM   0x80000000  // DONE
 #define iNEG   0x0e000000
 #define iIMMR  0x12000000
 #define iIMMT  0x13000000
@@ -183,7 +185,7 @@ void Nop()    { ; }
 #define iBR    0x50000000
 #define iLINK  0x60000000
 #define iMDM   0x61000000
-#define iHALT  0x6f000000
+#define iHALT  0x6f000000 // DONE
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
@@ -221,6 +223,11 @@ next:
     tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
     tot
+
+#ifdef DEBUG
+printf("\n%08x ",vT); // print v_rPC value
+#endif
+
 // increment dm[v_rPC]
     inc
     swap
@@ -229,43 +236,118 @@ next:
     fromt // retrieve val of v_rPC from vT
     get   // get instr at dm[v_rPC] into vT
     tot
+
+#ifdef DEBUG
+printf("%08x ",vT); // print instruction value
+#endif
+
 // case iIMM:
     fromt
-    jmpn(Imm)
+    jmpn(v_Imm)
 // case iNOP:
     fromt
-    jmpz(Nop)
+    jmpz(v_Nop)
 // case iADD:
     fromt
     i(iADD)
-    jmpe(Add)
+    jmpe(v_Add)
+// case iTOR
+    fromt
+    i(iTOR)
+    jmpe(v_ImmR)
+// case iRPT
+    fromt
+    br(exOpcode)
+    i(iRPT)
+    jmpe(v_Rpt)
 // case iHALT:
     fromt
     i(iHALT)
-    jmpe(Halt)
+    jmpe(v_Halt)
 // default:
     i(ILLEGAL)
     imma
     halt
 // ---------------------------------------------------------------------------
-Nop:
+v_Nop:
+
+#ifdef DEBUG
+printf("nop ");
+#endif
+
   jump(next)
 // ---------------------------------------------------------------------------
-Imm:
+v_Imm:
   flip
-  br(postB)
+
+#ifdef DEBUG
+printf("flip v_vA: %08x ",vA);
+#endif
+
+  br(setB)
   jump(next)
 // ---------------------------------------------------------------------------
-Add:
+v_Add:
   br(preAB)
   add
-  br(postA)
+
+#ifdef DEBUG
+printf("add  v_vA: %08x ",vA);
+#endif
+
+  br(setA)
   jump(next)
 // ---------------------------------------------------------------------------
-Halt:
+v_Rpt:
+  br(getR)
+
+#ifdef DEBUG
+printf("rpt  v_vR: %08x ",vA);
+#endif
+
+  dec
+  tor       // Here using vR merely as a temporary register.
+  br(setR)  // Here setting v_vR from vA (nothing to do with vR).
+  fromr     // So now vA contains decremented value of v_vR from vR.
+  jmpz(v_Repeat_end)
+    fromt
+    br(exMeta24)
+    br(setPC)
+  v_Repeat_end:
+    jump(next)
+// ---------------------------------------------------------------------------
+v_ImmR:
+  br(getB)
+
+#ifdef DEBUG
+printf("immr v_vR: %08x ",vA);
+#endif
+
+  br(setR)
+  jump(next)
+// ---------------------------------------------------------------------------
+v_Halt:
   //i(SUCCESS)
   br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
+
+#ifdef DEBUG
+printf("halt v_vA: %08x ",vA);
+#endif
+
   halt
+// ---------------------------------------------------------------------------
+// Extract 8-bit opcode from vA into vA by masking vA.
+// Note: not relevant for iIMM (which is indicated by msbit being set).
+exOpcode:
+  i(0xff000000)
+  and
+  link
+// ---------------------------------------------------------------------------
+// Extract 24-bit metadata from vA into vA by masking vA
+exMeta24:
+  i(0x00ffffff)
+  and
+  link
 // ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
 preAB:
@@ -280,8 +362,30 @@ preAB:
   fromt
   link
 // ---------------------------------------------------------------------------
+// Get v_rPC into vA
+getPC:
+  i(v_rPC)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_rPC
+setPC:
+  tov
+  i(v_rPC)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Get v_vR into vA
+getR:
+  i(v_vR)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
 // Save vA into v_vA
-postA:
+setA:
   tov
   i(v_vA)
   imma
@@ -289,9 +393,17 @@ postA:
   link
 // ---------------------------------------------------------------------------
 // Save vA into v_vB
-postB:
+setB:
   tov
   i(v_vB)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vR
+setR:
+  tov
+  i(v_vR)
   imma
   put
   link
@@ -303,26 +415,43 @@ getA:
   get
   link
 // ---------------------------------------------------------------------------
+// Get v_vB into vB
+getB:
+  i(v_vB)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
   i(0)
   imma
+/*
   i(iNOP)
-  br(istore)
+  br(si)
   i(iIMM|3)
-  br(istore)
+  br(si)
   i(iADD)
-  br(istore)
+  br(si)
   i(iIMM|5)
-  br(istore)
+  br(si)
   i(iADD)
-  br(istore)
+  br(si)
+*/
+  i(iIMM|0x10)
+  br(si)
+  i(iTOR)
+  br(si)
+  i(iNOP) // This is instruction 2 in this program.
+  br(si)
+  i(iRPT|2)
+  br(si)
   i(iHALT)
-  br(istore)
+  br(si)
   jump(next)
 // ---------------------------------------------------------------------------
-// Store value in vV to v_pm[vA++] in child's program memory
-istore:
+// Store instruction in vV to v_pm[vA++] in child's program memory
+si:
   immv
   put
   inc
@@ -333,7 +462,7 @@ doFill:
   doFillLoop:
     put
     inc
-    repeat(doFillLoop)
+    rpt(doFillLoop)
     link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
