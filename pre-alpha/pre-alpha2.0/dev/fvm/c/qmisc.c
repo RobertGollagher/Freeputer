@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170816+
-Version:    pre-alpha-0.0.0.57+ for FVM 2.0
+Updated:    20170818+
+Version:    pre-alpha-0.0.0.58+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -98,16 +98,16 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jz(label) if (vA == 0)       { goto label; } // vA is zero
-#define je(label) if (vB == vA)      { goto label; } // vA equals vB
-#define jm(label) if (vA == MSb)     { goto label; } // vA only msbit set
-#define jn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
-#define js(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
-#define ju(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
-#define j(label) goto label; // UNCONDITIONAL
-#define rp(label) if (--vR != 0)  { goto label; }
+#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
+#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
+#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
+#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
+#define jmps(label) if (vB == (vA&vB))   { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == (vA|vB))   { goto label; } // vA has all 0s of vB
+#define jump(label) goto label; // UNCONDITIONAL
+#define repeat(label) if (--vR != 0)  { goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
-#define lk goto *vL;
+#define link goto *vL;
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
@@ -131,18 +131,18 @@ void Nop()    { ; }
 #define dec Dec();
 #define i(x) Imm(x);
 #define set Set();
-#define ia ImmA();
-#define ir ImmR();
-#define it ImmT();
-#define iv ImmV();
+#define imma ImmA();
+#define immr ImmR();
+#define immt ImmT();
+#define immv ImmV();
 #define swap Swap();
-#define tb Tob();
-#define tt Tot();
-#define tr Tor();
-#define tv Tov();
-#define ft Fromt();
-#define fr Fromr();
-#define fv Fromv();
+#define tob Tob();
+#define tot Tot();
+#define tor Tor();
+#define tov Tov();
+#define fromt Fromt();
+#define fromr Fromr();
+#define fromv Fromv();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -211,56 +211,56 @@ vm_init:
   br(assertParentSize)
   br(setupToClearParent)
   br(doFill)
-  j(program)
+  jump(program)
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 next:
 // get dm[v_rPC]
     i(v_rPC)
-    ia
-    tv // store v_rPC addr in vV
+    imma
+    tov // store v_rPC addr in vV
     get // get val of v_rPC into vT
-    tt
+    tot
 // increment dm[v_rPC]
     inc
     swap
     put
 // get current instr into vT
-    ft // retrieve val of v_rPC from vT
+    fromt // retrieve val of v_rPC from vT
     get   // get instr at dm[v_rPC] into vT
-    tt
+    tot
 // case iIMM:
-    ft
-    jn(Imm)
+    fromt
+    jmpn(Imm)
 // case iNOP:
-    ft
-    jz(Nop)
+    fromt
+    jmpz(Nop)
 // case iADD:
-    ft
+    fromt
     i(iADD)
-    je(Add)
+    jmpe(Add)
 // case iHALT:
-    ft
+    fromt
     i(iHALT)
-    je(Halt)
+    jmpe(Halt)
 // default:
     i(ILLEGAL)
-    ia
+    imma
     halt
 // ---------------------------------------------------------------------------
 Nop:
-  j(next)
+  jump(next)
 // ---------------------------------------------------------------------------
 Imm:
   flip
   br(postB)
-  j(next)
+  jump(next)
 // ---------------------------------------------------------------------------
 Add:
   br(preAB)
   add
   br(postA)
-  j(next)
+  jump(next)
 // ---------------------------------------------------------------------------
 Halt:
   //i(SUCCESS)
@@ -270,43 +270,43 @@ Halt:
 // Get v_vA into vA and v_vB into vB prior to AB operation
 preAB:
   i(v_vA)
-  ia
+  imma
   get
-  tt
+  tot
   i(v_vB)
-  ia
+  imma
   get
-  tb
-  ft
-  lk
+  tob
+  fromt
+  link
 // ---------------------------------------------------------------------------
 // Save vA into v_vA
 postA:
-  tv
+  tov
   i(v_vA)
-  ia
+  imma
   put
-  lk
+  link
 // ---------------------------------------------------------------------------
 // Save vA into v_vB
 postB:
-  tv
+  tov
   i(v_vB)
-  ia
+  imma
   put
-  lk
+  link
 // ---------------------------------------------------------------------------
 // Get v_vA into vA
 getA:
   i(v_vA)
-  ia
+  imma
   get
-  lk
+  link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
   i(0)
-  ia
+  imma
   i(iNOP)
   br(istore)
   i(iIMM|3)
@@ -319,52 +319,53 @@ program:
   br(istore)
   i(iHALT)
   br(istore)
-  j(next)
+  jump(next)
 // ---------------------------------------------------------------------------
 // Store value in vV to v_pm[vA++] in child's program memory
 istore:
-  iv
+  immv
   put
   inc
-  lk
+  link
 // ---------------------------------------------------------------------------
 // Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
 doFill:
   doFillLoop:
     put
     inc
-    rp(doFillLoop)
-    lk
+    repeat(doFillLoop)
+    link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
   i(0)
-  iv
+  immv
   i(DM_WORDS)
-  ir
-  lk
+  immr
+  link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
   i(vm_DM_WORDS)
   sub
-  jz(assertedParentSize)
+  jmpz(assertedParentSize)
     i(FAILURE)
-    ia
+    imma
     halt
   assertedParentSize:
-    lk
+    link
 // ---------------------------------------------------------------------------
 // Increment variable at dm[vA]
 Incr:
-  tv
+  tov
   get
   inc
   swap
   put
-  lk
+  link
 // ---------------------------------------------------------------------------
 
 } // end of exampleProgram
 // ===========================================================================
+
