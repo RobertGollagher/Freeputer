@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170818+
-Version:    pre-alpha-0.0.0.63+ for FVM 2.0
+Version:    pre-alpha-0.0.0.64+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -24,16 +24,17 @@ Version:    pre-alpha-0.0.0.63+ for FVM 2.0
   Supports branch/link: uses a standalone, inaccessible link register.
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
+  TODO: Maybe add more temp registers to more easily support stack pointers.
 
   20170806/20170818: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
+  20170819: DECISION MADE TO GO INTERPRETED. REASONS:
 
-  FIXME NEXT:
-
-    1. Can VM design be improved to make child faster?
-       ANSWER: to be considered.
-    2. Should parent always itself be interpreted rather than native?
-       ANSWER: if so it will be perhaps 6 times slower...
-       Hard to justify, given Harvard architecture.
+    1. Minimizes gcc/binutils dependency and keeps this implementation tiny.
+    2. Ensures design is OPTIMIZED FOR INTERPRETER (thus for VIRTUALIZATION).
+    3. If follow same principles should be easy to natively compile anyway:
+          - Harvard architecture with defined cell size in data space only
+          - No runtime dependency allowed on cell sizes in program space
+          - No dynamic jumps and cannot read or write in program space
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -108,6 +109,7 @@ void Tov()    { vV = vA; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
+
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -202,8 +204,8 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
-  return interpretedExperiment();
-  //return exampleProgram();
+  //return interpretedExperiment();
+  return exampleProgram();
 }
 // ===========================================================================
 // Experiment: the parent itself as a QMISC FW32 implementation
@@ -277,6 +279,7 @@ int interpretedExperiment() {
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
 
+/*
  // For native parent VM speed comparison:
 i(0x7fffffff)
 immr
@@ -284,6 +287,7 @@ foo:
   nop
   rpt(foo)
   return 0;
+*/
 
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
