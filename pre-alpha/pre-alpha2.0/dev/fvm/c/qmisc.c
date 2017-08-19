@@ -34,7 +34,7 @@ Version:    pre-alpha-0.0.0.71+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -347,7 +347,11 @@ printf("add  v_vA: %08x ",vA);
     was a dismal 2.2 sec, 17.6 sec respectively. Which is just silly
     since that is around the same speed as a virtualized CHILD VM!
     Hence decision made to abandon interpreted version
-    and return to native implementation plus a child. 
+    and return to native implementation plus a child.
+
+    Update 20170819-1539: adding/modifying instructions to optimize
+    virtualization of child VMs. By using Fetch() improved performance
+    from 2.6 sec, 20.6 sec to 2.3 sec, 18.5 sec.
         
 */
 v_Rpt:
@@ -491,7 +495,7 @@ program:
   i(iADD)
   br(si)
 */
-  i(iIMM|0x2) // Performance test (these repeats take about 2.6 sec)
+  i(iIMM|0x7fffffff) // Performance test (these repeats take about 2.6 sec)
   br(si)
   i(iTOR)
   br(si)
