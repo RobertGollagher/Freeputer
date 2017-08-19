@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.66+ for FVM 2.0
+Version:    pre-alpha-0.0.0.67+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -47,38 +47,43 @@ Version:    pre-alpha-0.0.0.66+ for FVM 2.0
  experimentation and nothing more.
 ============================================================================*/
 //#define DEBUG // Comment out unless debugging
-
 #include <stdio.h>
 #include <inttypes.h>
-#include <assert.h>
-#define WORD uint32_t
-#define WORD_SIZE 4
+#define BYTE uint8_t   // (uint8_t)
+#define SHIFT BYTE     // (uint5_t)
+#define WORD uint32_t  // (uint32_t)
+#define LIT WORD       // (uint31_t)
+#define CELL WORD      // (uint24_t) Program memory consists of 'cells'
+#define SLOT WORD      // (uint32_t) Data memory consists of 'slots'
 #define MSb 0x80000000 // Bit mask for most significant bit
-#define LNKT uintptr_t
-#define METADATA WORD
-#define METADATA_MASK 0x7fffffff // 31 bits
+#define OPCODE_MASK   0xff000000
+#define LIT_MASK      0x7fffffff // 31 bits
+#define CELL_MASK     0x00ffffff // TODO reconsider these
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
+#define SLOTS         0x10000000
+#define DM_MASK       0x0fffffff
+#define CELLS         0x00001000
+#define PM_MASK       0x00000fff
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define DM_WORDS 0x10000000 // Must be power of 2
-#define DM_MASK  0x0fffffff
 WORD vP = 0; // program counter
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
-LNKT vL = 0; // link register
+CELL vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (for put)
 WORD vR = 0; // repeat register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
-WORD dm[DM_WORDS]; // data memory (Harvard architecture)
+WORD dm[SLOTS]; // data memory (Harvard architecture)
 int run();
 // ---------------------------------------------------------------------------
-METADATA safe(METADATA addr) { return addr & DM_MASK; }
-METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
-METADATA enrange(METADATA x) { return x & METADATA_MASK; }
-METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
+SLOT dmsafe(SLOT addr) { return addr & DM_MASK; } // TODO reconsider
+CELL pmsafe(CELL addr) { return addr & PM_MASK; } // TODO reconsider
+BYTE enbyte(WORD x)    { return x & BYTE_MASK; }
+LIT enrange(LIT x) { return x & LIT_MASK; }
+LIT enshift(WORD x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Arithmetic
 void Add()    { vA+=vB; }
@@ -93,14 +98,14 @@ void Flip()   { vA^=MSb; } // Flips value of msbit
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[safe(vA)]; }
-void Put()    { dm[safe(vA)] = vV; }
+void Get()    { vA = dm[dmsafe(vA)]; }
+void Put()    { dm[dmsafe(vA)] = vV; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
-void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
-void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
+void Imm(LIT x) { enrange(x); vB = x; } // bits 31..0
+void Neg()    { vB=~vB; ++vB; }         // bit  32 (via negation!)
 void ImmA()   { vA = vB; }
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
@@ -115,21 +120,22 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Instructions which optimize virtualization
-void Msbyte() { vA = vV; }
-
-// Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
-#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
-#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
-#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
-#define jmps(label) if (vB == (vA&vB)) { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == (vA|vB)) { goto label; } // vA has all 0s of vB
-#define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if (--vR != 0)  { asm(""); goto label; } // prevents optmzn
-#define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
-#define link goto *vL;
+void Opcode() { vA = vA&OPCODE_MASK; }
+void Label()  { vA = vA&CELL_MASK; }
+void Lit()    { vA = vA&LIT_MASK; }
+// Jumps (static only)
+void JmpZ(CELL a){if(vA == 0)         { vP = pmsafe(a); }} // zero
+void JmpE(CELL a){if(vB == vA)        { vP = pmsafe(a); }} // equals vB
+void JmpM(CELL a){if(vA == MSb)       { vP = pmsafe(a); }} // only msbit set
+void JmpN(CELL a){if(MSb == (vA&MSb)) { vP = pmsafe(a); }} // msbit set
+void JmpS(CELL a){if(vB == (vA&vB))   { vP = pmsafe(a); }} // all 1s of vB
+void JmpU(CELL a){if(vB == (vA|vB))   { vP = pmsafe(a); }} // all 0s of vB
+void Jump(CELL a)                     { vP = pmsafe(a); }  // UNCONDITIONAL
+void Rpt(CELL a) {if(--vR != 0)       { vP = pmsafe(a); }} // repeat
+void Br(CELL a)  { vL = vP; vP = a; }   // branch with link
+void Link()      { vP = vL; }           // return by link
 // Machine metadata
-void Mdm()    { vA = DM_WORDS; }
+void Mdm()    { vA = SLOTS; }
 // Other
 void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define halt return enbyte(vA);
@@ -177,24 +183,10 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define iHALT  0x25000000 // DONE
 // ===========================================================================
 int main() {
-  assert(sizeof(WORD) == WORD_SIZE);
   return run();
 }
 // ===========================================================================
-#define OPCODE_MASK 0xff000000
-#define LABEL_MASK  0x00ffffff
 WORD prg[] = {iIMM|0x10000000, iIMMR, iNOP, iRPT|2, iHALT};
-void JmpZ() {}; // TODO implement these
-void JmpE() {};
-void JmpM() {};
-void JmpN() {};
-void JmpS() {};
-void JmpU() {};
-void Jump() {}; // Note: all cell addresses need to be limited to 24 bits
-void Rpt(WORD cell) { if (--vR != 0) { vP = cell; } };
-void Br() {};
-void Link() {};
-
 int run() {
   WORD instr;
   WORD opcode;
@@ -210,7 +202,7 @@ int run() {
     #endif
 
     if (iIMM == (opcode&iIMM)) {
-      m = instr&METADATA_MASK;
+      m = instr&LIT_MASK;
       Imm(m);
       #ifdef DEBUG
       printf("imm   m: %08x vB: %08x",m,vB);
@@ -224,7 +216,7 @@ int run() {
           #endif
           break;
         case iRPT:
-          m = instr&LABEL_MASK;
+          m = instr&CELL_MASK;
           #ifdef DEBUG
           printf("rpt label: %08x vR: %08x",m,vR);
           #endif
