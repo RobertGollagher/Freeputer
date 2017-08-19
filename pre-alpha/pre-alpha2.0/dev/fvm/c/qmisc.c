@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.70+ for FVM 2.0
+Version:    pre-alpha-0.0.0.71+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -24,22 +24,9 @@ Version:    pre-alpha-0.0.0.70+ for FVM 2.0
   Supports branch/link: uses a standalone, inaccessible link register.
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
+  TODO: Maybe add more temp registers to more easily support stack pointers.
 
-  20170806/20170818: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
-  20170819: DECISION MADE TO GO INTERPRETED. REASONS:
-
-    1. Minimizes gcc/binutils dependency and keeps this implementation tiny.
-    2. Ensures design is OPTIMIZED FOR INTERPRETER (thus for VIRTUALIZATION).
-    3. If follow same principles should be easy to natively compile anyway:
-          - Harvard architecture with defined cell size in data space only
-          - No runtime dependency allowed on cell sizes in program space
-          - No dynamic jumps and cannot read or write in program space
-
-  TODO: Maybe add more temp registers to more easily support stack pointers
-  if virtualized child VMs wish to implement stack pointers. Of course,
-  the parent VM does not have any stack pointer (see note above).
-
-  TODO: Better optimize for interpreter.
+  20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -47,43 +34,42 @@ Version:    pre-alpha-0.0.0.70+ for FVM 2.0
  experimentation and nothing more.
 ============================================================================*/
 // #define DEBUG // Comment out unless debugging
+
 #include <stdio.h>
 #include <inttypes.h>
-#define BYTE uint8_t   // (uint8_t)
-#define SHIFT BYTE     // (uint5_t)
-#define WORD uint32_t  // (uint32_t)
-#define LIT WORD       // (uint31_t)
-#define CELL WORD      // (uint24_t) Program memory consists of 'cells'
-#define SLOT WORD      // (uint32_t) Data memory consists of 'slots'
+#include <assert.h>
+#define WORD uint32_t
+#define WORD_SIZE 4
 #define MSb 0x80000000 // Bit mask for most significant bit
+#define LNKT uintptr_t
+#define METADATA WORD
+#define METADATA_MASK 0x7fffffff // 31 bits
+#define BYTE_MASK     0x000000ff
+#define SHIFT_MASK    0x0000001f
 #define OPCODE_MASK   0xff000000
 #define LIT_MASK      0x7fffffff // 31 bits
 #define CELL_MASK     0x00ffffff // TODO reconsider these
-#define BYTE_MASK     0x000000ff
-#define SHIFT_MASK    0x0000001f
-#define SLOTS         0x10000000
-#define DM_MASK       0x0fffffff
-#define CELLS         0x00001000
-#define PM_MASK       0x00000fff
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-WORD vP = 0; // program counter
+#define DM_WORDS 0x10000000 // Must be power of 2
+#define DM_MASK  0x0fffffff
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
-CELL vL = 0; // link register
+LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
 WORD vV = 0; // value register (for put)
 WORD vR = 0; // repeat register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
-WORD dm[SLOTS]; // data memory (Harvard architecture)
-int run();
+WORD dm[DM_WORDS]; // data memory (Harvard architecture)
+int exampleProgram();
+int interpretedExperiment();
 // ---------------------------------------------------------------------------
-SLOT dmsafe(SLOT addr) { return addr & DM_MASK; } // TODO reconsider
-CELL pmsafe(CELL addr) { return addr & PM_MASK; } // TODO reconsider
-BYTE enbyte(WORD x)    { return x & BYTE_MASK; }
-LIT enrange(LIT x) { return x & LIT_MASK; }
-LIT enshift(WORD x) { return x & SHIFT_MASK; }
+WORD dmsafe(WORD addr) { return addr & DM_MASK; } // TODO reconsider
+METADATA safe(METADATA addr) { return addr & DM_MASK; }
+METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
+METADATA enrange(METADATA x) { return x & METADATA_MASK; }
+METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Arithmetic
 void Add()    { vA+=vB; }
@@ -98,14 +84,14 @@ void Flip()   { vA^=MSb; } // Flips value of msbit
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[dmsafe(vA)]; }
-void Put()    { dm[dmsafe(vA)] = vV; }
+void Get()    { vA = dm[safe(vA)]; }
+void Put()    { dm[safe(vA)] = vV; }
 // Increments
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
-void Imm(LIT x) { enrange(x); vB = x; } // bits 31..0
-void Neg()    { vB=~vB; ++vB; }         // bit  32 (via negation!)
+void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
+void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
 void ImmA()   { vA = vB; }
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
@@ -120,28 +106,62 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 // Instructions which optimize virtualization (dubious)
-void Fetch(CELL v_vP) { vA = dm[dm[dmsafe(v_vP)]++]; vT = vA; }
+void Fetch(WORD v_vP) { vA = dm[dm[dmsafe(v_vP)]++]; vT = vA; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
-// Jumps (static only)
-void JmpZ(CELL a){if(vA == 0)         { vP = pmsafe(a); }} // zero
-void JmpE(CELL a){if(vB == vA)        { vP = pmsafe(a); }} // equals vB
-void JmpM(CELL a){if(vA == MSb)       { vP = pmsafe(a); }} // only msbit set
-void JmpN(CELL a){if(MSb == (vA&MSb)) { vP = pmsafe(a); }} // msbit set
-void JmpS(CELL a){if(vB == (vA&vB))   { vP = pmsafe(a); }} // all 1s of vB
-void JmpU(CELL a){if(vB == (vA|vB))   { vP = pmsafe(a); }} // all 0s of vB
-void Jump(CELL a)                     { vP = pmsafe(a); }  // UNCONDITIONAL
-void Rpt(CELL a) {if(--vR != 0)       { vP = pmsafe(a); }} // repeat
-void Br(CELL a)  { vL = vP; vP = a; }   // branch with link
-void Link()      { vP = vL; }           // return by link
+// Jumps (static only) (an interpreter would enforce a 24-bit program space)
+#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
+#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
+#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
+#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
+#define jmps(label) if (vB == (vA&vB)) { goto label; } // vA has all 1s of vB
+#define jmpu(label) if (vB == (vA|vB)) { goto label; } // vA has all 0s of vB
+#define jump(label) goto label; // UNCONDITIONAL
+#define rpt(label) if (--vR != 0)  { asm(""); goto label; } // prevents optmzn
+#define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
+#define link goto *vL;
 // Machine metadata
-void Mdm()    { vA = SLOTS; }
+void Mdm()    { vA = DM_WORDS; }
 // Other
-void Nop()    { ; } // Consider eliminating this opcode
+void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
+#define halt return enbyte(vA);
 // ===========================================================================
-// Opcodes for interpreter (mostly arbitrary values for now).
-// Current scheme is FW32 (very poor density but simple and portable).
+// Convenient macros to save typing
+#define add Add();
+#define sub Sub();
+#define or Or();
+#define and And();
+#define xor Xor();
+#define not Not();
+#define flip Flip();
+#define neg Neg();
+#define shl Shl();
+#define shr Shr();
+#define get Get();
+#define put Put();
+#define inc Inc();
+#define dec Dec();
+#define i(x) Imm(x);
+#define neg Neg();
+#define imma ImmA();
+#define immr ImmR();
+#define immt ImmT();
+#define immv ImmV();
+#define swap Swap();
+#define tob Tob();
+#define tot Tot();
+#define tor Tor();
+#define tov Tov();
+#define fromt Fromt();
+#define fromr Fromr();
+#define fromv Fromv();
+#define mdm Mdm();
+#define nop Nop();
+// ===========================================================================
+// Opcodes for interpreter of child VM (mostly arbitrary values for now).
+// Current scheme is FW32 (poor density but simple, portable).
+// These should be further optimized by grouping (interpreter vs FPGA...).
 #define iIMM   0x80000000 // DONE
 #define iNOP   0x00000000 // DONE
 #define iADD   0x01000000 // DONE
@@ -183,81 +203,342 @@ void Nop()    { ; } // Consider eliminating this opcode
 #define iHALT  0x25000000 // DONE
 // ===========================================================================
 int main() {
-  return run();
+  assert(sizeof(WORD) == WORD_SIZE);
+  return exampleProgram();
 }
 // ===========================================================================
-WORD prg[] = {iIMM|0x7fffffff, iIMMR, iNOP, iRPT|2, iHALT};
-// Update 20170819-1503:
-// Apparently gcc cannot handle the below large switch block well,
-// whereas it handled the crude smaller switch block with better performance.
-// Performance is disappointing: 2.2 secs for 0x10000000 empty repeats,
-//                              17.6 secs for 0x7fffffff empty repeats.
-// This is silly since (see 'qmisc-before-interpreted.c') could
-// do 2.6 sec, 20.6 sec in the CHILD VM and the parent was 0.18 sec, 1.4 sec.
-// Accordingly hereby abandoning the interpreted approach;
-// better to use a native parent to virtualize a child.
-int run() {
-  WORD instr = 0;
-  WORD opcode = 0;
-  LIT lit = 0;
-  CELL cell = 0;
-  while(1) {
-    #ifdef DEBUG
-    printf("\n%08x  ",vP);
-    #endif
-    instr = prg[vP++];
-    #ifdef DEBUG
-    printf("%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
-            instr, vA, vB, vV, vT, vR, vL);
-    #endif
-    if (iIMM == (instr&iIMM)) {
-      lit = instr&LIT_MASK; Imm(lit);
-    } else {
-      opcode = instr&OPCODE_MASK;
-      switch(opcode) {
-        case iNOP:    Nop(); break;
-        case iADD:    Add(); break;
-        case iSUB:    Sub(); break;
-        case iOR:     Or(); break;
-        case iAND:    And(); break;
-        case iXOR:    Xor(); break;
-        case iNOT:    Not(); break;
-        case iFLIP:   Flip(); break;
-        case iSHL:    Shl(); break;
-        case iSHR:    Shr(); break;
-        case iGET:    Get(); break;
-        case iPUT:    Put(); break;
-        case iINC:    Inc(); break;
-        case iDEC:    Dec(); break;
-        case iNEG:    Neg(); break;
-        case iIMMA:   ImmA(); break;
-        case iIMMR:   ImmR(); break;
-        case iIMMT:   ImmT(); break;
-        case iIMMV:   ImmV(); break;
-        case iSWAP:   Swap(); break;
-        case iTOB:    Tob(); break;
-        case iTOR:    Tor(); break;
-        case iTOT:    Tot(); break;
-        case iFROMR:  Fromr(); break;
-        case iFROMT:  Fromt(); break;
-        case iFROMV:  Fromv(); break;
-        case iJMPZ:   cell = instr&CELL_MASK; JmpZ(cell); break;
-        case iJMPE:   cell = instr&CELL_MASK; JmpE(cell); break;
-        case iJMPM:   cell = instr&CELL_MASK; JmpM(cell); break;
-        case iJMPN:   cell = instr&CELL_MASK; JmpN(cell); break;
-        case iJMPS:   cell = instr&CELL_MASK; JmpS(cell); break;
-        case iJMPU:   cell = instr&CELL_MASK; JmpU(cell); break;
-        case iJUMP:   cell = instr&CELL_MASK; Jump(cell); break;
-        case iRPT:    cell = instr&CELL_MASK; Rpt(cell);  break;
-        case iBR:     cell = instr&CELL_MASK; Br(cell);   break;
-        case iLINK:   Link(); break;
-        case iMDM:    Mdm(); break;
-        case iHALT:   return SUCCESS; break;
-        default:      return ILLEGAL; break;
-      } // switch
-    } // else
-  } // while(1)
-}
-// ===========================================================================
+// Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
+int exampleProgram() {
 
+/*
+ // For native parent VM speed comparison:
+i(0x7fffffff)
+immr
+foo:
+  nop
+  rpt(foo)
+  return 0;
+*/
+
+#define vm_DM_WORDS 0x10000000
+#define v_DM_WORDS  0x1000
+#define v_PM_WORDS  0x1000
+#define v_pm 0
+#define v_dm v_PM_WORDS
+#define v_rPC v_dm + v_DM_WORDS
+#define v_instr v_rPC + 1
+#define v_vA v_instr + 1
+#define v_vB v_vA + 1
+#define v_vL v_vB + 1
+#define v_vT v_vL + 1
+#define v_vR v_vT + 1
+#define v_vV v_vR + 1
+#define v_vI v_vV + 1
+// ---------------------------------------------------------------------------
+vm_init:
+  br(assertParentSize)
+  br(setupToClearParent)
+  br(doFill)
+  jump(program)
+// ---------------------------------------------------------------------------
+// Process next instruction (not optimized yet)
+next:
+// get dm[v_rPC]
+    i(v_rPC)
+    imma
+    tov // store v_rPC addr in vV
+    get // get val of v_rPC into vT
+    tot
+
+#ifdef DEBUG
+printf("\n%08x ",vT); // print v_rPC value
+#endif
+
+// increment dm[v_rPC]
+    inc
+    swap
+    put
+// get current instr into vT
+    fromt // retrieve val of v_rPC from vT
+    get   // get instr at dm[v_rPC] into vT
+    tot
+
+#ifdef DEBUG
+printf("%08x ",vT); // print instruction value
+#endif
+
+// case iIMM:
+    fromt
+    jmpn(v_Imm)
+// case iNOP:
+    fromt
+    jmpz(v_Nop)
+// case iADD:
+    fromt
+    i(iADD)
+    jmpe(v_Add)
+// case iTOR
+    fromt
+    i(iTOR)
+    jmpe(v_ImmR)
+// case iRPT
+    fromt
+    br(exOpcode)
+    i(iRPT)
+    jmpe(v_Rpt)
+// case iHALT:
+    fromt
+    i(iHALT)
+    jmpe(v_Halt)
+// default:
+    i(ILLEGAL)
+    imma
+    halt
+// ---------------------------------------------------------------------------
+v_Nop:
+
+#ifdef DEBUG
+printf("nop ");
+#endif
+
+  jump(next)
+// ---------------------------------------------------------------------------
+v_Imm:
+  flip
+
+#ifdef DEBUG
+printf("flip v_vA: %08x ",vA);
+#endif
+
+  br(setB)
+  jump(next)
+// ---------------------------------------------------------------------------
+v_Add:
+  br(preAB)
+  add
+
+#ifdef DEBUG
+printf("add  v_vA: %08x ",vA);
+#endif
+
+  br(setA)
+  jump(next)
+// ---------------------------------------------------------------------------
+/* PERFORMANCE of CHILD VM (virtualized within the parent VM):
+    0x10000000 empty repeats in 2.6 sec, 0x7fffffff in 20.6 sec.
+    Native empty repeat is 0.18 sec, 1.4 sec respectively, forced by asm("").
+    Thus the child VM is about 15 times slower than its parent.
+
+    Update: interpretedExperiment() parent is 1.1 sec, 8.7 sec respectively,
+    which is 6 times slower than native parent. Which would in turn make
+    its child about 90 times slower than native parent.
+
+    Update 20170819-1503: surprisingly, when a proper switch-based interpreter
+    was written it was much slower not faster; it seems that gcc cannot
+    handle this well. Performance for that (see 'qmisc.c' in this commit)
+    was a dismal 2.2 sec, 17.6 sec respectively. Which is just silly
+    since that is around the same speed as a virtualized CHILD VM!
+    Hence decision made to abandon interpreted version
+    and return to native implementation plus a child. 
+        
+*/
+v_Rpt:
+  br(getR)
+
+#ifdef DEBUG
+printf("rpt  v_vR: %08x ",vA);
+#endif
+
+  dec
+  tor       // Here using vR merely as a temporary register.
+  br(setR)  // Here setting v_vR from vA (nothing to do with vR).
+  fromr     // So now vA contains decremented value of v_vR from vR.
+  jmpz(v_Repeat_end)
+    fromt
+    br(exMeta24)
+    br(setPC)
+  v_Repeat_end:
+    jump(next)
+// ---------------------------------------------------------------------------
+v_ImmR:
+  br(getB)
+
+#ifdef DEBUG
+printf("immr v_vR: %08x ",vA);
+#endif
+
+  br(setR)
+  jump(next)
+// ---------------------------------------------------------------------------
+v_Halt:
+  //i(SUCCESS)
+  br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
+
+#ifdef DEBUG
+printf("halt v_vA: %08x ",vA);
+#endif
+
+  halt
+// ---------------------------------------------------------------------------
+// Extract 8-bit opcode from vA into vA by masking vA.
+// Note: not relevant for iIMM (which is indicated by msbit being set).
+exOpcode:
+  i(0xff000000)
+  and
+  link
+// ---------------------------------------------------------------------------
+// Extract 24-bit metadata from vA into vA by masking vA
+exMeta24:
+  i(0x00ffffff)
+  and
+  link
+// ---------------------------------------------------------------------------
+// Get v_vA into vA and v_vB into vB prior to AB operation
+preAB:
+  i(v_vA)
+  imma
+  get
+  tot
+  i(v_vB)
+  imma
+  get
+  tob
+  fromt
+  link
+// ---------------------------------------------------------------------------
+// Get v_rPC into vA
+getPC:
+  i(v_rPC)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_rPC
+setPC:
+  tov
+  i(v_rPC)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Get v_vR into vA
+getR:
+  i(v_vR)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vA
+setA:
+  tov
+  i(v_vA)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vB
+setB:
+  tov
+  i(v_vB)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Save vA into v_vR
+setR:
+  tov
+  i(v_vR)
+  imma
+  put
+  link
+// ---------------------------------------------------------------------------
+// Get v_vA into vA
+getA:
+  i(v_vA)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
+// Get v_vB into vB
+getB:
+  i(v_vB)
+  imma
+  get
+  link
+// ---------------------------------------------------------------------------
+// Program child's program memory then run program
+program:
+  i(0)
+  imma
+/*
+  i(iNOP)
+  br(si)
+  i(iIMM|3)
+  br(si)
+  i(iADD)
+  br(si)
+  i(iIMM|5)
+  br(si)
+  i(iADD)
+  br(si)
+*/
+  i(iIMM|0x10000000) // Performance test (these repeats take about 2.6 sec)
+  br(si)
+  i(iTOR)
+  br(si)
+  i(iNOP) // This is instruction 2 in this program.
+  br(si)
+  i(iRPT|2)
+  br(si)
+  i(iHALT)
+  br(si)
+  jump(next)
+// ---------------------------------------------------------------------------
+// Store instruction in vV to v_pm[vA++] in child's program memory
+si:
+  immv
+  put
+  inc
+  link
+// ---------------------------------------------------------------------------
+// Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
+doFill:
+  doFillLoop:
+    put
+    inc
+    rpt(doFillLoop)
+    link
+// ---------------------------------------------------------------------------
+// Set up to doFill so as to fill entire data memory of parent with zeros
+setupToClearParent:
+  i(0)
+  immv
+  i(DM_WORDS)
+  immr
+  link
+// ---------------------------------------------------------------------------
+// Assert that size of parent's data memory is exactly vm_DM_WORDS
+assertParentSize:
+  mdm
+  i(vm_DM_WORDS)
+  sub
+  jmpz(assertedParentSize)
+    i(FAILURE)
+    imma
+    halt
+  assertedParentSize:
+    link
+// ---------------------------------------------------------------------------
+// Increment variable at dm[vA]
+Incr:
+  tov
+  get
+  inc
+  swap
+  put
+  link
+// ---------------------------------------------------------------------------
+
+} // end of exampleProgram
+// ===========================================================================
 
