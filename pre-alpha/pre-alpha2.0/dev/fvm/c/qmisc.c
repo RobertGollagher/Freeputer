@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.67+ for FVM 2.0
+Version:    pre-alpha-0.0.0.69+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -46,7 +46,7 @@ Version:    pre-alpha-0.0.0.67+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 #include <stdio.h>
 #include <inttypes.h>
 #define BYTE uint8_t   // (uint8_t)
@@ -119,7 +119,8 @@ void Tov()    { vV = vA; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
-// Instructions which optimize virtualization
+// Instructions which optimize virtualization (dubious)
+void Fetch(CELL v_vP) { vA = dm[dm[dmsafe(v_vP)]++]; vT = vA; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
@@ -137,8 +138,7 @@ void Link()      { vP = vL; }           // return by link
 // Machine metadata
 void Mdm()    { vA = SLOTS; }
 // Other
-void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
-#define halt return enbyte(vA);
+void Nop()    { ; } // Consider eliminating this opcode
 // ===========================================================================
 // Opcodes for interpreter (mostly arbitrary values for now).
 // Current scheme is FW32 (very poor density but simple and portable).
@@ -186,57 +186,68 @@ int main() {
   return run();
 }
 // ===========================================================================
-WORD prg[] = {iIMM|0x10000000, iIMMR, iNOP, iRPT|2, iHALT};
+WORD prg[] = {iIMM|2, iIMMR, iNOP, iRPT|2, iHALT};
 int run() {
-  WORD instr;
-  WORD opcode;
-  WORD m;
+  WORD instr = 0;
+  WORD opcode = 0;
+  LIT lit = 0;
+  CELL cell = 0;
   while(1) {
     #ifdef DEBUG
-    printf("\n%08x ",vP);
+    printf("\n%08x  ",vP);
     #endif
     instr = prg[vP++];
-    opcode = (instr&OPCODE_MASK);
     #ifdef DEBUG
-    printf("%08x %02x ",instr,opcode);
+    printf("%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
+            instr, vA, vB, vV, vT, vR, vL);
     #endif
-
-    if (iIMM == (opcode&iIMM)) {
-      m = instr&LIT_MASK;
-      Imm(m);
-      #ifdef DEBUG
-      printf("imm   m: %08x vB: %08x",m,vB);
-      #endif
+    if (iIMM == (instr&iIMM)) {
+      lit = instr&LIT_MASK; Imm(lit);
     } else {
+      opcode = instr&OPCODE_MASK;
       switch(opcode) {
-        case iIMMR:
-          ImmR();
-          #ifdef DEBUG
-          printf("immr vR: %08x",m,vR);
-          #endif
-          break;
-        case iRPT:
-          m = instr&CELL_MASK;
-          #ifdef DEBUG
-          printf("rpt label: %08x vR: %08x",m,vR);
-          #endif
-        Rpt(m);
-          break;
-        case iNOP:
-          asm("nop");
-          #ifdef DEBUG
-          printf("nop");
-          #endif
-          break;
-        case iHALT: // iHALT
-          return SUCCESS;
-          break;
-        default:
-          return ILLEGAL;
-          break;
+        case iNOP:    Nop(); break;
+        case iADD:    Add(); break;
+        case iSUB:    Sub(); break;
+        case iOR:     Or(); break;
+        case iAND:    And(); break;
+        case iXOR:    Xor(); break;
+        case iNOT:    Not(); break;
+        case iFLIP:   Flip(); break;
+        case iSHL:    Shl(); break;
+        case iSHR:    Shr(); break;
+        case iGET:    Get(); break;
+        case iPUT:    Put(); break;
+        case iINC:    Inc(); break;
+        case iDEC:    Dec(); break;
+        case iNEG:    Neg(); break;
+        case iIMMA:   ImmA(); break;
+        case iIMMR:   ImmR(); break;
+        case iIMMT:   ImmT(); break;
+        case iIMMV:   ImmV(); break;
+        case iSWAP:   Swap(); break;
+        case iTOB:    Tob(); break;
+        case iTOR:    Tor(); break;
+        case iTOT:    Tot(); break;
+        case iFROMR:  Fromr(); break;
+        case iFROMT:  Fromt(); break;
+        case iFROMV:  Fromv(); break;
+        case iJMPZ:   cell = instr&CELL_MASK; JmpZ(cell); break;
+        case iJMPE:   cell = instr&CELL_MASK; JmpE(cell); break;
+        case iJMPM:   cell = instr&CELL_MASK; JmpM(cell); break;
+        case iJMPN:   cell = instr&CELL_MASK; JmpN(cell); break;
+        case iJMPS:   cell = instr&CELL_MASK; JmpS(cell); break;
+        case iJMPU:   cell = instr&CELL_MASK; JmpU(cell); break;
+        case iJUMP:   cell = instr&CELL_MASK; Jump(cell); break;
+        case iRPT:    cell = instr&CELL_MASK; Rpt(cell);  break;
+        case iBR:     cell = instr&CELL_MASK; Br(cell);   break;
+        case iLINK:   cell = instr&CELL_MASK; Link(cell); break;
+        case iMDM:    Mdm(); break;
+        case iHALT:   return SUCCESS; break;
+        default:      return ILLEGAL; break;
       } // switch
     } // else
-  } // while(true)
+  } // while(1)
 }
 // ===========================================================================
 
