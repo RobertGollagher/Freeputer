@@ -110,7 +110,7 @@ void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
 void Fromz()  { vA = vZ; }
 // Instructions which optimize virtualization (dubious)
-void Fetch()  { vA = dm[dmsafe(vZ++)]; vT = vA; }
+void Fetch()  { vA = dm[dmsafe(vZ++)]; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
@@ -157,9 +157,15 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define tot Tot();
 #define tor Tor();
 #define tov Tov();
+#define toz Toz();
 #define fromt Fromt();
 #define fromr Fromr();
 #define fromv Fromv();
+#define fromz Fromz();
+#define fetch Fetch();
+#define opcode Opcode();
+#define label Label();
+#define lit Lit();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -247,51 +253,26 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 next:
-  Fetch(); // FIXME
-
-/*
-// get dm[v_rPC]
-    i(v_rPC)
-    imma
-    tov // store v_rPC addr in vV
-    get // get val of v_rPC into vT
-    tot
+  fetch
+  tot
 
 #ifdef DEBUG
-printf("\n%08x ",vT); // print v_rPC value
-#endif
-
-// increment dm[v_rPC]
-    inc
-    swap
-    put
-// get current instr into vT
-    fromt // retrieve val of v_rPC from vT
-    get   // get instr at dm[v_rPC] into vT
-    tot
-*/
-
-#ifdef DEBUG
-printf("\nvZ:%08x vT:%08x",vZ,vT); // pc and instruction value
+printf("\nvZ:%08x vA:%08x  vT:%08x ",vZ,vA,vT);
 #endif
 
 // case iIMM:
-    fromt
     jmpn(v_Imm)
 // case iNOP:
-    fromt
     jmpz(v_Nop)
 // case iADD:
-    fromt
     i(iADD)
     jmpe(v_Add)
 // case iTOR
-    fromt
     i(iTOR)
     jmpe(v_ImmR)
 // case iRPT
-    fromt
-    br(exOpcode)
+    /*br(exOpcode)*/
+    opcode
     i(iRPT)
     jmpe(v_Rpt)
 // case iHALT:
@@ -351,7 +332,9 @@ printf("add  v_vA: %08x ",vA);
 
     Update 20170819-1539: adding/modifying instructions to optimize
     virtualization of child VMs. By using Fetch() improved performance
-    from 2.6 sec, 20.6 sec to 2.3 sec, 18.5 sec.
+    from 2.6 sec, 20.6 sec to 2.3 sec, 18.5 sec. Further improvements:
+      *  1.7 sec, 13.6 sec
+
         
 */
 v_Rpt:
@@ -367,7 +350,8 @@ printf("rpt  v_vR: %08x ",vA);
   fromr     // So now vA contains decremented value of v_vR from vR.
   jmpz(v_Repeat_end)
     fromt
-    br(exMeta24)
+    /*br(exMeta24)*/
+    label
     /*br(setPC)*/
     Toz(); // FIXME
   v_Repeat_end:
@@ -496,7 +480,7 @@ program:
   br(si)
 */
   i(iIMM|0x7fffffff) // Performance test (these repeats take about 2.6 sec)
-  br(si)
+  br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
   i(iNOP) // This is instruction 2 in this program.
