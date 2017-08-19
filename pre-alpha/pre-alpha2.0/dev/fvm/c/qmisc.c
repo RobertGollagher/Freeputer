@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.69+ for FVM 2.0
+Version:    pre-alpha-0.0.0.70+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -46,7 +46,7 @@ Version:    pre-alpha-0.0.0.69+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+// #define DEBUG // Comment out unless debugging
 #include <stdio.h>
 #include <inttypes.h>
 #define BYTE uint8_t   // (uint8_t)
@@ -142,9 +142,9 @@ void Nop()    { ; } // Consider eliminating this opcode
 // ===========================================================================
 // Opcodes for interpreter (mostly arbitrary values for now).
 // Current scheme is FW32 (very poor density but simple and portable).
-#define iIMM   0x80000000
-#define iNOP   0x00000000
-#define iADD   0x01000000
+#define iIMM   0x80000000 // DONE
+#define iNOP   0x00000000 // DONE
+#define iADD   0x01000000 // DONE
 #define iSUB   0x02000000
 #define iOR    0x03000000
 #define iAND   0x04000000
@@ -166,28 +166,27 @@ void Nop()    { ; } // Consider eliminating this opcode
 #define iTOB   0x14000000
 #define iTOR   0x15000000
 #define iTOT   0x16000000
+#define iFROMR 0x17000000
+#define iFROMT 0x18000000
+#define iFROMV 0x19000000
+#define iJMPZ  0x1a000000
+#define iJMPE  0x1b000000
+#define iJMPM  0x1c000000
+#define iJMPN  0x1d000000
+#define iJMPS  0x1e000000
+#define iJMPU  0x1f000000
+#define iJUMP  0x20000000
+#define iRPT   0x21000000
+#define iBR    0x22000000
 #define iLINK  0x23000000
 #define iMDM   0x24000000
-#define iHALT  0x25000000
-
-#define iFROMR 0x30000000
-#define iFROMT 0x31000000
-#define iFROMV 0x32000000
-#define iJMPZ  0x33000000
-#define iJMPE  0x34000000
-#define iJMPM  0x35000000
-#define iJMPN  0x36000000
-#define iJMPS  0x37000000
-#define iJMPU  0x38000000
-#define iJUMP  0x39000000
-#define iRPT   0x40000000
-#define iBR    0x41000000
+#define iHALT  0x25000000 // DONE
 // ===========================================================================
 int main() {
   return run();
 }
 // ===========================================================================
-WORD prg[] = {iIMM|2, iIMMR, iNOP, iRPT|2, iHALT};
+WORD prg[] = {iIMM|0x10000000, iIMMR, iNOP, iRPT|2, iHALT};
 int run() {
   WORD instr = 0;
   WORD opcode = 0;
@@ -204,52 +203,52 @@ int run() {
     #endif
     if (iIMM == (instr&iIMM)) {
       lit = instr&LIT_MASK; Imm(lit);
-    } else { // (not iIMM)
+    } else {
       opcode = instr&OPCODE_MASK;
-      if (opcode < iJMPZ) { // simple
-        switch(opcode) { // simple
-          case iNOP:    Nop(); break;
-          case iADD:    Add(); break;
-          case iSUB:    Sub(); break;
-          case iOR:     Or(); break;
-          case iAND:    And(); break;
-          case iXOR:    Xor(); break;
-          case iNOT:    Not(); break;
-          case iFLIP:   Flip(); break;
-          case iSHL:    Shl(); break;
-          case iSHR:    Shr(); break;
-          case iGET:    Get(); break;
-          case iPUT:    Put(); break;
-          case iINC:    Inc(); break;
-          case iDEC:    Dec(); break;
-          case iNEG:    Neg(); break;
-          case iIMMA:   ImmA(); break;
-          case iIMMR:   ImmR(); break;
-          case iIMMT:   ImmT(); break;
-          case iIMMV:   ImmV(); break;
-          case iSWAP:   Swap(); break;
-          case iTOB:    Tob(); break;
-          case iTOR:    Tor(); break;
-          case iTOT:    Tot(); break;
-          case iMDM:    Mdm(); break;
-          case iHALT:   return SUCCESS; break;
-          default:      return ILLEGAL; break;
-        } // switch (simple)
-      } else { // (not simple)
-        switch(opcode) { // (not simple)
-          case iJMPZ:   cell = instr&CELL_MASK; JmpZ(cell); break;
-          case iJMPE:   cell = instr&CELL_MASK; JmpE(cell); break;
-          case iJMPM:   cell = instr&CELL_MASK; JmpM(cell); break;
-          case iJMPN:   cell = instr&CELL_MASK; JmpN(cell); break;
-          case iJMPS:   cell = instr&CELL_MASK; JmpS(cell); break;
-          case iJMPU:   cell = instr&CELL_MASK; JmpU(cell); break;
-          case iJUMP:   cell = instr&CELL_MASK; Jump(cell); break;
-          case iRPT:    cell = instr&CELL_MASK; Rpt(cell);  break;
-          default:      return ILLEGAL; break;
-        } // switch (not simple)
-      } // else (not simple)
-    } // else (not iIMM)
+      switch(opcode) {
+        case iNOP:    Nop(); break;
+        case iADD:    Add(); break;
+        case iSUB:    Sub(); break;
+        case iOR:     Or(); break;
+        case iAND:    And(); break;
+        case iXOR:    Xor(); break;
+        case iNOT:    Not(); break;
+        case iFLIP:   Flip(); break;
+        case iSHL:    Shl(); break;
+        case iSHR:    Shr(); break;
+        case iGET:    Get(); break;
+        case iPUT:    Put(); break;
+        case iINC:    Inc(); break;
+        case iDEC:    Dec(); break;
+        case iNEG:    Neg(); break;
+        case iIMMA:   ImmA(); break;
+        case iIMMR:   ImmR(); break;
+        case iIMMT:   ImmT(); break;
+        case iIMMV:   ImmV(); break;
+        case iSWAP:   Swap(); break;
+        case iTOB:    Tob(); break;
+        case iTOR:    Tor(); break;
+        case iTOT:    Tot(); break;
+        case iFROMR:  Fromr(); break;
+        case iFROMT:  Fromt(); break;
+        case iFROMV:  Fromv(); break;
+        case iJMPZ:   cell = instr&CELL_MASK; JmpZ(cell); break;
+        case iJMPE:   cell = instr&CELL_MASK; JmpE(cell); break;
+        case iJMPM:   cell = instr&CELL_MASK; JmpM(cell); break;
+        case iJMPN:   cell = instr&CELL_MASK; JmpN(cell); break;
+        case iJMPS:   cell = instr&CELL_MASK; JmpS(cell); break;
+        case iJMPU:   cell = instr&CELL_MASK; JmpU(cell); break;
+        case iJUMP:   cell = instr&CELL_MASK; Jump(cell); break;
+        case iRPT:    cell = instr&CELL_MASK; Rpt(cell);  break;
+        case iBR:     cell = instr&CELL_MASK; Br(cell);   break;
+        case iLINK:   cell = instr&CELL_MASK; Link(cell); break;
+        case iMDM:    Mdm(); break;
+        case iHALT:   return SUCCESS; break;
+        default:      return ILLEGAL; break;
+      } // switch
+    } // else
   } // while(1)
 }
 // ===========================================================================
+
 
