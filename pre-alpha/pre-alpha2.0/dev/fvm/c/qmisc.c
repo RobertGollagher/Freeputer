@@ -24,6 +24,7 @@ Version:    pre-alpha-0.0.0.71+ for FVM 2.0
   Supports branch/link: uses a standalone, inaccessible link register.
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
+  TODO: Add/modify instructions so as to optimize self-virtualization.
   TODO: Maybe add more temp registers to more easily support stack pointers.
 
   20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
@@ -33,7 +34,7 @@ Version:    pre-alpha-0.0.0.71+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-// #define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -54,6 +55,7 @@ Version:    pre-alpha-0.0.0.71+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS 0x10000000 // Must be power of 2
 #define DM_MASK  0x0fffffff
+WORD vZ = 0; // virtualization register (program counter for child)
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
@@ -102,11 +104,13 @@ void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Tov()    { vV = vA; }
+void Toz()    { vZ = vA; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
+void Fromz()  { vA = vZ; }
 // Instructions which optimize virtualization (dubious)
-void Fetch(WORD v_vP) { vA = dm[dm[dmsafe(v_vP)]++]; vT = vA; }
+void Fetch()  { vA = dm[dmsafe(vZ++)]; vT = vA; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
@@ -225,7 +229,7 @@ foo:
 #define v_PM_WORDS  0x1000
 #define v_pm 0
 #define v_dm v_PM_WORDS
-#define v_rPC v_dm + v_DM_WORDS
+#define v_rPC v_dm + v_DM_WORDS // Now trying vZ instead of v_rPC
 #define v_instr v_rPC + 1
 #define v_vA v_instr + 1
 #define v_vB v_vA + 1
@@ -243,6 +247,9 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 next:
+  Fetch(); // FIXME
+
+/*
 // get dm[v_rPC]
     i(v_rPC)
     imma
@@ -262,9 +269,10 @@ printf("\n%08x ",vT); // print v_rPC value
     fromt // retrieve val of v_rPC from vT
     get   // get instr at dm[v_rPC] into vT
     tot
+*/
 
 #ifdef DEBUG
-printf("%08x ",vT); // print instruction value
+printf("\nvZ:%08x vT:%08x",vZ,vT); // pc and instruction value
 #endif
 
 // case iIMM:
@@ -356,7 +364,8 @@ printf("rpt  v_vR: %08x ",vA);
   jmpz(v_Repeat_end)
     fromt
     br(exMeta24)
-    br(setPC)
+    /*br(setPC)*/
+    Toz(); // FIXME
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
@@ -406,7 +415,7 @@ preAB:
   fromt
   link
 // ---------------------------------------------------------------------------
-// Get v_rPC into vA
+/*// Get v_rPC into vA
 getPC:
   i(v_rPC)
   imma
@@ -420,7 +429,7 @@ setPC:
   imma
   put
   link
-// ---------------------------------------------------------------------------
+*/// ---------------------------------------------------------------------------
 // Get v_vR into vA
 getR:
   i(v_vR)
@@ -482,7 +491,7 @@ program:
   i(iADD)
   br(si)
 */
-  i(iIMM|0x10000000) // Performance test (these repeats take about 2.6 sec)
+  i(iIMM|0x2) // Performance test (these repeats take about 2.6 sec)
   br(si)
   i(iTOR)
   br(si)
