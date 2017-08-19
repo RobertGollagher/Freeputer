@@ -401,6 +401,14 @@ printf("add  v_vA: %08x ",vA);
     Update: interpretedExperiment() parent is 1.1 sec, 8.7 sec respectively,
     which is 6 times slower than native parent. Which would in turn make
     its child about 90 times slower than native parent.
+
+    Update 20170819-1503: surprisingly, when a proper switch-based interpreter
+    was written it was much slower not faster; it seems that gcc cannot
+    handle this well. Performance for that (see 'qmisc.c' in this commit)
+    was a dismal 2.2 sec, 17.6 sec respectively. Which is just silly
+    since that is around the same speed as a virtualized CHILD VM!
+    Hence decision made to abandon interpreted version
+    and return to native implementation plus a child. 
         
 */
 v_Rpt:
