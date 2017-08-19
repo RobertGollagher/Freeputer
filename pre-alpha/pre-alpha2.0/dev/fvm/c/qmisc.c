@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.65+ for FVM 2.0
+Version:    pre-alpha-0.0.0.66+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -46,7 +46,7 @@ Version:    pre-alpha-0.0.0.65+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-// #define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -64,6 +64,7 @@ Version:    pre-alpha-0.0.0.65+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS 0x10000000 // Must be power of 2
 #define DM_MASK  0x0fffffff
+WORD vP = 0; // program counter
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
@@ -113,6 +114,8 @@ void Tov()    { vV = vA; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromv()  { vA = vV; }
+// Instructions which optimize virtualization
+void Msbyte() { vA = vV; }
 
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
@@ -180,7 +183,6 @@ int main() {
 // ===========================================================================
 #define OPCODE_MASK 0xff000000
 #define LABEL_MASK  0x00ffffff
-WORD vPC = 0;
 WORD prg[] = {iIMM|0x10000000, iIMMR, iNOP, iRPT|2, iHALT};
 void JmpZ() {}; // TODO implement these
 void JmpE() {};
@@ -189,7 +191,7 @@ void JmpN() {};
 void JmpS() {};
 void JmpU() {};
 void Jump() {}; // Note: all cell addresses need to be limited to 24 bits
-void Rpt(WORD cell) { if (--vR != 0) { vPC = cell; } };
+void Rpt(WORD cell) { if (--vR != 0) { vP = cell; } };
 void Br() {};
 void Link() {};
 
@@ -199,15 +201,15 @@ int run() {
   WORD m;
   while(1) {
     #ifdef DEBUG
-    printf("\n%08x ",vPC);
+    printf("\n%08x ",vP);
     #endif
-    instr = prg[vPC++];
-    opcode = (instr&OPCODE_MASK) >> 24;
+    instr = prg[vP++];
+    opcode = (instr&OPCODE_MASK);
     #ifdef DEBUG
     printf("%08x %02x ",instr,opcode);
     #endif
 
-    if (0x80 == (opcode&0x80)) {
+    if (iIMM == (opcode&iIMM)) {
       m = instr&METADATA_MASK;
       Imm(m);
       #ifdef DEBUG
@@ -215,26 +217,26 @@ int run() {
       #endif
     } else {
       switch(opcode) {
-        case 0x10:
+        case iIMMR:
           ImmR();
           #ifdef DEBUG
           printf("immr vR: %08x",m,vR);
           #endif
           break;
-        case 0x21: //iRPT
+        case iRPT:
           m = instr&LABEL_MASK;
           #ifdef DEBUG
           printf("rpt label: %08x vR: %08x",m,vR);
           #endif
         Rpt(m);
           break;
-        case 0x00:
+        case iNOP:
           asm("nop");
           #ifdef DEBUG
           printf("nop");
           #endif
           break;
-        case 0x25: // iHALT
+        case iHALT: // iHALT
           return SUCCESS;
           break;
         default:
