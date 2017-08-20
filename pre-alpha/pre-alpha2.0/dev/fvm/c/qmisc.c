@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170820+
-Version:    pre-alpha-0.0.0.76+ for FVM 2.0
+Version:    pre-alpha-0.0.0.77+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -55,6 +55,7 @@ Version:    pre-alpha-0.0.0.76+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS  0x10000000 // Must be power of 2
 #define DM_MASK   0x0fffffff
+#define nopasm nop // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
@@ -86,10 +87,10 @@ void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
 void Get()    { vA = dm[safe(vB)]; }
-void Getb()   { vB = dm[safe(vB)]; }
-void Geti()   { vB = ++dm[safe(vB)]; }
-void Getd()   { vB = --dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
+void At()     { vB = dm[safe(vB)]; }
+void Next()   { vB = ++dm[safe(vB)]; }
+void Prev()   { vB = --dm[safe(vB)]; }
 // Increments (experimentally only supporting vB here)
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -103,6 +104,11 @@ void Tor()    { vR = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
+// Machine metadata
+void Mdm()    { vA = DM_WORDS; }
+// Other
+void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
+#define halt return enbyte(vA);
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -114,11 +120,6 @@ void Fromr()  { vA = vR; }
 #define rpt(label) if (--vR != 0)  { asm(""); goto label; } // prevents optmzn
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
-// Machine metadata
-void Mdm()    { vA = DM_WORDS; }
-// Other
-void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
-#define halt return enbyte(vA);
 // ===========================================================================
 // Convenient macros to save typing
 #define add Add();
@@ -128,36 +129,32 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define xor Xor();
 #define not Not();
 #define flip Flip();
-#define neg Neg();
 #define shl Shl();
 #define shr Shr();
 #define get Get();
 #define put Put();
+#define at At();
+#define next Next();
+#define prev Prev();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
-#define neg Neg();
-#define fromb Fromb();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
-#define tov Tov();
-#define toz Toz();
+#define fromb Fromb();
 #define fromt Fromt();
 #define fromr Fromr();
-#define fromv Fromv();
-#define fromz Fromz();
-#define fetch Fetch();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
-// These should be further optimized by grouping (interpreter vs FPGA...).
-#define iIMM   0x80000000 // DONE
-#define iNOP   0x00000000 // DONE
-#define iADD   0x01000000 // DONE
+// These could be better optimized by grouping (interpreter vs FPGA...).
+#define iNOP   0x00000000 // not arbitrary, must be 0x00000000
+#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
+#define iADD   0x01000000
 #define iSUB   0x02000000
 #define iOR    0x03000000
 #define iAND   0x04000000
@@ -166,34 +163,33 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define iFLIP  0x07000000
 #define iSHL   0x08000000
 #define iSHR   0x09000000
-#define iGET   0x0a000000
-#define iPUT   0x0b000000
-#define iINC   0x0c000000
-#define iDEC   0x0d000000
-#define iNEG   0x0e000000
-#define iIMMA  0x0f000000
-#define iIMMR  0x10000000
-#define iIMMT  0x11000000
-#define iIMMV  0x12000000
-#define iSWAP  0x13000000
-#define iTOB   0x14000000
-#define iTOR   0x15000000
-#define iTOT   0x16000000
-#define iFROMR 0x17000000
-#define iFROMT 0x18000000
-#define iFROMV 0x19000000
-#define iJMPZ  0x1a000000
-#define iJMPE  0x1b000000
-#define iJMPM  0x1c000000
-#define iJMPN  0x1d000000
-#define iJMPS  0x1e000000
-#define iJMPU  0x1f000000
-#define iJUMP  0x20000000
-#define iRPT   0x21000000
-#define iBR    0x22000000
-#define iLINK  0x23000000
-#define iMDM   0x24000000
-#define iHALT  0x25000000 // DONE
+#define iGET   0x10000000
+#define iPUT   0x11000000
+#define iAT    0x12000000
+#define iNEXT  0x13000000
+#define iPREV  0x14000000
+#define iINC   0x20000000
+#define iDEC   0x21000000
+#define iSWAP  0x22000000
+#define iTOB   0x30000000
+#define iTOR   0x31000000
+#define iTOT   0x32000000
+#define iFROMR 0x33000000
+#define iFROMT 0x34000000
+#define iFROMV 0x35000000
+#define iJMPZ  0x40000000
+#define iJMPE  0x41000000
+#define iJMPM  0x42000000
+#define iJMPN  0x43000000
+#define iJMPS  0x44000000
+#define iJMPU  0x45000000
+#define iJUMP  0x46000000
+#define iRPT   0x50000000
+#define iBR    0x61000000
+#define iLINK  0x62000000
+#define iMDM   0x70000000
+#define iHALT  0x7f000000 // preferably 0x7f000000
+//  TOTAL: 36 opcodes
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
@@ -202,6 +198,10 @@ int main() {
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
+
+ // For native parent VM speed comparison:
+i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
+
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
@@ -227,9 +227,9 @@ vm_init:
   jump(program)
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
-next:
+nexti:
   i(v_vZ)
-  Geti();
+  Next();
   get
   tot
 #ifdef DEBUG
@@ -253,28 +253,28 @@ printf("\nvZ:%08x %08x CHILD: vZ:%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL
       halt
 // ---------------------------------------------------------------------------
 v_Nop:
-  jump(next)
+  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Imm:
   fromt
   flip
   i(v_vB)
   put
-  jump(next)
+  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Add:
   i(v_vA)
   get
   i(v_vB)
-  Getb();
+  At();
   add
   i(v_vA)
   put
-  jump(next)
+  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  Getd();
+  Prev();
   fromb
   jmpz(v_Repeat_end)
     fromt
@@ -283,14 +283,14 @@ v_Rpt:
     i(v_vZ)
     put
   v_Repeat_end:
-    jump(next)
+    jump(nexti)
 // ---------------------------------------------------------------------------
 v_ImmR:
   i(v_vB)
   get
   i(v_vR)
   put
-  jump(next)
+  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Halt:
   i(v_vA)
@@ -315,13 +315,13 @@ program:
   br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
-  i(iNOP) // This is instruction 7 in this program.
+  i(iADD) // This is instruction 7 in this program.
   br(si)
   i(iRPT|7)
   br(si)
   i(iHALT)
   br(si)
-  jump(next)
+  jump(nexti)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
