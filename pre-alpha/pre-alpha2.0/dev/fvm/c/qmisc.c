@@ -37,7 +37,7 @@ Version:    pre-alpha-0.0.0.78+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -669,7 +669,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|2) // Performance test
+  i(iIMM|0x7fffffff) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iFROMB)
   br(si)
