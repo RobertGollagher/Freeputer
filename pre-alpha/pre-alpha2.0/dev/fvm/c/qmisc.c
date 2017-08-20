@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170819+
-Version:    pre-alpha-0.0.0.72+ for FVM 2.0
+Updated:    20170820+
+Version:    pre-alpha-0.0.0.73+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -28,6 +28,8 @@ Version:    pre-alpha-0.0.0.72+ for FVM 2.0
   TODO: Maybe add more temp registers to more easily support stack pointers.
 
   20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
+  20170820: YES BUT THE NEED NOW IS TO **FURTHER SIMPLIFY**.
+  Note: having imm use vA was tried and is far too confusing (even if push-down).
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -53,8 +55,9 @@ Version:    pre-alpha-0.0.0.72+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define DM_WORDS 0x10000000 // Must be power of 2
-#define DM_MASK  0x0fffffff
+#define DM_WORDS  0x10000000 // Must be power of 2
+#define DM_MASK   0x0fffffff
+#define v_PM_MASK 0x0000ffff // see v_PM_WORDS in child below. TODO reconsider
 WORD vZ = 0; // virtualization register (program counter for child)
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
@@ -68,6 +71,7 @@ int exampleProgram();
 int interpretedExperiment();
 // ---------------------------------------------------------------------------
 WORD dmsafe(WORD addr) { return addr & DM_MASK; } // TODO reconsider
+WORD v_pmsafe(WORD addr) { return addr & v_PM_MASK; } // TODO reconsider
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
@@ -114,7 +118,13 @@ void Fetch()  { vA = dm[dmsafe(vZ++)]; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
-void Decs(WORD addr)    { vA = --dm[dmsafe(addr)]; }
+// IMPORTANT: experiments suggest decs/incs important for convenience and performance
+void Decs(WORD addr) { vA = --dm[dmsafe(addr)]; }
+void Save(WORD addr) { dm[dmsafe(addr)] = vA; }
+void Load(WORD addr) { vA = dm[dmsafe(addr)]; }
+void BSave(WORD addr) { dm[dmsafe(addr)] = vB; }
+void BLoad(WORD addr) { vB = dm[dmsafe(addr)]; }
+void MovTZ() { vZ = v_pmsafe(vT); }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -256,200 +266,65 @@ vm_init:
 next:
   fetch
   tot
-  xopcode
-
 #ifdef DEBUG
-printf("\nvZ:%08x PARENT vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
-        vZ, vA, vB, vV, vT, vR, vL);
+printf("\nvZ:%08x %08x CHILD: vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
+        vZ, vA, dm[v_vA], dm[v_vB], dm[v_vV], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
-
-// case iIMM:
+  xopcode
     jmpn(v_Imm)
-// case iNOP:
     jmpz(v_Nop)
-// case iADD:
     i(iADD)
-    jmpe(v_Add)
-// case iTOR
+      jmpe(v_Add)
     i(iTOR)
-    jmpe(v_ImmR)
-// case iRPT
-    /*br(exOpcode)*/
+      jmpe(v_ImmR)
     i(iRPT)
-    jmpe(v_Rpt)
-// case iHALT:
+      jmpe(v_Rpt)
     i(iHALT)
-    jmpe(v_Halt)
-// default:
+      jmpe(v_Halt)
     i(ILLEGAL)
-    imma
-    halt
+      imma
+      halt
 // ---------------------------------------------------------------------------
 v_Nop:
-
-#ifdef DEBUG
-printf("nop ");
-#endif
-
   jump(next)
 // ---------------------------------------------------------------------------
 v_Imm:
-
   fromt
   flip
-
-#ifdef DEBUG
-printf("imm  vA: %08x ",vA);
-#endif
-
-  br(setB)
+  Save(v_vB);
   jump(next)
 // ---------------------------------------------------------------------------
 v_Add:
-  // br(preAB) // FIXME
+  Load(v_vA);
+  BLoad(v_vB);
   add
-
-#ifdef DEBUG
-printf("add  v_vA: %08x ",vA);
-#endif
-
-  br(setA)
+  Save(v_vA);
   jump(next)
 // ---------------------------------------------------------------------------
-/* PERFORMANCE of CHILD VM (virtualized within the parent VM):
-    0x10000000 empty repeats in 2.6 sec, 0x7fffffff in 20.6 sec.
-    Native empty repeat is 0.18 sec, 1.4 sec respectively, forced by asm("").
-    Thus the child VM is about 15 times slower than its parent.
-
-    Update: interpretedExperiment() parent is 1.1 sec, 8.7 sec respectively,
-    which is 6 times slower than native parent. Which would in turn make
-    its child about 90 times slower than native parent.
-
-    Update 20170819-1503: surprisingly, when a proper switch-based interpreter
-    was written it was much slower not faster; it seems that gcc cannot
-    handle this well. Performance for that (see 'qmisc.c' in this commit)
-    was a dismal 2.2 sec, 17.6 sec respectively. Which is just silly
-    since that is around the same speed as a virtualized CHILD VM!
-    Hence decision made to abandon interpreted version
-    and return to native implementation plus a child.
-
-    Update 20170819-1539: adding/modifying instructions to optimize
-    virtualization of child VMs. By using Fetch() improved performance
-    from 2.6 sec, 20.6 sec to 2.3 sec, 18.5 sec. Further improvements:
-      *  1.7 sec, 13.6 sec
-      *  1.3 sec, 10.2 sec
-
-
-*/
 v_Rpt:
-/*
-  br(getR)
-
-#ifdef DEBUG
-printf("rpt  v_vR: %08x ",vA);
-#endif
-
-  dec
-  tor       // Here using vR merely as a temporary register.
-  br(setR)  // Here setting v_vR from vA (nothing to do with vR).
-  fromr     // So now vA contains decremented value of v_vR from vR.
-*/
   Decs(v_vR);
-#ifdef DEBUG
-printf("rpt  v_vR: %08x ",vA);
-#endif
   jmpz(v_Repeat_end)
+    /*
     fromt
     xlabel
-    toz
+    toz*/
+    MovTZ();
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
 v_ImmR:
-  br(getB)
-
-#ifdef DEBUG
-printf("immr v_vR: %08x ",vA);
-#endif
-
-  br(setR)
+  Load(v_vB);
+  Save(v_vR);
   jump(next)
 // ---------------------------------------------------------------------------
 v_Halt:
-  //i(SUCCESS)
-  br(getA) // FIXME a hack to show v_vA value as exit code of parent VM
-
-#ifdef DEBUG
-printf("halt v_vA: %08x ",vA);
-#endif
-
+  Load(v_vA);
   halt
-// ---------------------------------------------------------------------------
-// Get v_vA into vA and v_vB into vB prior to AB operation
-/*
-preAB:
-  i(v_vA)
-  imma
-  get
-  tot
-  i(v_vB)
-  imma
-  get
-  tob
-  fromt
-  link
-*/
-// ---------------------------------------------------------------------------
-// Get v_vR into vA
-getR:
-  i(v_vR)
-  imma
-  get
-  link
-// ---------------------------------------------------------------------------
-// Save vA into v_vA
-setA:
-  tov
-  i(v_vA)
-  imma
-  put
-  link
-// ---------------------------------------------------------------------------
-// Save vA into v_vB
-setB:
-  tov
-  i(v_vB)
-  imma
-  put
-  link
-// ---------------------------------------------------------------------------
-// Save vA into v_vR
-setR:
-  tov
-  i(v_vR)
-  imma
-  put
-  link
-// ---------------------------------------------------------------------------
-// Get v_vA into vA
-getA:
-  i(v_vA)
-  imma
-  get
-  link
-// ---------------------------------------------------------------------------
-// Get v_vB into vB
-getB:
-  i(v_vB)
-  imma
-  get
-  link
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
 program:
   i(0)
   imma
-/*
   i(iNOP)
   br(si)
   i(iIMM|3)
@@ -460,18 +335,20 @@ program:
   br(si)
   i(iADD)
   br(si)
-*/
-  i(iIMM|0x7fffffff) // Performance test (these repeats take about 2.6 sec)
+  i(iIMM|0x7fffffff) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
-  i(iNOP) // This is instruction 2 in this program.
+  i(iNOP) // This is instruction 7 in this program.
   br(si)
-  i(iRPT|2)
+  i(iRPT|7)
   br(si)
   i(iHALT)
   br(si)
   jump(next)
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Store instruction in vV to v_pm[vA++] in child's program memory
 si:
@@ -508,16 +385,6 @@ assertParentSize:
   assertedParentSize:
     link
 // ---------------------------------------------------------------------------
-// Increment variable at dm[vA]
-Incr:
-  tov
-  get
-  inc
-  swap
-  put
-  link
-// ---------------------------------------------------------------------------
-
 } // end of exampleProgram
 // ===========================================================================
 
