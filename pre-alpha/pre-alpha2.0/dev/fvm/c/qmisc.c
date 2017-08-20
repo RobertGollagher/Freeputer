@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170820+
-Version:    pre-alpha-0.0.0.73+ for FVM 2.0
+Version:    pre-alpha-0.0.0.74+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -38,7 +38,7 @@ Version:    pre-alpha-0.0.0.73+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -90,10 +90,10 @@ void Flip()   { vA^=MSb; } // Flips value of msbit
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[safe(vB)]; } // TODO add deref instrs
+void Get()    { vA = dm[safe(vB)]; }
 void Getb()   { vB = dm[safe(vB)]; }
-void Geti()   { vA = ++dm[safe(vB)]; }
-void Getd()   { vA = --dm[safe(vB)]; }
+void Geti()   { vB = ++dm[safe(vB)]; }
+void Getd()   { vB = --dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 // Increments (probably need for vB too)
 void Inc()    { ++vA; }
@@ -103,15 +103,16 @@ void Decb()   { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
-void ImmA()   { vA = vB; }
-void ImmR()   { vR = vB; }
-void ImmT()   { vT = vB; }
+
+void MovBR()   { vR = vB; }
+void MovBT()   { vT = vB; }
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
 void Toz()    { vZ = vA; }
+void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 void Fromz()  { vA = vZ; }
@@ -155,9 +156,9 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define dec Dec();
 #define i(x) Imm(x);
 #define neg Neg();
-#define imma ImmA();
-#define immr ImmR();
-#define immt ImmT();
+#define fromb Fromb();
+#define movbr MovBR();
+#define movbt MovBT();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -224,17 +225,6 @@ int main() {
 // ===========================================================================
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
-
-/*
- // For native parent VM speed comparison:
-i(0x7fffffff)
-immr
-foo:
-  nop
-  rpt(foo)
-  return 0;
-*/
-
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
@@ -276,7 +266,7 @@ printf("\nvZ:%08x %08x CHILD: vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
     i(iHALT)
       jmpe(v_Halt)
     i(ILLEGAL)
-      imma
+      fromb
       halt
 // ---------------------------------------------------------------------------
 v_Nop:
@@ -302,6 +292,7 @@ v_Add:
 v_Rpt:
   i(v_vR)
   Getd();
+  fromb
   jmpz(v_Repeat_end)
     MovTZ();
   v_Repeat_end:
@@ -322,7 +313,7 @@ v_Halt:
 // Program child's program memory then run program
 program:
   i(0)
-  imma
+  fromb
   i(iNOP)
   br(si)
   i(iIMM|3)
@@ -333,7 +324,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|0x7fffffff) // Performance test
+  i(iIMM|2) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
@@ -367,9 +358,9 @@ doFill:
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
   i(0)
-  imma
+  fromb
   i(DM_WORDS)
-  immr
+  movbr
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
@@ -379,7 +370,7 @@ assertParentSize:
   sub
   jmpz(assertedParentSize)
     i(FAILURE)
-    imma
+    fromb
     halt
   assertedParentSize:
     link
