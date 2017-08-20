@@ -174,9 +174,9 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iTOB   0x30000000
 #define iTOR   0x31000000
 #define iTOT   0x32000000
-#define iFROMR 0x33000000
-#define iFROMT 0x34000000
-#define iFROMV 0x35000000
+#define iFROMB 0x33000000
+#define iFROMR 0x34000000
+#define iFROMT 0x35000000
 #define iJMPZ  0x40000000
 #define iJMPE  0x41000000
 #define iJMPM  0x42000000
@@ -204,7 +204,7 @@ int exampleProgram() {
 
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
-#define v_PM_WORDS  0x1000
+#define v_PM_WORDS  0x1000 // FIXME reconsider
 #define v_pm 0
 #define v_dm v_PM_WORDS
 #define v_vZ v_dm + v_DM_WORDS
@@ -270,9 +270,16 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
       jmpe(v_Inc)
     i(iDEC)
       jmpe(v_Dec)
+    i(iIMM)
+      jmpe(v_Imm)
+
+
+    i(iFROMB)
+      jmpe(v_Fromb)
+
 
     i(iTOR)
-      jmpe(v_ImmR)
+      jmpe(v_Tor)
     i(iRPT)
       jmpe(v_Rpt)
     i(iHALT)
@@ -280,16 +287,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
     i(ILLEGAL)
       fromb
       halt
-// ---------------------------------------------------------------------------
-v_Nop:
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Imm:
-  fromt
-  flip
-  i(v_vB)
-  put
-  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Add:
   i(v_vA)
@@ -442,6 +439,77 @@ v_Dec:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
+v_Imm:
+  fromt
+  flip
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Swap:
+  i(v_vA)
+  get
+  i(v_vB)
+  put
+  swap
+  i(v_vB)
+  get
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Tob:
+  i(v_vA)
+  get
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Tor:
+  i(v_vA)
+  get
+  i(v_vR)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Tot:
+  i(v_vA)
+  get
+  i(v_vT)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Fromb:
+  i(v_vB)
+  get
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Fromr:
+  i(v_vR)
+  get
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Fromt:
+  i(v_vT)
+  get
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Mdm:
+  i(v_DM_WORDS)
+  fromb
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Nop:
+  jump(nexti)
+// ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
   prev
@@ -454,13 +522,6 @@ v_Rpt:
     put
   v_Repeat_end:
     jump(nexti)
-// ---------------------------------------------------------------------------
-v_ImmR:
-  i(v_vB)
-  get
-  i(v_vR)
-  put
-  jump(nexti)
 // ---------------------------------------------------------------------------
 v_Halt:
   i(v_vA)
@@ -481,11 +542,13 @@ program:
   br(si)
   i(iIMM|2) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
+  i(iFROMB)
+  br(si)
   i(iTOR)
   br(si)
-  i(iADD) // This is instruction 6 in this program.
+  i(iADD) // This is instruction 7 in this program.
   br(si)
-  i(iRPT|6)
+  i(iRPT|7)
   br(si)
   i(iHALT)
   br(si)
