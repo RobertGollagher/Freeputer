@@ -510,6 +510,111 @@ v_Mdm:
 v_Nop:
   jump(nexti)
 // ---------------------------------------------------------------------------
+v_Jmpz:
+  i(v_vA)
+  get
+  jmpz(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpz_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jmpe:
+  i(v_vA)
+  get
+  jmpe(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpe_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jmpm:
+  i(v_vA)
+  get
+  jmpm(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpm_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jmpn:
+  i(v_vA)
+  get
+  jmpn(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpn_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jmps:
+  i(v_vA)
+  get
+  jmps(v_Jmpz_do)
+    jump(nexti)
+  v_Jmps_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jmpu:
+  i(v_vA)
+  get
+  jmpu(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpu_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Jump:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Br:
+    i(v_vZ)
+    get
+    i(v_vL)
+    put
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
+v_Link:
+    i(v_vL)
+    get
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
   prev
