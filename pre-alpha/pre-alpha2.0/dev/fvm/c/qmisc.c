@@ -219,12 +219,7 @@ int exampleProgram() {
 vm_init:
   br(assertParentSize)
   br(setupToClearParent)
-  br(doFill)/*
-  i(0x7fffffff)
-  fromb
-  flip
-  i(v_vZ)
-  put*/
+  br(doFill)
   jump(program)
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
@@ -245,6 +240,37 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
     jmpz(v_Nop)
     i(iADD)
       jmpe(v_Add)
+    i(iSUB)
+      jmpe(v_Sub)
+    i(iAND)
+      jmpe(v_And)
+    i(iOR)
+      jmpe(v_Or)
+    i(iXOR)
+      jmpe(v_Xor)
+    i(iNOT)
+      jmpe(v_Not)
+    i(iFLIP)
+      jmpe(v_Flip)
+    i(iSHL)
+      jmpe(v_Shl)
+    i(iSHR)
+      jmpe(v_Shr)
+    i(iGET)
+      jmpe(v_Get)
+    i(iPUT)
+      jmpe(v_Put)
+    i(iAT)
+      jmpe(v_At)
+    i(iNEXT)
+      jmpe(v_Next)
+    i(iPREV)
+      jmpe(v_Prev)
+    i(iINC)
+      jmpe(v_Inc)
+    i(iDEC)
+      jmpe(v_Dec)
+
     i(iTOR)
       jmpe(v_ImmR)
     i(iRPT)
@@ -269,9 +295,150 @@ v_Add:
   i(v_vA)
   get
   i(v_vB)
-  At();
+  at
   add
   i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Sub:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  sub
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_And:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  and
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Or:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  or
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Xor:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  xor
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Not:
+  i(v_vA)
+  get
+  not
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Flip:
+  i(v_vA)
+  get
+  flip
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Shl:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  shl
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Shr:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  shr
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Get:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  get
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Put:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  put
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_At:
+  i(v_vB)
+  at
+  at
+  fromb
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Next:
+  i(v_vB)
+  at
+  next
+  fromb
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Prev:
+  i(v_vB)
+  at
+  prev
+  fromb
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Inc:
+  i(v_vB)
+  at
+  inc
+  fromb
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Dec:
+  i(v_vB)
+  at
+  dec
+  fromb
+  i(v_vB)
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
