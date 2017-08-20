@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170820+
-Version:    pre-alpha-0.0.0.78+ for FVM 2.0
+Updated:    20170821+
+Version:    pre-alpha-0.0.0.79+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -32,12 +32,16 @@ Version:    pre-alpha-0.0.0.78+ for FVM 2.0
 
   TODO: consider 30 or 31-bit max DM size carefully
 
+  Need to consider:
+    - stack pointers (next,prev probably already enough here)
+    - fast copy (perhaps need another vB, such as vX, vY strategy)
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -686,7 +690,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|0x7fffffff) // Performance test
+  i(iIMM|2) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iFROMB)
   br(si)
