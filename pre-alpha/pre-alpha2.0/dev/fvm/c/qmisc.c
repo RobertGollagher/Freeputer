@@ -31,6 +31,8 @@ Version:    pre-alpha-0.0.0.73+ for FVM 2.0
   20170820: YES BUT THE NEED NOW IS TO **FURTHER SIMPLIFY**.
   Note: having imm use vA was tried and is far too confusing (even if push-down).
 
+  TODO: consider 30 or 31-bit max DM size carefully
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -50,7 +52,6 @@ Version:    pre-alpha-0.0.0.73+ for FVM 2.0
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define OPCODE_MASK   0xff000000
-#define LIT_MASK      0x7fffffff // 31 bits
 #define CELL_MASK     0x00ffffff // TODO reconsider these
 #define SUCCESS 0
 #define FAILURE 1
@@ -90,9 +91,13 @@ void Flip()   { vA^=MSb; } // Flips value of msbit
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[safe(vA)]; }
-void Put()    { dm[safe(vA)] = vV; }
-// Increments
+void Get()    { vA = dm[safe(vB)]; } // TODO add deref instrs
+void Put()    { dm[safe(vB)] = vA; } // EXPERIMENTAL use of vA/vB not vV/vA
+void Getb()   { vB = dm[safe(vB)]; }
+void Geti()   { vA = ++dm[safe(vB)]; }
+void Getd()   { vA = --dm[safe(vB)]; }
+
+// Increments (probably need for vB too)
 void Inc()    { ++vA; }
 void Dec()    { --vA; }
 // Immediates
@@ -103,7 +108,7 @@ void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
 void ImmV()   { vV = vB; }
 // Transfers (maybe expand these)
-void Swap()   { rSwap = vA; vA = vV; vV = rSwap; }
+void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -117,13 +122,7 @@ void Fromz()  { vA = vZ; }
 void Fetch()  { vA = dm[dmsafe(vZ++)]; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
-void Lit()    { vA = vA&LIT_MASK; }
 // IMPORTANT: experiments suggest decs/incs important for convenience and performance
-void Decs(WORD addr) { vA = --dm[dmsafe(addr)]; }
-void Save(WORD addr) { dm[dmsafe(addr)] = vA; }
-void Load(WORD addr) { vA = dm[dmsafe(addr)]; }
-void BSave(WORD addr) { dm[dmsafe(addr)] = vB; }
-void BLoad(WORD addr) { vB = dm[dmsafe(addr)]; }
 void MovTZ() { vZ = v_pmsafe(vT); }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
@@ -176,7 +175,6 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define fetch Fetch();
 #define xopcode Opcode();
 #define xlabel Label();
-#define xlit Lit();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -291,34 +289,38 @@ v_Nop:
 v_Imm:
   fromt
   flip
-  Save(v_vB);
+  i(v_vB)
+  put
   jump(next)
 // ---------------------------------------------------------------------------
 v_Add:
-  Load(v_vA);
-  BLoad(v_vB);
+  i(v_vA)
+  get
+  i(v_vB)
+  Getb();
   add
-  Save(v_vA);
+  i(v_vA)
+  put
   jump(next)
 // ---------------------------------------------------------------------------
 v_Rpt:
-  Decs(v_vR);
+  i(v_vR)
+  Getd();
   jmpz(v_Repeat_end)
-    /*
-    fromt
-    xlabel
-    toz*/
     MovTZ();
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
 v_ImmR:
-  Load(v_vB);
-  Save(v_vR);
+  i(v_vB)
+  get
+  i(v_vR)
+  put
   jump(next)
 // ---------------------------------------------------------------------------
 v_Halt:
-  Load(v_vA);
+  i(v_vA)
+  get
   halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
@@ -350,10 +352,11 @@ program:
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// Store instruction in vV to v_pm[vA++] in child's program memory
+// Store instruction to child's program memory
 si:
-  immv
+  swap
   put
+  swap
   inc
   link
 // ---------------------------------------------------------------------------
