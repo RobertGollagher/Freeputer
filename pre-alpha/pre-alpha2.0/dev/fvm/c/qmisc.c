@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170819+
-Version:    pre-alpha-0.0.0.71+ for FVM 2.0
+Version:    pre-alpha-0.0.0.72+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -114,6 +114,7 @@ void Fetch()  { vA = dm[dmsafe(vZ++)]; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 void Lit()    { vA = vA&LIT_MASK; }
+void Decs(WORD addr)    { vA = --dm[dmsafe(addr)]; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -163,9 +164,9 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define fromv Fromv();
 #define fromz Fromz();
 #define fetch Fetch();
-#define opcode Opcode();
-#define label Label();
-#define lit Lit();
+#define xopcode Opcode();
+#define xlabel Label();
+#define xlit Lit();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -255,9 +256,11 @@ vm_init:
 next:
   fetch
   tot
+  xopcode
 
 #ifdef DEBUG
-printf("\nvZ:%08x vA:%08x  vT:%08x ",vZ,vA,vT);
+printf("\nvZ:%08x PARENT vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
+        vZ, vA, vB, vV, vT, vR, vL);
 #endif
 
 // case iIMM:
@@ -272,11 +275,9 @@ printf("\nvZ:%08x vA:%08x  vT:%08x ",vZ,vA,vT);
     jmpe(v_ImmR)
 // case iRPT
     /*br(exOpcode)*/
-    opcode
     i(iRPT)
     jmpe(v_Rpt)
 // case iHALT:
-    fromt
     i(iHALT)
     jmpe(v_Halt)
 // default:
@@ -293,17 +294,19 @@ printf("nop ");
   jump(next)
 // ---------------------------------------------------------------------------
 v_Imm:
+
+  fromt
   flip
 
 #ifdef DEBUG
-printf("flip v_vA: %08x ",vA);
+printf("imm  vA: %08x ",vA);
 #endif
 
   br(setB)
   jump(next)
 // ---------------------------------------------------------------------------
 v_Add:
-  br(preAB)
+  // br(preAB) // FIXME
   add
 
 #ifdef DEBUG
@@ -334,10 +337,12 @@ printf("add  v_vA: %08x ",vA);
     virtualization of child VMs. By using Fetch() improved performance
     from 2.6 sec, 20.6 sec to 2.3 sec, 18.5 sec. Further improvements:
       *  1.7 sec, 13.6 sec
+      *  1.3 sec, 10.2 sec
 
-        
+
 */
 v_Rpt:
+/*
   br(getR)
 
 #ifdef DEBUG
@@ -348,12 +353,15 @@ printf("rpt  v_vR: %08x ",vA);
   tor       // Here using vR merely as a temporary register.
   br(setR)  // Here setting v_vR from vA (nothing to do with vR).
   fromr     // So now vA contains decremented value of v_vR from vR.
+*/
+  Decs(v_vR);
+#ifdef DEBUG
+printf("rpt  v_vR: %08x ",vA);
+#endif
   jmpz(v_Repeat_end)
     fromt
-    /*br(exMeta24)*/
-    label
-    /*br(setPC)*/
-    Toz(); // FIXME
+    xlabel
+    toz
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
@@ -377,20 +385,8 @@ printf("halt v_vA: %08x ",vA);
 
   halt
 // ---------------------------------------------------------------------------
-// Extract 8-bit opcode from vA into vA by masking vA.
-// Note: not relevant for iIMM (which is indicated by msbit being set).
-exOpcode:
-  i(0xff000000)
-  and
-  link
-// ---------------------------------------------------------------------------
-// Extract 24-bit metadata from vA into vA by masking vA
-exMeta24:
-  i(0x00ffffff)
-  and
-  link
-// ---------------------------------------------------------------------------
 // Get v_vA into vA and v_vB into vB prior to AB operation
+/*
 preAB:
   i(v_vA)
   imma
@@ -402,22 +398,8 @@ preAB:
   tob
   fromt
   link
+*/
 // ---------------------------------------------------------------------------
-/*// Get v_rPC into vA
-getPC:
-  i(v_rPC)
-  imma
-  get
-  link
-// ---------------------------------------------------------------------------
-// Save vA into v_rPC
-setPC:
-  tov
-  i(v_rPC)
-  imma
-  put
-  link
-*/// ---------------------------------------------------------------------------
 // Get v_vR into vA
 getR:
   i(v_vR)
