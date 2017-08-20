@@ -50,8 +50,6 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
 #define METADATA_MASK 0x7fffffff // 31 bits
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
-#define OPCODE_MASK   0xff000000
-#define CELL_MASK     0x00ffffff // TODO reconsider these
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
@@ -97,8 +95,7 @@ void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
-void MovBR()  { vR = vB; }
-void MovBT()  { vT = vB; }
+void MovBR()  { vR = vB; } // dubious
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
@@ -107,9 +104,6 @@ void Tor()    { vR = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
-// Instructions which optimize virtualization (dubious)
-void Opcode() { vA = vA&OPCODE_MASK; }
-void Label()  { vA = vA&CELL_MASK; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -146,7 +140,6 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define neg Neg();
 #define fromb Fromb();
 #define movbr MovBR();
-#define movbt MovBT();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -228,6 +221,8 @@ int exampleProgram() {
 #define v_vV v_vR + 1
 #define v_vI v_vV + 1
 #define v_vZ v_vV + 1
+#define OPCODE_MASK   0xff000000
+#define CELL_MASK     0x00ffffff
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -237,19 +232,16 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 next:
-  /*fetch*/
   i(v_vZ)
   Geti();
   get
-  
-  
-
   tot
 #ifdef DEBUG
 printf("\nvZ:%08x %08x CHILD: vZ:%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
         vZ, vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vV], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
-  xopcode
+  i(OPCODE_MASK)
+  and
     jmpn(v_Imm)
     jmpz(v_Nop)
     i(iADD)
@@ -289,12 +281,11 @@ v_Rpt:
   Getd();
   fromb
   jmpz(v_Repeat_end)
-    /*MovTZ();*/
     fromt
-    xlabel
+    i(CELL_MASK)
+    and
     i(v_vZ)
     put
-
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
