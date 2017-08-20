@@ -95,15 +95,12 @@ void Getb()   { vB = dm[safe(vB)]; }
 void Geti()   { vB = ++dm[safe(vB)]; }
 void Getd()   { vB = --dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
-// Increments (probably need for vB too)
-void Inc()    { ++vA; }
-void Incb()   { ++vB; }
-void Dec()    { --vA; }
-void Decb()   { --vB; }
+// Increments (experimentally only supporting vB here)
+void Inc()    { ++vB; }
+void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
-
 void MovBR()   { vR = vB; }
 void MovBT()   { vT = vB; }
 // Transfers (maybe expand these)
@@ -343,15 +340,15 @@ program:
 si:
   swap
   put
-  swap
   inc
+  fromb
   link
 // ---------------------------------------------------------------------------
 // Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
 doFill:
   doFillLoop:
     put
-    Incb();
+    inc
     rpt(doFillLoop)
     link
 // ---------------------------------------------------------------------------
