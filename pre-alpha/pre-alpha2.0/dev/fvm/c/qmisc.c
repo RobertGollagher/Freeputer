@@ -57,8 +57,6 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS  0x10000000 // Must be power of 2
 #define DM_MASK   0x0fffffff
-#define v_PM_MASK 0x0000ffff // see v_PM_WORDS in child below. TODO reconsider
-WORD vZ = 0; // virtualization register (program counter for child)
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
@@ -70,7 +68,6 @@ int exampleProgram();
 int interpretedExperiment();
 // ---------------------------------------------------------------------------
 WORD dmsafe(WORD addr) { return addr & DM_MASK; } // TODO reconsider
-WORD v_pmsafe(WORD addr) { return addr & v_PM_MASK; } // TODO reconsider
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
@@ -107,18 +104,12 @@ void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
-void Toz()    { vZ = vA; }
 void Fromb()  { vA = vB; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
-void Fromz()  { vA = vZ; }
 // Instructions which optimize virtualization (dubious)
-void Fetch()  { vA = dm[dmsafe(vZ++)]; }
 void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
-// IMPORTANT: experiments suggest decs/incs important for convenience and performance
-void MovTZ() { vZ = v_pmsafe(vT); }
-void MovZB() { vB = vZ; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
