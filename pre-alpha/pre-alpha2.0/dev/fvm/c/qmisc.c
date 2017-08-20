@@ -154,6 +154,8 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 // These could be better optimized by grouping (interpreter vs FPGA...).
 #define iNOP   0x00000000 // not arbitrary, must be 0x00000000
 #define iIMM   0x80000000 // not arbitrary, must be 0x80000000
+
+// Below 0x40000000 = simple
 #define iADD   0x01000000
 #define iSUB   0x02000000
 #define iOR    0x03000000
@@ -177,6 +179,15 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iFROMB 0x33000000
 #define iFROMR 0x34000000
 #define iFROMT 0x35000000
+
+#define iMDM   0x36000000
+#define iLINK  0x37000000
+
+#define iHALT  0x3f000000
+
+// Above 0x40000000 = complex
+#define COMPLEX_MASK 0x40000000
+
 #define iJMPZ  0x40000000
 #define iJMPE  0x41000000
 #define iJMPM  0x42000000
@@ -186,9 +197,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iJUMP  0x46000000
 #define iRPT   0x50000000
 #define iBR    0x61000000
-#define iLINK  0x62000000
-#define iMDM   0x70000000
-#define iHALT  0x7f000000 // preferably 0x7f000000
+
 //  TOTAL: 36 opcodes
 // ===========================================================================
 int main() {
@@ -238,76 +247,84 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
   and
     jmpn(v_Imm)
     jmpz(v_Nop)
-    i(iADD)
-      jmpe(v_Add)
-    i(iSUB)
-      jmpe(v_Sub)
-    i(iAND)
-      jmpe(v_And)
-    i(iOR)
-      jmpe(v_Or)
-    i(iXOR)
-      jmpe(v_Xor)
-    i(iNOT)
-      jmpe(v_Not)
-    i(iFLIP)
-      jmpe(v_Flip)
-    i(iSHL)
-      jmpe(v_Shl)
-    i(iSHR)
-      jmpe(v_Shr)
-    i(iGET)
-      jmpe(v_Get)
-    i(iPUT)
-      jmpe(v_Put)
-    i(iAT)
-      jmpe(v_At)
-    i(iNEXT)
-      jmpe(v_Next)
-    i(iPREV)
-      jmpe(v_Prev)
-    i(iINC)
-      jmpe(v_Inc)
-    i(iDEC)
-      jmpe(v_Dec)
-    i(iSWAP)
-      jmpe(v_Swap)
-    i(iTOB)
-      jmpe(v_Tob)
-    i(iTOR)
-      jmpe(v_Tor)
-    i(iTOT)
-      jmpe(v_Tot)
-    i(iFROMB)
-      jmpe(v_Fromb)
-    i(iFROMR)
-      jmpe(v_Fromr)
-    i(iFROMT)
-      jmpe(v_Fromt)
-    i(iMDM)
-      jmpe(v_Mdm)
-    i(iJMPZ)
-      jmpe(v_Jmpz)
-    i(iJMPE)
-      jmpe(v_Jmpe)
-    i(iJMPM)
-      jmpe(v_Jmpm)
-    i(iJMPN)
-      jmpe(v_Jmpn)
-    i(iJMPS)
-      jmpe(v_Jmps)
-    i(iJMPU)
-      jmpe(v_Jmpu)
-    i(iJUMP)
-      jmpe(v_Jump)
-    i(iRPT)
-      jmpe(v_Rpt)
-    i(iBR)
-      jmpe(v_Br)
-    i(iLINK)
-      jmpe(v_Link)
-    i(iHALT)
-      jmpe(v_Halt)
+
+    i(COMPLEX_MASK)
+    jmps(v_complex_instrs)
+
+      i(iADD)
+        jmpe(v_Add)
+      i(iSUB)
+        jmpe(v_Sub)
+      i(iAND)
+        jmpe(v_And)
+      i(iOR)
+        jmpe(v_Or)
+      i(iXOR)
+        jmpe(v_Xor)
+      i(iNOT)
+        jmpe(v_Not)
+      i(iFLIP)
+        jmpe(v_Flip)
+      i(iSHL)
+        jmpe(v_Shl)
+      i(iSHR)
+        jmpe(v_Shr)
+      i(iGET)
+        jmpe(v_Get)
+      i(iPUT)
+        jmpe(v_Put)
+      i(iAT)
+        jmpe(v_At)
+      i(iNEXT)
+        jmpe(v_Next)
+      i(iPREV)
+        jmpe(v_Prev)
+      i(iINC)
+        jmpe(v_Inc)
+      i(iDEC)
+        jmpe(v_Dec)
+      i(iSWAP)
+        jmpe(v_Swap)
+      i(iTOB)
+        jmpe(v_Tob)
+      i(iTOR)
+        jmpe(v_Tor)
+      i(iTOT)
+        jmpe(v_Tot)
+      i(iFROMB)
+        jmpe(v_Fromb)
+      i(iFROMR)
+        jmpe(v_Fromr)
+      i(iFROMT)
+        jmpe(v_Fromt)
+      i(iMDM)
+        jmpe(v_Mdm)
+      i(iLINK)
+          jmpe(v_Link)
+      i(iHALT)
+        jmpe(v_Halt)
+
+    v_complex_instrs:
+
+      i(iJMPZ)
+        jmpe(v_Jmpz)
+      i(iJMPE)
+        jmpe(v_Jmpe)
+      i(iJMPM)
+        jmpe(v_Jmpm)
+      i(iJMPN)
+        jmpe(v_Jmpn)
+      i(iJMPS)
+        jmpe(v_Jmps)
+      i(iJMPU)
+        jmpe(v_Jmpu)
+      i(iJUMP)
+        jmpe(v_Jump)
+      i(iRPT)
+        jmpe(v_Rpt)
+      i(iBR)
+        jmpe(v_Br)
+
     i(ILLEGAL)
       fromb
       halt
@@ -675,7 +692,7 @@ program:
   br(si)
   i(iTOR)
   br(si)
-  i(iADD) // This is instruction 7 in this program.
+  i(iNOP) // This is instruction 7 in this program.
   br(si)
   i(iRPT|7)
   br(si)
