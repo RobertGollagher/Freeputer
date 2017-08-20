@@ -25,7 +25,6 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
   TODO: Add/modify instructions so as to optimize self-virtualization.
-  TODO: Maybe add more temp registers to more easily support stack pointers.
 
   20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
   20170820: YES BUT THE NEED NOW IS TO **FURTHER SIMPLIFY**.
@@ -38,7 +37,7 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -101,8 +100,8 @@ void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
-void MovBR()   { vR = vB; }
-void MovBT()   { vT = vB; }
+void MovBR()  { vR = vB; }
+void MovBT()  { vT = vB; }
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
@@ -119,6 +118,7 @@ void Opcode() { vA = vA&OPCODE_MASK; }
 void Label()  { vA = vA&CELL_MASK; }
 // IMPORTANT: experiments suggest decs/incs important for convenience and performance
 void MovTZ() { vZ = v_pmsafe(vT); }
+void MovZB() { vB = vZ; }
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
@@ -236,6 +236,7 @@ int exampleProgram() {
 #define v_vR v_vT + 1
 #define v_vV v_vR + 1
 #define v_vI v_vV + 1
+#define v_vZ v_vV + 1
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -245,11 +246,17 @@ vm_init:
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 next:
-  fetch
+  /*fetch*/
+  i(v_vZ)
+  Geti();
+  get
+  
+  
+
   tot
 #ifdef DEBUG
-printf("\nvZ:%08x %08x CHILD: vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
-        vZ, vA, dm[v_vA], dm[v_vB], dm[v_vV], dm[v_vT], dm[v_vR], dm[v_vL]);
+printf("\nvZ:%08x %08x CHILD: vZ:%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
+        vZ, vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vV], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
   xopcode
     jmpn(v_Imm)
@@ -291,7 +298,12 @@ v_Rpt:
   Getd();
   fromb
   jmpz(v_Repeat_end)
-    MovTZ();
+    /*MovTZ();*/
+    fromt
+    xlabel
+    i(v_vZ)
+    put
+
   v_Repeat_end:
     jump(next)
 // ---------------------------------------------------------------------------
@@ -321,7 +333,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|2) // Performance test
+  i(iIMM|0x7fffffff) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
