@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170820+
-Version:    pre-alpha-0.0.0.77+ for FVM 2.0
+Version:    pre-alpha-0.0.0.78+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -37,7 +37,7 @@ Version:    pre-alpha-0.0.0.77+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -85,12 +85,12 @@ void Flip()   { vA^=MSb; } // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-// Moves
+// Moves (these need more thought regarding performance and convenience)
 void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
-void Next()   { vB = ++dm[safe(vB)]; }
-void Prev()   { vB = --dm[safe(vB)]; }
+void Next()   { vB = dm[safe(vB)]++; }
+void Prev()   { vB = dm[safe(vB)]--; }
 // Increments (experimentally only supporting vB here)
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -199,43 +199,46 @@ int main() {
 // Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 int exampleProgram() {
 
- // For native parent VM speed comparison:
-i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
+// For native parent VM speed comparison:
+// i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
 
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000
 #define v_pm 0
 #define v_dm v_PM_WORDS
-#define v_rPC v_dm + v_DM_WORDS // Now trying vZ instead of v_rPC
-#define v_instr v_rPC + 1
-#define v_vA v_instr + 1
+#define v_vZ v_dm + v_DM_WORDS
+#define v_vA v_vZ + 1
 #define v_vB v_vA + 1
 #define v_vL v_vB + 1
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
-#define v_vV v_vR + 1
-#define v_vI v_vV + 1
-#define v_vZ v_vV + 1
 #define OPCODE_MASK   0xff000000
 #define CELL_MASK     0x00ffffff
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
   br(setupToClearParent)
-  br(doFill)
+  br(doFill)/*
+  i(0x7fffffff)
+  fromb
+  flip
+  i(v_vZ)
+  put*/
   jump(program)
 // ---------------------------------------------------------------------------
 // Process next instruction (not optimized yet)
 nexti:
   i(v_vZ)
-  Next();
+  next
   get
   tot
+
 #ifdef DEBUG
-printf("\nvZ:%08x %08x CHILD: vZ:%08x vA:%08x vB:%08x vV:%08x vT:%08x vR:%08x vL:%08x ",
-        vZ, vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vV], dm[v_vT], dm[v_vR], dm[v_vL]);
+printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
+        vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
+
   i(OPCODE_MASK)
   and
     jmpn(v_Imm)
@@ -274,7 +277,7 @@ v_Add:
 // ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  Prev();
+  prev
   fromb
   jmpz(v_Repeat_end)
     fromt
@@ -301,8 +304,6 @@ v_Halt:
 program:
   i(0)
   fromb
-  i(iNOP)
-  br(si)
   i(iIMM|3)
   br(si)
   i(iADD)
@@ -311,13 +312,13 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|0x7fffffff) // Performance test
+  i(iIMM|2) // Performance test
   br(si) // 2 0x10000000 0x7fffffff
   i(iTOR)
   br(si)
-  i(iADD) // This is instruction 7 in this program.
+  i(iADD) // This is instruction 6 in this program.
   br(si)
-  i(iRPT|7)
+  i(iRPT|6)
   br(si)
   i(iHALT)
   br(si)
