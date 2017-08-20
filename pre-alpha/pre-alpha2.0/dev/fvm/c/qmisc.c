@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170820+
-Version:    pre-alpha-0.0.0.74+ for FVM 2.0
+Version:    pre-alpha-0.0.0.76+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -24,11 +24,11 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
   Supports branch/link: uses a standalone, inaccessible link register.
   No undefined behaviour: everything is unsigned, no <= >= operators.
   Harvard architecture: allows easy native implementation.
-  TODO: Add/modify instructions so as to optimize self-virtualization.
 
   20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
-  20170820: YES BUT THE NEED NOW IS TO **FURTHER SIMPLIFY**.
-  Note: having imm use vA was tried and is far too confusing (even if push-down).
+  20170820: Has been simplified to an excellent degree (needs cleaning up).
+  Performance is very good despite only having 4 accessible registers.
+  Self-virtualization is easy and reasonably performant.
 
   TODO: consider 30 or 31-bit max DM size carefully
 
@@ -55,12 +55,13 @@ Version:    pre-alpha-0.0.0.74+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS  0x10000000 // Must be power of 2
 #define DM_MASK   0x0fffffff
+// There are only 4 accessible registers:
 WORD vA = 0; // accumulator
-WORD vB = 0; // operand register (which is also the immediate register)
-LNKT vL = 0; // link register
+WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
-WORD rSwap = 0; // not exposed, supports Swap() instruction
+LNKT vL = 0; // link register (not accessible)
+WORD rSwap = 0; // swap register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 int interpretedExperiment();
@@ -94,8 +95,6 @@ void Inc()    { ++vB; }
 void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
-void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
-void MovBR()  { vR = vB; } // dubious
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
@@ -139,7 +138,6 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define i(x) Imm(x);
 #define neg Neg();
 #define fromb Fromb();
-#define movbr MovBR();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -151,8 +149,6 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define fromv Fromv();
 #define fromz Fromz();
 #define fetch Fetch();
-#define xopcode Opcode();
-#define xlabel Label();
 #define mdm Mdm();
 #define nop Nop();
 // ===========================================================================
@@ -348,10 +344,11 @@ doFill:
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
+  i(DM_WORDS)
+  fromb
+  tor
   i(0)
   fromb
-  i(DM_WORDS)
-  movbr
   link
 // ---------------------------------------------------------------------------
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
