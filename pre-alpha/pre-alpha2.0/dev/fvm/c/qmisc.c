@@ -64,7 +64,6 @@ WORD vA = 0; // accumulator
 WORD vB = 0; // operand register (which is also the immediate register)
 LNKT vL = 0; // link register
 WORD vT = 0; // temporary register
-WORD vV = 0; // value register (for put)
 WORD vR = 0; // repeat register
 WORD rSwap = 0; // not exposed, supports Swap() instruction
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
@@ -92,31 +91,29 @@ void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
 void Get()    { vA = dm[safe(vB)]; } // TODO add deref instrs
-void Put()    { dm[safe(vB)] = vA; } // EXPERIMENTAL use of vA/vB not vV/vA
 void Getb()   { vB = dm[safe(vB)]; }
 void Geti()   { vA = ++dm[safe(vB)]; }
 void Getd()   { vA = --dm[safe(vB)]; }
-
+void Put()    { dm[safe(vB)] = vA; }
 // Increments (probably need for vB too)
 void Inc()    { ++vA; }
+void Incb()   { ++vB; }
 void Dec()    { --vA; }
+void Decb()   { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 void Neg()    { vB=~vB; ++vB; }                 // bit  32 (via negation!)
 void ImmA()   { vA = vB; }
 void ImmR()   { vR = vB; }
 void ImmT()   { vT = vB; }
-void ImmV()   { vV = vB; }
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
-void Tov()    { vV = vA; }
 void Toz()    { vZ = vA; }
 void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
-void Fromv()  { vA = vV; }
 void Fromz()  { vA = vZ; }
 // Instructions which optimize virtualization (dubious)
 void Fetch()  { vA = dm[dmsafe(vZ++)]; }
@@ -161,7 +158,6 @@ void Nop()    { asm("nop"); } // prevents optmzn (works on x86 at least)
 #define imma ImmA();
 #define immr ImmR();
 #define immt ImmT();
-#define immv ImmV();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -364,14 +360,14 @@ si:
 doFill:
   doFillLoop:
     put
-    inc
+    Incb();
     rpt(doFillLoop)
     link
 // ---------------------------------------------------------------------------
 // Set up to doFill so as to fill entire data memory of parent with zeros
 setupToClearParent:
   i(0)
-  immv
+  imma
   i(DM_WORDS)
   immr
   link
