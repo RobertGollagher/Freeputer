@@ -65,7 +65,6 @@ WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
-WORD rSwap = 0; // swap register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 int interpretedExperiment();
@@ -94,8 +93,8 @@ void Next()   { vB = dm[safe(vB)]++; }
 void Prev()   { vB = --dm[safe(vB)]; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
-// Transfers (maybe expand these)
-void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
+// Transfers
+void Bt()     { vT = vB; } // the only transfer not involving vA
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -128,7 +127,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define next Next();
 #define prev Prev();
 #define i(x) Imm(x);
-#define swap Swap();
+#define bt Bt();
 #define tob Tob();
 #define tot Tot();
 #define tor Tor();
@@ -157,7 +156,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iAT    0x12000000
 #define iNEXT  0x13000000
 #define iPREV  0x14000000
-#define iSWAP  0x22000000
+#define iBT    0x22000000
 #define iTOB   0x30000000
 #define iTOR   0x31000000
 #define iTOT   0x32000000
@@ -261,8 +260,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Next)
       i(iPREV)
         jmpe(v_Prev)
-      i(iSWAP)
-        jmpe(v_Swap)
       i(iTOB)
         jmpe(v_Tob)
       i(iTOR)
@@ -427,15 +424,10 @@ v_Imm:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Swap:
-  i(v_vA)
-  get
-  i(v_vB)
-  put
-  swap
+v_Bt:
   i(v_vB)
   get
-  i(v_vA)
+  i(v_vT)
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
@@ -581,7 +573,13 @@ program:
 // ---------------------------------------------------------------------------
 // Store instruction to child's program memory
 si:
-  swap
+//  swap
+
+bt
+tob
+fromt
+
+
   put
 
 //    inc
@@ -598,7 +596,7 @@ fromt
   fromb
   link
 // ---------------------------------------------------------------------------
-// Fill vR words at dm[vA] with value in vV (fills 1 GB in about 0.63 seconds)
+// Fill vR words at dm[vB] with value in vA (fills 1 GB in about 0.63 seconds)
 doFill:
   doFillLoop:
     put
