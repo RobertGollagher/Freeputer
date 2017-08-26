@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.2 for FVM 2.0
+Version:    pre-alpha-0.0.0.4 for FVM 2.0
 =======
 
                               This Edition:
@@ -59,7 +59,7 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 0           # 0 = true, 1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
 .equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true, 1 = false
 
 .equ WD_BYTES, 4
@@ -91,7 +91,7 @@ Or for convenience, build and run with:
     movl $0x1, %eax             # Linux call ID for exit
     int $0x80                   # Linux interrupt for system call
   .else
-    movl $status, %eax         # Exit code (status)
+    movl \reg_vA, %eax         # Exit code (status)
     ret
   .endif
 .endm
@@ -131,14 +131,21 @@ Or for convenience, build and run with:
   movl vB, rSwap
   andl $SHIFT_MASK, rSwap
   shrl rShift, vA
-.endm.macro i_get
-  #FIXME
+.endm
+.macro i_get
+  movl vB, vSwap
+  andl DM_MASK, vSwap
+  movl data_memory(,vSwap,WD_BYTES), vA
 .endm
 .macro i_put
-  #FIXME
+  movl vB, vSwap
+  andl DM_MASK, vSwap
+  movl vA, data_memory(,vSwap,WD_BYTES)
 .endm
 .macro i_at
-  #FIXME
+  movl vB, vSwap
+  andl DM_MASK, vSwap
+  movl data_memory(,vSwap,WD_BYTES), vB
 .endm
 .macro i_inc
   incl vB
@@ -147,7 +154,7 @@ Or for convenience, build and run with:
   decl vB
 .endm
 .macro i_imm x
-  movl \x, vB
+  movl $\x, vB
   andl $METADATA_MASK, vB
 .endm
 .macro i_flip
@@ -186,19 +193,27 @@ Or for convenience, build and run with:
   andl BYTE_MASK, vA
 .endm
 .macro i_jmpe label
-  #FIXME
+  cmpl vB, vA
+  jne 1f
+    jmp \label
+  1:
 .endm
 .macro i_jump label
-  #FIXME
+  jmp \label
 .endm
 .macro i_rpt label
-  #FIXME
+  decl vR
+  jz 1f
+    leal \label, rSwap
+    jmp *rSwap
+  1:
 .endm
 .macro i_br label
-  #FIXME
+  leal \label, vL
+  jmp *vL
 .endm
 .macro i_link label
-  #FIXME
+  jmp *vL
 .endm
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
@@ -314,13 +329,21 @@ vm_illegal:
 # ============================================================================
 #                      ENTRY POINT FOR EXAMPLE PROGRAM
 # ============================================================================
-.ifdef LINKING_WITH_LD_ON_LINUX
+.ifeq LINKING_WITH_LD_ON_LINUX
   .global _start
   _start:
 .else
   .global main
   main:
 .endif
+
+# For native parent VM speed comparison:
+imm 0x7fffffff
+fromb
+tor
+foo:
+  noop
+  rpt foo
 
 jmp vm_success
 # ============================================================================

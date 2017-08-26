@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.1.4+ for FVM 2.0
+Version:    pre-alpha-0.0.1.5+ for FVM 2.0
 =======
 
                               This Edition:
@@ -83,7 +83,6 @@ WORD rSwap = 0; // swap register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
-WORD dmsafe(WORD addr) { return addr & DM_MASK; } // TODO reconsider
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
