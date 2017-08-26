@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.84+ for FVM 2.0
+Version:    pre-alpha-0.0.0.85+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -92,9 +92,6 @@ void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
 void Next()   { vB = dm[safe(vB)]++; }
 void Prev()   { vB = --dm[safe(vB)]; }
-// Increments (experimentally only supporting vB here)
-void Inc()    { ++vB; }
-void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
 // Transfers (maybe expand these)
@@ -130,8 +127,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define at At();
 #define next Next();
 #define prev Prev();
-#define inc Inc();
-#define dec Dec();
 #define i(x) Imm(x);
 #define swap Swap();
 #define tob Tob();
@@ -162,8 +157,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iAT    0x12000000
 #define iNEXT  0x13000000
 #define iPREV  0x14000000
-#define iINC   0x20000000
-#define iDEC   0x21000000
 #define iSWAP  0x22000000
 #define iTOB   0x30000000
 #define iTOR   0x31000000
@@ -268,10 +261,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Next)
       i(iPREV)
         jmpe(v_Prev)
-      i(iINC)
-        jmpe(v_Inc)
-      i(iDEC)
-        jmpe(v_Dec)
       i(iSWAP)
         jmpe(v_Swap)
       i(iTOB)
@@ -425,24 +414,6 @@ v_Prev:
   i(v_vB)
   at
   prev
-  fromb
-  i(v_vB)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Inc:
-  i(v_vB)
-  at
-  inc
-  fromb
-  i(v_vB)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Dec:
-  i(v_vB)
-  at
-  dec
   fromb
   i(v_vB)
   put
@@ -612,7 +583,18 @@ program:
 si:
   swap
   put
-  inc
+
+//    inc
+
+tot
+fromb
+i(1)
+add
+tob
+fromt
+
+
+
   fromb
   link
 // ---------------------------------------------------------------------------
@@ -620,7 +602,17 @@ si:
 doFill:
   doFillLoop:
     put
-    inc
+
+//    inc
+
+tot
+fromb
+i(1)
+add
+tob
+fromt
+
+
     rpt(doFillLoop)
     link
 // ---------------------------------------------------------------------------
