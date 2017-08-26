@@ -31,8 +31,13 @@ Version:    pre-alpha-0.0.0.92+ for FVM 2.0
   Self-virtualization is easy and reasonably performant.
   Keep it simple for later JIT compilation.
 
-  TODO: - consider 30 or 31-bit max DM size carefully
-        - might be time to consider byte-sized literal instructions
+  IMPORTANT:
+    - Due to C limitations, maximum size of data memory is limited to 1 GB;
+      this is because of the way C array size is declared in C and the
+      limitations of this size when compiling on 32-bit platforms.
+      It is also to make it easy to prevent undefined behaviour.
+      Thus maximum DM address space is 28 bits (word-addressed).
+      Thus MAX_DM_WORDS is always 0x10000000.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -45,7 +50,8 @@ Version:    pre-alpha-0.0.0.92+ for FVM 2.0
 #include <inttypes.h>
 #include <assert.h>
 #define WORD uint32_t
-#define WORD_SIZE 4
+#define WD_BYTES 4
+#define WD_BITS WD_BYTES * 8
 #define MSb 0x80000000 // Bit mask for most significant bit
 #define LNKT uintptr_t
 #define METADATA WORD
@@ -56,8 +62,9 @@ Version:    pre-alpha-0.0.0.92+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define DM_WORDS  0x10000000 // Must be power of 2
-#define DM_MASK   0x0fffffff
+#define MAX_DM_WORDS 0x10000000 // Must be 2^(WD_BITS-4) due to C limitations.
+#define DM_WORDS  MAX_DM_WORDS  // Must be some power of 2 <= MAX_DM_WORDS.
+#define DM_MASK   DM_WORDS - 1
 #define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
@@ -191,7 +198,7 @@ void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 
 // ===========================================================================
 int main() {
-  assert(sizeof(WORD) == WORD_SIZE);
+  assert(sizeof(WORD) == WD_BYTES);
   return exampleProgram();
 }
 // ===========================================================================
@@ -200,7 +207,7 @@ int exampleProgram() {
 
 // For native parent VM speed comparison:
 // i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
-#define vm_DM_WORDS 0x10000000
+#define vm_DM_WORDS DM_WORDS
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000 // FIXME reconsider
 #define v_pm 0
