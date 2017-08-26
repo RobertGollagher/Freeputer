@@ -83,8 +83,6 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Not()    { vA=~vA; }
-void Neg()    { vA=~vA; ++vA; } // Leaves MAX_NEG unchanged (an advantage)
 void Flip()   { vA^=MSb; }      // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
@@ -126,7 +124,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define or Or();
 #define and And();
 #define xor Xor();
-#define not Not();
 #define flip Flip();
 #define shl Shl();
 #define shr Shr();
@@ -160,7 +157,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iOR    0x03000000
 #define iAND   0x04000000
 #define iXOR   0x05000000
-#define iNOT   0x06000000
 #define iFLIP  0x07000000
 #define iSHL   0x08000000
 #define iSHR   0x09000000
@@ -261,8 +257,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Or)
       i(iXOR)
         jmpe(v_Xor)
-      i(iNOT)
-        jmpe(v_Not)
       i(iFLIP)
         jmpe(v_Flip)
       i(iSHL)
@@ -368,14 +362,6 @@ v_Xor:
   i(v_vB)
   at
   xor
-  i(v_vA)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Not:
-  i(v_vA)
-  get
-  not
   i(v_vA)
   put
   jump(nexti)
