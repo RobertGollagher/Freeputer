@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.1.0+ for FVM 2.0
+Version:    pre-alpha-0.0.1.2+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -51,7 +51,7 @@ Version:    pre-alpha-0.0.1.0+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -235,6 +235,8 @@ nexti:
   at
   inc
   fromb
+  i(v_PM_MASK)
+  and
   i(v_vZ)
   put
   tob
@@ -396,11 +398,12 @@ v_Shr:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Get: // FIXME these moves all need v_dm added to them, and safe masking
-  i(v_dm)
-  fromb
+v_Get:
   i(v_vB)
-  at
+  get
+  i(v_DM_MASK)
+  and
+  i(v_dm)
   add
   tob
   get
@@ -409,20 +412,27 @@ v_Get: // FIXME these moves all need v_dm added to them, and safe masking
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_Put:
-  i(v_vA)
-  get
   i(v_vB)
-  at
-  put
+  get
+  i(v_DM_MASK)
+  and
+  i(v_dm)
+  add
   i(v_vA)
+  at
+  swap
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_At:
   i(v_vB)
-  at
-  at
-  fromb
+  get
+  i(v_DM_MASK)
+  and
+  i(v_dm)
+  add
+  tob
+  get
   i(v_vB)
   put
   jump(nexti)
@@ -587,6 +597,8 @@ v_Rpt:
 v_Halt:
   i(v_vA)
   get
+  i(BYTE_MASK)
+  and
   halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
@@ -603,7 +615,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(0x7fffffff)  // Performance test (child does 0x7fffffff in about 11 sec)
+  i(2)  // Performance test (child does 0x7fffffff in about 11 sec)
   flip  // 2 0x10000000 0x7fffffff
   br(si)
   i(iFROMB)
