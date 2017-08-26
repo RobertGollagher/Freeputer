@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170825+
-Version:    pre-alpha-0.0.0.81+ for FVM 2.0
+Updated:    20170826+
+Version:    pre-alpha-0.0.0.82+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -88,13 +88,12 @@ void Flip()   { vA^=MSb; }      // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
-// Moves (these need more thought regarding performance and convenience)
+// Moves
 void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
 void Next()   { vB = dm[safe(vB)]++; }
 void Prev()   { vB = --dm[safe(vB)]; }
-void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; }
 // Increments (experimentally only supporting vB here)
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -141,7 +140,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define at At();
 #define next Next();
 #define prev Prev();
-#define copy Copy();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -176,7 +174,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iAT    0x12000000
 #define iNEXT  0x13000000
 #define iPREV  0x14000000
-#define iCOPY  0x15000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iSWAP  0x22000000
@@ -217,7 +214,6 @@ int exampleProgram() {
 
 // For native parent VM speed comparison:
 // i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
-
 #define vm_DM_WORDS 0x10000000
 #define v_DM_WORDS  0x1000
 #define v_PM_WORDS  0x1000 // FIXME reconsider
@@ -286,8 +282,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Next)
       i(iPREV)
         jmpe(v_Prev)
-      i(iCOPY)
-        jmpe(v_Copy)
       i(iINC)
         jmpe(v_Inc)
       i(iDEC)
@@ -471,14 +465,6 @@ v_Prev:
   fromb
   i(v_vB)
   put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Copy:
-  i(v_vA)
-  get
-  i(v_vB)
-  at
-  copy
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_Inc:
