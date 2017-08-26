@@ -6,11 +6,11 @@
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
 
-Program:    qmisc
+Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.1.3+ for FVM 2.0
+Version:    pre-alpha-0.0.1.4+ for FVM 2.0
 =======
 
                               This Edition:
@@ -52,7 +52,7 @@ Version:    pre-alpha-0.0.1.3+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -82,7 +82,6 @@ LNKT vL = 0; // link register (not accessible)
 WORD rSwap = 0; // swap register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
-int interpretedExperiment();
 // ---------------------------------------------------------------------------
 WORD dmsafe(WORD addr) { return addr & DM_MASK; } // TODO reconsider
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
@@ -245,7 +244,7 @@ nexti:
   get
   tot
 
-#ifdef DEBUG
+#ifdef TRACING_ENABLED
 printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
