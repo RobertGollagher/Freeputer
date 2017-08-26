@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.82+ for FVM 2.0
+Version:    pre-alpha-0.0.0.83+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -31,7 +31,8 @@ Version:    pre-alpha-0.0.0.82+ for FVM 2.0
   Self-virtualization is easy and reasonably performant.
   Keep it simple for later JIT compilation.
 
-  TODO: consider 30 or 31-bit max DM size carefully
+  TODO: - consider 30 or 31-bit max DM size carefully
+        - can we simplify jmps
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -113,15 +114,9 @@ void Mdm()    { vA = DM_WORDS; }
 void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define halt return enbyte(vA);
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
-#define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
-#define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
-#define jmpf(label) if (vA == ONES)    { goto label; } // vA 0xffffffff
-#define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
-#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
-#define jmps(label) if (vB == (vA&vB)) { goto label; } // vA has all 1s of vB
-#define jmpu(label) if (vB == (vA|vB)) { goto label; } // vA has all 0s of vB
+#define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
 #define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if (--vR != 0)  { asm(""); goto label; } // prevents optmzn
+#define rpt(label) if (--vR != 0) { asm(""); goto label; } // prevents optmzn
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // ===========================================================================
@@ -192,12 +187,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 // Above 0x40000000 = complex
 #define COMPLEX_MASK 0x40000000
 
-#define iJMPZ  0x40000000
 #define iJMPE  0x41000000
-#define iJMPM  0x42000000
-#define iJMPN  0x43000000
-#define iJMPS  0x44000000
-#define iJMPU  0x45000000
 #define iJUMP  0x46000000
 #define iRPT   0x50000000
 #define iBR    0x61000000
@@ -246,14 +236,21 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
 
+  i(MSb)
+  and
+  jmpe(v_Imm)
+
+  fromt
+  i(COMPLEX_MASK)
+  and
+  jmpe(v_complex_instrs)
+
+  fromt
   i(OPCODE_MASK)
   and
-    jmpn(v_Imm)
-    jmpz(v_Nop)
 
-    i(COMPLEX_MASK)
-    jmps(v_complex_instrs)
-
+      i(iNOP)
+        jmpe(v_Nop)
       i(iADD)
         jmpe(v_Add)
       i(iSUB)
@@ -308,19 +305,12 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Halt)
 
     v_complex_instrs:
+      fromt
+      i(OPCODE_MASK)
+      and
 
-      i(iJMPZ)
-        jmpe(v_Jmpz)
       i(iJMPE)
         jmpe(v_Jmpe)
-      i(iJMPM)
-        jmpe(v_Jmpm)
-      i(iJMPN)
-        jmpe(v_Jmpn)
-      i(iJMPS)
-        jmpe(v_Jmps)
-      i(iJMPU)
-        jmpe(v_Jmpu)
       i(iJUMP)
         jmpe(v_Jump)
       i(iRPT)
@@ -556,90 +546,12 @@ v_Mdm:
 v_Nop:
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Jmpz:
-  i(v_vA)
-  get
-  jmpz(v_Jmpz_do)
-    jump(nexti)
-  v_Jmpz_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
 v_Jmpe:
   i(v_vA)
   get
-  jmpe(v_Jmpz_do)
+  jmpe(v_Jmpe_do)
     jump(nexti)
   v_Jmpe_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
-v_Jmpf:
-  i(v_vA)
-  get
-  jmpf(v_Jmpz_do)
-    jump(nexti)
-  v_Jmpf_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
-v_Jmpm:
-  i(v_vA)
-  get
-  jmpm(v_Jmpz_do)
-    jump(nexti)
-  v_Jmpm_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
-v_Jmpn:
-  i(v_vA)
-  get
-  jmpn(v_Jmpz_do)
-    jump(nexti)
-  v_Jmpn_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
-v_Jmps:
-  i(v_vA)
-  get
-  jmps(v_Jmpz_do)
-    jump(nexti)
-  v_Jmps_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-// ---------------------------------------------------------------------------
-v_Jmpu:
-  i(v_vA)
-  get
-  jmpu(v_Jmpz_do)
-    jump(nexti)
-  v_Jmpu_do:
     fromt
     i(CELL_MASK)
     and
@@ -678,7 +590,8 @@ v_Rpt:
   i(v_vR)
   prev
   fromb
-  jmpf(v_Repeat_end)
+  i(ONES)
+  jmpe(v_Repeat_end)
     fromt
     i(CELL_MASK)
     and
@@ -750,8 +663,7 @@ setupToClearParent:
 assertParentSize:
   mdm
   i(vm_DM_WORDS)
-  sub
-  jmpz(assertedParentSize)
+  jmpe(assertedParentSize)
     i(FAILURE)
     fromb
     halt
