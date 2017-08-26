@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.1 for FVM 2.0
+Version:    pre-alpha-0.0.0.2 for FVM 2.0
 =======
 
                               This Edition:
@@ -72,6 +72,7 @@ Or for convenience, build and run with:
 .equ ILLEGAL, 2
 .equ MAX_DM_WORDS,  0x10000000  # Must be 2^(WD_BITS-4) due to C limitations.
 .equ DM_WORDS, MAX_DM_WORDS     # Must be some power of 2 <= MAX_DM_WORDS.
+.equ DM_BYTES, DM_WORDS*WD_BYTES
 .equ DM_MASK, DM_WORDS-1
 # There are only 4 accessible registers:
 .equ vA, %eax; # accumulator
@@ -84,15 +85,27 @@ Or for convenience, build and run with:
 # ============================================================================
 # ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
-.macro do_exit status
+.macro do_exit reg_vA
   .ifdef LINKING_WITH_LD_ON_LINUX
-    movl $\status, %ebx         # Exit code (status)
+    movl \reg_vA, %ebx          # Exit code (status)
     movl $0x1, %eax             # Linux call ID for exit
     int $0x80                   # Linux interrupt for system call
   .else
     movl $status, %eax         # Exit code (status)
     ret
   .endif
+.endm
+.macro do_success
+  movl $SUCCESS, vA
+  do_exit vA
+.endm
+.macro do_failure
+  movl $FAILURE, vA
+  do_exit vA
+.endm
+.macro do_illegal
+  movl $ILLEGAL, vA
+  do_exit vA
 .endm
 .macro i_add
   addl vB, vA
@@ -134,10 +147,58 @@ Or for convenience, build and run with:
   decl vB
 .endm
 .macro i_imm x
-  #FIXME
+  movl \x, vB
+  andl $METADATA_MASK, vB
 .endm
 .macro i_flip
   xorl $MSb, vB
+.endm
+.macro i_swap
+  movl vA, rSwap
+  movl vB, vA
+  movl rSwap, vB
+.endm
+.macro i_tob
+  movl vA, vB
+.endm
+.macro i_tot
+  movl vA, vT
+.endm
+.macro i_tor
+  movl vA, vR
+.endm
+.macro i_fromb
+  movl vB, vA
+.endm
+.macro i_fromt
+  movl vT, vA
+.endm
+.macro i_fromr
+  movl vR, vA
+.endm
+.macro i_mdm
+  movl DM_WORDS, vA
+.endm
+.macro i_nop
+  nop
+.endm
+.macro i_halt
+  andl BYTE_MASK, vA
+.endm
+.macro i_jmpe label
+  #FIXME
+.endm
+.macro i_jump label
+  #FIXME
+.endm
+.macro i_rpt label
+  #FIXME
+.endm
+.macro i_br label
+  #FIXME
+.endm
+.macro i_link label
+  #FIXME
 .endm
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
@@ -188,17 +249,64 @@ Or for convenience, build and run with:
 .macro flip
   i_flip
 .endm
+.macro swap
+  i_swap
+.endm
+.macro tob
+  i_tob
+.endm
+.macro tor
+  i_tor
+.endm
+.macro tot
+  i_tot
+.endm
+.macro fromb
+  i_fromb
+.endm
+.macro fromt
+  i_fromt
+.endm
+.macro fromr
+  i_fromr
+.endm
+.macro mdm
+  i_mdm
+.endm
+.macro noop
+  i_nop
+.endm
+.macro halt
+  i_halt
+.endm
+.macro jmpe label
+  i_jmpe \label
+.endm
+.macro jump label
+  i_jump \label
+.endm
+.macro rpt label
+  i_rpt \label
+.endm
+.macro br label
+  i_br \label
+.endm
+.macro link
+  i_link
+.endm
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
-
+data_memory: .lcomm dm, DM_BYTES
 # ============================================================================
 .section .text #           EXIT POINTS for the VM
 # ============================================================================
-vm_failure:
-  do_exit(FAILURE)
 vm_success:
-  do_exit(SUCCESS)
+  do_success
+vm_failure:
+  do_failure
+vm_illegal:
+  do_illegal
 # =========================== EXAMPLE PROGRAM ================================
 # Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 # ============================================================================

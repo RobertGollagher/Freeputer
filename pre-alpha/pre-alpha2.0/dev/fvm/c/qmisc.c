@@ -121,7 +121,7 @@ void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
+void Noop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define halt return enbyte(vA);
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
@@ -153,7 +153,7 @@ void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define fromt Fromt();
 #define fromr Fromr();
 #define mdm Mdm();
-#define nop Nop();
+#define noop Noop();
 // ===========================================================================
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
@@ -206,7 +206,7 @@ int main() {
 int exampleProgram() {
 
 // For native parent VM speed comparison:
-//i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
+//i(0x7fffffff) fromb tor foo: noop rpt(foo) return 0;
 #define vm_DM_WORDS DM_WORDS
 #define v_DM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
 #define v_DM_MASK v_DM_WORDS-1
