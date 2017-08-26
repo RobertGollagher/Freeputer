@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.0 for FVM 2.0
+Version:    pre-alpha-0.0.0.1 for FVM 2.0
 =======
 
                               This Edition:
@@ -79,7 +79,8 @@ Or for convenience, build and run with:
 .equ vT, %edx; # temporary register
 .equ vR, %esi; # repeat register
 .equ vL, %edi; # link register (not accessible)
-.equ rSwap, %ecx; # swap register (not accessible)
+.equ rSwap, %ecx; # swap register (not accessible) (sometimes reused here)
+.equ rShift, %cl; # register used for shift magnitude (not accessible)
 # ============================================================================
 # ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
@@ -93,6 +94,51 @@ Or for convenience, build and run with:
     ret
   .endif
 .endm
+.macro i_add
+  addl vB, vA
+.endm
+.macro i_sub
+  subl vB, vA
+.endm
+.macro i_or
+  orl vB, vA
+.endm
+.macro i_and
+  andl vB, vA
+.endm
+.macro i_xor
+  xorl vB, vA
+.endm
+.macro i_shl
+  movl vB, rSwap
+  andl $SHIFT_MASK, rSwap
+  shll rShift, vA
+.endm
+.macro i_shr
+  movl vB, rSwap
+  andl $SHIFT_MASK, rSwap
+  shrl rShift, vA
+.endm.macro i_get
+  #FIXME
+.endm
+.macro i_put
+  #FIXME
+.endm
+.macro i_at
+  #FIXME
+.endm
+.macro i_inc
+  incl vB
+.endm
+.macro i_dec
+  decl vB
+.endm
+.macro i_imm x
+  #FIXME
+.endm
+.macro i_flip
+  xorl $MSb, vB
+.endm
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
@@ -100,7 +146,48 @@ Or for convenience, build and run with:
 # ============================================================================
 .section .data #             INSTRUCTION SET
 # ============================================================================
-
+.macro add
+  i_add
+.endm
+.macro sub
+  i_sub
+.endm
+.macro or
+  i_or
+.endm
+.macro and
+  i_and
+.endm
+.macro xor
+  i_xor
+.endm
+.macro shl
+  i_shl
+.endm
+.macro shr
+  i_shr
+.endm
+.macro get
+  i_get
+.endm
+.macro put
+  i_put
+.endm
+.macro at
+ i_at
+.endm
+.macro inc
+  i_inc
+.endm
+.macro dec
+  i_dec
+.endm
+.macro imm x
+  i_imm \x
+.endm
+.macro flip
+  i_flip
+.endm
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
