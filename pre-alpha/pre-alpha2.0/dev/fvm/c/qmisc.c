@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.90+ for FVM 2.0
+Version:    pre-alpha-0.0.0.92+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -32,6 +32,7 @@ Version:    pre-alpha-0.0.0.90+ for FVM 2.0
   Keep it simple for later JIT compilation.
 
   TODO: - consider 30 or 31-bit max DM size carefully
+        - might be time to consider byte-sized literal instructions
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -57,7 +58,7 @@ Version:    pre-alpha-0.0.0.90+ for FVM 2.0
 #define ILLEGAL 2
 #define DM_WORDS  0x10000000 // Must be power of 2
 #define DM_MASK   0x0fffffff
-#define nopasm nop // The name of the native hardware nop instruction
+#define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
@@ -75,7 +76,7 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// CURRENTLY 30 OPCODES
+// CURRENTLY 31 OPCODES
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -96,7 +97,8 @@ void Prev()   { vB = --dm[safe(vB)]; }
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
 // Immediates
-void Imm(METADATA x)    { enrange(x); vB = x; } // bits 31..0
+void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
+void Flip()             { vB = vB^MSb; }     // bit  32
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
@@ -108,7 +110,7 @@ void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
+void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define halt return enbyte(vA);
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
@@ -133,6 +135,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
+#define flip Flip();
 #define swap Swap();
 #define tob Tob();
 #define tot Tot();
@@ -147,7 +150,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 // Current scheme is FW32 (poor density but simple, portable).
 // These could be better optimized by grouping (interpreter vs FPGA...).
 #define iNOP   0x00000000 // not arbitrary, must be 0x00000000
-#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
+//#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
 
 // Below 0x40000000 = simple
 #define iADD   0x01000000
@@ -164,7 +167,8 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iPREV  0x14000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
-#define iSWAP  0x22000000
+#define iFLIP  0x22000000
+#define iSWAP  0x23000000
 #define iTOB   0x30000000
 #define iTOR   0x31000000
 #define iTOT   0x32000000
@@ -185,7 +189,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iRPT   0x50000000
 #define iBR    0x61000000
 
-//  TOTAL: 36 opcodes
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WORD_SIZE);
@@ -229,7 +232,8 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
 
-  i(MSb)
+  i(0)
+  flip
   and
   jmpe(v_Imm)
 
@@ -289,7 +293,7 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
       i(iMDM)
         jmpe(v_Mdm)
       i(iLINK)
-          jmpe(v_Link)
+        jmpe(v_Link)
       i(iHALT)
         jmpe(v_Halt)
 
@@ -456,6 +460,14 @@ v_Imm:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
+v_Flip:
+  i(v_vB)
+  at
+  flip
+  i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
 v_Swap:
   i(v_vA)
   get
@@ -583,16 +595,19 @@ v_Halt:
 program:
   i(0)
   fromb
-  i(iIMM|3)
+  i(3)
+  flip
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|5)
+  i(5)
+  flip
   br(si)
   i(iADD)
   br(si)
-  i(iIMM|2) // Performance test
-  br(si) // 2 0x10000000 0x7fffffff
+  i(2)  // Performance test
+  flip  // 2 0x10000000 0x7fffffff
+  br(si)
   i(iFROMB)
   br(si)
   i(iTOR)
