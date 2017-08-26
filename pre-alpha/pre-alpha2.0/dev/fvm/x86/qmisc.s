@@ -62,7 +62,7 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 0           # 0 = true, 1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
 .equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true, 1 = false
 
 .equ WD_BYTES, 4
@@ -404,8 +404,8 @@ vm_illegal:
 vm_init:
   do_init
 
-# For native parent VM speed comparison:
-imm 2 #0x7fffffff
+# For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
+imm 0x7fffffff
 fromb
 tor
 foo:
