@@ -10,7 +10,8 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.1.2+ for FVM 2.0
+Version:    pre-alpha-0.0.1.3+ for FVM 2.0
+=======
 
                               This Edition:
                                Portable C
