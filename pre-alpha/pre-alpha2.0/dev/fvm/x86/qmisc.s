@@ -55,14 +55,18 @@ Or for convenience, build and run with:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-
+# ============================================================================
+#                                IMPORTS
+# ============================================================================
+.extern printf
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
-.equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true, 1 = false
+.equiv TRACING_ENABLED, 0           # 0 = true, 1 = false
+.equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true, 1 = false
 
 .equ WD_BYTES, 4
+.equ ONES,          0xffffffff
 .equ MSb,           0x80000000  # Bit mask for most significant bit
 .equ METADATA_MASK, 0x7fffffff  # 31 bits
 .equ BYTE_MASK,     0x000000ff
@@ -86,7 +90,7 @@ Or for convenience, build and run with:
 # ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
 .macro do_exit reg_vA
-  .ifdef LINKING_WITH_LD_ON_LINUX
+  .ifeq LINKING_WITH_LD_ON_LINUX
     movl \reg_vA, %ebx          # Exit code (status)
     movl $0x1, %eax             # Linux call ID for exit
     int $0x80                   # Linux interrupt for system call
@@ -106,6 +110,14 @@ Or for convenience, build and run with:
 .macro do_illegal
   movl $ILLEGAL, vA
   do_exit vA
+.endm
+.macro do_init
+  xorl vA, vA
+  xorl vB, vB
+  xorl vT, vT
+  xorl vR, vR
+  xorl vL, vL
+  xorl rSwap, rSwap
 .endm
 .macro i_add
   addl vB, vA
@@ -203,6 +215,7 @@ Or for convenience, build and run with:
 .endm
 .macro i_rpt label
   decl vR
+  cmpl $ONES, vR
   jz 1f
     leal \label, rSwap
     jmp *rSwap
@@ -218,9 +231,17 @@ Or for convenience, build and run with:
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
-
 # ============================================================================
-.section .data #             INSTRUCTION SET
+.section .data #                CONSTANTS
+# ============================================================================
+.ifeq TRACING_ENABLED
+  pntfmt: .asciz "\nPARENT: vA:%08x vB:%08x vT:%08x vR:%08x "
+  format_hex8: .asciz "%08x"
+  newline: .asciz "\n"
+  space: .asciz " "
+.endif
+# ============================================================================
+#                            INSTRUCTION SET
 # ============================================================================
 .macro add
   i_add
@@ -314,6 +335,49 @@ Or for convenience, build and run with:
 # ============================================================================
 data_memory: .lcomm dm, DM_BYTES
 # ============================================================================
+#                                 TRACING
+# ============================================================================
+.ifeq TRACING_ENABLED
+  .macro TRACE_PAR
+    SAVE_REGS
+    pushl vR
+    pushl vT
+    pushl vB
+    pushl vA
+    pushl $pntfmt
+    call printf
+    addl $20, %esp
+    RESTORE_REGS
+  .endm
+
+  .macro TRACE_STR strz
+    SAVE_REGS
+    pushl \strz
+    call printf
+    addl $4, %esp
+    RESTORE_REGS
+  .endm
+
+  .macro TRACE_HEX8 rSrc
+    SAVE_REGS
+    pushl %eax
+    pushl \rSrc
+    pushl $format_hex8
+    call printf
+    addl $8, %esp
+    popl %eax
+    RESTORE_REGS
+  .endm
+
+  .macro SAVE_REGS
+    pushal
+  .endm
+
+  .macro RESTORE_REGS
+    popal
+  .endm
+.endif
+# ============================================================================
 .section .text #           EXIT POINTS for the VM
 # ============================================================================
 vm_success:
@@ -337,13 +401,23 @@ vm_illegal:
   main:
 .endif
 
+vm_init:
+  do_init
+
 # For native parent VM speed comparison:
-imm 0x7fffffff
+imm 2 #0x7fffffff
 fromb
 tor
 foo:
+.ifeq TRACING_ENABLED
+  TRACE_PAR
+.endif
   noop
   rpt foo
+
+.ifeq TRACING_ENABLED
+  TRACE_PAR
+.endif
 
 jmp vm_success
 # ============================================================================
