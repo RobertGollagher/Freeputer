@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.92+ for FVM 2.0
+Version:    pre-alpha-0.0.0.93+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -51,12 +51,11 @@ Version:    pre-alpha-0.0.0.92+ for FVM 2.0
 #include <assert.h>
 #define WORD uint32_t
 #define WD_BYTES 4
-#define WD_BITS WD_BYTES * 8
+#define WD_BITS WD_BYTES*8
 #define MSb 0x80000000 // Bit mask for most significant bit
 #define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
-#define ONES          0xffffffff // All ones
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
@@ -64,7 +63,7 @@ Version:    pre-alpha-0.0.0.92+ for FVM 2.0
 #define ILLEGAL 2
 #define MAX_DM_WORDS 0x10000000 // Must be 2^(WD_BITS-4) due to C limitations.
 #define DM_WORDS  MAX_DM_WORDS  // Must be some power of 2 <= MAX_DM_WORDS.
-#define DM_MASK   DM_WORDS - 1
+#define DM_MASK   DM_WORDS-1
 #define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
@@ -83,7 +82,7 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// CURRENTLY 31 OPCODES
+// CURRENTLY 29 OPCODES
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -98,8 +97,6 @@ void Shr()    { vA>>=enshift(vB); }
 void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
-void Next()   { vB = dm[safe(vB)]++; }
-void Prev()   { vB = --dm[safe(vB)]; }
 // Increments for addressing
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -137,8 +134,6 @@ void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define get Get();
 #define put Put();
 #define at At();
-#define next Next();
-#define prev Prev();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -170,8 +165,6 @@ void Nop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define iGET   0x10000000
 #define iPUT   0x11000000
 #define iAT    0x12000000
-#define iNEXT  0x13000000
-#define iPREV  0x14000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iFLIP  0x22000000
@@ -208,11 +201,13 @@ int exampleProgram() {
 // For native parent VM speed comparison:
 // i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
 #define vm_DM_WORDS DM_WORDS
-#define v_DM_WORDS  0x1000
-#define v_PM_WORDS  0x1000 // FIXME reconsider
+#define v_DM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
+#define v_DM_MASK v_DM_WORDS-1
+#define v_PM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
+#define v_PM_MASK v_PM_WORDS-1
 #define v_pm 0
 #define v_dm v_PM_WORDS
-#define v_vZ v_dm + v_DM_WORDS
+#define v_vZ v_dm + v_DM_WORDS // child program counter
 #define v_vA v_vZ + 1
 #define v_vB v_vA + 1
 #define v_vL v_vB + 1
@@ -230,7 +225,13 @@ vm_init:
 // Process next instruction (not optimized yet)
 nexti:
   i(v_vZ)
-  next
+  at
+  inc
+  fromb
+  i(v_vZ)
+  put
+  tob
+  dec
   get
   tot
 
@@ -275,10 +276,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Put)
       i(iAT)
         jmpe(v_At)
-      i(iNEXT)
-        jmpe(v_Next)
-      i(iPREV)
-        jmpe(v_Prev)
       i(iINC)
         jmpe(v_Inc)
       i(iDEC)
@@ -423,24 +420,6 @@ v_At:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Next:
-  i(v_vB)
-  at
-  next
-  fromb
-  i(v_vB)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_Prev:
-  i(v_vB)
-  at
-  prev
-  fromb
-  i(v_vB)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
 v_Inc:
   i(v_vB)
   at
@@ -461,7 +440,8 @@ v_Dec:
 // ---------------------------------------------------------------------------
 v_Imm:
   fromt
-  i(MSb)
+  i(0)
+  flip
   xor
   i(v_vB)
   put
@@ -581,9 +561,13 @@ v_Link:
 // ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  prev
+  at
+  dec
   fromb
-  i(ONES)
+  i(v_vR)
+  put
+  i(0)
+  dec
   jmpe(v_Repeat_end)
     fromt
     i(CELL_MASK)
