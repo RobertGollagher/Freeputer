@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.83+ for FVM 2.0
+Version:    pre-alpha-0.0.0.84+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -83,7 +83,6 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Flip()   { vA^=MSb; }      // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
@@ -124,7 +123,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define or Or();
 #define and And();
 #define xor Xor();
-#define flip Flip();
 #define shl Shl();
 #define shr Shr();
 #define get Get();
@@ -157,7 +155,6 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iOR    0x03000000
 #define iAND   0x04000000
 #define iXOR   0x05000000
-#define iFLIP  0x07000000
 #define iSHL   0x08000000
 #define iSHR   0x09000000
 #define iGET   0x10000000
@@ -257,8 +254,6 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Or)
       i(iXOR)
         jmpe(v_Xor)
-      i(iFLIP)
-        jmpe(v_Flip)
       i(iSHL)
         jmpe(v_Shl)
       i(iSHR)
@@ -366,14 +361,6 @@ v_Xor:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Flip:
-  i(v_vA)
-  get
-  flip
-  i(v_vA)
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
 v_Shl:
   i(v_vA)
   get
@@ -463,7 +450,8 @@ v_Dec:
 // ---------------------------------------------------------------------------
 v_Imm:
   fromt
-  flip
+  i(MSb)
+  xor
   i(v_vB)
   put
   jump(nexti)
