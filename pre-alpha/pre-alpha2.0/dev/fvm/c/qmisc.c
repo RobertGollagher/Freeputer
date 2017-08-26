@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.0.93+ for FVM 2.0
+Version:    pre-alpha-0.0.1.0+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -39,12 +39,19 @@ Version:    pre-alpha-0.0.0.93+ for FVM 2.0
       Thus maximum DM address space is 28 bits (word-addressed).
       Thus MAX_DM_WORDS is always 0x10000000.
 
+  PROGRESS:
+    - This is probably close to the best balance of speed and simplicity
+      and ease of self-virtualization, favouring simplicity and ease
+      over speed but still achieving good speed. No CISC opcodes remain.
+      From here we can tweak this a bit but this is the basic design.
+      What is missing is I/O; there is little or no I/O yet.
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define DEBUG // Comment out unless debugging
+//#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -199,7 +206,7 @@ int main() {
 int exampleProgram() {
 
 // For native parent VM speed comparison:
-// i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
+//i(0x7fffffff) fromb tor foo: nop rpt(foo) return 0;
 #define vm_DM_WORDS DM_WORDS
 #define v_DM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
 #define v_DM_MASK v_DM_WORDS-1
@@ -596,7 +603,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2)  // Performance test
+  i(0x7fffffff)  // Performance test (child does 0x7fffffff in about 11 sec)
   flip  // 2 0x10000000 0x7fffffff
   br(si)
   i(iFROMB)
