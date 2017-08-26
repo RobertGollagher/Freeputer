@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170821+
-Version:    pre-alpha-0.0.0.79+ for FVM 2.0
+Updated:    20170825+
+Version:    pre-alpha-0.0.0.81+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -29,12 +29,9 @@ Version:    pre-alpha-0.0.0.79+ for FVM 2.0
   20170820: Has been simplified to an excellent degree (needs cleaning up).
   Performance is very good despite only having 4 accessible registers.
   Self-virtualization is easy and reasonably performant.
+  Keep it simple for later JIT compilation.
 
   TODO: consider 30 or 31-bit max DM size carefully
-
-  Need to consider:
-    - stack pointers (next,prev probably already enough here)
-    - fast copy (perhaps need another vB, such as vX, vY strategy)
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -52,6 +49,7 @@ Version:    pre-alpha-0.0.0.79+ for FVM 2.0
 #define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
+#define ONES          0xffffffff // All ones
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
@@ -84,8 +82,9 @@ void Sub()    { vA-=vB; }
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
 void Xor()    { vA^=vB; }
-void Not()    { vA=~vA; }  // Note: Not(), Inc() = Neg() (MAX_NEG unchanged)
-void Flip()   { vA^=MSb; } // Flips value of msbit
+void Not()    { vA=~vA; }
+void Neg()    { vA=~vA; ++vA; } // Leaves MAX_NEG unchanged (an advantage)
+void Flip()   { vA^=MSb; }      // Flips value of msbit
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
@@ -94,7 +93,8 @@ void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
 void Next()   { vB = dm[safe(vB)]++; }
-void Prev()   { vB = dm[safe(vB)]--; }
+void Prev()   { vB = --dm[safe(vB)]; }
+void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; }
 // Increments (experimentally only supporting vB here)
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -116,6 +116,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpz(label) if (vA == 0)       { goto label; } // vA is zero
 #define jmpe(label) if (vB == vA)      { goto label; } // vA equals vB
+#define jmpf(label) if (vA == ONES)    { goto label; } // vA 0xffffffff
 #define jmpm(label) if (vA == MSb)     { goto label; } // vA only msbit set
 #define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // vA msbit set
 #define jmps(label) if (vB == (vA&vB)) { goto label; } // vA has all 1s of vB
@@ -140,6 +141,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define at At();
 #define next Next();
 #define prev Prev();
+#define copy Copy();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -174,6 +176,7 @@ void Nop()    { asm("nop"); } // prevents unwanted 'optimization' by gcc
 #define iAT    0x12000000
 #define iNEXT  0x13000000
 #define iPREV  0x14000000
+#define iCOPY  0x15000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iSWAP  0x22000000
@@ -283,6 +286,8 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Next)
       i(iPREV)
         jmpe(v_Prev)
+      i(iCOPY)
+        jmpe(v_Copy)
       i(iINC)
         jmpe(v_Inc)
       i(iDEC)
@@ -419,11 +424,13 @@ v_Shr:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Get:
-  i(v_vA)
-  get
+v_Get: // FIXME these moves all need v_dm added to them, and safe masking
+  i(v_dm)
+  fromb
   i(v_vB)
   at
+  add
+  tob
   get
   i(v_vA)
   put
@@ -464,6 +471,14 @@ v_Prev:
   fromb
   i(v_vB)
   put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Copy:
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  copy
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_Inc:
@@ -581,6 +596,19 @@ v_Jmpe:
     put
     jump(nexti)
 // ---------------------------------------------------------------------------
+v_Jmpf:
+  i(v_vA)
+  get
+  jmpf(v_Jmpz_do)
+    jump(nexti)
+  v_Jmpf_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+// ---------------------------------------------------------------------------
 v_Jmpm:
   i(v_vA)
   get
@@ -664,7 +692,7 @@ v_Rpt:
   i(v_vR)
   prev
   fromb
-  jmpz(v_Repeat_end)
+  jmpf(v_Repeat_end)
     fromt
     i(CELL_MASK)
     and
