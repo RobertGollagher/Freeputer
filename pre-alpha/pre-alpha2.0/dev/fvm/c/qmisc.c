@@ -10,7 +10,7 @@ Program:    qmisc
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170826+
-Version:    pre-alpha-0.0.1.0+ for FVM 2.0
+Version:    pre-alpha-0.0.1.1+ for FVM 2.0
 
                               This Edition:
                                Portable C
@@ -51,7 +51,7 @@ Version:    pre-alpha-0.0.1.0+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define DEBUG // Comment out unless debugging
+#define DEBUG // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -396,7 +396,7 @@ v_Shr:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Get: // FIXME these moves all need v_dm added to them, and safe masking
+v_Get:
   i(v_dm)
   fromb
   i(v_vB)
@@ -409,20 +409,25 @@ v_Get: // FIXME these moves all need v_dm added to them, and safe masking
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_Put:
-  i(v_vA)
-  get
+  i(v_dm)
+  fromb
   i(v_vB)
   at
-  put
+  add
   i(v_vA)
+  at
+  swap
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_At:
+  i(v_dm)
+  fromb
   i(v_vB)
   at
-  at
-  fromb
+  add
+  tob
+  get
   i(v_vB)
   put
   jump(nexti)
@@ -603,7 +608,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(0x7fffffff)  // Performance test (child does 0x7fffffff in about 11 sec)
+  i(2)  // Performance test (child does 0x7fffffff in about 11 sec)
   flip  // 2 0x10000000 0x7fffffff
   br(si)
   i(iFROMB)
