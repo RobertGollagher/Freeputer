@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.6 for FVM 2.0
+Version:    pre-alpha-0.0.0.10 for FVM 2.0
 =======
 
                               This Edition:
@@ -20,6 +20,7 @@ Version:    pre-alpha-0.0.0.6 for FVM 2.0
                                ( ) [ ] { }
 
  See 'qmisc.c'. This an x86 implementation of that earlier proof of concept.
+ Current work is focussed on optimizing self-virtualization.
 
 ==============================================================================
                             BUILDING FOR i386
@@ -56,10 +57,6 @@ Or for convenience, build and run with:
  experimentation and nothing more.
 ============================================================================*/
 # ============================================================================
-#                                IMPORTS
-# ============================================================================
-.extern printf
-# ============================================================================
 #                                SYMBOLS
 # ============================================================================
 .equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
@@ -86,6 +83,12 @@ Or for convenience, build and run with:
 .equ vL, %edi; # link register (not accessible)
 .equ rSwap, %ecx; # swap register (not accessible) (sometimes reused here)
 .equ rShift, %cl; # register used for shift magnitude (not accessible)
+# ============================================================================
+#                                IMPORTS
+# ============================================================================
+.ifeq TRACING_ENABLED
+  .extern printf
+.endif
 # ============================================================================
 # ==================== START OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
@@ -912,7 +915,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(0x7fffffff) # Performance test (asm child does 0x7fffffff in about 30 sec)
+  i(0x10000000) # Performance test (asm child does 0x7fffffff in about 30 sec)
   flip  # 2 0x10000000 0x7fffffff  (i.e. no weird gcc fu but 1.5-3.0x slower)
   br(si) #  (so perhaps an interpreted VM, rather than child, best for asm?)
   i(iFROMB)
