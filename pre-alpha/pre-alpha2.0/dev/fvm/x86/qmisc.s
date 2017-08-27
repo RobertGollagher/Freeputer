@@ -9,7 +9,10 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.6 for FVM 2.0
+Version:    pre-alpha-0.0.0.7 for FVM 2.0
+            WARNING: THIS CONTAINS A TERRIBLE EXPERIMENTAL INTERPRETER
+            IMPLEMENTATION WHICH IS ABOUT TO BE ABANDONED
+
 =======
 
                               This Edition:
@@ -340,7 +343,10 @@ Or for convenience, build and run with:
 # ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
-data_memory: .lcomm dm, DM_BYTES
+.lcomm vZ, 4
+.lcomm Instr, 4
+.lcomm vTs, 4
+.lcomm data_memory, DM_BYTES
 # ============================================================================
 #                                 TRACING
 # ============================================================================
@@ -392,8 +398,13 @@ data_memory: .lcomm dm, DM_BYTES
   .endm
 .endif
 # ============================================================================
-.section .text #           EXIT POINTS for the VM
+.section .text #           EXIT POINTS for the VM, and other stuff for now
 # ============================================================================
+itProg:
+  .long iIMM|2
+  .long iHALT
+  .equ PROGRAM_SIZE, . - itProg
+
 vm_success:
   do_success
 vm_failure:
@@ -404,9 +415,10 @@ vm_illegal:
 # Example: to be a small QMISC FW32 implementation (vm_ = parent, v_ = child)
 # ============================================================================
 # ===========================================================================
-# Opcodes for interpreter of child VM (mostly arbitrary values for now).
+# Opcodes for interpreter of child VM (sequential for jump table interpreter).
 # Current scheme is FW32 (poor density but simple, portable).
 # These could be better optimized by grouping (interpreter vs FPGA...).
+/*
 .equ iNOOP,  0x00000000 # not arbitrary, must be 0x00000000
 #.equ iIMM,  0x80000000 # not arbitrary, must be 0x80000000
 
@@ -436,14 +448,15 @@ vm_illegal:
 .equ iLINK, 0x37000000
 
 .equ iHALT, 0x3f000000
-
+*/
 # Above 0x40000000 = complex
 .equ COMPLEX_MASK,0x40000000
-
+/*
 .equ iJMPE, 0x41000000
 .equ iJUMP, 0x46000000
 .equ iRPT,  0x50000000
 .equ iBR,   0x61000000
+*/
 # ===========================================================================
 # ============================================================================
 #                      ENTRY POINT FOR EXAMPLE PROGRAM
@@ -459,6 +472,7 @@ vm_illegal:
 vm_pre_init:
   do_init
 
+
 # For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
 #   (surprisingly, 'qmisc.c' takes 4 secs, so this is 3x faster)
 #   (i.e. parent VM is faster but child VM is slower than the C version)
@@ -473,7 +487,197 @@ foo:
   rpt foo
 jmp vm_success
 */
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Quick experiment with a bytecode interpreter for the parent:
+#    remapped to sequential for vector table:
+.equ iIMM,  0x80000000
+.equ iNOOP, 0x00000000
+.equ iADD,  0x01000000
+.equ iSUB,  0x02000000
+.equ iOR,   0x03000000
+.equ iAND,  0x04000000
+.equ iXOR,  0x05000000
+.equ iSHL,  0x06000000
+.equ iSHR,  0x07000000
+.equ iGET,  0x08000000
+.equ iPUT,  0x09000000
+.equ iAT,   0x0a000000
+.equ iINC,  0x0b000000
+.equ iDEC,  0x0c000000
+.equ iFLIP, 0x0d000000
+.equ iSWAP, 0x0e000000
+.equ iTOB,  0x0f000000
+.equ iTOR,  0x10000000
+.equ iTOT,  0x11000000
+.equ iFROMB,0x12000000
+.equ iFROMR,0x13000000
+.equ iFROMT,0x14000000
+.equ iMDM,  0x15000000
+.equ iLINK, 0x16000000
+.equ iHALT, 0x17000000
+.equ iJMPE, 0x18000000
+.equ iJUMP, 0x19000000
+.equ iRPT,  0x1a000000
+.equ iBR,   0x1b000000
 
+.equ FIXME, 0
+
+.equ OPCODE_MASK,   0xff000000
+.equ CELL_MASK,     0x00ffffff
+movl $0, vZ # i.e. pc for interpreter
+movl $0, Instr
+
+xnext:
+  # save vT as we are reusing it as pc here (incomplete, needs more work)
+  movl vT, vTs
+
+  # Get and increment pc
+  movl (vZ), vT
+  incl vZ
+
+  # Get and save instr
+  movl itProg(,vT,WD_BYTES), vT
+  movl vT, Instr
+
+  # Check for imm
+  andl $MSb, vT
+  jnz xImm
+
+  # Get opcode (TODO check for illegal)
+  movl Instr, vT
+  andl $OPCODE_MASK, vT
+  movl $24, rSwap
+  shrl rShift, vT
+  leal vectorTable(,vT,WD_BYTES), vT
+
+  jmp *(vT)
+
+
+xImm:
+  movl Instr, vT
+  xorl $MSb, vT
+  movl vT, vB
+  jmp xnext
+xNoop:
+  noop
+  jmp xnext
+xAdd:
+  add
+  jmp xnext
+xSub:
+  sub
+  jmp xnext
+xOr:
+  or
+  jmp xnext
+xAnd:
+  and
+  jmp xnext
+xXor:
+  xor
+  jmp xnext
+xShl:
+  shl
+  jmp xnext
+xShr:
+  shr
+  jmp xnext
+xGet:
+  get
+  jmp xnext
+xPut:
+  put
+  jmp xnext
+xAt:
+  at
+  jmp xnext
+xInc:
+  inc
+  jmp xnext
+xDec:
+  dec
+  jmp xnext
+xFlip:
+  flip
+  jmp xnext
+xSwap:
+  swap
+  jmp xnext
+xTob:
+  tob
+  jmp xnext
+xTor:
+  tor
+  jmp xnext
+xTot:
+  tot
+  jmp xnext
+xFromb:
+  fromb
+  jmp xnext
+xFromr:
+  fromr
+  jmp xnext
+xFromt:
+  movl vTs, vT # restore vT (was reused as vZ i.e. pc)
+  fromt
+  jmp xnext
+xMdm:
+  mdm
+  jmp xnext
+xLink:
+  link
+  jmp xnext
+xHalt:
+  halt
+xJmpe:
+  jmpe FIXME
+  jmp xnext
+xJump:
+  jump FIXME
+  jmp xnext
+xRpt:
+  rpt FIXME
+  jmp xnext
+xBr:
+  br FIXME
+  jmp xnext
+
+vectorTable: # Must be in same order as opcodeTable
+  .long xNoop
+  .long xAdd
+  .long xSub
+  .long xOr
+  .long xAnd
+  .long xXor
+  .long xShl
+  .long xShr
+  .long xGet
+  .long xPut
+  .long xAt
+  .long xInc
+  .long xDec
+  .long xFlip
+  .long xSwap
+  .long xTob
+  .long xTor
+  .long xTot
+  .long xFromb
+  .long xFromr
+  .long xFromt
+  .long xMdm
+  .long xLink
+  .long xHalt
+  .long xJmpe
+  .long xJump
+  .long xRpt
+  .long xBr
+
+
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 .equ vm_DM_WORDS, DM_WORDS
 .equ v_DM_WORDS,  0x1000 # Must be a power of 2, so <= DM_WORDS/2
