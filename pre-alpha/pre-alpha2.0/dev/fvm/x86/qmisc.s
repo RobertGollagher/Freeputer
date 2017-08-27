@@ -9,13 +9,12 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.10 for FVM 2.0
+Version:    pre-alpha-0.0.0.11 for FVM 2.0
 =======
 
                               This Edition:
                           x86 Assembly Language
                            using GNU Assembler
-                            for 32-bit Linux
 
                                ( ) [ ] { }
 
@@ -59,8 +58,9 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
-.equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true, 1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
+.equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
+.equiv x86_64, 0                    # 0 = x86-64, 1 = x86-32
 
 .equ WD_BYTES, 4
 .equ ONES,          0xffffffff
@@ -80,7 +80,11 @@ Or for convenience, build and run with:
 .equ vB, %ebx; # operand register
 .equ vT, %edx; # temporary register
 .equ vR, %esi; # repeat register
-.equ vL, %edi; # link register (not accessible)
+.ifeq x86_64
+  .equ vL, %rdi; # link register (not accessible)
+.else
+  .equ vL, %edi; # link register (not accessible)
+.endif
 .equ rSwap, %ecx; # swap register (not accessible) (sometimes reused here)
 .equ rShift, %cl; # register used for shift magnitude (not accessible)
 # ============================================================================
@@ -122,7 +126,11 @@ Or for convenience, build and run with:
   xorl vB, vB
   xorl vT, vT
   xorl vR, vR
+.ifeq x86_64
+  xorq vL, vL
+.else
   xorl vL, vL
+.endif
   xorl rSwap, rSwap
 .endm
 .macro i_add
@@ -224,12 +232,21 @@ Or for convenience, build and run with:
   decl vR
   cmpl $ONES, vR
   jz 1f
-    leal \label, rSwap
-    jmp *rSwap
+.ifeq x86_64
+  leaq \label, %r8
+  jmp *%r8
+.else
+  leal \label, rSwap
+  jmp *rSwap
+.endif
   1:
 .endm
 .macro i_br label
+.ifeq x86_64
+  leaq 1f, vL
+.else
   leal 1f, vL
+.endif
   jmp \label
   1:
 .endm
