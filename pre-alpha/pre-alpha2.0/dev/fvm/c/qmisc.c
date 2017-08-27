@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170827+
-Version:    pre-alpha-0.0.1.6+ for FVM 2.0
+Version:    pre-alpha-0.0.1.7+ for FVM 2.0
 =======
 
                               This Edition:
@@ -52,7 +52,7 @@ Version:    pre-alpha-0.0.1.6+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define TRACING_ENABLED // Comment out unless debugging
+//#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -205,7 +205,10 @@ int main() {
 int exampleProgram() {
 
 // For native parent VM speed comparison:
+// (m32=4 secs, same as m64=4 secs, for 0x7fffffff nop repeats)
+// (surprisingly, this is about 3x slower than 'qmisc.s')
 //i(0x7fffffff) fromb tor foo: noop rpt(foo) return 0;
+
 #define vm_DM_WORDS DM_WORDS
 #define v_DM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
 #define v_DM_MASK v_DM_WORDS-1
@@ -619,9 +622,9 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2) // Performance test (C child does 0x7fffffff in about 11 sec)
-  flip  // 2 0x10000000 0x7fffffff
-  br(si)
+  i(0x7fffffff) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
+  br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit) 
   i(iFROMB)
   br(si)
   i(iTOR)

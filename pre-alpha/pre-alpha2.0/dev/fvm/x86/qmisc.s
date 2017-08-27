@@ -62,7 +62,7 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 0           # 0 = true, 1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true, 1 = false
 .equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true, 1 = false
 
 .equ WD_BYTES, 4
@@ -460,7 +460,9 @@ vm_pre_init:
   do_init
 
 # For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
-/*imm 0x7fffffff
+#   (surprisingly, 'qmisc.c' takes 4 secs, so this is 3x faster)
+#   (i.e. parent VM is faster but child VM is slower than the C version)
+/*i(0x7fffffff)
 fromb
 tor
 foo:
@@ -469,9 +471,8 @@ foo:
 .endif
   noop
   rpt foo
+jmp vm_success
 */
-
-#jmp vm_success
 
 # ---------------------------------------------------------------------------
 .equ vm_DM_WORDS, DM_WORDS
@@ -911,9 +912,9 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2) # Performance test (asm child does 0x7fffffff in about 30 sec)
-  flip  # 2 0x10000000 0x7fffffff
-  br(si)
+  i(0x7fffffff) # Performance test (asm child does 0x7fffffff in about 30 sec)
+  flip  # 2 0x10000000 0x7fffffff  (i.e. no weird gcc fu but 1.5-3.0x slower)
+  br(si) #  (so perhaps an interpreted VM, rather than child, best for asm?)
   i(iFROMB)
   br(si)
   i(iTOR)
