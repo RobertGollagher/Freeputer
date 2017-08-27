@@ -9,9 +9,27 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.7 for FVM 2.0
-            WARNING: THIS CONTAINS A TERRIBLE EXPERIMENTAL INTERPRETER
-            IMPLEMENTATION WHICH IS ABOUT TO BE ABANDONED
+Version:    pre-alpha-0.0.0.8 for FVM 2.0
+            
+
+WARNING: THIS VERSION *HACKED* INTO AN INTERPRETED PARENT
+AND ABOUT TO BE ABANDONED.
+
+    MISC x86: *Hacked* 'qmisc.s' into an interpreter.
+    
+    This is a quick and ugly experiment. Performance of the parent implemented
+as a bytecode interpreter was 17 seconds for 0x7fffffff nop repeats, which is
+comparable to the child VM of 'qmisc.c' on -m32 but about twice as fast as 
+the previous self-virtualized 'qmisc.s' child. The lesson learned from this
+is: IT IS NOT WORTH IT. That is, implementing the parent as a bytecode 
+interpreter (without relying upon C to do so, already found to be slower than 
+self-virtualization in C and therefore pointless) is complex and painful 
+because to do so one must learn the details of the target platform. Painful. 
+Delightfully easy is simply to use a self-virtualized child; the only problem 
+with that is performance, which although good on C is much worse on asm. 
+The correct approach is to keep optimizing the self-virtualization until 
+performance comes up to an acceptable level, rather than investing time and
+energy in native bytecode implementations.
 
 =======
 
@@ -400,8 +418,9 @@ Or for convenience, build and run with:
 # ============================================================================
 .section .text #           EXIT POINTS for the VM, and other stuff for now
 # ============================================================================
-itProg:
-  .long iIMM|2
+itProg: # About 17 seconds for 0x7fffffff nop repeats (comparable to 'qmisc.c'
+        #                                                for m32 child VM)
+  .long iIMM|0x7fffffff
   .long iFROMB
   .long iTOR
   .long iNOOP
