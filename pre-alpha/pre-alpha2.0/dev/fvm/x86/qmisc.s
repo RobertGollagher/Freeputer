@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.14 for FVM 2.0
+Version:    pre-alpha-0.0.0.16 for FVM 2.0
 =======
 
                               This Edition:
@@ -58,7 +58,7 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
+.equiv TRACING_ENABLED, 01          # 0 = true,   1 = false
 .equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
 .equiv x86_64, 1                    # 0 = x86-64, 1 = x86-32
 
@@ -182,6 +182,16 @@ Or for convenience, build and run with:
   movl data_memory(,vA,WD_BYTES), vA
   incl data_memory(,rSwap,WD_BYTES)
 .endm
+.macro XP_push
+  # TODO consider that all this masking could lead to inconsistent behaviour
+  # across VM instances with different dm sizes. Standardize? Directions?
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  decl data_memory(,rSwap,WD_BYTES)
+  movl data_memory(,rSwap,WD_BYTES), rSwap
+  andl $DM_MASK, rSwap
+  movl vA, data_memory(,rSwap,WD_BYTES)
+.endm
 .macro i_inc
   incl vB
 .endm
@@ -228,6 +238,12 @@ Or for convenience, build and run with:
 .macro i_halt
   andl $BYTE_MASK, vA
   do_exit vA
+.endm
+.macro XP_jmpm label
+  andl $MSb, vA
+  jz 1f
+    jmp \label
+  1:
 .endm
 .macro i_jmpe label
   cmpl vB, vA
@@ -554,27 +570,6 @@ vm_init:
 # ---------------------------------------------------------------------------
 # Process next instruction (not optimized yet)
 nexti:
-
-/*
-  i(v_vZ)
-  at
-
-.ifeq TRACING_ENABLED
-  TRACE_CHILD_PartA
-.endif
-
-  inc
-  fromb
-  i(v_PM_MASK)
-  and
-  i(v_vZ)
-  put
-  tob
-  dec
-  get
-*/
-#opzn
-
   i(v_vZ)
   XP_pop
   tot
@@ -584,10 +579,7 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
-  i(0)
-  flip
-  and
-  jmpe(v_Imm)
+  XP_jmpm(v_Imm)
 
   fromt
   i(COMPLEX_MASK)

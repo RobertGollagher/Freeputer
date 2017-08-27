@@ -7,6 +7,7 @@ as -o qmisc.o qmisc.s --32
 #gcc -o qmisc qmisc.o -m32
 
 # For linking with ld uncomment next line:
+
 ld -o qmisc qmisc.o -m elf_i386
 
 # For disassembly uncomment next line:
