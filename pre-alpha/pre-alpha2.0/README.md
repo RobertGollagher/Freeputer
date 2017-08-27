@@ -37,7 +37,7 @@ A MISC machine which aims to have a core of less than 100 lines of code.
 
 This plan is very easy to implement but factoring is not especially easy.
 
-For ongoing experiments see 'dev/fvm/c/qmisc.s'.
+For ongoing experiments see 'dev/fvm/c/qmisc.c' and 'dev/fvm/x86/qmisc.s'.
 
 This is now the front-runner for FVM 2.0.
 
@@ -262,7 +262,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 29 July 2017+ at 22:44+  
+This document was last updated on 27 August 2017+ at 01:04+  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

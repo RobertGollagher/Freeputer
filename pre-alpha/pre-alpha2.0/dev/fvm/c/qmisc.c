@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170826+
-Version:    pre-alpha-0.0.1.5+ for FVM 2.0
+Updated:    20170827+
+Version:    pre-alpha-0.0.1.6+ for FVM 2.0
 =======
 
                               This Edition:
@@ -157,7 +157,7 @@ void Noop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
 // These could be better optimized by grouping (interpreter vs FPGA...).
-#define iNOP   0x00000000 // not arbitrary, must be 0x00000000
+#define iNOOP   0x00000000 // not arbitrary, must be 0x00000000
 //#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
 
 // Below 0x40000000 = simple
@@ -232,6 +232,11 @@ vm_init:
 nexti:
   i(v_vZ)
   at
+
+#ifdef TRACING_ENABLED
+printf("\n%08x ", dm[v_vZ]);
+#endif
+
   inc
   fromb
   i(v_PM_MASK)
@@ -244,8 +249,8 @@ nexti:
   tot
 
 #ifdef TRACING_ENABLED
-printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
-        vA, dm[v_vZ], dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
+printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
+        vA, dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
 
   i(0)
@@ -262,8 +267,8 @@ printf("\n%08x CHILD: vZ:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
   i(OPCODE_MASK)
   and
 
-      i(iNOP)
-        jmpe(v_Nop)
+      i(iNOOP)
+        jmpe(v_Noop)
       i(iADD)
         jmpe(v_Add)
       i(iSUB)
@@ -532,7 +537,7 @@ v_Mdm:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Nop:
+v_Noop:
   jump(nexti)
 // ---------------------------------------------------------------------------
 v_Jmpe:
@@ -614,14 +619,14 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2)  // Performance test (child does 0x7fffffff in about 11 sec)
+  i(2) // Performance test (C child does 0x7fffffff in about 11 sec)
   flip  // 2 0x10000000 0x7fffffff
   br(si)
   i(iFROMB)
   br(si)
   i(iTOR)
   br(si)
-  i(iNOP) // This is instruction 7 in this program.
+  i(iNOOP) // This is instruction 7 in this program.
   br(si)
   i(iRPT|7)
   br(si)
