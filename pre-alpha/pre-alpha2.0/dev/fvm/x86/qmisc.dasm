@@ -156,18 +156,18 @@ Disassembly of section .text:
 08048261 <v_complex_instrs>:
  8048261:	89 d0                	mov    %edx,%eax
  8048263:	25 00 00 00 ff       	and    $0xff000000,%eax
- 8048268:	bb 00 00 00 41       	mov    $0x41000000,%ebx
+ 8048268:	bb 00 00 00 50       	mov    $0x50000000,%ebx
  804826d:	39 d8                	cmp    %ebx,%eax
  804826f:	75 05                	jne    8048276 <v_complex_instrs+0x15>
- 8048271:	e9 4f 05 00 00       	jmp    80487c5 <v_Jmpe>
- 8048276:	bb 00 00 00 46       	mov    $0x46000000,%ebx
+ 8048271:	e9 23 06 00 00       	jmp    8048899 <v_Rpt>
+ 8048276:	bb 00 00 00 41       	mov    $0x41000000,%ebx
  804827b:	39 d8                	cmp    %ebx,%eax
  804827d:	75 05                	jne    8048284 <v_complex_instrs+0x23>
- 804827f:	e9 80 05 00 00       	jmp    8048804 <v_Jump>
- 8048284:	bb 00 00 00 50       	mov    $0x50000000,%ebx
+ 804827f:	e9 41 05 00 00       	jmp    80487c5 <v_Jmpe>
+ 8048284:	bb 00 00 00 46       	mov    $0x46000000,%ebx
  8048289:	39 d8                	cmp    %ebx,%eax
  804828b:	75 05                	jne    8048292 <v_complex_instrs+0x31>
- 804828d:	e9 07 06 00 00       	jmp    8048899 <v_Rpt>
+ 804828d:	e9 72 05 00 00       	jmp    8048804 <v_Jump>
  8048292:	bb 00 00 00 61       	mov    $0x61000000,%ebx
  8048297:	39 d8                	cmp    %ebx,%eax
  8048299:	75 05                	jne    80482a0 <v_complex_instrs+0x3f>

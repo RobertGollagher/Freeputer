@@ -656,13 +656,12 @@ nexti:
     v_complex_instrs:
       fromt
       XP_upr
-
+      i(iRPT)
+        jmpe(v_Rpt)
       i(iJMPE)
         jmpe(v_Jmpe)
       i(iJUMP)
         jmpe(v_Jump)
-      i(iRPT)
-        jmpe(v_Rpt)
       i(iBR)
         jmpe(v_Br)
 
