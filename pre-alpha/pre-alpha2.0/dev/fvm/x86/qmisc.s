@@ -58,7 +58,7 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 01          # 0 = true,   1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
 .equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
 .equiv x86_64, 1                    # 0 = x86-64, 1 = x86-32
 
@@ -173,6 +173,18 @@ Or for convenience, build and run with:
   andl $DM_MASK, rSwap
   movl data_memory(,rSwap,WD_BYTES), vB
 .endm
+.macro XP_upr # retains top 8 bits
+  andl $OPCODE_MASK, vA
+.endm
+.macro XP_lwr # retains bottom 24 bits
+  andl $CELL_MASK, vA
+.endm
+.macro XP_postdec
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  movl data_memory(,rSwap,WD_BYTES), vA
+  decl data_memory(,rSwap,WD_BYTES)
+.endm
 .macro XP_pop
   movl vB, vA
   andl $DM_MASK, vA
@@ -183,8 +195,6 @@ Or for convenience, build and run with:
   incl data_memory(,rSwap,WD_BYTES)
 .endm
 .macro XP_push
-  # TODO consider that all this masking could lead to inconsistent behaviour
-  # across VM instances with different dm sizes. Standardize? Directions?
   movl vB, rSwap
   andl $DM_MASK, rSwap
   decl data_memory(,rSwap,WD_BYTES)
@@ -242,6 +252,13 @@ Or for convenience, build and run with:
 .macro XP_jmpm label
   andl $MSb, vA
   jz 1f
+    jmp \label
+  1:
+.endm
+# The proliferation of these slows down decoding...
+.macro XP_jmpz label
+  cmpl $0, vA
+  jne 1f
     jmp \label
   1:
 .endm
@@ -587,8 +604,7 @@ nexti:
   jmpe(v_complex_instrs)
 
   fromt
-  i(OPCODE_MASK)
-  and
+  XP_upr
 
       i(iNOOP)
         jmpe(v_Noop)
@@ -639,8 +655,7 @@ nexti:
 
     v_complex_instrs:
       fromt
-      i(OPCODE_MASK)
-      and
+      XP_upr
 
       i(iJMPE)
         jmpe(v_Jmpe)
@@ -870,16 +885,14 @@ v_Jmpe:
     jump(nexti)
   v_Jmpe_do:
     fromt
-    i(CELL_MASK)
-    and
+    XP_lwr
     i(v_vZ)
     put
     jump(nexti)
 # ---------------------------------------------------------------------------
 v_Jump:
     fromt
-    i(CELL_MASK)
-    and
+    XP_lwr
     i(v_vZ)
     put
     jump(nexti)
@@ -890,8 +903,7 @@ v_Br:
     i(v_vL)
     put
     fromt
-    i(CELL_MASK)
-    and
+    XP_lwr
     i(v_vZ)
     put
     jump(nexti)
@@ -905,17 +917,10 @@ v_Link:
 # ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  at
-  dec
-  fromb
-  i(v_vR)
-  put
-  i(0)
-  dec
-  jmpe(v_Repeat_end)
+  XP_postdec
+  XP_jmpz(v_Repeat_end)
     fromt
-    i(CELL_MASK)
-    and
+    XP_lwr
     i(v_vZ)
     put
   v_Repeat_end:
