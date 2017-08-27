@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.12 for FVM 2.0
+Version:    pre-alpha-0.0.0.14 for FVM 2.0
 =======
 
                               This Edition:
@@ -173,6 +173,15 @@ Or for convenience, build and run with:
   andl $DM_MASK, rSwap
   movl data_memory(,rSwap,WD_BYTES), vB
 .endm
+.macro XP_pop
+  movl vB, vA
+  andl $DM_MASK, vA
+  movl vA, rSwap
+  movl data_memory(,vA,WD_BYTES), vA
+  andl $DM_MASK, vA
+  movl data_memory(,vA,WD_BYTES), vA
+  incl data_memory(,rSwap,WD_BYTES)
+.endm
 .macro i_inc
   incl vB
 .endm
@@ -181,7 +190,8 @@ Or for convenience, build and run with:
 .endm
 .macro i_imm x
   movl $\x, vB
-  andl $METADATA_MASK, vB
+  # TODO opzn: assume there is a compile-time check limiting x to 31 bits
+  #andl $METADATA_MASK, vB #opzn
 .endm
 .macro i_flip
   xorl $MSb, vB
@@ -544,6 +554,8 @@ vm_init:
 # ---------------------------------------------------------------------------
 # Process next instruction (not optimized yet)
 nexti:
+
+/*
   i(v_vZ)
   at
 
@@ -560,9 +572,15 @@ nexti:
   tob
   dec
   get
+*/
+#opzn
+
+  i(v_vZ)
+  XP_pop
   tot
 
 .ifeq TRACING_ENABLED
+  TRACE_CHILD_PartA # needs correction
   TRACE_CHILD_PartB
 .endif
 
