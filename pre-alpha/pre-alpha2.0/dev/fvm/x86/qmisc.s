@@ -598,16 +598,21 @@ nexti:
 
   XP_jmpm(v_Imm)
 
+/*
   fromt
   i(COMPLEX_MASK)
   and
   jmpe(v_complex_instrs)
+*/
 
   fromt
   XP_upr
 
       i(iNOOP)
         jmpe(v_Noop)
+      i(iRPT)
+        jmpe(v_Rpt)
+
       i(iADD)
         jmpe(v_Add)
       i(iSUB)
@@ -656,8 +661,6 @@ nexti:
     v_complex_instrs:
       fromt
       XP_upr
-      i(iRPT)
-        jmpe(v_Rpt)
       i(iJMPE)
         jmpe(v_Jmpe)
       i(iJUMP)
