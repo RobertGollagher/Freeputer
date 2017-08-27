@@ -59,7 +59,7 @@ Or for convenience, build and run with:
 #                                SYMBOLS
 # ============================================================================
 .equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
-.equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
+.equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true,   1 = false
 .equiv x86_64, 1                    # 0 = x86-64, 1 = x86-32
 
 .equ WD_BYTES, 4
