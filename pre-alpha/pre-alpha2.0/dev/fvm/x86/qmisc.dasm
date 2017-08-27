@@ -32,12 +32,12 @@ Disassembly of section .text:
 
 080480aa <vm_init>:
  80480aa:	8d 3d b5 80 04 08    	lea    0x80480b5,%edi
- 80480b0:	e9 2c 09 00 00       	jmp    80489e1 <assertParentSize>
+ 80480b0:	e9 34 09 00 00       	jmp    80489e9 <assertParentSize>
  80480b5:	8d 3d c0 80 04 08    	lea    0x80480c0,%edi
- 80480bb:	e9 0f 09 00 00       	jmp    80489cf <setupToClearParent>
+ 80480bb:	e9 17 09 00 00       	jmp    80489d7 <setupToClearParent>
  80480c0:	8d 3d cb 80 04 08    	lea    0x80480cb,%edi
- 80480c6:	e9 e4 08 00 00       	jmp    80489af <doFill>
- 80480cb:	e9 22 08 00 00       	jmp    80488f2 <program>
+ 80480c6:	e9 ec 08 00 00       	jmp    80489b7 <doFill>
+ 80480cb:	e9 2a 08 00 00       	jmp    80488fa <program>
 
 080480d0 <nexti>:
  80480d0:	bb 00 20 00 00       	mov    $0x2000,%ebx
@@ -49,622 +49,624 @@ Disassembly of section .text:
  80480ea:	8b 04 85 00 90 04 08 	mov    0x8049000(,%eax,4),%eax
  80480f1:	ff 04 8d 00 90 04 08 	incl   0x8049000(,%ecx,4)
  80480f8:	89 c2                	mov    %eax,%edx
- 80480fa:	25 00 00 00 80       	and    $0x80000000,%eax
- 80480ff:	74 05                	je     8048106 <nexti+0x36>
- 8048101:	e9 c4 04 00 00       	jmp    80485ca <v_Imm>
- 8048106:	89 d0                	mov    %edx,%eax
- 8048108:	25 00 00 00 ff       	and    $0xff000000,%eax
- 804810d:	bb 00 00 00 00       	mov    $0x0,%ebx
- 8048112:	39 d8                	cmp    %ebx,%eax
- 8048114:	75 05                	jne    804811b <nexti+0x4b>
- 8048116:	e9 93 06 00 00       	jmp    80487ae <v_Noop>
- 804811b:	bb 00 00 00 50       	mov    $0x50000000,%ebx
- 8048120:	39 d8                	cmp    %ebx,%eax
- 8048122:	75 05                	jne    8048129 <nexti+0x59>
- 8048124:	e9 5e 07 00 00       	jmp    8048887 <v_Rpt>
- 8048129:	bb 00 00 00 01       	mov    $0x1000000,%ebx
- 804812e:	39 d8                	cmp    %ebx,%eax
- 8048130:	75 05                	jne    8048137 <nexti+0x67>
- 8048132:	e9 6c 01 00 00       	jmp    80482a3 <v_Add>
- 8048137:	bb 00 00 00 02       	mov    $0x2000000,%ebx
- 804813c:	39 d8                	cmp    %ebx,%eax
- 804813e:	75 05                	jne    8048145 <nexti+0x75>
- 8048140:	e9 a1 01 00 00       	jmp    80482e6 <v_Sub>
- 8048145:	bb 00 00 00 04       	mov    $0x4000000,%ebx
- 804814a:	39 d8                	cmp    %ebx,%eax
- 804814c:	75 05                	jne    8048153 <nexti+0x83>
- 804814e:	e9 d6 01 00 00       	jmp    8048329 <v_And>
- 8048153:	bb 00 00 00 03       	mov    $0x3000000,%ebx
- 8048158:	39 d8                	cmp    %ebx,%eax
- 804815a:	75 05                	jne    8048161 <nexti+0x91>
- 804815c:	e9 0b 02 00 00       	jmp    804836c <v_Or>
- 8048161:	bb 00 00 00 05       	mov    $0x5000000,%ebx
- 8048166:	39 d8                	cmp    %ebx,%eax
- 8048168:	75 05                	jne    804816f <nexti+0x9f>
- 804816a:	e9 40 02 00 00       	jmp    80483af <v_Xor>
- 804816f:	bb 00 00 00 08       	mov    $0x8000000,%ebx
- 8048174:	39 d8                	cmp    %ebx,%eax
- 8048176:	75 05                	jne    804817d <nexti+0xad>
- 8048178:	e9 75 02 00 00       	jmp    80483f2 <v_Shl>
- 804817d:	bb 00 00 00 09       	mov    $0x9000000,%ebx
- 8048182:	39 d8                	cmp    %ebx,%eax
- 8048184:	75 05                	jne    804818b <nexti+0xbb>
- 8048186:	e9 af 02 00 00       	jmp    804843a <v_Shr>
- 804818b:	bb 00 00 00 10       	mov    $0x10000000,%ebx
- 8048190:	39 d8                	cmp    %ebx,%eax
- 8048192:	75 05                	jne    8048199 <nexti+0xc9>
- 8048194:	e9 e9 02 00 00       	jmp    8048482 <v_Get>
- 8048199:	bb 00 00 00 11       	mov    $0x11000000,%ebx
- 804819e:	39 d8                	cmp    %ebx,%eax
- 80481a0:	75 05                	jne    80481a7 <nexti+0xd7>
- 80481a2:	e9 27 03 00 00       	jmp    80484ce <v_Put>
- 80481a7:	bb 00 00 00 12       	mov    $0x12000000,%ebx
- 80481ac:	39 d8                	cmp    %ebx,%eax
- 80481ae:	75 05                	jne    80481b5 <nexti+0xe5>
- 80481b0:	e9 69 03 00 00       	jmp    804851e <v_At>
- 80481b5:	bb 00 00 00 20       	mov    $0x20000000,%ebx
- 80481ba:	39 d8                	cmp    %ebx,%eax
- 80481bc:	75 05                	jne    80481c3 <nexti+0xf3>
- 80481be:	e9 a7 03 00 00       	jmp    804856a <v_Inc>
- 80481c3:	bb 00 00 00 21       	mov    $0x21000000,%ebx
- 80481c8:	39 d8                	cmp    %ebx,%eax
- 80481ca:	75 05                	jne    80481d1 <nexti+0x101>
- 80481cc:	e9 c9 03 00 00       	jmp    804859a <v_Dec>
- 80481d1:	bb 00 00 00 23       	mov    $0x23000000,%ebx
- 80481d6:	39 d8                	cmp    %ebx,%eax
- 80481d8:	75 05                	jne    80481df <nexti+0x10f>
- 80481da:	e9 46 04 00 00       	jmp    8048625 <v_Swap>
- 80481df:	bb 00 00 00 30       	mov    $0x30000000,%ebx
- 80481e4:	39 d8                	cmp    %ebx,%eax
- 80481e6:	75 05                	jne    80481ed <nexti+0x11d>
- 80481e8:	e9 93 04 00 00       	jmp    8048680 <v_Tob>
- 80481ed:	bb 00 00 00 31       	mov    $0x31000000,%ebx
- 80481f2:	39 d8                	cmp    %ebx,%eax
- 80481f4:	75 05                	jne    80481fb <nexti+0x12b>
- 80481f6:	e9 b2 04 00 00       	jmp    80486ad <v_Tor>
- 80481fb:	bb 00 00 00 32       	mov    $0x32000000,%ebx
- 8048200:	39 d8                	cmp    %ebx,%eax
- 8048202:	75 05                	jne    8048209 <nexti+0x139>
- 8048204:	e9 d1 04 00 00       	jmp    80486da <v_Tot>
- 8048209:	bb 00 00 00 33       	mov    $0x33000000,%ebx
- 804820e:	39 d8                	cmp    %ebx,%eax
- 8048210:	75 05                	jne    8048217 <nexti+0x147>
- 8048212:	e9 f0 04 00 00       	jmp    8048707 <v_Fromb>
- 8048217:	bb 00 00 00 34       	mov    $0x34000000,%ebx
- 804821c:	39 d8                	cmp    %ebx,%eax
- 804821e:	75 05                	jne    8048225 <nexti+0x155>
- 8048220:	e9 0f 05 00 00       	jmp    8048734 <v_Fromr>
- 8048225:	bb 00 00 00 35       	mov    $0x35000000,%ebx
- 804822a:	39 d8                	cmp    %ebx,%eax
- 804822c:	75 05                	jne    8048233 <nexti+0x163>
- 804822e:	e9 2e 05 00 00       	jmp    8048761 <v_Fromt>
- 8048233:	bb 00 00 00 36       	mov    $0x36000000,%ebx
- 8048238:	39 d8                	cmp    %ebx,%eax
- 804823a:	75 05                	jne    8048241 <nexti+0x171>
- 804823c:	e9 4d 05 00 00       	jmp    804878e <v_Mdm>
- 8048241:	bb 00 00 00 37       	mov    $0x37000000,%ebx
- 8048246:	39 d8                	cmp    %ebx,%eax
- 8048248:	75 05                	jne    804824f <nexti+0x17f>
- 804824a:	e9 0b 06 00 00       	jmp    804885a <v_Link>
- 804824f:	bb 00 00 00 3f       	mov    $0x3f000000,%ebx
- 8048254:	39 d8                	cmp    %ebx,%eax
- 8048256:	75 05                	jne    804825d <v_complex_instrs>
- 8048258:	e9 6c 06 00 00       	jmp    80488c9 <v_Halt>
+ 80480fa:	89 c1                	mov    %eax,%ecx
+ 80480fc:	81 e1 00 00 00 80    	and    $0x80000000,%ecx
+ 8048102:	74 05                	je     8048109 <nexti+0x39>
+ 8048104:	e9 c9 04 00 00       	jmp    80485d2 <v_Imm>
+ 8048109:	25 00 00 00 ff       	and    $0xff000000,%eax
+ 804810e:	bb 00 00 00 00       	mov    $0x0,%ebx
+ 8048113:	39 d8                	cmp    %ebx,%eax
+ 8048115:	75 05                	jne    804811c <nexti+0x4c>
+ 8048117:	e9 9a 06 00 00       	jmp    80487b6 <v_Noop>
+ 804811c:	bb 00 00 00 50       	mov    $0x50000000,%ebx
+ 8048121:	39 d8                	cmp    %ebx,%eax
+ 8048123:	75 05                	jne    804812a <nexti+0x5a>
+ 8048125:	e9 65 07 00 00       	jmp    804888f <v_Rpt>
+ 804812a:	bb 00 00 00 40       	mov    $0x40000000,%ebx
+ 804812f:	21 c3                	and    %eax,%ebx
+ 8048131:	74 05                	je     8048138 <nexti+0x68>
+ 8048133:	e9 34 01 00 00       	jmp    804826c <v_complex_instrs>
+ 8048138:	bb 00 00 00 01       	mov    $0x1000000,%ebx
+ 804813d:	39 d8                	cmp    %ebx,%eax
+ 804813f:	75 05                	jne    8048146 <nexti+0x76>
+ 8048141:	e9 65 01 00 00       	jmp    80482ab <v_Add>
+ 8048146:	bb 00 00 00 02       	mov    $0x2000000,%ebx
+ 804814b:	39 d8                	cmp    %ebx,%eax
+ 804814d:	75 05                	jne    8048154 <nexti+0x84>
+ 804814f:	e9 9a 01 00 00       	jmp    80482ee <v_Sub>
+ 8048154:	bb 00 00 00 04       	mov    $0x4000000,%ebx
+ 8048159:	39 d8                	cmp    %ebx,%eax
+ 804815b:	75 05                	jne    8048162 <nexti+0x92>
+ 804815d:	e9 cf 01 00 00       	jmp    8048331 <v_And>
+ 8048162:	bb 00 00 00 03       	mov    $0x3000000,%ebx
+ 8048167:	39 d8                	cmp    %ebx,%eax
+ 8048169:	75 05                	jne    8048170 <nexti+0xa0>
+ 804816b:	e9 04 02 00 00       	jmp    8048374 <v_Or>
+ 8048170:	bb 00 00 00 05       	mov    $0x5000000,%ebx
+ 8048175:	39 d8                	cmp    %ebx,%eax
+ 8048177:	75 05                	jne    804817e <nexti+0xae>
+ 8048179:	e9 39 02 00 00       	jmp    80483b7 <v_Xor>
+ 804817e:	bb 00 00 00 08       	mov    $0x8000000,%ebx
+ 8048183:	39 d8                	cmp    %ebx,%eax
+ 8048185:	75 05                	jne    804818c <nexti+0xbc>
+ 8048187:	e9 6e 02 00 00       	jmp    80483fa <v_Shl>
+ 804818c:	bb 00 00 00 09       	mov    $0x9000000,%ebx
+ 8048191:	39 d8                	cmp    %ebx,%eax
+ 8048193:	75 05                	jne    804819a <nexti+0xca>
+ 8048195:	e9 a8 02 00 00       	jmp    8048442 <v_Shr>
+ 804819a:	bb 00 00 00 10       	mov    $0x10000000,%ebx
+ 804819f:	39 d8                	cmp    %ebx,%eax
+ 80481a1:	75 05                	jne    80481a8 <nexti+0xd8>
+ 80481a3:	e9 e2 02 00 00       	jmp    804848a <v_Get>
+ 80481a8:	bb 00 00 00 11       	mov    $0x11000000,%ebx
+ 80481ad:	39 d8                	cmp    %ebx,%eax
+ 80481af:	75 05                	jne    80481b6 <nexti+0xe6>
+ 80481b1:	e9 20 03 00 00       	jmp    80484d6 <v_Put>
+ 80481b6:	bb 00 00 00 12       	mov    $0x12000000,%ebx
+ 80481bb:	39 d8                	cmp    %ebx,%eax
+ 80481bd:	75 05                	jne    80481c4 <nexti+0xf4>
+ 80481bf:	e9 62 03 00 00       	jmp    8048526 <v_At>
+ 80481c4:	bb 00 00 00 20       	mov    $0x20000000,%ebx
+ 80481c9:	39 d8                	cmp    %ebx,%eax
+ 80481cb:	75 05                	jne    80481d2 <nexti+0x102>
+ 80481cd:	e9 a0 03 00 00       	jmp    8048572 <v_Inc>
+ 80481d2:	bb 00 00 00 21       	mov    $0x21000000,%ebx
+ 80481d7:	39 d8                	cmp    %ebx,%eax
+ 80481d9:	75 05                	jne    80481e0 <nexti+0x110>
+ 80481db:	e9 c2 03 00 00       	jmp    80485a2 <v_Dec>
+ 80481e0:	bb 00 00 00 23       	mov    $0x23000000,%ebx
+ 80481e5:	39 d8                	cmp    %ebx,%eax
+ 80481e7:	75 05                	jne    80481ee <nexti+0x11e>
+ 80481e9:	e9 3f 04 00 00       	jmp    804862d <v_Swap>
+ 80481ee:	bb 00 00 00 30       	mov    $0x30000000,%ebx
+ 80481f3:	39 d8                	cmp    %ebx,%eax
+ 80481f5:	75 05                	jne    80481fc <nexti+0x12c>
+ 80481f7:	e9 8c 04 00 00       	jmp    8048688 <v_Tob>
+ 80481fc:	bb 00 00 00 31       	mov    $0x31000000,%ebx
+ 8048201:	39 d8                	cmp    %ebx,%eax
+ 8048203:	75 05                	jne    804820a <nexti+0x13a>
+ 8048205:	e9 ab 04 00 00       	jmp    80486b5 <v_Tor>
+ 804820a:	bb 00 00 00 32       	mov    $0x32000000,%ebx
+ 804820f:	39 d8                	cmp    %ebx,%eax
+ 8048211:	75 05                	jne    8048218 <nexti+0x148>
+ 8048213:	e9 ca 04 00 00       	jmp    80486e2 <v_Tot>
+ 8048218:	bb 00 00 00 33       	mov    $0x33000000,%ebx
+ 804821d:	39 d8                	cmp    %ebx,%eax
+ 804821f:	75 05                	jne    8048226 <nexti+0x156>
+ 8048221:	e9 e9 04 00 00       	jmp    804870f <v_Fromb>
+ 8048226:	bb 00 00 00 34       	mov    $0x34000000,%ebx
+ 804822b:	39 d8                	cmp    %ebx,%eax
+ 804822d:	75 05                	jne    8048234 <nexti+0x164>
+ 804822f:	e9 08 05 00 00       	jmp    804873c <v_Fromr>
+ 8048234:	bb 00 00 00 35       	mov    $0x35000000,%ebx
+ 8048239:	39 d8                	cmp    %ebx,%eax
+ 804823b:	75 05                	jne    8048242 <nexti+0x172>
+ 804823d:	e9 27 05 00 00       	jmp    8048769 <v_Fromt>
+ 8048242:	bb 00 00 00 36       	mov    $0x36000000,%ebx
+ 8048247:	39 d8                	cmp    %ebx,%eax
+ 8048249:	75 05                	jne    8048250 <nexti+0x180>
+ 804824b:	e9 46 05 00 00       	jmp    8048796 <v_Mdm>
+ 8048250:	bb 00 00 00 37       	mov    $0x37000000,%ebx
+ 8048255:	39 d8                	cmp    %ebx,%eax
+ 8048257:	75 05                	jne    804825e <nexti+0x18e>
+ 8048259:	e9 04 06 00 00       	jmp    8048862 <v_Link>
+ 804825e:	bb 00 00 00 3f       	mov    $0x3f000000,%ebx
+ 8048263:	39 d8                	cmp    %ebx,%eax
+ 8048265:	75 05                	jne    804826c <v_complex_instrs>
+ 8048267:	e9 65 06 00 00       	jmp    80488d1 <v_Halt>
 
-0804825d <v_complex_instrs>:
- 804825d:	89 d0                	mov    %edx,%eax
- 804825f:	25 00 00 00 ff       	and    $0xff000000,%eax
- 8048264:	bb 00 00 00 41       	mov    $0x41000000,%ebx
- 8048269:	39 d8                	cmp    %ebx,%eax
- 804826b:	75 05                	jne    8048272 <v_complex_instrs+0x15>
- 804826d:	e9 41 05 00 00       	jmp    80487b3 <v_Jmpe>
- 8048272:	bb 00 00 00 46       	mov    $0x46000000,%ebx
- 8048277:	39 d8                	cmp    %ebx,%eax
- 8048279:	75 05                	jne    8048280 <v_complex_instrs+0x23>
- 804827b:	e9 72 05 00 00       	jmp    80487f2 <v_Jump>
- 8048280:	bb 00 00 00 61       	mov    $0x61000000,%ebx
- 8048285:	39 d8                	cmp    %ebx,%eax
- 8048287:	75 05                	jne    804828e <v_complex_instrs+0x31>
- 8048289:	e9 84 05 00 00       	jmp    8048812 <v_Br>
- 804828e:	bb 02 00 00 00       	mov    $0x2,%ebx
- 8048293:	89 d8                	mov    %ebx,%eax
- 8048295:	25 ff 00 00 00       	and    $0xff,%eax
- 804829a:	89 c3                	mov    %eax,%ebx
- 804829c:	b8 01 00 00 00       	mov    $0x1,%eax
- 80482a1:	cd 80                	int    $0x80
+0804826c <v_complex_instrs>:
+ 804826c:	bb 00 00 00 41       	mov    $0x41000000,%ebx
+ 8048271:	39 d8                	cmp    %ebx,%eax
+ 8048273:	75 05                	jne    804827a <v_complex_instrs+0xe>
+ 8048275:	e9 41 05 00 00       	jmp    80487bb <v_Jmpe>
+ 804827a:	bb 00 00 00 46       	mov    $0x46000000,%ebx
+ 804827f:	39 d8                	cmp    %ebx,%eax
+ 8048281:	75 05                	jne    8048288 <v_complex_instrs+0x1c>
+ 8048283:	e9 72 05 00 00       	jmp    80487fa <v_Jump>
+ 8048288:	bb 00 00 00 61       	mov    $0x61000000,%ebx
+ 804828d:	39 d8                	cmp    %ebx,%eax
+ 804828f:	75 05                	jne    8048296 <v_complex_instrs+0x2a>
+ 8048291:	e9 84 05 00 00       	jmp    804881a <v_Br>
+ 8048296:	bb 02 00 00 00       	mov    $0x2,%ebx
+ 804829b:	89 d8                	mov    %ebx,%eax
+ 804829d:	25 ff 00 00 00       	and    $0xff,%eax
+ 80482a2:	89 c3                	mov    %eax,%ebx
+ 80482a4:	b8 01 00 00 00       	mov    $0x1,%eax
+ 80482a9:	cd 80                	int    $0x80
 
-080482a3 <v_Add>:
- 80482a3:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80482a8:	89 d9                	mov    %ebx,%ecx
- 80482aa:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80482b0:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80482b7:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80482bc:	89 d9                	mov    %ebx,%ecx
- 80482be:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80482c4:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 80482cb:	01 d8                	add    %ebx,%eax
- 80482cd:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80482d2:	89 d9                	mov    %ebx,%ecx
- 80482d4:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80482da:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80482e1:	e9 ea fd ff ff       	jmp    80480d0 <nexti>
+080482ab <v_Add>:
+ 80482ab:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80482b0:	89 d9                	mov    %ebx,%ecx
+ 80482b2:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80482b8:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80482bf:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80482c4:	89 d9                	mov    %ebx,%ecx
+ 80482c6:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80482cc:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 80482d3:	01 d8                	add    %ebx,%eax
+ 80482d5:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80482da:	89 d9                	mov    %ebx,%ecx
+ 80482dc:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80482e2:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80482e9:	e9 e2 fd ff ff       	jmp    80480d0 <nexti>
 
-080482e6 <v_Sub>:
- 80482e6:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80482eb:	89 d9                	mov    %ebx,%ecx
- 80482ed:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80482f3:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80482fa:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80482ff:	89 d9                	mov    %ebx,%ecx
- 8048301:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048307:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 804830e:	29 d8                	sub    %ebx,%eax
- 8048310:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048315:	89 d9                	mov    %ebx,%ecx
- 8048317:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804831d:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048324:	e9 a7 fd ff ff       	jmp    80480d0 <nexti>
+080482ee <v_Sub>:
+ 80482ee:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80482f3:	89 d9                	mov    %ebx,%ecx
+ 80482f5:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80482fb:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048302:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048307:	89 d9                	mov    %ebx,%ecx
+ 8048309:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804830f:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 8048316:	29 d8                	sub    %ebx,%eax
+ 8048318:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 804831d:	89 d9                	mov    %ebx,%ecx
+ 804831f:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048325:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804832c:	e9 9f fd ff ff       	jmp    80480d0 <nexti>
 
-08048329 <v_And>:
- 8048329:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804832e:	89 d9                	mov    %ebx,%ecx
- 8048330:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048336:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 804833d:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048342:	89 d9                	mov    %ebx,%ecx
- 8048344:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804834a:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 8048351:	21 d8                	and    %ebx,%eax
- 8048353:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048358:	89 d9                	mov    %ebx,%ecx
- 804835a:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048360:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048367:	e9 64 fd ff ff       	jmp    80480d0 <nexti>
+08048331 <v_And>:
+ 8048331:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048336:	89 d9                	mov    %ebx,%ecx
+ 8048338:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804833e:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048345:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804834a:	89 d9                	mov    %ebx,%ecx
+ 804834c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048352:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 8048359:	21 d8                	and    %ebx,%eax
+ 804835b:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048360:	89 d9                	mov    %ebx,%ecx
+ 8048362:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048368:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804836f:	e9 5c fd ff ff       	jmp    80480d0 <nexti>
 
-0804836c <v_Or>:
- 804836c:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048371:	89 d9                	mov    %ebx,%ecx
- 8048373:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048379:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048380:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048385:	89 d9                	mov    %ebx,%ecx
- 8048387:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804838d:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 8048394:	09 d8                	or     %ebx,%eax
- 8048396:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804839b:	89 d9                	mov    %ebx,%ecx
- 804839d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80483a3:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80483aa:	e9 21 fd ff ff       	jmp    80480d0 <nexti>
+08048374 <v_Or>:
+ 8048374:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048379:	89 d9                	mov    %ebx,%ecx
+ 804837b:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048381:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048388:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804838d:	89 d9                	mov    %ebx,%ecx
+ 804838f:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048395:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 804839c:	09 d8                	or     %ebx,%eax
+ 804839e:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80483a3:	89 d9                	mov    %ebx,%ecx
+ 80483a5:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80483ab:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80483b2:	e9 19 fd ff ff       	jmp    80480d0 <nexti>
 
-080483af <v_Xor>:
- 80483af:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80483b4:	89 d9                	mov    %ebx,%ecx
- 80483b6:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80483bc:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80483c3:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80483c8:	89 d9                	mov    %ebx,%ecx
- 80483ca:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80483d0:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 80483d7:	31 d8                	xor    %ebx,%eax
- 80483d9:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80483de:	89 d9                	mov    %ebx,%ecx
- 80483e0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80483e6:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80483ed:	e9 de fc ff ff       	jmp    80480d0 <nexti>
+080483b7 <v_Xor>:
+ 80483b7:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80483bc:	89 d9                	mov    %ebx,%ecx
+ 80483be:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80483c4:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80483cb:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80483d0:	89 d9                	mov    %ebx,%ecx
+ 80483d2:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80483d8:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 80483df:	31 d8                	xor    %ebx,%eax
+ 80483e1:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80483e6:	89 d9                	mov    %ebx,%ecx
+ 80483e8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80483ee:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80483f5:	e9 d6 fc ff ff       	jmp    80480d0 <nexti>
 
-080483f2 <v_Shl>:
- 80483f2:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80483f7:	89 d9                	mov    %ebx,%ecx
- 80483f9:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80483ff:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048406:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 804840b:	89 d9                	mov    %ebx,%ecx
- 804840d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048413:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 804841a:	89 d9                	mov    %ebx,%ecx
- 804841c:	83 e1 1f             	and    $0x1f,%ecx
- 804841f:	d3 e0                	shl    %cl,%eax
- 8048421:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048426:	89 d9                	mov    %ebx,%ecx
- 8048428:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804842e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048435:	e9 96 fc ff ff       	jmp    80480d0 <nexti>
+080483fa <v_Shl>:
+ 80483fa:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80483ff:	89 d9                	mov    %ebx,%ecx
+ 8048401:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048407:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804840e:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048413:	89 d9                	mov    %ebx,%ecx
+ 8048415:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804841b:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 8048422:	89 d9                	mov    %ebx,%ecx
+ 8048424:	83 e1 1f             	and    $0x1f,%ecx
+ 8048427:	d3 e0                	shl    %cl,%eax
+ 8048429:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 804842e:	89 d9                	mov    %ebx,%ecx
+ 8048430:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048436:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804843d:	e9 8e fc ff ff       	jmp    80480d0 <nexti>
 
-0804843a <v_Shr>:
- 804843a:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804843f:	89 d9                	mov    %ebx,%ecx
- 8048441:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048447:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 804844e:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048453:	89 d9                	mov    %ebx,%ecx
- 8048455:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804845b:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 8048462:	89 d9                	mov    %ebx,%ecx
- 8048464:	83 e1 1f             	and    $0x1f,%ecx
- 8048467:	d3 e8                	shr    %cl,%eax
- 8048469:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804846e:	89 d9                	mov    %ebx,%ecx
- 8048470:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048476:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804847d:	e9 4e fc ff ff       	jmp    80480d0 <nexti>
+08048442 <v_Shr>:
+ 8048442:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048447:	89 d9                	mov    %ebx,%ecx
+ 8048449:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804844f:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048456:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804845b:	89 d9                	mov    %ebx,%ecx
+ 804845d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048463:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 804846a:	89 d9                	mov    %ebx,%ecx
+ 804846c:	83 e1 1f             	and    $0x1f,%ecx
+ 804846f:	d3 e8                	shr    %cl,%eax
+ 8048471:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048476:	89 d9                	mov    %ebx,%ecx
+ 8048478:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804847e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048485:	e9 46 fc ff ff       	jmp    80480d0 <nexti>
 
-08048482 <v_Get>:
- 8048482:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048487:	89 d9                	mov    %ebx,%ecx
- 8048489:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804848f:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048496:	bb ff 0f 00 00       	mov    $0xfff,%ebx
- 804849b:	21 d8                	and    %ebx,%eax
- 804849d:	bb 00 10 00 00       	mov    $0x1000,%ebx
- 80484a2:	01 d8                	add    %ebx,%eax
- 80484a4:	89 c3                	mov    %eax,%ebx
- 80484a6:	89 d9                	mov    %ebx,%ecx
- 80484a8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80484ae:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80484b5:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80484ba:	89 d9                	mov    %ebx,%ecx
- 80484bc:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80484c2:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80484c9:	e9 02 fc ff ff       	jmp    80480d0 <nexti>
+0804848a <v_Get>:
+ 804848a:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804848f:	89 d9                	mov    %ebx,%ecx
+ 8048491:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048497:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804849e:	bb ff 0f 00 00       	mov    $0xfff,%ebx
+ 80484a3:	21 d8                	and    %ebx,%eax
+ 80484a5:	bb 00 10 00 00       	mov    $0x1000,%ebx
+ 80484aa:	01 d8                	add    %ebx,%eax
+ 80484ac:	89 c3                	mov    %eax,%ebx
+ 80484ae:	89 d9                	mov    %ebx,%ecx
+ 80484b0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80484b6:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80484bd:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80484c2:	89 d9                	mov    %ebx,%ecx
+ 80484c4:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80484ca:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80484d1:	e9 fa fb ff ff       	jmp    80480d0 <nexti>
 
-080484ce <v_Put>:
- 80484ce:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80484d3:	89 d9                	mov    %ebx,%ecx
- 80484d5:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80484db:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80484e2:	bb ff 0f 00 00       	mov    $0xfff,%ebx
- 80484e7:	21 d8                	and    %ebx,%eax
- 80484e9:	bb 00 10 00 00       	mov    $0x1000,%ebx
- 80484ee:	01 d8                	add    %ebx,%eax
- 80484f0:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80484f5:	89 d9                	mov    %ebx,%ecx
- 80484f7:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80484fd:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 8048504:	89 c1                	mov    %eax,%ecx
- 8048506:	89 d8                	mov    %ebx,%eax
- 8048508:	89 cb                	mov    %ecx,%ebx
- 804850a:	89 d9                	mov    %ebx,%ecx
- 804850c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048512:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048519:	e9 b2 fb ff ff       	jmp    80480d0 <nexti>
+080484d6 <v_Put>:
+ 80484d6:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80484db:	89 d9                	mov    %ebx,%ecx
+ 80484dd:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80484e3:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80484ea:	bb ff 0f 00 00       	mov    $0xfff,%ebx
+ 80484ef:	21 d8                	and    %ebx,%eax
+ 80484f1:	bb 00 10 00 00       	mov    $0x1000,%ebx
+ 80484f6:	01 d8                	add    %ebx,%eax
+ 80484f8:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80484fd:	89 d9                	mov    %ebx,%ecx
+ 80484ff:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048505:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 804850c:	89 c1                	mov    %eax,%ecx
+ 804850e:	89 d8                	mov    %ebx,%eax
+ 8048510:	89 cb                	mov    %ecx,%ebx
+ 8048512:	89 d9                	mov    %ebx,%ecx
+ 8048514:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804851a:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048521:	e9 aa fb ff ff       	jmp    80480d0 <nexti>
 
-0804851e <v_At>:
- 804851e:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048523:	89 d9                	mov    %ebx,%ecx
- 8048525:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804852b:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048532:	bb ff 0f 00 00       	mov    $0xfff,%ebx
- 8048537:	21 d8                	and    %ebx,%eax
- 8048539:	bb 00 10 00 00       	mov    $0x1000,%ebx
- 804853e:	01 d8                	add    %ebx,%eax
- 8048540:	89 c3                	mov    %eax,%ebx
- 8048542:	89 d9                	mov    %ebx,%ecx
- 8048544:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804854a:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048551:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048556:	89 d9                	mov    %ebx,%ecx
- 8048558:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804855e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048565:	e9 66 fb ff ff       	jmp    80480d0 <nexti>
+08048526 <v_At>:
+ 8048526:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804852b:	89 d9                	mov    %ebx,%ecx
+ 804852d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048533:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804853a:	bb ff 0f 00 00       	mov    $0xfff,%ebx
+ 804853f:	21 d8                	and    %ebx,%eax
+ 8048541:	bb 00 10 00 00       	mov    $0x1000,%ebx
+ 8048546:	01 d8                	add    %ebx,%eax
+ 8048548:	89 c3                	mov    %eax,%ebx
+ 804854a:	89 d9                	mov    %ebx,%ecx
+ 804854c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048552:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048559:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804855e:	89 d9                	mov    %ebx,%ecx
+ 8048560:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048566:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804856d:	e9 5e fb ff ff       	jmp    80480d0 <nexti>
 
-0804856a <v_Inc>:
- 804856a:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 804856f:	89 d9                	mov    %ebx,%ecx
- 8048571:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048577:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 804857e:	43                   	inc    %ebx
- 804857f:	89 d8                	mov    %ebx,%eax
- 8048581:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048586:	89 d9                	mov    %ebx,%ecx
- 8048588:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804858e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048595:	e9 36 fb ff ff       	jmp    80480d0 <nexti>
+08048572 <v_Inc>:
+ 8048572:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048577:	89 d9                	mov    %ebx,%ecx
+ 8048579:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804857f:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 8048586:	43                   	inc    %ebx
+ 8048587:	89 d8                	mov    %ebx,%eax
+ 8048589:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 804858e:	89 d9                	mov    %ebx,%ecx
+ 8048590:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048596:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804859d:	e9 2e fb ff ff       	jmp    80480d0 <nexti>
 
-0804859a <v_Dec>:
- 804859a:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 804859f:	89 d9                	mov    %ebx,%ecx
- 80485a1:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80485a7:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 80485ae:	4b                   	dec    %ebx
- 80485af:	89 d8                	mov    %ebx,%eax
- 80485b1:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80485b6:	89 d9                	mov    %ebx,%ecx
- 80485b8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80485be:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80485c5:	e9 06 fb ff ff       	jmp    80480d0 <nexti>
+080485a2 <v_Dec>:
+ 80485a2:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80485a7:	89 d9                	mov    %ebx,%ecx
+ 80485a9:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80485af:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 80485b6:	4b                   	dec    %ebx
+ 80485b7:	89 d8                	mov    %ebx,%eax
+ 80485b9:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80485be:	89 d9                	mov    %ebx,%ecx
+ 80485c0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80485c6:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80485cd:	e9 fe fa ff ff       	jmp    80480d0 <nexti>
 
-080485ca <v_Imm>:
- 80485ca:	89 d0                	mov    %edx,%eax
- 80485cc:	bb 00 00 00 00       	mov    $0x0,%ebx
- 80485d1:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
- 80485d7:	31 d8                	xor    %ebx,%eax
- 80485d9:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80485de:	89 d9                	mov    %ebx,%ecx
- 80485e0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80485e6:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80485ed:	e9 de fa ff ff       	jmp    80480d0 <nexti>
+080485d2 <v_Imm>:
+ 80485d2:	89 d0                	mov    %edx,%eax
+ 80485d4:	bb 00 00 00 00       	mov    $0x0,%ebx
+ 80485d9:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
+ 80485df:	31 d8                	xor    %ebx,%eax
+ 80485e1:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80485e6:	89 d9                	mov    %ebx,%ecx
+ 80485e8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80485ee:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80485f5:	e9 d6 fa ff ff       	jmp    80480d0 <nexti>
 
-080485f2 <v_Flip>:
- 80485f2:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 80485f7:	89 d9                	mov    %ebx,%ecx
- 80485f9:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80485ff:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
- 8048606:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
- 804860c:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048611:	89 d9                	mov    %ebx,%ecx
- 8048613:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048619:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048620:	e9 ab fa ff ff       	jmp    80480d0 <nexti>
+080485fa <v_Flip>:
+ 80485fa:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80485ff:	89 d9                	mov    %ebx,%ecx
+ 8048601:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048607:	8b 1c 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%ebx
+ 804860e:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
+ 8048614:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048619:	89 d9                	mov    %ebx,%ecx
+ 804861b:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048621:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048628:	e9 a3 fa ff ff       	jmp    80480d0 <nexti>
 
-08048625 <v_Swap>:
- 8048625:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804862a:	89 d9                	mov    %ebx,%ecx
- 804862c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048632:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048639:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 804863e:	89 d9                	mov    %ebx,%ecx
- 8048640:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048646:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804864d:	89 c1                	mov    %eax,%ecx
- 804864f:	89 d8                	mov    %ebx,%eax
- 8048651:	89 cb                	mov    %ecx,%ebx
- 8048653:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048658:	89 d9                	mov    %ebx,%ecx
- 804865a:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048660:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048667:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804866c:	89 d9                	mov    %ebx,%ecx
- 804866e:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048674:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804867b:	e9 50 fa ff ff       	jmp    80480d0 <nexti>
+0804862d <v_Swap>:
+ 804862d:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048632:	89 d9                	mov    %ebx,%ecx
+ 8048634:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804863a:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048641:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048646:	89 d9                	mov    %ebx,%ecx
+ 8048648:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804864e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048655:	89 c1                	mov    %eax,%ecx
+ 8048657:	89 d8                	mov    %ebx,%eax
+ 8048659:	89 cb                	mov    %ecx,%ebx
+ 804865b:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048660:	89 d9                	mov    %ebx,%ecx
+ 8048662:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048668:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804866f:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048674:	89 d9                	mov    %ebx,%ecx
+ 8048676:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804867c:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048683:	e9 48 fa ff ff       	jmp    80480d0 <nexti>
 
-08048680 <v_Tob>:
- 8048680:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048685:	89 d9                	mov    %ebx,%ecx
- 8048687:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804868d:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048694:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 8048699:	89 d9                	mov    %ebx,%ecx
- 804869b:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80486a1:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80486a8:	e9 23 fa ff ff       	jmp    80480d0 <nexti>
+08048688 <v_Tob>:
+ 8048688:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 804868d:	89 d9                	mov    %ebx,%ecx
+ 804868f:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048695:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804869c:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 80486a1:	89 d9                	mov    %ebx,%ecx
+ 80486a3:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80486a9:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80486b0:	e9 1b fa ff ff       	jmp    80480d0 <nexti>
 
-080486ad <v_Tor>:
- 80486ad:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80486b2:	89 d9                	mov    %ebx,%ecx
- 80486b4:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80486ba:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80486c1:	bb 05 20 00 00       	mov    $0x2005,%ebx
- 80486c6:	89 d9                	mov    %ebx,%ecx
- 80486c8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80486ce:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80486d5:	e9 f6 f9 ff ff       	jmp    80480d0 <nexti>
+080486b5 <v_Tor>:
+ 80486b5:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80486ba:	89 d9                	mov    %ebx,%ecx
+ 80486bc:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80486c2:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80486c9:	bb 05 20 00 00       	mov    $0x2005,%ebx
+ 80486ce:	89 d9                	mov    %ebx,%ecx
+ 80486d0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80486d6:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80486dd:	e9 ee f9 ff ff       	jmp    80480d0 <nexti>
 
-080486da <v_Tot>:
- 80486da:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80486df:	89 d9                	mov    %ebx,%ecx
- 80486e1:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80486e7:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80486ee:	bb 04 20 00 00       	mov    $0x2004,%ebx
- 80486f3:	89 d9                	mov    %ebx,%ecx
- 80486f5:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80486fb:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048702:	e9 c9 f9 ff ff       	jmp    80480d0 <nexti>
+080486e2 <v_Tot>:
+ 80486e2:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80486e7:	89 d9                	mov    %ebx,%ecx
+ 80486e9:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80486ef:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80486f6:	bb 04 20 00 00       	mov    $0x2004,%ebx
+ 80486fb:	89 d9                	mov    %ebx,%ecx
+ 80486fd:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048703:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804870a:	e9 c1 f9 ff ff       	jmp    80480d0 <nexti>
 
-08048707 <v_Fromb>:
- 8048707:	bb 02 20 00 00       	mov    $0x2002,%ebx
- 804870c:	89 d9                	mov    %ebx,%ecx
- 804870e:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048714:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 804871b:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 8048720:	89 d9                	mov    %ebx,%ecx
- 8048722:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048728:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804872f:	e9 9c f9 ff ff       	jmp    80480d0 <nexti>
+0804870f <v_Fromb>:
+ 804870f:	bb 02 20 00 00       	mov    $0x2002,%ebx
+ 8048714:	89 d9                	mov    %ebx,%ecx
+ 8048716:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804871c:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048723:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048728:	89 d9                	mov    %ebx,%ecx
+ 804872a:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048730:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048737:	e9 94 f9 ff ff       	jmp    80480d0 <nexti>
 
-08048734 <v_Fromr>:
- 8048734:	bb 05 20 00 00       	mov    $0x2005,%ebx
- 8048739:	89 d9                	mov    %ebx,%ecx
- 804873b:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048741:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048748:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804874d:	89 d9                	mov    %ebx,%ecx
- 804874f:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048755:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804875c:	e9 6f f9 ff ff       	jmp    80480d0 <nexti>
+0804873c <v_Fromr>:
+ 804873c:	bb 05 20 00 00       	mov    $0x2005,%ebx
+ 8048741:	89 d9                	mov    %ebx,%ecx
+ 8048743:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048749:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048750:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048755:	89 d9                	mov    %ebx,%ecx
+ 8048757:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804875d:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048764:	e9 67 f9 ff ff       	jmp    80480d0 <nexti>
 
-08048761 <v_Fromt>:
- 8048761:	bb 04 20 00 00       	mov    $0x2004,%ebx
- 8048766:	89 d9                	mov    %ebx,%ecx
- 8048768:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804876e:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048775:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804877a:	89 d9                	mov    %ebx,%ecx
- 804877c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048782:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048789:	e9 42 f9 ff ff       	jmp    80480d0 <nexti>
+08048769 <v_Fromt>:
+ 8048769:	bb 04 20 00 00       	mov    $0x2004,%ebx
+ 804876e:	89 d9                	mov    %ebx,%ecx
+ 8048770:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048776:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804877d:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 8048782:	89 d9                	mov    %ebx,%ecx
+ 8048784:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804878a:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048791:	e9 3a f9 ff ff       	jmp    80480d0 <nexti>
 
-0804878e <v_Mdm>:
- 804878e:	bb 00 10 00 00       	mov    $0x1000,%ebx
- 8048793:	89 d8                	mov    %ebx,%eax
- 8048795:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 804879a:	89 d9                	mov    %ebx,%ecx
- 804879c:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80487a2:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80487a9:	e9 22 f9 ff ff       	jmp    80480d0 <nexti>
+08048796 <v_Mdm>:
+ 8048796:	bb 00 10 00 00       	mov    $0x1000,%ebx
+ 804879b:	89 d8                	mov    %ebx,%eax
+ 804879d:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80487a2:	89 d9                	mov    %ebx,%ecx
+ 80487a4:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80487aa:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80487b1:	e9 1a f9 ff ff       	jmp    80480d0 <nexti>
 
-080487ae <v_Noop>:
- 80487ae:	e9 1d f9 ff ff       	jmp    80480d0 <nexti>
+080487b6 <v_Noop>:
+ 80487b6:	e9 15 f9 ff ff       	jmp    80480d0 <nexti>
 
-080487b3 <v_Jmpe>:
- 80487b3:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80487b8:	89 d9                	mov    %ebx,%ecx
- 80487ba:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80487c0:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80487c7:	39 d8                	cmp    %ebx,%eax
- 80487c9:	75 02                	jne    80487cd <v_Jmpe+0x1a>
- 80487cb:	eb 05                	jmp    80487d2 <v_Jmpe_do>
- 80487cd:	e9 fe f8 ff ff       	jmp    80480d0 <nexti>
+080487bb <v_Jmpe>:
+ 80487bb:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80487c0:	89 d9                	mov    %ebx,%ecx
+ 80487c2:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80487c8:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80487cf:	39 d8                	cmp    %ebx,%eax
+ 80487d1:	75 02                	jne    80487d5 <v_Jmpe+0x1a>
+ 80487d3:	eb 05                	jmp    80487da <v_Jmpe_do>
+ 80487d5:	e9 f6 f8 ff ff       	jmp    80480d0 <nexti>
 
-080487d2 <v_Jmpe_do>:
- 80487d2:	89 d0                	mov    %edx,%eax
- 80487d4:	25 ff ff ff 00       	and    $0xffffff,%eax
- 80487d9:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 80487de:	89 d9                	mov    %ebx,%ecx
- 80487e0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80487e6:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80487ed:	e9 de f8 ff ff       	jmp    80480d0 <nexti>
+080487da <v_Jmpe_do>:
+ 80487da:	89 d0                	mov    %edx,%eax
+ 80487dc:	25 ff ff ff 00       	and    $0xffffff,%eax
+ 80487e1:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 80487e6:	89 d9                	mov    %ebx,%ecx
+ 80487e8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80487ee:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80487f5:	e9 d6 f8 ff ff       	jmp    80480d0 <nexti>
 
-080487f2 <v_Jump>:
- 80487f2:	89 d0                	mov    %edx,%eax
- 80487f4:	25 ff ff ff 00       	and    $0xffffff,%eax
- 80487f9:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 80487fe:	89 d9                	mov    %ebx,%ecx
- 8048800:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048806:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804880d:	e9 be f8 ff ff       	jmp    80480d0 <nexti>
+080487fa <v_Jump>:
+ 80487fa:	89 d0                	mov    %edx,%eax
+ 80487fc:	25 ff ff ff 00       	and    $0xffffff,%eax
+ 8048801:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 8048806:	89 d9                	mov    %ebx,%ecx
+ 8048808:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804880e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048815:	e9 b6 f8 ff ff       	jmp    80480d0 <nexti>
 
-08048812 <v_Br>:
- 8048812:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 8048817:	89 d9                	mov    %ebx,%ecx
- 8048819:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804881f:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 8048826:	bb 03 20 00 00       	mov    $0x2003,%ebx
- 804882b:	89 d9                	mov    %ebx,%ecx
- 804882d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048833:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 804883a:	89 d0                	mov    %edx,%eax
- 804883c:	25 ff ff ff 00       	and    $0xffffff,%eax
- 8048841:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 8048846:	89 d9                	mov    %ebx,%ecx
- 8048848:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804884e:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048855:	e9 76 f8 ff ff       	jmp    80480d0 <nexti>
+0804881a <v_Br>:
+ 804881a:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 804881f:	89 d9                	mov    %ebx,%ecx
+ 8048821:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048827:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 804882e:	bb 03 20 00 00       	mov    $0x2003,%ebx
+ 8048833:	89 d9                	mov    %ebx,%ecx
+ 8048835:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804883b:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 8048842:	89 d0                	mov    %edx,%eax
+ 8048844:	25 ff ff ff 00       	and    $0xffffff,%eax
+ 8048849:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 804884e:	89 d9                	mov    %ebx,%ecx
+ 8048850:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048856:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804885d:	e9 6e f8 ff ff       	jmp    80480d0 <nexti>
 
-0804885a <v_Link>:
- 804885a:	bb 03 20 00 00       	mov    $0x2003,%ebx
- 804885f:	89 d9                	mov    %ebx,%ecx
- 8048861:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048867:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 804886e:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 8048873:	89 d9                	mov    %ebx,%ecx
- 8048875:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 804887b:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 8048882:	e9 49 f8 ff ff       	jmp    80480d0 <nexti>
+08048862 <v_Link>:
+ 8048862:	bb 03 20 00 00       	mov    $0x2003,%ebx
+ 8048867:	89 d9                	mov    %ebx,%ecx
+ 8048869:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804886f:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 8048876:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 804887b:	89 d9                	mov    %ebx,%ecx
+ 804887d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 8048883:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 804888a:	e9 41 f8 ff ff       	jmp    80480d0 <nexti>
 
-08048887 <v_Rpt>:
- 8048887:	bb 05 20 00 00       	mov    $0x2005,%ebx
- 804888c:	89 d9                	mov    %ebx,%ecx
- 804888e:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 8048894:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 804889b:	ff 0c 8d 00 90 04 08 	decl   0x8049000(,%ecx,4)
- 80488a2:	83 f8 00             	cmp    $0x0,%eax
- 80488a5:	75 02                	jne    80488a9 <v_Rpt+0x22>
- 80488a7:	eb 1b                	jmp    80488c4 <v_Repeat_end>
- 80488a9:	89 d0                	mov    %edx,%eax
- 80488ab:	25 ff ff ff 00       	and    $0xffffff,%eax
- 80488b0:	bb 00 20 00 00       	mov    $0x2000,%ebx
- 80488b5:	89 d9                	mov    %ebx,%ecx
- 80488b7:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80488bd:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+0804888f <v_Rpt>:
+ 804888f:	bb 05 20 00 00       	mov    $0x2005,%ebx
+ 8048894:	89 d9                	mov    %ebx,%ecx
+ 8048896:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 804889c:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80488a3:	ff 0c 8d 00 90 04 08 	decl   0x8049000(,%ecx,4)
+ 80488aa:	83 f8 00             	cmp    $0x0,%eax
+ 80488ad:	75 02                	jne    80488b1 <v_Rpt+0x22>
+ 80488af:	eb 1b                	jmp    80488cc <v_Repeat_end>
+ 80488b1:	89 d0                	mov    %edx,%eax
+ 80488b3:	25 ff ff ff 00       	and    $0xffffff,%eax
+ 80488b8:	bb 00 20 00 00       	mov    $0x2000,%ebx
+ 80488bd:	89 d9                	mov    %ebx,%ecx
+ 80488bf:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80488c5:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
 
-080488c4 <v_Repeat_end>:
- 80488c4:	e9 07 f8 ff ff       	jmp    80480d0 <nexti>
+080488cc <v_Repeat_end>:
+ 80488cc:	e9 ff f7 ff ff       	jmp    80480d0 <nexti>
 
-080488c9 <v_Halt>:
- 80488c9:	bb 01 20 00 00       	mov    $0x2001,%ebx
- 80488ce:	89 d9                	mov    %ebx,%ecx
- 80488d0:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80488d6:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
- 80488dd:	bb ff 00 00 00       	mov    $0xff,%ebx
- 80488e2:	21 d8                	and    %ebx,%eax
- 80488e4:	25 ff 00 00 00       	and    $0xff,%eax
- 80488e9:	89 c3                	mov    %eax,%ebx
- 80488eb:	b8 01 00 00 00       	mov    $0x1,%eax
- 80488f0:	cd 80                	int    $0x80
+080488d1 <v_Halt>:
+ 80488d1:	bb 01 20 00 00       	mov    $0x2001,%ebx
+ 80488d6:	89 d9                	mov    %ebx,%ecx
+ 80488d8:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80488de:	8b 04 8d 00 90 04 08 	mov    0x8049000(,%ecx,4),%eax
+ 80488e5:	bb ff 00 00 00       	mov    $0xff,%ebx
+ 80488ea:	21 d8                	and    %ebx,%eax
+ 80488ec:	25 ff 00 00 00       	and    $0xff,%eax
+ 80488f1:	89 c3                	mov    %eax,%ebx
+ 80488f3:	b8 01 00 00 00       	mov    $0x1,%eax
+ 80488f8:	cd 80                	int    $0x80
 
-080488f2 <program>:
- 80488f2:	bb 00 00 00 00       	mov    $0x0,%ebx
- 80488f7:	89 d8                	mov    %ebx,%eax
- 80488f9:	bb 03 00 00 00       	mov    $0x3,%ebx
- 80488fe:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
- 8048904:	8d 3d 0f 89 04 08    	lea    0x804890f,%edi
- 804890a:	e9 86 00 00 00       	jmp    8048995 <si>
- 804890f:	bb 00 00 00 01       	mov    $0x1000000,%ebx
- 8048914:	8d 3d 1c 89 04 08    	lea    0x804891c,%edi
- 804891a:	eb 79                	jmp    8048995 <si>
- 804891c:	bb 05 00 00 00       	mov    $0x5,%ebx
- 8048921:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
- 8048927:	8d 3d 2f 89 04 08    	lea    0x804892f,%edi
- 804892d:	eb 66                	jmp    8048995 <si>
- 804892f:	bb 00 00 00 01       	mov    $0x1000000,%ebx
- 8048934:	8d 3d 3c 89 04 08    	lea    0x804893c,%edi
- 804893a:	eb 59                	jmp    8048995 <si>
- 804893c:	bb 00 00 00 10       	mov    $0x10000000,%ebx
- 8048941:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
- 8048947:	8d 3d 4f 89 04 08    	lea    0x804894f,%edi
- 804894d:	eb 46                	jmp    8048995 <si>
- 804894f:	bb 00 00 00 33       	mov    $0x33000000,%ebx
- 8048954:	8d 3d 5c 89 04 08    	lea    0x804895c,%edi
- 804895a:	eb 39                	jmp    8048995 <si>
- 804895c:	bb 00 00 00 31       	mov    $0x31000000,%ebx
- 8048961:	8d 3d 69 89 04 08    	lea    0x8048969,%edi
- 8048967:	eb 2c                	jmp    8048995 <si>
- 8048969:	bb 00 00 00 00       	mov    $0x0,%ebx
- 804896e:	8d 3d 76 89 04 08    	lea    0x8048976,%edi
- 8048974:	eb 1f                	jmp    8048995 <si>
- 8048976:	bb 07 00 00 50       	mov    $0x50000007,%ebx
- 804897b:	8d 3d 83 89 04 08    	lea    0x8048983,%edi
- 8048981:	eb 12                	jmp    8048995 <si>
- 8048983:	bb 00 00 00 3f       	mov    $0x3f000000,%ebx
- 8048988:	8d 3d 90 89 04 08    	lea    0x8048990,%edi
- 804898e:	eb 05                	jmp    8048995 <si>
- 8048990:	e9 3b f7 ff ff       	jmp    80480d0 <nexti>
+080488fa <program>:
+ 80488fa:	bb 00 00 00 00       	mov    $0x0,%ebx
+ 80488ff:	89 d8                	mov    %ebx,%eax
+ 8048901:	bb 03 00 00 00       	mov    $0x3,%ebx
+ 8048906:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
+ 804890c:	8d 3d 17 89 04 08    	lea    0x8048917,%edi
+ 8048912:	e9 86 00 00 00       	jmp    804899d <si>
+ 8048917:	bb 00 00 00 01       	mov    $0x1000000,%ebx
+ 804891c:	8d 3d 24 89 04 08    	lea    0x8048924,%edi
+ 8048922:	eb 79                	jmp    804899d <si>
+ 8048924:	bb 05 00 00 00       	mov    $0x5,%ebx
+ 8048929:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
+ 804892f:	8d 3d 37 89 04 08    	lea    0x8048937,%edi
+ 8048935:	eb 66                	jmp    804899d <si>
+ 8048937:	bb 00 00 00 01       	mov    $0x1000000,%ebx
+ 804893c:	8d 3d 44 89 04 08    	lea    0x8048944,%edi
+ 8048942:	eb 59                	jmp    804899d <si>
+ 8048944:	bb ff ff ff 7f       	mov    $0x7fffffff,%ebx
+ 8048949:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
+ 804894f:	8d 3d 57 89 04 08    	lea    0x8048957,%edi
+ 8048955:	eb 46                	jmp    804899d <si>
+ 8048957:	bb 00 00 00 33       	mov    $0x33000000,%ebx
+ 804895c:	8d 3d 64 89 04 08    	lea    0x8048964,%edi
+ 8048962:	eb 39                	jmp    804899d <si>
+ 8048964:	bb 00 00 00 31       	mov    $0x31000000,%ebx
+ 8048969:	8d 3d 71 89 04 08    	lea    0x8048971,%edi
+ 804896f:	eb 2c                	jmp    804899d <si>
+ 8048971:	bb 00 00 00 00       	mov    $0x0,%ebx
+ 8048976:	8d 3d 7e 89 04 08    	lea    0x804897e,%edi
+ 804897c:	eb 1f                	jmp    804899d <si>
+ 804897e:	bb 07 00 00 50       	mov    $0x50000007,%ebx
+ 8048983:	8d 3d 8b 89 04 08    	lea    0x804898b,%edi
+ 8048989:	eb 12                	jmp    804899d <si>
+ 804898b:	bb 00 00 00 3f       	mov    $0x3f000000,%ebx
+ 8048990:	8d 3d 98 89 04 08    	lea    0x8048998,%edi
+ 8048996:	eb 05                	jmp    804899d <si>
+ 8048998:	e9 33 f7 ff ff       	jmp    80480d0 <nexti>
 
-08048995 <si>:
- 8048995:	89 c1                	mov    %eax,%ecx
- 8048997:	89 d8                	mov    %ebx,%eax
- 8048999:	89 cb                	mov    %ecx,%ebx
- 804899b:	89 d9                	mov    %ebx,%ecx
- 804899d:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80489a3:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80489aa:	43                   	inc    %ebx
- 80489ab:	89 d8                	mov    %ebx,%eax
- 80489ad:	ff e7                	jmp    *%edi
+0804899d <si>:
+ 804899d:	89 c1                	mov    %eax,%ecx
+ 804899f:	89 d8                	mov    %ebx,%eax
+ 80489a1:	89 cb                	mov    %ecx,%ebx
+ 80489a3:	89 d9                	mov    %ebx,%ecx
+ 80489a5:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80489ab:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80489b2:	43                   	inc    %ebx
+ 80489b3:	89 d8                	mov    %ebx,%eax
+ 80489b5:	ff e7                	jmp    *%edi
 
-080489af <doFill>:
- 80489af:	89 d9                	mov    %ebx,%ecx
- 80489b1:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
- 80489b7:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
- 80489be:	43                   	inc    %ebx
- 80489bf:	4e                   	dec    %esi
- 80489c0:	83 fe ff             	cmp    $0xffffffff,%esi
- 80489c3:	74 08                	je     80489cd <doFill+0x1e>
- 80489c5:	8d 0d af 89 04 08    	lea    0x80489af,%ecx
- 80489cb:	ff e1                	jmp    *%ecx
- 80489cd:	ff e7                	jmp    *%edi
+080489b7 <doFill>:
+ 80489b7:	89 d9                	mov    %ebx,%ecx
+ 80489b9:	81 e1 ff ff ff 0f    	and    $0xfffffff,%ecx
+ 80489bf:	89 04 8d 00 90 04 08 	mov    %eax,0x8049000(,%ecx,4)
+ 80489c6:	43                   	inc    %ebx
+ 80489c7:	4e                   	dec    %esi
+ 80489c8:	83 fe ff             	cmp    $0xffffffff,%esi
+ 80489cb:	74 08                	je     80489d5 <doFill+0x1e>
+ 80489cd:	8d 0d b7 89 04 08    	lea    0x80489b7,%ecx
+ 80489d3:	ff e1                	jmp    *%ecx
+ 80489d5:	ff e7                	jmp    *%edi
 
-080489cf <setupToClearParent>:
- 80489cf:	bb 00 00 00 10       	mov    $0x10000000,%ebx
- 80489d4:	89 d8                	mov    %ebx,%eax
- 80489d6:	89 c6                	mov    %eax,%esi
- 80489d8:	bb 00 00 00 00       	mov    $0x0,%ebx
- 80489dd:	89 d8                	mov    %ebx,%eax
- 80489df:	ff e7                	jmp    *%edi
+080489d7 <setupToClearParent>:
+ 80489d7:	bb 00 00 00 10       	mov    $0x10000000,%ebx
+ 80489dc:	89 d8                	mov    %ebx,%eax
+ 80489de:	89 c6                	mov    %eax,%esi
+ 80489e0:	bb 00 00 00 00       	mov    $0x0,%ebx
+ 80489e5:	89 d8                	mov    %ebx,%eax
+ 80489e7:	ff e7                	jmp    *%edi
 
-080489e1 <assertParentSize>:
- 80489e1:	b8 00 00 00 10       	mov    $0x10000000,%eax
- 80489e6:	bb 00 00 00 10       	mov    $0x10000000,%ebx
- 80489eb:	39 d8                	cmp    %ebx,%eax
- 80489ed:	75 02                	jne    80489f1 <assertParentSize+0x10>
- 80489ef:	eb 15                	jmp    8048a06 <assertedParentSize>
- 80489f1:	bb 01 00 00 00       	mov    $0x1,%ebx
- 80489f6:	89 d8                	mov    %ebx,%eax
- 80489f8:	25 ff 00 00 00       	and    $0xff,%eax
- 80489fd:	89 c3                	mov    %eax,%ebx
- 80489ff:	b8 01 00 00 00       	mov    $0x1,%eax
- 8048a04:	cd 80                	int    $0x80
+080489e9 <assertParentSize>:
+ 80489e9:	b8 00 00 00 10       	mov    $0x10000000,%eax
+ 80489ee:	bb 00 00 00 10       	mov    $0x10000000,%ebx
+ 80489f3:	39 d8                	cmp    %ebx,%eax
+ 80489f5:	75 02                	jne    80489f9 <assertParentSize+0x10>
+ 80489f7:	eb 15                	jmp    8048a0e <assertedParentSize>
+ 80489f9:	bb 01 00 00 00       	mov    $0x1,%ebx
+ 80489fe:	89 d8                	mov    %ebx,%eax
+ 8048a00:	25 ff 00 00 00       	and    $0xff,%eax
+ 8048a05:	89 c3                	mov    %eax,%ebx
+ 8048a07:	b8 01 00 00 00       	mov    $0x1,%eax
+ 8048a0c:	cd 80                	int    $0x80
 
-08048a06 <assertedParentSize>:
- 8048a06:	ff e7                	jmp    *%edi
+08048a0e <assertedParentSize>:
+ 8048a0e:	ff e7                	jmp    *%edi

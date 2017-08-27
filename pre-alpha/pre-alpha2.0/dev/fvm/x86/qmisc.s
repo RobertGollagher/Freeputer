@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170827+
-Version:    pre-alpha-0.0.0.16 for FVM 2.0
+Version:    pre-alpha-0.0.0.17 for FVM 2.0
 =======
 
                               This Edition:
@@ -250,12 +250,13 @@ Or for convenience, build and run with:
   do_exit vA
 .endm
 .macro XP_jmpm label
-  andl $MSb, vA
+  movl vA, rSwap
+  andl $MSb, rSwap
   jz 1f
     jmp \label
   1:
 .endm
-# The proliferation of these slows down decoding...
+# The proliferation of these slows down decoding but makes faster overall...
 .macro XP_jmpz label
   cmpl $0, vA
   jne 1f
@@ -265,6 +266,12 @@ Or for convenience, build and run with:
 .macro i_jmpe label
   cmpl vB, vA
   jne 1f
+    jmp \label
+  1:
+.endm
+.macro XP_jmpanz label # Could be better combos than this
+  andl vA, vB
+  jz 1f
     jmp \label
   1:
 .endm
@@ -596,22 +603,16 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
-  XP_jmpm(v_Imm)
-
-/*
-  fromt
-  i(COMPLEX_MASK)
-  and
-  jmpe(v_complex_instrs)
-*/
-
-  fromt
+  XP_jmpm(v_Imm) # Advantage: doesn't alter vA
   XP_upr
 
       i(iNOOP)
         jmpe(v_Noop)
       i(iRPT)
         jmpe(v_Rpt)
+
+  i(COMPLEX_MASK)
+  XP_jmpanz(v_complex_instrs) # Advantage: doesn't alter vA
 
       i(iADD)
         jmpe(v_Add)
@@ -659,8 +660,6 @@ nexti:
         jmpe(v_Halt)
 
     v_complex_instrs:
-      fromt
-      XP_upr
       i(iJMPE)
         jmpe(v_Jmpe)
       i(iJUMP)
@@ -948,8 +947,8 @@ program:
   flip
   br(si)
   i(iADD)
-  br(si)
-  i(0x10000000) # Performance test (asm child does 0x7fffffff in about 30 sec)
+  br(si)                                 # (since improved to 17 sec)
+  i(0x10000000) # Performance test (asm child did 0x7fffffff in about 30 sec)
   flip  # 2 0x10000000 0x7fffffff  (i.e. no weird gcc fu but 1.5-3.0x slower)
   br(si) #  (so perhaps an interpreted VM, rather than child, best for asm?)
   i(iFROMB)
