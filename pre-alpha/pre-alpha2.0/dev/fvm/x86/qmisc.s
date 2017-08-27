@@ -402,6 +402,10 @@ Or for convenience, build and run with:
 # ============================================================================
 itProg:
   .long iIMM|2
+  .long iFROMB
+  .long iTOR
+  .long iNOOP
+  .long iRPT|3
   .long iHALT
   .equ PROGRAM_SIZE, . - itProg
 
@@ -631,6 +635,7 @@ xLink:
   link
   jmp xnext
 xHalt:
+  movl $SUCCESS, vA
   halt
 xJmpe:
   jmpe FIXME
@@ -639,7 +644,13 @@ xJump:
   jump FIXME
   jmp xnext
 xRpt:
-  rpt FIXME
+  decl vR
+  cmpl $ONES, vR
+  jz 1f
+    movl Instr, vT
+    andl $CELL_MASK, vT
+    movl vT, vZ
+  1:
   jmp xnext
 xBr:
   br FIXME
