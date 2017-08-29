@@ -150,13 +150,11 @@ Or for convenience, build and run with:
   xorl vB, vA
 .endm
 .macro i_shl
-  movl vB, rSwap
-  andl $SHIFT_MASK, rSwap
+  movl vB, rShift
   shll rShift, vA
 .endm
 .macro i_shr
-  movl vB, rSwap
-  andl $SHIFT_MASK, rSwap
+  movl vB, rShift
   shrl rShift, vA
 .endm
 .macro i_get
