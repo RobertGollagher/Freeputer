@@ -133,7 +133,49 @@ Or for convenience, build and run with:
 .endif
   xorl rSwap, rSwap
 .endm
-# ---------------------------------------------------------------------------
+# ------------------------ Suspect Instructions ------------------------------
+.macro i_get
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  movl data_memory(,rSwap,WD_BYTES), vA
+.endm
+.macro i_put
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  movl vA, data_memory(,rSwap,WD_BYTES)
+.endm
+.macro i_at
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  movl data_memory(,rSwap,WD_BYTES), vB
+.endm
+
+
+
+# Experimental (note: all masking is a code smell?)
+.macro i_incm
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  incl data_memory(,rSwap,WD_BYTES)
+.endm
+.macro i_decm
+  movl vB, rSwap
+  andl $DM_MASK, rSwap
+  decl data_memory(,rSwap,WD_BYTES)
+.endm
+
+
+
+
+
+
+
+
+
+# ------------------------ Nice Lean Instructions ----------------------------
+.macro i_imm x # Assume compile-time check limits x to 31 bits
+  movl $\x, vB
+.endm
 .macro i_add
   addl vB, vA
 .endm
@@ -157,39 +199,14 @@ Or for convenience, build and run with:
   movl vB, rShift
   shrl rShift, vA
 .endm
-.macro i_get
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl data_memory(,rSwap,WD_BYTES), vA
-.endm
-.macro i_put
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl vA, data_memory(,rSwap,WD_BYTES)
-.endm
-.macro i_at
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl data_memory(,rSwap,WD_BYTES), vB
-.endm
 .macro i_inc
   incl vB
 .endm
 .macro i_dec
   decl vB
 .endm
-.macro i_imm x
-  movl $\x, vB
-  # TODO opzn: assume there is a compile-time check limiting x to 31 bits
-  #andl $METADATA_MASK, vB #opzn
-.endm
 .macro i_flip
   xorl $MSb, vB
-.endm
-.macro i_swap
-  movl vA, rSwap
-  movl vB, vA
-  movl rSwap, vB
 .endm
 .macro i_tob
   movl vA, vB
@@ -219,19 +236,13 @@ Or for convenience, build and run with:
   andl $BYTE_MASK, vA
   do_exit vA
 .endm
-.macro XP_jmpm label
+.macro i_swap # Borderline but justifiable
   movl vA, rSwap
-  andl $MSb, rSwap
-  jz 1f
-    jmp \label
-  1:
+  movl vB, vA
+  movl rSwap, vB
 .endm
-# The proliferation of these slows down decoding but makes faster overall...
-.macro XP_jmpz label
-  cmpl $0, vA
-  jne 1f
-    jmp \label
-  1:
+.macro i_jump label
+  jmp \label
 .endm
 .macro i_jmpe label
   cmpl vB, vA
@@ -239,26 +250,10 @@ Or for convenience, build and run with:
     jmp \label
   1:
 .endm
-.macro XP_jmpanz label # Could be better combos than this
-  andl vA, vB
-  jz 1f
+.macro i_jmpz label # Two conditionals justifiable?
+  cmpl vA, vA
+  jnz 1f
     jmp \label
-  1:
-.endm
-.macro i_jump label
-  jmp \label
-.endm
-.macro i_rpt label
-  decl vR
-  cmpl $ONES, vR
-  jz 1f
-.ifeq x86_64
-  leaq \label, %r8
-  jmp *%r8
-.else
-  leal \label, rSwap
-  jmp *rSwap
-.endif
   1:
 .endm
 .macro i_br label
@@ -273,6 +268,22 @@ Or for convenience, build and run with:
 .macro i_link label
   jmp *vL
 .endm
+# Changed
+.macro i_rpt label
+  cmpl vR, vR
+  #cmpl $ONES, vR
+  jz 1f
+  decl vR
+.ifeq x86_64
+  leaq \label, %r8
+  jmp *%r8
+.else
+  leal \label, rSwap
+  jmp *rSwap
+.endif
+  1:
+.endm
+# ----------------------------------------------------------------------------
 # ============================================================================
 # ====================== END OF PLATFORM-SPECIFIC CODE =======================
 # ============================================================================
