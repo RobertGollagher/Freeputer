@@ -603,7 +603,7 @@ Disassembly of section .text:
  8048937:	bb 00 00 00 01       	mov    $0x1000000,%ebx
  804893c:	8d 3d 44 89 04 08    	lea    0x8048944,%edi
  8048942:	eb 59                	jmp    804899d <si>
- 8048944:	bb ff ff ff 7f       	mov    $0x7fffffff,%ebx
+ 8048944:	bb 00 00 00 10       	mov    $0x10000000,%ebx
  8048949:	81 f3 00 00 00 80    	xor    $0x80000000,%ebx
  804894f:	8d 3d 57 89 04 08    	lea    0x8048957,%edi
  8048955:	eb 46                	jmp    804899d <si>
