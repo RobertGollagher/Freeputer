@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170827+
-Version:    pre-alpha-0.0.0.18 for FVM 2.0
+Updated:    20170828+
+Version:    pre-alpha-0.0.0.19 for FVM 2.0
 =======
 
                               This Edition:
@@ -173,35 +173,6 @@ Or for convenience, build and run with:
   movl vB, rSwap
   andl $DM_MASK, rSwap
   movl data_memory(,rSwap,WD_BYTES), vB
-.endm
-.macro XP_upr # retains top 8 bits
-  andl $OPCODE_MASK, vA
-.endm
-.macro XP_lwr # retains bottom 24 bits
-  andl $CELL_MASK, vA
-.endm
-.macro XP_postdec
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl data_memory(,rSwap,WD_BYTES), vA
-  decl data_memory(,rSwap,WD_BYTES)
-.endm
-.macro XP_pop # Consider stack overflow conditions? Meaningless?
-  movl vB, vA
-  andl $DM_MASK, vA
-  movl vA, rSwap
-  movl data_memory(,vA,WD_BYTES), vA
-  andl $DM_MASK, vA
-  movl data_memory(,vA,WD_BYTES), vA
-  incl data_memory(,rSwap,WD_BYTES)
-.endm
-.macro XP_push
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  decl data_memory(,rSwap,WD_BYTES)
-  movl data_memory(,rSwap,WD_BYTES), rSwap
-  andl $DM_MASK, rSwap
-  movl vA, data_memory(,rSwap,WD_BYTES)
 .endm
 .macro i_inc
   incl vB
@@ -545,6 +516,7 @@ foo:
 jmp vm_success
 */
 
+jmp vm_success # Short-circuit for now while simplifying instr set
 
 # ---------------------------------------------------------------------------
 .equ vm_DM_WORDS, DM_WORDS
@@ -588,6 +560,7 @@ jmp vm_success
   .endm
 .endif
 # ---------------------------------------------------------------------------
+/* // Commented out self-virtualization for now, while simplify instr set
 vm_init:
   br(assertParentSize)
   br(setupToClearParent)
@@ -1003,6 +976,7 @@ assertParentSize:
     halt
   assertedParentSize:
     link
+*/
 # ---------------------------------------------------------------------------
 # end of exampleProgram
 # ===========================================================================
