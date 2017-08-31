@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170828+
-Version:    pre-alpha-0.0.0.19 for FVM 2.0
+Updated:    20170830+
+Version:    pre-alpha-0.0.0.20 for FVM 2.0
 =======
 
                               This Edition:
@@ -77,7 +77,7 @@ Or for convenience, build and run with:
 .equ DM_MASK, DM_WORDS-1
 # There are only 4 accessible registers:
 .equ vA, %eax; # accumulator
-.equ vB, %ebx; # operand register
+.equ vB, %ecx; # operand register (update: using ecx to simplify shl, shr)
 .equ vT, %edx; # temporary register
 .equ vR, %esi; # repeat register
 .ifeq x86_64
@@ -85,7 +85,7 @@ Or for convenience, build and run with:
 .else
   .equ vL, %edi; # link register (not accessible)
 .endif
-.equ rSwap, %ecx; # swap register (not accessible) (sometimes reused here)
+.equ rSwap, %ebx; # swap register (not accessible) (sometimes reused here)
 .equ rShift, %cl; # register used for shift magnitude (not accessible)
 # ============================================================================
 #                                IMPORTS
@@ -166,15 +166,9 @@ Or for convenience, build and run with:
 
 
 
-
-
-
-
-
-
 # ------------------------ Nice Lean Instructions ----------------------------
 .macro i_imm x # Assume compile-time check limits x to 31 bits
-  movl $\x, vB
+  movl $\x, vB    # Idea: 16-bit... leverage?
 .endm
 .macro i_add
   addl vB, vA
@@ -192,12 +186,10 @@ Or for convenience, build and run with:
   xorl vB, vA
 .endm
 .macro i_shl
-  movl vB, rShift
-  shll rShift, vA
+  shll rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
 .macro i_shr
-  movl vB, rShift
-  shrl rShift, vA
+  shrl rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
 .macro i_inc
   incl vB
@@ -233,9 +225,10 @@ Or for convenience, build and run with:
   nop
 .endm
 .macro i_halt
-  andl $BYTE_MASK, vA
+  andl $BYTE_MASK, vA # Reconsider
   do_exit vA
 .endm
+# ----------------------------------------------------------------------------
 .macro i_swap # Borderline but justifiable
   movl vA, rSwap
   movl vB, vA
@@ -269,7 +262,7 @@ Or for convenience, build and run with:
   jmp *vL
 .endm
 # Changed
-.macro i_rpt label
+.macro i_rpt label # Is this actually fast anyway (when virtualized)?
   cmpl vR, vR
   #cmpl $ONES, vR
   jz 1f
