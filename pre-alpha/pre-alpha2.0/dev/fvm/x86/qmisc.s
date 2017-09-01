@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170901+
-Version:    pre-alpha-0.0.0.23+ for FVM 2.0
+Updated:    20170902+
+Version:    pre-alpha-0.0.0.24+ for FVM 2.0
 =======
 
                               This Edition:
@@ -58,8 +58,8 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 0           # 0 = true,   1 = false
-.equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true,   1 = false
+.equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
+.equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
 .equiv x86_64, 1                    # 0 = x86-64, 1 = x86-32
 
 .equ WD_BYTES, 4
@@ -211,9 +211,9 @@ Or for convenience, build and run with:
 .endm
 .macro swap
 .ifeq x86_64
-  movl vA, %r8
-  movl %r8, vA
-  movl rSwap, vB
+  movl vA, %r8d
+  movl vB, vA
+  movl %r8d, vB
 .else
   xorl vA, vB
   xorl vB, vA
@@ -420,7 +420,7 @@ vm_illegal:
 vm_pre_init:
   do_init
 
-# For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
+# For native parent VM speed comparison (1.39 sec for 0x7fffffff nop repeats):
 #   (surprisingly, 'qmisc.c' takes 4 secs, so this is 3x faster)
 #   (i.e. parent VM is faster but child VM is slower than the C version)
 /*
@@ -913,10 +913,10 @@ program:
   flip
   br(si)
   i(iADD)
-  br(si)                                # (since improved to < 17 sec)
-  i(2) # Performance test (asm child did 0x7fffffff in about 30 sec)
-  flip  # 2 0x10000000 0x7fffffff  (= no weird gcc fu but was 1.5-3.0x slower)
-  br(si) #  (native asm parent does 0x7fffffff in 2.0 sec)
+  br(si)
+  i(0x10000000) # Performance test (asm child 0x7fffffff in 16.86 sec)
+  flip # 2 0x10000000 0x7fffffff (native asm parent 0x7fffffff in 1.39 sec)
+  br(si)  
   i(iFROMB)
   br(si)
   i(iTOR)
