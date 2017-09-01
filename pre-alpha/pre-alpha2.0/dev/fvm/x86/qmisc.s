@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170901+
-Version:    pre-alpha-0.0.0.22+ for FVM 2.0
+Version:    pre-alpha-0.0.0.23+ for FVM 2.0
 =======
 
                               This Edition:
@@ -133,14 +133,17 @@ Or for convenience, build and run with:
 .endif
   xorl rD, rD
 .endm
+# ============================================================================
+#                            INSTRUCTION SET
+# ============================================================================
 # ------------------------ New Instructions ----------------------------------
-.macro i_bsav
-  movl vB, data_memory(,rD,WD_BYTES)
-.endm
-.macro i_asav
+.macro asav
   movl vA, data_memory(,rD,WD_BYTES)
 .endm
-.macro i_copy
+.macro bsav
+  movl vB, data_memory(,rD,WD_BYTES)
+.endm
+.macro copy
   movl vB, rD
   andl $DM_MASK, rD
   movl data_memory(,rD,WD_BYTES), vB
@@ -148,62 +151,62 @@ Or for convenience, build and run with:
   andl $DM_MASK, rD
   movl vB, data_memory(,rD,WD_BYTES)
 .endm
-.macro i_jmpb label
+.macro jmpb label
   cmpl vB, vB # experimentally vB!
   jnz 1f
     jmp \label
   1:
 .endm
 # ------------------------ Nice Lean Instructions ----------------------------
-.macro i_imm x # Assume compile-time check limits x to 31 bits
+.macro i x # Assume compile-time check limits x to 31 bits
   movl $\x, vB    # Idea: 16-bit... leverage?
 .endm
-.macro i_add
+.macro add
   addl vB, vA
 .endm
-.macro i_sub
+.macro sub
   subl vB, vA
 .endm
-.macro i_or
+.macro or
   orl vB, vA
 .endm
-.macro i_and
+.macro and
   andl vB, vA
 .endm
-.macro i_xor
+.macro xor
   xorl vB, vA
 .endm
-.macro i_shl
+.macro shl
   shll rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
-.macro i_shr
+.macro shr
   shrl rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
-.macro i_get
+.macro get
   movl vB, rD
   andl $DM_MASK, rD
   movl data_memory(,rD,WD_BYTES), vA
 .endm
-.macro i_put
+.macro put
   movl vB, rD
   andl $DM_MASK, rD
   movl vA, data_memory(,rD,WD_BYTES)
 .endm
-.macro i_at
+.macro at
   movl vB, rD
   andl $DM_MASK, rD
   movl data_memory(,rD,WD_BYTES), vB
 .endm
-.macro i_inc
+.macro inc
   incl vB
 .endm
-.macro i_dec
+.macro dec
   decl vB
 .endm
-.macro i_flip
+.macro flip
   xorl $MSb, vB
 .endm
-.macro i_swap
+.macro swap
 .ifeq x86_64
   movl vA, %r8
   movl %r8, vA
@@ -214,44 +217,44 @@ Or for convenience, build and run with:
   xorl vA, vB
 .endif
 .endm
-.macro i_tob
+.macro tob
   movl vA, vB
 .endm
-.macro i_tot
+.macro tot
   movl vA, vT
 .endm
-.macro i_tor
+.macro tor
   movl vA, vR
 .endm
-.macro i_fromb
+.macro fromb
   movl vB, vA
 .endm
-.macro i_fromt
+.macro fromt
   movl vT, vA
 .endm
-.macro i_fromr
+.macro fromr
   movl vR, vA
 .endm
-.macro i_mdm
+.macro mdm
   movl $DM_WORDS, vA
 .endm
-.macro i_noop
+.macro noop
   nop
 .endm
-.macro i_halt
+.macro halt
   andl $BYTE_MASK, vA # Reconsider
   do_exit vA
 .endm
-.macro i_jump label
+.macro jump label
   jmp \label
 .endm
-.macro i_jmpe label
+.macro jmpe label
   cmpl vB, vA
   jne 1f
     jmp \label
   1:
 .endm
-.macro i_br label
+.macro br label
 .ifeq x86_64
   leaq 1f, vL
 .else
@@ -260,12 +263,11 @@ Or for convenience, build and run with:
   jmp \label
   1:
 .endm
-.macro i_link label
+.macro link label
   jmp *vL
 .endm
-.macro i_rpt label
-  #cmpl vR, vR
-  cmpl $ONES, vR
+.macro rpt label
+  cmpl $0, vR
   jz 1f
   decl vR
   jmp \label
@@ -287,98 +289,9 @@ Or for convenience, build and run with:
   space: .asciz " "
 .endif
 # ============================================================================
-#                            INSTRUCTION SET
-# ============================================================================
-.macro add
-  i_add
-.endm
-.macro sub
-  i_sub
-.endm
-.macro or
-  i_or
-.endm
-.macro and
-  i_and
-.endm
-.macro xor
-  i_xor
-.endm
-.macro shl
-  i_shl
-.endm
-.macro shr
-  i_shr
-.endm
-.macro get
-  i_get
-.endm
-.macro put
-  i_put
-.endm
-.macro at
- i_at
-.endm
-.macro inc
-  i_inc
-.endm
-.macro dec
-  i_dec
-.endm
-.macro i x
-  i_imm \x
-.endm
-.macro flip
-  i_flip
-.endm
-.macro swap
-  i_swap
-.endm
-.macro tob
-  i_tob
-.endm
-.macro tor
-  i_tor
-.endm
-.macro tot
-  i_tot
-.endm
-.macro fromb
-  i_fromb
-.endm
-.macro fromt
-  i_fromt
-.endm
-.macro fromr
-  i_fromr
-.endm
-.macro mdm
-  i_mdm
-.endm
-.macro noop
-  i_noop
-.endm
-.macro halt
-  i_halt
-.endm
-.macro jmpe label
-  i_jmpe \label
-.endm
-.macro jump label
-  i_jump \label
-.endm
-.macro rpt label
-  i_rpt \label
-.endm
-.macro br label
-  i_br \label
-.endm
-.macro link
-  i_link
-.endm
-# ============================================================================
 .section .bss #                  VARIABLES
 # ============================================================================
+saved_word: .lcomm sw, WD_BYTES
 data_memory: .lcomm dm, DM_BYTES
 # ============================================================================
 #                                 TRACING
@@ -424,10 +337,12 @@ data_memory: .lcomm dm, DM_BYTES
   .endm
 
   .macro PUSH_DM_VAL dm_addr
-    movl $\dm_addr, rD # FIXME remove rD use here
+    movl rD, $sw # TODO check this
+    movl $\dm_addr, rD
     andl $DM_MASK, rD
     movl data_memory(,rD,WD_BYTES), rD
     pushl rD
+    movl sw, rD # TODO check this
   .endm
 .endif
 # ============================================================================
@@ -460,6 +375,9 @@ vm_illegal:
 .equ iGET,  0x10000000
 .equ iPUT,  0x11000000
 .equ iAT,   0x12000000
+.equ iASAV, 0x13000000
+.equ iBSAV, 0x14000000
+.equ iCOPY, 0x15000000
 .equ iINC,  0x20000000
 .equ iDEC,  0x21000000
 .equ iFLIP, 0x22000000
@@ -480,6 +398,7 @@ vm_illegal:
 .equ COMPLEX_MASK,0x40000000
 
 .equ iJMPE, 0x41000000
+.equ iJMPB, 0x42000000
 .equ iJUMP, 0x46000000
 .equ iRPT,  0x50000000
 .equ iBR,   0x61000000
