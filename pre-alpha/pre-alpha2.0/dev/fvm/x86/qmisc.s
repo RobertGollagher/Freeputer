@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170830+
-Version:    pre-alpha-0.0.0.20 for FVM 2.0
+Updated:    20170901+
+Version:    pre-alpha-0.0.0.22+ for FVM 2.0
 =======
 
                               This Edition:
@@ -85,7 +85,7 @@ Or for convenience, build and run with:
 .else
   .equ vL, %edi; # link register (not accessible)
 .endif
-.equ rSwap, %ebx; # swap register (not accessible) (sometimes reused here)
+.equ rD, %ebx; # address register (not accessible, results from masking)
 .equ rShift, %cl; # register used for shift magnitude (not accessible)
 # ============================================================================
 #                                IMPORTS
@@ -131,41 +131,29 @@ Or for convenience, build and run with:
 .else
   xorl vL, vL
 .endif
-  xorl rSwap, rSwap
+  xorl rD, rD
 .endm
-# ------------------------ Suspect Instructions ------------------------------
-.macro i_get
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl data_memory(,rSwap,WD_BYTES), vA
+# ------------------------ New Instructions ----------------------------------
+.macro i_bsav
+  movl vB, data_memory(,rD,WD_BYTES)
 .endm
-.macro i_put
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl vA, data_memory(,rSwap,WD_BYTES)
+.macro i_asav
+  movl vA, data_memory(,rD,WD_BYTES)
 .endm
-.macro i_at
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  movl data_memory(,rSwap,WD_BYTES), vB
+.macro i_copy
+  movl vB, rD
+  andl $DM_MASK, rD
+  movl data_memory(,rD,WD_BYTES), vB
+  addl vA, rD
+  andl $DM_MASK, rD
+  movl vB, data_memory(,rD,WD_BYTES)
 .endm
-
-
-
-# Experimental (note: all masking is a code smell?)
-.macro i_incm
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  incl data_memory(,rSwap,WD_BYTES)
+.macro i_jmpb label
+  cmpl vB, vB # experimentally vB!
+  jnz 1f
+    jmp \label
+  1:
 .endm
-.macro i_decm
-  movl vB, rSwap
-  andl $DM_MASK, rSwap
-  decl data_memory(,rSwap,WD_BYTES)
-.endm
-
-
-
 # ------------------------ Nice Lean Instructions ----------------------------
 .macro i_imm x # Assume compile-time check limits x to 31 bits
   movl $\x, vB    # Idea: 16-bit... leverage?
@@ -191,6 +179,21 @@ Or for convenience, build and run with:
 .macro i_shr
   shrl rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
+.macro i_get
+  movl vB, rD
+  andl $DM_MASK, rD
+  movl data_memory(,rD,WD_BYTES), vA
+.endm
+.macro i_put
+  movl vB, rD
+  andl $DM_MASK, rD
+  movl vA, data_memory(,rD,WD_BYTES)
+.endm
+.macro i_at
+  movl vB, rD
+  andl $DM_MASK, rD
+  movl data_memory(,rD,WD_BYTES), vB
+.endm
 .macro i_inc
   incl vB
 .endm
@@ -199,6 +202,17 @@ Or for convenience, build and run with:
 .endm
 .macro i_flip
   xorl $MSb, vB
+.endm
+.macro i_swap
+.ifeq x86_64
+  movl vA, %r8
+  movl %r8, vA
+  movl rSwap, vB
+.else
+  xorl vA, vB
+  xorl vB, vA
+  xorl vA, vB
+.endif
 .endm
 .macro i_tob
   movl vA, vB
@@ -228,24 +242,12 @@ Or for convenience, build and run with:
   andl $BYTE_MASK, vA # Reconsider
   do_exit vA
 .endm
-# ----------------------------------------------------------------------------
-.macro i_swap # Borderline but justifiable
-  movl vA, rSwap
-  movl vB, vA
-  movl rSwap, vB
-.endm
 .macro i_jump label
   jmp \label
 .endm
 .macro i_jmpe label
   cmpl vB, vA
   jne 1f
-    jmp \label
-  1:
-.endm
-.macro i_jmpz label # Two conditionals justifiable?
-  cmpl vA, vA
-  jnz 1f
     jmp \label
   1:
 .endm
@@ -261,19 +263,12 @@ Or for convenience, build and run with:
 .macro i_link label
   jmp *vL
 .endm
-# Changed
-.macro i_rpt label # Is this actually fast anyway (when virtualized)?
-  cmpl vR, vR
-  #cmpl $ONES, vR
+.macro i_rpt label
+  #cmpl vR, vR
+  cmpl $ONES, vR
   jz 1f
   decl vR
-.ifeq x86_64
-  leaq \label, %r8
-  jmp *%r8
-.else
-  leal \label, rSwap
-  jmp *rSwap
-.endif
+  jmp \label
   1:
 .endm
 # ----------------------------------------------------------------------------
@@ -429,10 +424,10 @@ data_memory: .lcomm dm, DM_BYTES
   .endm
 
   .macro PUSH_DM_VAL dm_addr
-    movl $\dm_addr, rSwap
-    andl $DM_MASK, rSwap
-    movl data_memory(,rSwap,WD_BYTES), rSwap
-    pushl rSwap
+    movl $\dm_addr, rD # FIXME remove rD use here
+    andl $DM_MASK, rD
+    movl data_memory(,rD,WD_BYTES), rD
+    pushl rD
   .endm
 .endif
 # ============================================================================
@@ -506,7 +501,7 @@ vm_pre_init:
 # For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
 #   (surprisingly, 'qmisc.c' takes 4 secs, so this is 3x faster)
 #   (i.e. parent VM is faster but child VM is slower than the C version)
-/*i(0x7fffffff)
+i(0x7fffffff)
 fromb
 tor
 foo:
@@ -516,7 +511,7 @@ foo:
   noop
   rpt foo
 jmp vm_success
-*/
+
 
 jmp vm_success # Short-circuit for now while simplifying instr set
 
