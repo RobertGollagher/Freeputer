@@ -58,8 +58,8 @@ Or for convenience, build and run with:
 # ============================================================================
 #                                SYMBOLS
 # ============================================================================
-.equiv TRACING_ENABLED, 1           # 0 = true,   1 = false
-.equiv LINKING_WITH_LD_ON_LINUX, 0  # 0 = true,   1 = false
+.equiv TRACING_ENABLED, 0           # 0 = true,   1 = false
+.equiv LINKING_WITH_LD_ON_LINUX, 1  # 0 = true,   1 = false
 .equiv x86_64, 1                    # 0 = x86-64, 1 = x86-32
 
 .equ WD_BYTES, 4
@@ -152,7 +152,7 @@ Or for convenience, build and run with:
   movl vB, data_memory(,rD,WD_BYTES)
 .endm
 .macro jmpb label
-  cmpl vB, vB # experimentally vB!
+  cmpl $0, vB
   jnz 1f
     jmp \label
   1:
@@ -182,21 +182,24 @@ Or for convenience, build and run with:
 .macro shr
   shrl rShift, vA # Requires vB and rShift to be based on %ecx
 .endm
+
+
+# Experimentally these now cause vB to change
 .macro get
-  movl vB, rD
-  andl $DM_MASK, rD
-  movl data_memory(,rD,WD_BYTES), vA
+  andl $DM_MASK, vB
+  movl data_memory(,vB,WD_BYTES), vA
 .endm
 .macro put
-  movl vB, rD
-  andl $DM_MASK, rD
-  movl vA, data_memory(,rD,WD_BYTES)
+  andl $DM_MASK, vB
+  movl vA, data_memory(,vB,WD_BYTES)
 .endm
 .macro at
-  movl vB, rD
-  andl $DM_MASK, rD
-  movl data_memory(,rD,WD_BYTES), vB
+  andl $DM_MASK, vB
+  movl vB, rD # only at changes vD (not get, put)
+  movl data_memory(,vB,WD_BYTES), vB
 .endm
+
+
 .macro inc
   incl vB
 .endm
@@ -337,12 +340,12 @@ data_memory: .lcomm dm, DM_BYTES
   .endm
 
   .macro PUSH_DM_VAL dm_addr
-    movl rD, $sw # TODO check this
+    movl rD, saved_word; # TODO check this
     movl $\dm_addr, rD
     andl $DM_MASK, rD
     movl data_memory(,rD,WD_BYTES), rD
     pushl rD
-    movl sw, rD # TODO check this
+    movl saved_word, rD # TODO check this
   .endm
 .endif
 # ============================================================================
@@ -420,6 +423,7 @@ vm_pre_init:
 # For native parent VM speed comparison (1.4 secs for 0x7fffffff nop repeats):
 #   (surprisingly, 'qmisc.c' takes 4 secs, so this is 3x faster)
 #   (i.e. parent VM is faster but child VM is slower than the C version)
+/*
 i(0x7fffffff)
 fromb
 tor
@@ -430,9 +434,7 @@ foo:
   noop
   rpt foo
 jmp vm_success
-
-
-jmp vm_success # Short-circuit for now while simplifying instr set
+*/
 
 # ---------------------------------------------------------------------------
 .equ vm_DM_WORDS, DM_WORDS
@@ -448,6 +450,7 @@ jmp vm_success # Short-circuit for now while simplifying instr set
 .equ v_vL, v_vB + 1
 .equ v_vT, v_vL + 1
 .equ v_vR, v_vT + 1
+.equ v_rD, v_vR + 1
 .equ OPCODE_MASK,   0xff000000
 .equ CELL_MASK,     0x00ffffff
 # ---------------------------------------------------------------------------
@@ -487,9 +490,9 @@ nexti:
   i(v_vZ)
   at
   get
+  tot
   inc
   bsav
-  tot
 
 .ifeq TRACING_ENABLED
   TRACE_CHILD_PartA # needs correction
@@ -513,6 +516,17 @@ nexti:
   i(COMPLEX_MASK)
   and
   jmpe(v_complex_instrs)
+
+
+  fromt
+
+      i(iASAV)
+        jmpe(v_Asav)
+      i(iBSAV)
+        jmpe(v_Bsav)
+      i(iCOPY)
+        jmpe(v_Copy)
+
 
       i(iADD)
         jmpe(v_Add)
@@ -562,6 +576,12 @@ nexti:
     v_complex_instrs:
       i(iJMPE)
         jmpe(v_Jmpe)
+
+
+      i(iJMPB)
+        jmpe(v_Jmpb)
+
+
       i(iJUMP)
         jmpe(v_Jump)
       i(iBR)
@@ -570,6 +590,46 @@ nexti:
     i(ILLEGAL)
       fromb
       halt
+
+
+
+# ---------------------------------------------------------------------------
+v_Asav:
+  # FIXME incorrect algorithm
+  i(v_vA)
+  get
+  i(v_rD)
+  at
+  put
+  jump(nexti)
+# ---------------------------------------------------------------------------
+v_Bsav:
+  # FIXME incorrect algorithm
+  i(v_vB)
+  get
+  i(v_rD)
+  at
+  put
+  jump(nexti)
+# ---------------------------------------------------------------------------
+v_Copy:
+  # FIXME algorithm not implemented yet
+  jump(nexti)
+# ---------------------------------------------------------------------------
+v_Jmpb:
+  # FIXME incorrect algorithm
+  i(v_vA)
+  get
+  jmpb(v_Jmpe_do)
+    jump(nexti)
+  v_Jmpb_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 v_Add: # Would 24-bit space make this any faster?
   i(v_vA)
@@ -854,7 +914,7 @@ program:
   br(si)
   i(iADD)
   br(si)                                # (since improved to < 17 sec)
-  i(0x10000000) # Performance test (asm child did 0x7fffffff in about 30 sec)
+  i(2) # Performance test (asm child did 0x7fffffff in about 30 sec)
   flip  # 2 0x10000000 0x7fffffff  (= no weird gcc fu but was 1.5-3.0x slower)
   br(si) #  (native asm parent does 0x7fffffff in 2.0 sec)
   i(iFROMB)
