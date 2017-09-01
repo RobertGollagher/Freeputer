@@ -476,7 +476,6 @@ jmp vm_success # Short-circuit for now while simplifying instr set
   .endm
 .endif
 # ---------------------------------------------------------------------------
-/* // Commented out self-virtualization for now, while simplify instr set
 vm_init:
   br(assertParentSize)
   br(setupToClearParent)
@@ -486,7 +485,10 @@ vm_init:
 # Process next instruction (not optimized yet)
 nexti:
   i(v_vZ)
-  XP_pop
+  at
+  get
+  inc
+  bsav
   tot
 
 .ifeq TRACING_ENABLED
@@ -494,16 +496,23 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
-  XP_jmpm(v_Imm) # Advantage: doesn't alter vA
-  XP_upr
+  i(MSb)
+  and
+  jmpe(v_Imm)
+
+  fromt
+  i(OPCODE_MASK)
+  and
 
       i(iNOOP)
         jmpe(v_Noop)
       i(iRPT)
         jmpe(v_Rpt)
 
+  fromt
   i(COMPLEX_MASK)
-  XP_jmpanz(v_complex_instrs) # Advantage: doesn't alter vA
+  and
+  jmpe(v_complex_instrs)
 
       i(iADD)
         jmpe(v_Add)
@@ -777,14 +786,16 @@ v_Jmpe:
     jump(nexti)
   v_Jmpe_do:
     fromt
-    XP_lwr
+    i(CELL_MASK)
+    and
     i(v_vZ)
     put
     jump(nexti)
 # ---------------------------------------------------------------------------
 v_Jump:
     fromt
-    XP_lwr
+    i(CELL_MASK)
+    and
     i(v_vZ)
     put
     jump(nexti)
@@ -795,7 +806,8 @@ v_Br:
     i(v_vL)
     put
     fromt
-    XP_lwr
+    i(CELL_MASK)
+    and
     i(v_vZ)
     put
     jump(nexti)
@@ -809,10 +821,13 @@ v_Link:
 # ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  XP_postdec
-  XP_jmpz(v_Repeat_end)
+  at
+  jmpb(v_Repeat_end)
+    dec
+    bsav
     fromt
-    XP_lwr
+    i(CELL_MASK)
+    and
     i(v_vZ)
     put
   v_Repeat_end:
@@ -892,7 +907,6 @@ assertParentSize:
     halt
   assertedParentSize:
     link
-*/
 # ---------------------------------------------------------------------------
 # end of exampleProgram
 # ===========================================================================
