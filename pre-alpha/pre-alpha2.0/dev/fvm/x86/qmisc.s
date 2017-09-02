@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170902+
-Version:    pre-alpha-0.0.0.26+ for FVM 2.0
+Updated:    20170903+
+Version:    pre-alpha-0.0.0.27+ for FVM 2.0
 
                               This Edition:
                      x86 Assembly Language for Linux
@@ -60,10 +60,10 @@ and set the build flag x86_64 to YES to build for x86-64.
 # ============================================================================
 .equ YES, 0
 .equ NO, 1
-.equ TRACING_ENABLED, NO
+.equ TRACING_ENABLED, YES
 .equ LINKING_WITH_LD_ON_LINUX, NO
 .equ x86_64, NO
-.equ NO_PROGRAM, YES
+.equ NO_PROGRAM, NO
 # ============================================================================
 #                               CONSTANTS
 # ============================================================================
@@ -253,9 +253,7 @@ and set the build flag x86_64 to YES to build for x86-64.
   .extern printf
 
   .ifeq x86_64
-    # x86-64: not fully tested and might not be entirely correct
-    pntfmt: .asciz "\nvA:%08x vB:%08x vT:%08x vR:%08x vD:%08x vL:%016x"
-    .macro TRACE_INSTR
+    .macro SAVE_REGS
       # Save physical CPU registers
       pushq %rax
       pushq %rbx
@@ -265,6 +263,22 @@ and set the build flag x86_64 to YES to build for x86-64.
       pushq %rdi
       pushq %r8
       pushq %r9
+    .endm
+    .macro RESTORE_REGS
+      # Restore physical CPU registers
+      popq %r9
+      popq %r8
+      popq %rdi
+      popq %rsi
+      popq %rdx
+      popq %rcx
+      popq %rbx
+      popq %rax
+    .endm
+    # x86-64: not fully tested and might not be entirely correct
+    pntfmt: .asciz "\nvA:%08x vB:%08x vT:%08x vR:%08x vD:%08x vL:%016x"
+    .macro TRACE_INSTR
+      SAVE_REGS
       # Some juggling to prepare to supply printf arguments
       pushq %rdi # vL (this will be popped by printf)
       pushq %rbx # vD (this will be read from %r9  by printf)
@@ -282,21 +296,21 @@ and set the build flag x86_64 to YES to build for x86-64.
       popq %r9  # arg6 in %r9  = vD from %ebx
       call printf
       addq $8, %rsp # only need to adjust for pushq %rdi # vL
-      # Restore physical CPU registers
-      popq %r9
-      popq %r8
-      popq %rdi
-      popq %rsi
-      popq %rdx
-      popq %rcx
-      popq %rbx
-      popq %rax
+      RESTORE_REGS
     .endm
   .else
+    .macro SAVE_REGS
+      # Save physical CPU registers
+      pushal
+    .endm
+    .macro RESTORE_REGS
+      # Restore physical CPU registers
+      popal
+    .endm
     # x86-32: appears to be ok
     pntfmt: .asciz "\nvA:%08x vB:%08x vT:%08x vR:%08x vD:%08x vL:%08x"
     .macro TRACE_INSTR
-      pushal
+      SAVE_REGS
       pushl vL
       pushl vD
       pushl vR
@@ -306,7 +320,7 @@ and set the build flag x86_64 to YES to build for x86-64.
       pushl $pntfmt
       call printf
       addl $28, %esp
-      popal
+      RESTORE_REGS
     .endm
   .endif
 
@@ -326,9 +340,6 @@ data_memory: .lcomm dm, DM_BYTES
 #                              VM EXIT POINTS
 # ============================================================================
 .macro do_exit reg_vA
-  .ifeq TRACING_ENABLED
-    TRACE_INSTR
-  .endif
   .ifeq LINKING_WITH_LD_ON_LINUX
     movl \reg_vA, %ebx          # Exit code (status)
     movl $0x1, %eax             # Linux call ID for exit
