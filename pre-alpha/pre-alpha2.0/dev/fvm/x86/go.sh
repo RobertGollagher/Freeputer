@@ -1,2 +1,2 @@
 #! /bin/bash
-./build.sh && time ./qmisc ; echo $?
+./build.sh $1 && time ./$1 ; echo $?
