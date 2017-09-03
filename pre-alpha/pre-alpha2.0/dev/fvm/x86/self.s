@@ -6,7 +6,7 @@ Program:    self.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170903
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.3+ for FVM 2.0
+Version:    pre-alpha-0.0.0.4+ for FVM 2.0
 
 This is a FW32 QMISC self-virtualization of the 'qmisc.s' virtual machine.
 That is, it virtualizes the VM within itself using its own instructions.
@@ -65,6 +65,8 @@ jmp vm_init
 .equ iJUMP, 0x46000000
 .equ iRPT,  0x50000000
 .equ iBR,   0x61000000
+.equ iIN,   0x71000000
+.equ iOUT,  0x72000000
 # Above 0x40000000 = complex
 .equ COMPLEX_MASK,0x40000000
 
@@ -229,14 +231,14 @@ nexti:
         jmpe(v_Halt)
 
     v_complex_instrs:
+      i(iIN)
+        jmpe(v_In)
+      i(iOUT)
+        jmpe(v_Out)
       i(iJMPE)
         jmpe(v_Jmpe)
-
-
       i(iJMPB)
         jmpe(v_Jmpb)
-
-
       i(iJUMP)
         jmpe(v_Jump)
       i(iBR)
@@ -352,6 +354,32 @@ v_Shr:
   i(v_vA)
   put
   jump(nexti)
+# ---------------------------------------------------------------------------
+v_In:
+  in(failedIn)
+    i(v_vA)
+    put
+    jump(nexti)
+  failedIn:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+# ---------------------------------------------------------------------------
+v_Out:
+  i(v_vA)
+  get
+  out (failedOut)
+    jump(nexti)
+  failedOut:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
 # ---------------------------------------------------------------------------
 v_Get:
   i(v_vB)
@@ -556,6 +584,18 @@ v_Halt:
 program:
   i(0)
   fromb
+
+/* Testing I/O */
+  i(iIN|3)
+  br(si)
+  i(iOUT|3)
+  br(si)
+  i(iHALT)
+  br(si)
+  i(iHALT) # This is instruction 3 in this program.
+  br(si)
+
+/* Testing rpt
   i(3)
   set
   br(si)
@@ -579,6 +619,7 @@ program:
   br(si)
   i(iHALT)
   br(si)
+*/
   jump(nexti)
 # ---------------------------------------------------------------------------
 # Store instruction to child's program memory
