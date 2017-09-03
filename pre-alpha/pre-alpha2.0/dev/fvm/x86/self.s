@@ -6,7 +6,7 @@ Program:    self.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170903
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.2+ for FVM 2.0
+Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
 This is a FW32 QMISC self-virtualization of the 'qmisc.s' virtual machine.
 That is, it virtualizes the VM within itself using its own instructions.
@@ -61,6 +61,7 @@ jmp vm_init
 # Below 0x40000000 = simple
 .equ iJMPE, 0x41000000
 .equ iJMPB, 0x42000000
+.equ iJMPM, 0x43000000
 .equ iJUMP, 0x46000000
 .equ iRPT,  0x50000000
 .equ iBR,   0x61000000
@@ -147,12 +148,8 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
-  i(0)
-  flip
-  and
-  jmpe(v_Imm)
+  jmpm(v_Imm)
 
-  fromt
   i(OPCODE_MASK)
   and
 
@@ -270,6 +267,19 @@ v_Jmpb:
   jmpb(v_Jmpe_do)
     jump(nexti)
   v_Jmpb_do:
+    fromt
+    i(CELL_MASK)
+    and
+    i(v_vZ)
+    put
+    jump(nexti)
+# ---------------------------------------------------------------------------
+v_Jmpm:
+  i(v_vA)
+  get
+  jmpm(v_Jmpm_do)
+    jump(nexti)
+  v_Jmpm_do:
     fromt
     i(CELL_MASK)
     and
@@ -560,7 +570,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2) # Performance test (asm child 0x7fffffff in ____ sec)
+  i(2) # Performance test (asm child 0x7fffffff in 18.3 sec)
   flip # 2 0x10000000 0x7fffffff (native asm parent 0x7fffffff in 1.39 sec)
   br(si)
   i(iFROMB)

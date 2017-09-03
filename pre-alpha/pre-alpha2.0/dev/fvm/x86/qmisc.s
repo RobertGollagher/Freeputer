@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.27+ for FVM 2.0
+Version:    pre-alpha-0.0.0.28+ for FVM 2.0
 
                               This Edition:
                      x86 Assembly Language for Linux
@@ -209,6 +209,16 @@ and set the build flag x86_64 to YES to build for x86-64.
 .endm
 .macro jump label
   jmp \label
+.endm
+.macro jmpm label
+  pushl vB
+  movl $MSb, vB # causes vB to change
+  andl vA, vB   # causes vB to change
+  jz 1f
+    popl vB
+    jmp \label
+  1:
+  popl vB
 .endm
 .macro jmpe label
   cmpl vB, vA
