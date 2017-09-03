@@ -9,13 +9,20 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.28+ for FVM 2.0
+Version:    pre-alpha-0.0.0.29+ for FVM 2.0
 
                               This Edition:
                      x86 Assembly Language for Linux
                            using GNU Assembler
 
                                ( ) [ ] { }
+
+TODO NEXT:
+
+  1. Consider if 31-bit immediates is a smell and just make them 32.
+  2. Consider I/O.
+  3. Then implement for ARM (important POC).
+  4. Then fix self-virtualization.
 
 ==============================================================================
                             BUILDING FOR i386
@@ -108,7 +115,7 @@ and set the build flag x86_64 to YES to build for x86-64.
 #                            INSTRUCTION SET
 # ============================================================================
 .macro i x
-  movl $\x, vB    # Idea: 16-bit... leverage?
+  movl $\x, vB
   andl $METADATA_MASK, vB
 .endm
 .macro add
@@ -165,8 +172,8 @@ and set the build flag x86_64 to YES to build for x86-64.
 .macro dec
   decl vB
 .endm
-.macro flip
-  xorl $MSb, vB
+.macro set
+  orl $MSb, vB
 .endm
 .macro swap
 .ifeq x86_64
@@ -209,16 +216,6 @@ and set the build flag x86_64 to YES to build for x86-64.
 .endm
 .macro jump label
   jmp \label
-.endm
-.macro jmpm label
-  pushl vB
-  movl $MSb, vB # causes vB to change
-  andl vA, vB   # causes vB to change
-  jz 1f
-    popl vB
-    jmp \label
-  1:
-  popl vB
 .endm
 .macro jmpe label
   cmpl vB, vA

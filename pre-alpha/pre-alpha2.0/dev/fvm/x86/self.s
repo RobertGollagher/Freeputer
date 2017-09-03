@@ -47,7 +47,7 @@ jmp vm_init
 .equ iCOPY, 0x15000000
 .equ iINC,  0x20000000
 .equ iDEC,  0x21000000
-.equ iFLIP, 0x22000000
+.equ iSET,  0x22000000
 .equ iSWAP, 0x23000000
 .equ iTOB,  0x30000000
 .equ iTOR,  0x31000000
@@ -148,7 +148,16 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
+/*
   jmpm(v_Imm)
+*/
+
+  tob
+  set
+  jmpe(v_Imm)
+
+
+
 
   i(OPCODE_MASK)
   and
@@ -267,19 +276,6 @@ v_Jmpb:
   jmpb(v_Jmpe_do)
     jump(nexti)
   v_Jmpb_do:
-    fromt
-    i(CELL_MASK)
-    and
-    i(v_vZ)
-    put
-    jump(nexti)
-# ---------------------------------------------------------------------------
-v_Jmpm:
-  i(v_vA)
-  get
-  jmpm(v_Jmpm_do)
-    jump(nexti)
-  v_Jmpm_do:
     fromt
     i(CELL_MASK)
     and
@@ -417,16 +413,16 @@ v_Dec:
 v_Imm:
   fromt
   i(0)
-  flip
+  set
   xor
   i(v_vB)
   put
   jump(nexti)
 # ---------------------------------------------------------------------------
-v_Flip:
+v_Set:
   i(v_vB)
   at
-  flip
+  set
   i(v_vB)
   put
   jump(nexti)
@@ -561,17 +557,17 @@ program:
   i(0)
   fromb
   i(3)
-  flip
+  set
   br(si)
   i(iADD)
   br(si)
   i(5)
-  flip
+  set
   br(si)
   i(iADD)
   br(si)
   i(2) # Performance test (asm child 0x7fffffff in 18.3 sec)
-  flip # 2 0x10000000 0x7fffffff (native asm parent 0x7fffffff in 1.39 sec)
+  set  # 2 0x10000000 0x7fffffff (native asm parent 0x7fffffff in 1.39 sec)
   br(si)
   i(iFROMB)
   br(si)
