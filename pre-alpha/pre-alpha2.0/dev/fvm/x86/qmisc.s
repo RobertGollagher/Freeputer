@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.30+ for FVM 2.0
+Version:    pre-alpha-0.0.0.32+ for FVM 2.0
 
                               This Edition:
                      x86 Assembly Language for Linux
@@ -19,7 +19,6 @@ Version:    pre-alpha-0.0.0.30+ for FVM 2.0
 
 TODO NEXT:
 
-  2. Consider I/O.
   3. Then implement for ARM (important POC).
   4. Then fix self-virtualization.
 
@@ -67,7 +66,7 @@ and set the build flag x86_64 to YES to build for x86-64.
 .equ YES, 0
 .equ NO, 1
 .equ TRACING_ENABLED, NO
-.equ LINKING_WITH_LD_ON_LINUX, YES
+.equ LINKING_WITH_LD_ON_LINUX, NO
 .equ x86_64, NO
 .equ NO_PROGRAM, NO
 # ============================================================================
@@ -138,35 +137,41 @@ and set the build flag x86_64 to YES to build for x86-64.
 .macro shr
   shrl rShift, vA
 .endm
-.macro in failureLabel # FIXME this is specific to i386 Linux
-  pushl %ebx
-  pushl %ecx
-  pushl %edx
+.macro in failureLabel # FIXME no x86-64 support here yet when using LD
+  .ifeq LINKING_WITH_LD_ON_LINUX # (and also unread chars spill to terminal)
+    pushl %ebx
+    pushl %ecx
+    pushl %edx
 
-  xorl %ebx, %ebx
-  movl %ebx, readBuf            # Zero-fill the 1-word read buffer
-  movl $0x0, %ebx               # Linux file handle for stdin
-  movl $readBuf, %ecx           # Tiny input buffer
-  movl $WD_BYTES, %edx          # Read 1 word only (wd size in bytes)
-  movl $0x3, %eax               # Linux call ID for read
-  int $0x80                     # Linux interrupt for system call
-    testl %eax, %eax            # Unless error, is num of bytes read
-    js 1f                       # Read failed for some reason
-    jz 1f                       # Read returned zero bytes
-  movl readBuf, %eax
+    xorl %ebx, %ebx
+    movl %ebx, readBuf            # Zero-fill the 1-word read buffer
+    movl $0x0, %ebx               # Linux file handle for stdin
+    movl $readBuf, %ecx           # Tiny input buffer
+    movl $1, %edx                 # Read 1 byte only
+    movl $0x3, %eax               # Linux call ID for read
+    int $0x80                     # Linux interrupt for system call
+      testl %eax, %eax            # Unless error, is num of bytes read
+      js 1f                       # Read failed for some reason
+      jz 1f                       # Read returned zero bytes
+    movl readBuf, %eax
 
-  popl %edx
-  popl %ecx
-  popl %ebx
-  jmp 2f
-  1:
     popl %edx
     popl %ecx
     popl %ebx
-    jmp \failureLabel
-  2:
+    jmp 2f
+    1:
+      popl %edx
+      popl %ecx
+      popl %ebx
+      jmp \failureLabel
+    2:
+  .else # FIXME think about non-blocking here
+    .extern getchar
+    call getchar
+  .endif
 .endm
-.macro out failureLabel # FIXME this is specific to i386 Linux
+.macro out failureLabel # FIXME no x86-64 support here yet when using LD
+.ifeq LINKING_WITH_LD_ON_LINUX
   pushl %eax
   pushl %ebx
   pushl %ecx
@@ -174,7 +179,7 @@ and set the build flag x86_64 to YES to build for x86-64.
   movl $0x1, %ebx                 # Linux file handle for stdout
   movl %eax, writeBuf
   movl $writeBuf, %ecx            # Tiny output buffer
-  movl $WD_BYTES, %edx            # Write 1 word only (wd size in bytes)
+  movl $1, %edx                   # Write 1 byte only
   movl $0x4, %eax                 # Linux call ID for write
   int $0x80                       # Linux interrupt for system call
     testl %eax, %eax
@@ -190,6 +195,12 @@ and set the build flag x86_64 to YES to build for x86-64.
     popl %eax
     jmp \failureLabel
   2:
+.else
+  .extern putchar
+  pushl vA
+  call putchar
+  addl $4, %esp
+.endif
 .endm
 .macro get
   andl $DM_MASK, vB
@@ -465,13 +476,3 @@ vm_pre_init:
 .ifeq NO_PROGRAM
   jmp vm_success
 .endif
-
-# Testing I/O
-in failed
-
-/*i(65)
-fromb*/
-out failed
-jmp vm_success
-failed:
-  jmp vm_failure

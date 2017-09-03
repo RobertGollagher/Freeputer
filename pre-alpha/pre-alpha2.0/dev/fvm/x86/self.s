@@ -6,7 +6,7 @@ Program:    self.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170903
 Updated:    20170903+
-Version:    pre-alpha-0.0.0.4+ for FVM 2.0
+Version:    pre-alpha-0.0.0.5+ for FVM 2.0
 
 This is a FW32 QMISC self-virtualization of the 'qmisc.s' virtual machine.
 That is, it virtualizes the VM within itself using its own instructions.
@@ -150,16 +150,9 @@ nexti:
   TRACE_CHILD_PartB
 .endif
 
-/*
-  jmpm(v_Imm)
-*/
-
   tob
   set
   jmpe(v_Imm)
-
-
-
 
   i(OPCODE_MASK)
   and
@@ -231,6 +224,11 @@ nexti:
         jmpe(v_Halt)
 
     v_complex_instrs:
+
+      fromt
+      i(OPCODE_MASK)
+      and
+
       i(iIN)
         jmpe(v_In)
       i(iOUT)
