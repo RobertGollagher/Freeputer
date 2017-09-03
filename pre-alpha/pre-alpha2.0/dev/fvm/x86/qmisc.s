@@ -10,6 +10,7 @@ Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170903+
 Version:    pre-alpha-0.0.0.32+ for FVM 2.0
+=======
 
                               This Edition:
                      x86 Assembly Language for Linux
