@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.4.0+ for FVM 2.0
+Version:    pre-alpha-0.0.4.1+ for FVM 2.0
 =======
 
                               This Edition:
@@ -106,9 +106,9 @@ void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization' by gcc
+void Noop()   { ; }
 #define halt return enbyte(vA);
-// Jumps (static only) (an interpreter would enforce a 24-bit program space)
+// Jumps (static only)
 #define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
 #define jump(label) goto label; // UNCONDITIONAL
 #define rpt(label) if ( vR != 0) { --vR; goto label; }
@@ -148,8 +148,6 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 // Current scheme is FW32 (poor density but simple, portable).
 // These could be better optimized by grouping (interpreter vs FPGA...).
 #define iNOOP   0x00000000 // not arbitrary, must be 0x00000000
-//#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
-
 // Below 0x40000000 = simple
 #define iADD   0x01000000
 #define iSUB   0x02000000
@@ -174,22 +172,17 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define iFROMB 0x33000000
 #define iFROMR 0x34000000
 #define iFROMT 0x35000000
-
 #define iMDM   0x36000000
 #define iLINK  0x37000000
-
 #define iHALT  0x3f000000
-
 // Above 0x40000000 = complex
 #define COMPLEX_MASK 0x40000000
-
 #define iJMPE  0x41000000
 #define iJUMP  0x46000000
 #define iRPT   0x50000000
 #define iBR    0x61000000
 #define iIN    0x71000000
 #define iOUT   0x72000000
-
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
