@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170909+
-Version:    pre-alpha-0.0.2.2+ for FVM 2.0
+Version:    pre-alpha-0.0.2.3+ for FVM 2.0
 =======
 
                               This Edition:
@@ -87,6 +87,7 @@ void Shr()    { vA>>=enshift(vB); }
 void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 void At()     { vB = dm[safe(vB)]; }
+void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
@@ -124,6 +125,7 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define get Get();
 #define put Put();
 #define at At();
+#define copy Copy();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -155,6 +157,7 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define iGET   0x10000000
 #define iPUT   0x11000000
 #define iAT    0x12000000
+#define iCOPY  0x13000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iFLIP  0x22000000
@@ -426,6 +429,26 @@ v_At:
   tob
   get
   i(v_vB)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Copy: // TODO Untested
+  i(v_vB)
+  get
+  i(v_MEM_MASK)
+  and
+  tob
+  get
+  tot // vT now has dm[safe(vB)]
+  i(v_vA)
+  get
+  i(v_vB)
+  at
+  add
+  i(v_MEM_MASK)
+  and
+  tob   // vB now contains safe(vB+vA)
+  fromt // vA now has dm[safe(vB)]
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
