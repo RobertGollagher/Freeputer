@@ -21,13 +21,15 @@ Version:    pre-alpha-0.0.3.0+ for FVM 2.0
 
   Removed most notes so as not to prejudice lateral thinking during design.
   This version is being experimentally reduced from 32- to 16-bit.
+  Actually this is no good unless different encoding scheme,
+  since otherwise program space limited to 10 bits / 2 kB!
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define TRACING_ENABLED // Comment out unless debugging
+#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -677,7 +679,7 @@ program:
   br(si)
   i(iADD) // 16-bit does 0x7fff in 0.03 sec.
   br(si) // Note: below comments were for when this was 32-bit:
-  i(0x7fff) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
   br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
   i(iFROMB)
