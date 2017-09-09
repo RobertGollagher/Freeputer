@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170909+
-Version:    pre-alpha-0.0.2.4+ for FVM 2.0
+Version:    pre-alpha-0.0.2.5+ for FVM 2.0
 =======
 
                               This Edition:
@@ -20,15 +20,6 @@ Version:    pre-alpha-0.0.2.4+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
-  Currently being simplified to not more than 64 kB of RAM data memory.
-
-  It appears the direction next should be:
-    1. Enforce 64 kB max.
-    2. Move from Harvard to Von Neumann architecture (unfortunately).
-
-    Comment: the above has now been done FOR THE CHILD ONLY.
-
-    3. Maybe or maybe not reduce from 32-bit to 16-bit.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -114,6 +105,9 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define rpt(label) if ( vR != 0) { --vR; goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
+// Basic I/O (experimental)
+#define in(label) vA = getchar(); // If fail goto label
+#define out(label) putchar(vA); // If fail goto label
 // ===========================================================================
 // Convenient macros to save typing
 #define add Add();
@@ -184,6 +178,8 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define iJUMP  0x46000000
 #define iRPT   0x50000000
 #define iBR    0x61000000
+#define iIN    0x71000000
+#define iOUT   0x72000000
 
 // ===========================================================================
 int main() {
@@ -329,6 +325,12 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Rpt)
       i(iBR)
         jmpe(v_Br)
+
+      i(iIN)
+        jmpe(v_In)
+      i(iOUT)
+        jmpe(v_Out)
+
 
     i(ILLEGAL)
       fromb
@@ -569,6 +571,18 @@ v_Mdm: // FIXME remove this
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
+v_In: // FIXME this is just straight pass-through here for now
+  in(0); // FIXME 0 should be a label
+  i(v_vA)
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_Out: // FIXME this is just straight pass-through here for now
+  i(v_vA)
+  get
+  out(0); // FIXME 0 should be a label
+  jump(nexti)
+// ---------------------------------------------------------------------------
 v_Noop:
   jump(nexti)
 // ---------------------------------------------------------------------------
@@ -640,6 +654,18 @@ v_Halt:
 program:
   i(0)
   fromb
+
+/* Testing I/O */
+  i(iIN|3)
+  br(si)
+  i(iOUT|3)
+  br(si)
+  i(iNOOP)
+  br(si)
+  i(iHALT) // This is instruction 3 in this program.
+  br(si)
+
+/* Testing rpt
   i(3)
   flip
   br(si)
@@ -663,6 +689,7 @@ program:
   br(si)
   i(iHALT)
   br(si)
+*/
   jump(nexti)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
