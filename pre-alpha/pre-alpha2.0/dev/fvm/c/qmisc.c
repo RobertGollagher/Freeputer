@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170909+
-Version:    pre-alpha-0.0.2.3+ for FVM 2.0
+Version:    pre-alpha-0.0.2.4+ for FVM 2.0
 =======
 
                               This Edition:
@@ -28,8 +28,7 @@ Version:    pre-alpha-0.0.2.3+ for FVM 2.0
 
     Comment: the above has now been done FOR THE CHILD ONLY.
 
-    3. Further simplify to more MISC-like and less RISC-like.
-    4. Maybe or maybe not reduce from 32-bit to 16-bit.
+    3. Maybe or maybe not reduce from 32-bit to 16-bit.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -63,7 +62,7 @@ WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
-WORD rSwap = 0; // swap register (not accessible)
+WORD vD = 0; // address register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -72,7 +71,7 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// CURRENTLY 29 OPCODES
+// CURRENTLY 32 OPCODES
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -86,7 +85,9 @@ void Shr()    { vA>>=enshift(vB); }
 // Moves
 void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
-void At()     { vB = dm[safe(vB)]; }
+void At()     { vD = safe(vB); vB = dm[vD]; }
+void ASav()   { dm[vD] = vA; }
+void BSav()   { dm[vD] = vB; }
 void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
 void Inc()    { ++vB; }
@@ -95,7 +96,7 @@ void Dec()    { --vB; }
 void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
 void Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
 // Transfers (maybe expand these)
-void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
+void Swap()   { vB = vB^vA; vA = vA^vB; vB = vB^vA; }
 void Tob()    { vB = vA; }
 void Tot()    { vT = vA; }
 void Tor()    { vR = vA; }
@@ -158,6 +159,8 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 #define iPUT   0x11000000
 #define iAT    0x12000000
 #define iCOPY  0x13000000
+#define iASAV  0x14000000
+#define iBSAV  0x15000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iFLIP  0x22000000
@@ -207,6 +210,7 @@ int exampleProgram() {
 #define v_vL v_vB + 1
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
+#define v_vD v_vR + 1
 #define OPCODE_MASK   0xff000000
 #define CELL_MASK     0x00ffffff
 // ---------------------------------------------------------------------------
@@ -277,6 +281,16 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         jmpe(v_Put)
       i(iAT)
         jmpe(v_At)
+
+
+      i(iCOPY)
+        jmpe(v_Copy)
+      i(iASAV)
+        jmpe(v_ASav)
+      i(iBSAV)
+        jmpe(v_BSav)
+
+
       i(iINC)
         jmpe(v_Inc)
       i(iDEC)
@@ -423,7 +437,7 @@ v_At:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Copy: // TODO Untested
+v_Copy: // TODO Untested, also consider sub vs add directions
   i(v_vB)
   get
   i(v_MEM_MASK)
@@ -440,6 +454,22 @@ v_Copy: // TODO Untested
   and
   tob   // vB now contains safe(vB+vA)
   fromt // vA now has dm[safe(vB)]
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_ASav:
+  i(v_vA)
+  get
+  i(v_vD)
+  at
+  put
+  jump(nexti)
+// ---------------------------------------------------------------------------
+v_BSav:
+  i(v_vB)
+  get
+  i(v_vD)
+  at
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
