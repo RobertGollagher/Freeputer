@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170909+
-Version:    pre-alpha-0.0.3.0+ for FVM 2.0
+Updated:    20170910+
+Version:    pre-alpha-0.0.4.0+ for FVM 2.0
 =======
 
                               This Edition:
@@ -20,9 +20,15 @@ Version:    pre-alpha-0.0.3.0+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
-  This version is being experimentally reduced from 32- to 16-bit.
-  Actually this is no good unless different encoding scheme,
-  since otherwise program space limited to 10 bits / 2 kB!
+
+  Returned to 32-bit. Unless content to accept 256 kB standard size
+  (16-bit word-addressed space), masking is required. That is a little
+  large for hardware freedom in 2017 (to not require any OS) but may
+  be acceptable in future. Perhaps ROM/RAM split should be considered.
+
+  Idea: no limit on the parent, but standard child size(s).
+  If so, obvious child sizes would be 24-26, 16, 8 bit spaces
+    which means 64-256 Mb, 256 kB, 1 kB.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -34,20 +40,20 @@ Version:    pre-alpha-0.0.3.0+ for FVM 2.0
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
-#define WORD uint16_t
-#define WD_BYTES 2
+#define WORD uint32_t
+#define WD_BYTES 4
 #define WD_BITS WD_BYTES*8
-#define MSb 0x8000 // Bit mask for most significant bit
+#define MSb 0x80000000 // Bit mask for most significant bit
 #define LNKT uintptr_t
 #define METADATA WORD
-#define METADATA_MASK 0x7fff // 15 bits
-#define BYTE_MASK     0x00ff
-#define SHIFT_MASK    0x001f
+#define METADATA_MASK 0x7fffffff // 31 bits
+#define BYTE_MASK     0x000000ff
+#define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define MAX_DM_WORDS 0x8000 // Remember C limitations
-#define DM_WORDS  0x8000  // Must be some power of 2 <= MAX_DM_WORDS.
+#define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
+#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
 #define DM_MASK   DM_WORDS-1
 #define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
@@ -57,7 +63,7 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
 WORD vD = 0; // address register (not accessible)
-WORD dm[DM_WORDS]; // data memory (Harvard architecture)
+WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
@@ -65,7 +71,7 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// CURRENTLY 32 OPCODES
+// CURRENTLY 34+ OPCODES
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -87,7 +93,7 @@ void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 void Inc()    { ++vB; }
 void Dec()    { --vB; }
 // Immediates
-void Imm(METADATA x)    { vB = enrange(x); } // bits 15..0
+void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
 void Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
 // Transfers (maybe expand these)
 void Swap()   { vB = vB^vA; vA = vA^vB; vB = vB^vA; }
@@ -141,48 +147,48 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 // Opcodes for interpreter of child VM (mostly arbitrary values for now).
 // Current scheme is FW32 (poor density but simple, portable).
 // These could be better optimized by grouping (interpreter vs FPGA...).
-#define iNOOP   0x0000 // not arbitrary, must be 0x0000
-//#define iIMM   0x8000 // not arbitrary, must be 0x8000
+#define iNOOP   0x00000000 // not arbitrary, must be 0x00000000
+//#define iIMM   0x80000000 // not arbitrary, must be 0x80000000
 
-// Below 0x4000 = simple
-#define iADD   0x0100
-#define iSUB   0x0200
-#define iOR    0x0300
-#define iAND   0x0400
-#define iXOR   0x0500
-#define iSHL   0x0800
-#define iSHR   0x0900
-#define iGET   0x1000
-#define iPUT   0x1100
-#define iAT    0x1200
-#define iCOPY  0x1300
-#define iASAV  0x1400
-#define iBSAV  0x1500
-#define iINC   0x2000
-#define iDEC   0x2100
-#define iFLIP  0x2200
-#define iSWAP  0x2300
-#define iTOB   0x3000
-#define iTOR   0x3100
-#define iTOT   0x3200
-#define iFROMB 0x3300
-#define iFROMR 0x3400
-#define iFROMT 0x3500
+// Below 0x40000000 = simple
+#define iADD   0x01000000
+#define iSUB   0x02000000
+#define iOR    0x03000000
+#define iAND   0x04000000
+#define iXOR   0x05000000
+#define iSHL   0x08000000
+#define iSHR   0x09000000
+#define iGET   0x10000000
+#define iPUT   0x11000000
+#define iAT    0x12000000
+#define iCOPY  0x13000000
+#define iASAV  0x14000000
+#define iBSAV  0x15000000
+#define iINC   0x20000000
+#define iDEC   0x21000000
+#define iFLIP  0x22000000
+#define iSWAP  0x23000000
+#define iTOB   0x30000000
+#define iTOR   0x31000000
+#define iTOT   0x32000000
+#define iFROMB 0x33000000
+#define iFROMR 0x34000000
+#define iFROMT 0x35000000
 
-#define iMDM   0x3600
-#define iLINK  0x3700
+#define iMDM   0x36000000
+#define iLINK  0x37000000
 
-#define iHALT  0x3f00
+#define iHALT  0x3f000000
 
-// Above 0x4000 = complex
-#define COMPLEX_MASK 0x4000
+// Above 0x40000000 = complex
+#define COMPLEX_MASK 0x40000000
 
-#define iJMPE  0x4100
-#define iJUMP  0x4600
-#define iRPT   0x5000
-#define iBR    0x6100
-#define iIN    0x7100
-#define iOUT   0x7200
+#define iJMPE  0x41000000
+#define iJUMP  0x46000000
+#define iRPT   0x50000000
+#define iBR    0x61000000
+#define iIN    0x71000000
+#define iOUT   0x72000000
 
 // ===========================================================================
 int main() {
@@ -210,8 +216,8 @@ int exampleProgram() {
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
 #define v_vD v_vR + 1
-#define OPCODE_MASK   0xff00
-#define CELL_MASK     0x00ff
+#define OPCODE_MASK   0xff000000
+#define CELL_MASK     0x00ffffff
 // ---------------------------------------------------------------------------
 vm_init:
   br(assertParentSize)
@@ -658,7 +664,7 @@ program:
   i(0)
   fromb
 
-/* Testing I/O 
+/* Testing I/O */
   i(iIN|3)
   br(si)
   i(iOUT|3)
@@ -667,8 +673,8 @@ program:
   br(si)
   i(iHALT) // This is instruction 3 in this program.
   br(si)
-*/
-/* Testing rpt */
+
+/* Testing rpt
   i(3)
   flip
   br(si)
@@ -677,8 +683,8 @@ program:
   i(5)
   flip
   br(si)
-  i(iADD) // 16-bit does 0x7fff in 0.03 sec.
-  br(si) // Note: below comments were for when this was 32-bit:
+  i(iADD)
+  br(si)
   i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
   br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
@@ -692,7 +698,7 @@ program:
   br(si)
   i(iHALT)
   br(si)
-/**/
+*/
   jump(nexti)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -726,11 +732,7 @@ setupToClearParent:
 // Assert that size of parent's data memory is exactly vm_DM_WORDS
 assertParentSize:
   mdm
-  //i(vm_DM_WORDS)
-
-  i(0) // Special case where vm_DM_WORDS = MSb
-  flip
-
+  i(vm_DM_WORDS)
   jmpe(assertedParentSize)
     i(FAILURE)
     fromb
