@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170827+
-Version:    pre-alpha-0.0.1.7+ for FVM 2.0
+Updated:    20170909+
+Version:    pre-alpha-0.0.2.2+ for FVM 2.0
 =======
 
                               This Edition:
@@ -20,39 +20,23 @@ Version:    pre-alpha-0.0.1.7+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
-  This is a meta-machine: its purpose is to safely virtualize other VM types.
-  No call/return, no stack pointer: thus correct and robust without trapping.
-  Supports branch/link: uses a standalone, inaccessible link register.
-  No undefined behaviour: everything is unsigned, no <= >= operators.
-  Harvard architecture: allows easy native implementation.
+  Currently being simplified to not more than 64 kB of RAM data memory.
 
-  20170806/20170819: STILL LOOKS VERY PROMISING AS THE BASIC CORE OF Plan G.
-  20170820: Has been simplified to an excellent degree (needs cleaning up).
-  Performance is very good despite only having 4 accessible registers.
-  Self-virtualization is easy and reasonably performant.
-  Keep it simple for later JIT compilation.
+  It appears the direction next should be:
+    1. Enforce 64 kB max.
+    2. Move from Harvard to Von Neumann architecture (unfortunately).
 
-  IMPORTANT:
-    - Due to C limitations, maximum size of data memory is limited to 1 GB;
-      this is because of the way C array size is declared in C and the
-      limitations of this size when compiling on 32-bit platforms.
-      It is also to make it easy to prevent undefined behaviour.
-      Thus maximum DM address space is 28 bits (word-addressed).
-      Thus MAX_DM_WORDS is always 0x10000000.
+    Comment: the above has now been done FOR THE CHILD ONLY.
 
-  PROGRESS:
-    - This is probably close to the best balance of speed and simplicity
-      and ease of self-virtualization, favouring simplicity and ease
-      over speed but still achieving good speed. No CISC opcodes remain.
-      From here we can tweak this a bit but this is the basic design.
-      What is missing is I/O; there is little or no I/O yet.
+    3. Further simplify to more MISC-like and less RISC-like.
+    4. Maybe or maybe not reduce from 32-bit to 16-bit.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define TRACING_ENABLED // Comment out unless debugging
+#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -70,7 +54,7 @@ Version:    pre-alpha-0.0.1.7+ for FVM 2.0
 #define FAILURE 1
 #define ILLEGAL 2
 #define MAX_DM_WORDS 0x10000000 // Must be 2^(WD_BITS-4) due to C limitations.
-#define DM_WORDS  MAX_DM_WORDS  // Must be some power of 2 <= MAX_DM_WORDS.
+#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
 #define DM_MASK   DM_WORDS-1
 #define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
@@ -120,12 +104,12 @@ void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Noop()    { asm(nopasm); } // prevents unwanted 'optimization' by gcc
+void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization' by gcc
 #define halt return enbyte(vA);
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
 #define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if (--vR != 0) { asm(""); goto label; } // prevents optmzn
+#define rpt(label) if (--vR != 0) { /*FIXME asm("")*/; goto label; } // prevents optmzn
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // ===========================================================================
@@ -209,14 +193,12 @@ int exampleProgram() {
 // (surprisingly, this is about 3x slower than 'qmisc.s')
 //i(0x7fffffff) fromb tor foo: noop rpt(foo) return 0;
 
+// The child is now Van Neumann, unlike its Harvard parent
 #define vm_DM_WORDS DM_WORDS
-#define v_DM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
-#define v_DM_MASK v_DM_WORDS-1
-#define v_PM_WORDS  0x1000 // Must be a power of 2, so <= DM_WORDS/2
-#define v_PM_MASK v_PM_WORDS-1
-#define v_pm 0
-#define v_dm v_PM_WORDS
-#define v_vZ v_dm + v_DM_WORDS // child program counter
+#define v_MEM_WORDS 0x4000 // Here must be a power of 2 less than DM_WORDS
+#define v_MEM_MASK v_MEM_WORDS-1
+#define v_MEM_START 0 // Since we are using entire data memory of parent
+#define v_vZ v_MEM_WORDS // child program counter
 #define v_vA v_vZ + 1
 #define v_vB v_vA + 1
 #define v_vL v_vB + 1
@@ -242,7 +224,7 @@ printf("\n%08x ", dm[v_vZ]);
 
   inc
   fromb
-  i(v_PM_MASK)
+  i(v_MEM_MASK)
   and
   i(v_vZ)
   put
@@ -408,9 +390,10 @@ v_Shr:
 v_Get:
   i(v_vB)
   get
-  i(v_DM_MASK)
+  i(v_MEM_MASK)
   and
-  i(v_dm)
+  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
+  i(v_MEM_START)
   add
   tob
   get
@@ -421,9 +404,10 @@ v_Get:
 v_Put:
   i(v_vB)
   get
-  i(v_DM_MASK)
+  i(v_MEM_MASK)
   and
-  i(v_dm)
+  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
+  i(v_MEM_START)
   add
   i(v_vA)
   at
@@ -434,9 +418,10 @@ v_Put:
 v_At:
   i(v_vB)
   get
-  i(v_DM_MASK)
+  i(v_MEM_MASK)
   and
-  i(v_dm)
+  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
+  i(v_MEM_START)
   add
   tob
   get
@@ -533,8 +518,8 @@ v_Fromt:
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_Mdm:
-  i(v_DM_WORDS)
+v_Mdm: // FIXME remove this
+  i(v_MEM_WORDS)
   fromb
   i(v_vA)
   put
@@ -622,9 +607,9 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(0x7fffffff) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
-  br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit) 
+  br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
   i(iFROMB)
   br(si)
   i(iTOR)
