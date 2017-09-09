@@ -675,7 +675,7 @@ program:
   i(5)
   flip
   br(si)
-  i(iADD)
+  i(iADD) // 16-bit does 0x7fff in 0.03 sec.
   br(si) // Note: below comments were for when this was 32-bit:
   i(0x7fff) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
