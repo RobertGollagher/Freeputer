@@ -92,7 +92,7 @@ void Inc()    { ++vB; }
 void Dec()    { --vB; }
 // Immediates
 void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
-void Flip()             { vB = vB^MSb; }     // bit  32
+void Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
 // Transfers (maybe expand these)
 void Swap()   { rSwap = vA; vA = vB; vB = rSwap; }
 void Tob()    { vB = vA; }
@@ -109,7 +109,7 @@ void Noop()   { ; } //FIXME { asm(nopasm); } // prevents unwanted 'optimization'
 // Jumps (static only) (an interpreter would enforce a 24-bit program space)
 #define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
 #define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if (--vR != 0) { /*FIXME asm("")*/; goto label; } // prevents optmzn
+#define rpt(label) if ( vR != 0) { --vR; goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
 #define link goto *vL;
 // ===========================================================================
@@ -570,14 +570,13 @@ v_Link:
 // ---------------------------------------------------------------------------
 v_Rpt:
   i(v_vR)
-  at
-  dec
-  fromb
-  i(v_vR)
-  put
+  get
   i(0)
-  dec
   jmpe(v_Repeat_end)
+    i(1)
+    sub
+    i(v_vR)
+    put
     fromt
     i(CELL_MASK)
     and
