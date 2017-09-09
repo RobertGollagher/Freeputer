@@ -395,9 +395,6 @@ v_Get:
   get
   i(v_MEM_MASK)
   and
-  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
-  i(v_MEM_START)
-  add
   tob
   get
   i(v_vA)
@@ -409,9 +406,6 @@ v_Put:
   get
   i(v_MEM_MASK)
   and
-  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
-  i(v_MEM_START)
-  add
   i(v_vA)
   at
   swap
@@ -423,9 +417,6 @@ v_At:
   get
   i(v_MEM_MASK)
   and
-  // Next 2 lines only needed if v_MEM_WORDS < vm_DM_WORDS
-  i(v_MEM_START)
-  add
   tob
   get
   i(v_vB)

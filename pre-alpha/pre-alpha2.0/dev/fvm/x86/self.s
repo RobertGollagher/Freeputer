@@ -247,7 +247,7 @@ nexti:
       halt
 
 # ---------------------------------------------------------------------------
-v_Asav:
+v_Asav: # FIXME eliminate this instruction, unnecessary?
   # FIXME incorrect algorithm
   i(v_vA)
   get
@@ -256,7 +256,7 @@ v_Asav:
   put
   jump(nexti)
 # ---------------------------------------------------------------------------
-v_Bsav:
+v_Bsav: # FIXME eliminate this instruction, unnecessary?
   # FIXME incorrect algorithm
   i(v_vB)
   get
@@ -269,7 +269,7 @@ v_Copy:
   # FIXME algorithm not implemented yet
   jump(nexti)
 # ---------------------------------------------------------------------------
-v_Jmpb:
+v_Jmpb: # FIXME eliminate this instruction, unnecessary
   # FIXME incorrect algorithm
   i(v_vA)
   get
