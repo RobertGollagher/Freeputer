@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.5.1+ for FVM 2.0
+Version:    pre-alpha-0.0.5.2+ for FVM 2.0
 =======
 
                               This Edition:
@@ -76,63 +76,61 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// CURRENTLY 34+ OPCODES
-/*
+// CURRENTLY 41+ OPCODES
 // Arithmetic
-void Add()    { vA+=vB; }
-void Sub()    { vA-=vB; }
+void inline Add()    { vA+=vB; }
+void inline Sub()    { vA-=vB; }
 // Logic
-void Or()     { vA|=vB; }
-void And()    { vA&=vB; }
-void Xor()    { vA^=vB; } // Maybe add NOT and NEG too
+void inline Or()     { vA|=vB; }
+void inline And()    { vA&=vB; }
+void inline Xor()    { vA^=vB; } // Maybe add NOT and NEG too
 // Shifts
-void Shl()    { vA<<=enshift(vB); }
-void Shr()    { vA>>=enshift(vB); }
+void inline Shl()    { vA<<=enshift(vB); }
+void inline Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[safe(vB)]; }
-void Put()    { dm[safe(vB)] = vA; }
+void inline Get()    { vA = dm[safe(vB)]; }
+void inline Put()    { dm[safe(vB)] = vA; }
 
-void Geti()   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; }
-void Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
+void inline Geti()   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; }
+void inline Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
 
-void Decm()   { --dm[safe(vB)]; }
-void Incm()   { ++dm[safe(vB)]; }
+void inline Decm()   { --dm[safe(vB)]; }
+void inline Incm()   { ++dm[safe(vB)]; }
 
-void At()     { vB = dm[safe(vB)]; }
-void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
+void inline At()     { vB = dm[safe(vB)]; }
+void inline Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
-void Inc()    { ++vB; }
-void Dec()    { --vB; }
+void inline Inc()    { ++vB; }
+void inline Dec()    { --vB; }
 // Immediates
-void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
-void Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
+void inline Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
+void inline Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
 // Transfers (maybe expand these)
-void Swap()   { vB = vB^vA; vA = vA^vB; vB = vB^vA; }
-void Tob()    { vB = vA; }
-void Tot()    { vT = vA; }
-void Tor()    { vR = vA; }
-void Fromb()  { vA = vB; }
-void Fromt()  { vA = vT; }
-void Fromr()  { vA = vR; }
+void inline Swap()   { vB = vB^vA; vA = vA^vB; vB = vB^vA; }
+void inline Tob()    { vB = vA; }
+void inline Tot()    { vT = vA; }
+void inline Tor()    { vR = vA; }
+void inline Fromb()  { vA = vB; }
+void inline Fromt()  { vA = vT; }
+void inline Fromr()  { vA = vR; }
 // Machine metadata
-void Mdm()    { vA = DM_WORDS; }
+void inline Mdm()    { vA = DM_WORDS; }
 // Other
-void Nop()    { ; }
-void Halt()   { vA = enbyte(vA); } // Exit manually in switch
+void inline Nop()    { ; }
+void inline Halt()   { vA = enbyte(vA); } // Exit manually in switch
 // Jumps (static only), maybe reduce these back to jump and jmpe only
-void JmpA(CELL a) { if (vA == 0) { vZ = a; } }
-void JmpB(CELL a) { if (vB == 0) { vZ = a; } }
-void JmpE(CELL a) { if (vA == vB) { vZ = a; } }
-void JmpN(CELL a) { if (MSb == (vA&MSb)) { vZ = a; } } // MSb set in vA
-void JmpS(CELL a) { if (vB == (vA&vB)) { vZ = a; } } // all vB 1s set in vA
-void JmpU(CELL a) { if (vB == (vA|vB)) { vZ = a; } } // all vB 0s unset in vA
-void Jump(CELL a) { vZ = a; }
-void Rpt(CELL a)  { if ( vR != 0) { --vR; vZ = a; } }
-void Br(CELL a)   { vL = vZ; vZ = a; }
-void Link()       { vZ = vL; }
-void In(CELL a)   { vA = getchar(); } // If fail goto label
-void Out(CELL a)  { putchar(vA); } // If fail goto label
-*/
+void inline JmpA(CELL a) { if (vA == 0) { vZ = a; } }
+void inline JmpB(CELL a) { if (vB == 0) { vZ = a; } }
+void inline JmpE(CELL a) { if (vA == vB) { vZ = a; } }
+void inline JmpN(CELL a) { if (MSb == (vA&MSb)) { vZ = a; } } // MSb set in vA
+void inline JmpS(CELL a) { if (vB == (vA&vB)) { vZ = a; } } // all vB 1s set in vA
+void inline JmpU(CELL a) { if (vB == (vA|vB)) { vZ = a; } } // all vB 0s unset in vA
+void inline Jump(CELL a) { vZ = a; }
+void inline Rpt(CELL a)  { if ( vR != 0) { --vR; vZ = a; } }
+void inline Br(CELL a)   { vL = vZ; vZ = a; }
+void inline Link()       { vZ = vL; }
+void inline In(CELL a)   { vA = getchar(); } // If fail goto label
+void inline Out(CELL a)  { putchar(vA); } // If fail goto label
 // ===========================================================================
 // Opcodes are sequential for now, with complex ones highest
 #define NOP   0x00000000 // Simple
@@ -180,8 +178,10 @@ WORD program[] = {
   // The NOP is cell 7 in this program.
   // Interpreted performance is poor, about 17 sec for 0x7fffffff nop repeats,
   // more than 10 times slower than 'qmisc-native.c' but truly portable.
-  // Incredibly even the below inlined switch is equally slow,
-  // nothing was gained by doing that; might as well return to the above.
+  // Note: not rewriting the switch into a function-pointer table
+  // for now, since previous experience suggests that would not
+  // be properly portable to Arduino with benefits.
+  // Will rewrite in assembly language later.
   IM|3,ADD,IM|5,ADD,IM|0x7fffffff,FROMB,TOR,NOP,RPT|7,HALT
 };
 void loadProgram() {
@@ -202,52 +202,52 @@ printf("\n%08x %08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
     vZ = safe(++vZ);
     // Handle immediates
     if (instr&MSb) {
-      vB = enrange(instr);
+      Imm(instr);
       continue;
     }
     // Handle all other instructions
     WORD opcode = instr & OPCODE_MASK;
     switch(opcode) { // TODO Fix order
-      case NOP:    break;
-      case ADD:    vA+=vB; break;
-      case SUB:    vA-=vB; break;
-      case OR:     vA|=vB; break;
-      case AND:    vA&=vB; break;
-      case XOR:    vA^=vB; break; // Maybe add NOT and NEG too
-      case FLIP:   vB = vB^MSb; break;
-      case SHL:    vA<<=enshift(vB); break;
-      case SHR:    vA>>=enshift(vB); break;
-      case GET:    vA = dm[safe(vB)]; break;
-      case PUT:    dm[safe(vB)] = vA; break;
-      case GETI:   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; } break;
-      case PUTI:   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } break;
-      case INCM:   ++dm[safe(vB)]; break;
-      case DECM:   --dm[safe(vB)]; break;
-      case AT:     vB = dm[safe(vB)]; break;
-      case COPY:   dm[safe(vB+vA)] = dm[safe(vB)]; break; // a smell?
-      case INC:    ++vB; break;
-      case DEC:    --vB; break;
-      case SWAP:   vB = vB^vA; vA = vA^vB; vB = vB^vA; break;
-      case TOB:    vB = vA; break;
-      case TOR:    vR = vA; break;
-      case TOT:    vT = vA; break;
-      case FROMB:  vA = vB; break;
-      case FROMR:  vA = vR; break;
-      case FROMT:  vA = vT; break;
-      case JMPA:   if (vA == 0) { vZ = instr&DM_MASK; } break;
-      case JMPB:   if (vB == 0) { vZ = instr&DM_MASK; } break;
-      case JMPE:   if (vA == vB) { vZ = instr&DM_MASK; } break;
-      case JMPN:   if (MSb == (vA&MSb)) { vZ = instr&DM_MASK; } break;
-      case JMPS:   if (vB == (vA&vB)) { vZ = instr&DM_MASK; } break;
-      case JMPU:   if (vB == (vA|vB)) { vZ = instr&DM_MASK; } break;
-      case JUMP:   vZ = instr&DM_MASK; break;
-      case RPT:    if ( vR != 0) { --vR; vZ = instr&DM_MASK; } break;
-      case BR:     vL = vZ; vZ = instr&DM_MASK; break;
-      case LINK:   vZ = vL; break;
-      case MDM:    vA = DM_WORDS; break;
-      case IN:     vA = getchar(); break; // TODO branch on failure
-      case OUT:    putchar(vA); break; // TODO branch on failure
-      case HALT:   vA = enbyte(vA); return vA; break;
+      case NOP:    Nop(); break;
+      case ADD:    Add(); break;
+      case SUB:    Sub(); break;
+      case OR:     Or(); break;
+      case AND:    And(); break;
+      case XOR:    Xor(); break;
+      case FLIP:   Flip(); break;
+      case SHL:    Shl(); break;
+      case SHR:    Shr(); break;
+      case GET:    Get(); break;
+      case PUT:    Put(); break;
+      case GETI:   Geti(); break;
+      case PUTI:   Puti(); break;
+      case INCM:   Incm(); break;
+      case DECM:   Decm(); break;
+      case AT:     At(); break;
+      case COPY:   Copy(); break;
+      case INC:    Inc(); break;
+      case DEC:    Dec(); break;
+      case SWAP:   Swap(); break;
+      case TOB:    Tob(); break;
+      case TOR:    Tor(); break;
+      case TOT:    Tot(); break;
+      case FROMB:  Fromb(); break;
+      case FROMR:  Fromr(); break;
+      case FROMT:  Fromt(); break;
+      case JMPA:   JmpA(instr&DM_MASK); break;
+      case JMPB:   JmpB(instr&DM_MASK); break;
+      case JMPE:   JmpE(instr&DM_MASK); break;
+      case JMPN:   JmpN(instr&DM_MASK); break;
+      case JMPS:   JmpS(instr&DM_MASK); break;
+      case JMPU:   JmpU(instr&DM_MASK); break;
+      case JUMP:   Jump(instr&DM_MASK); break;
+      case RPT:    Rpt(instr&DM_MASK);  break;
+      case BR:     Br(instr&DM_MASK);   break;
+      case LINK:   Link(); break;
+      case MDM:    Mdm(); break;
+      case IN:     In(instr&DM_MASK); break;
+      case OUT:    Out(instr&DM_MASK); break;
+      case HALT:   Halt(); return vA; break;
       default: return ILLEGAL; break;
     }
   }
