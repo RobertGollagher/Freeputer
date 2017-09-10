@@ -21,9 +21,6 @@ Version:    pre-alpha-0.0.5.0+ for FVM 2.0
 
   Removed most notes so as not to prejudice lateral thinking during design.
 
-  Currently sadly moving to a bytecode interpreter for the parent.
-  Needed because gcc local labels and thus vL are not reliably portable.
-
   Returned to 32-bit. Unless content to accept 256 kB standard size
   (16-bit word-addressed space), masking is required. That is a little
   large for hardware freedom in 2017 (to not require any OS) but may
@@ -39,7 +36,7 @@ Version:    pre-alpha-0.0.5.0+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define TRACING_ENABLED // Comment out unless debugging
+//#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -178,8 +175,10 @@ void Out(CELL a)  { putchar(vA); } // If fail goto label
 #define OUT   0x27000000
 // ===========================================================================
 WORD program[] = {
-  // The NOP is cell 7 in this program
-  IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT
+  // The NOP is cell 7 in this program.
+  // Interpreted performance is poor, about 17 sec for 0x7fffffff nop repeats,
+  // more than 10 times slower than 'qmisc-native.c' but truly portable.
+  IM|3,ADD,IM|5,ADD,IM|0x7fffffff,FROMB,TOR,NOP,RPT|7,HALT
 };
 void loadProgram() {
   for (int i=0; i<(sizeof(program)/WD_BYTES); i++) {
