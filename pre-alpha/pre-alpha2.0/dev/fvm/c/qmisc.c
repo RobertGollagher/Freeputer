@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.4.1+ for FVM 2.0
+Version:    pre-alpha-0.0.4.2+ for FVM 2.0
 =======
 
                               This Edition:
@@ -78,16 +78,20 @@ void Sub()    { vA-=vB; }
 // Logic
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
-void Xor()    { vA^=vB; }
+void Xor()    { vA^=vB; } // Maybe add NOT and NEG too
 // Shifts
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vA = dm[safe(vB)]; }
+void Get()    { vD = safe(vB); vA = dm[safe(vD)]; }
 void Put()    { dm[safe(vB)] = vA; }
+
+void Pop()    { vD = safe(vB); vA = dm[safe(dm[vD])]; dm[vD] = safe(++dm[vD]); }
+void Push()   { WORD sB = safe(vB); dm[sB] = safe(++dm[sB]); dm[safe(dm[sB])] = vA; } // untested
+
 void At()     { vD = safe(vB); vB = dm[vD]; }
-void ASav()   { dm[vD] = vA; }
-void BSav()   { dm[vD] = vB; }
+void ASav()   { dm[vD] = vA; } // Probably remove this
+void BSav()   { dm[vD] = vB; } // Perhaps remove this, not worth vD and complexity?
 void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
 void Inc()    { ++vB; }
@@ -108,8 +112,13 @@ void Mdm()    { vA = DM_WORDS; }
 // Other
 void Noop()   { ; }
 #define halt return enbyte(vA);
-// Jumps (static only)
-#define jmpe(label) if (vB == vA) { goto label; } // vA equals vB
+// Jumps (static only), maybe reduce these back to jump and jmpe only
+#define jmpa(label) if (vA == 0) { goto label; } // vA is 0
+#define jmpb(label) if (vB == 0) { goto label; } // vB is 0
+#define jmpe(label) if (vA == vB) { goto label; } // vA equals vB
+#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // MSb set in vA
+#define jmps(label) if (vB == (vA&vB)) { goto label; } // all vB 1s set in vA
+#define jmpu(label) if (vB == (vA|vB)) { goto label; } // all vB 0s unset in vA
 #define jump(label) goto label; // UNCONDITIONAL
 #define rpt(label) if ( vR != 0) { --vR; goto label; }
 #define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
@@ -128,8 +137,14 @@ void Noop()   { ; }
 #define shr Shr();
 #define get Get();
 #define put Put();
+
+#define pop Pop();
+#define push Push();
+
 #define at At();
 #define copy Copy();
+#define asav ASav();
+#define bsav BSav();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -158,10 +173,14 @@ void Noop()   { ; }
 #define iSHR   0x09000000
 #define iGET   0x10000000
 #define iPUT   0x11000000
-#define iAT    0x12000000
-#define iCOPY  0x13000000
-#define iASAV  0x14000000
-#define iBSAV  0x15000000
+
+#define iPOP   0x12000000
+#define iPUSH  0x13000000
+
+#define iAT    0x14000000
+#define iCOPY  0x15000000
+#define iASAV  0x16000000
+#define iBSAV  0x17000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iFLIP  0x22000000
@@ -177,8 +196,13 @@ void Noop()   { ; }
 #define iHALT  0x3f000000
 // Above 0x40000000 = complex
 #define COMPLEX_MASK 0x40000000
-#define iJMPE  0x41000000
-#define iJUMP  0x46000000
+#define iJMPA  0x41000000
+#define iJMPB  0x42000000
+#define iJMPE  0x43000000
+#define iJUMN  0x44000000
+#define iJMPS  0x45000000
+#define iJMPU  0x46000000
+#define iJUMP  0x47000000
 #define iRPT   0x50000000
 #define iBR    0x61000000
 #define iIN    0x71000000
@@ -221,21 +245,12 @@ vm_init:
 // Process next instruction (not optimized yet)
 nexti:
   i(v_vZ)
-  at
 
 #ifdef TRACING_ENABLED
 printf("\n%08x ", dm[v_vZ]);
 #endif
 
-  inc
-  fromb
-  i(v_MEM_MASK)
-  and
-  i(v_vZ)
-  put
-  tob
-  dec
-  get
+  pop
   tot
 
 #ifdef TRACING_ENABLED
@@ -243,15 +258,11 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
         vA, dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]);
 #endif
 
-  i(0)
-  flip
-  and
-  jmpe(v_Imm)
+  jmpn(v_Imm)
 
   fromt
   i(COMPLEX_MASK)
-  and
-  jmpe(v_complex_instrs)
+  jmps(v_complex_instrs)
 
   fromt
   i(OPCODE_MASK)
@@ -629,14 +640,13 @@ v_Link:
     jump(nexti)
 // ---------------------------------------------------------------------------
 v_Rpt:
-  i(v_vR)
-  get
   i(0)
+  fromb
+  i(v_vR)
+  at
   jmpe(v_Repeat_end)
-    i(1)
-    sub
-    i(v_vR)
-    put
+    dec
+    bsav
     fromt
     i(CELL_MASK)
     and
@@ -657,7 +667,7 @@ program:
   i(0)
   fromb
 
-/* Testing I/O */
+/* Testing I/O
   i(iIN|3)
   br(si)
   i(iOUT|3)
@@ -666,8 +676,8 @@ program:
   br(si)
   i(iHALT) // This is instruction 3 in this program.
   br(si)
-
-/* Testing rpt
+*/
+/* Testing rpt */
   i(3)
   flip
   br(si)
@@ -691,7 +701,7 @@ program:
   br(si)
   i(iHALT)
   br(si)
-*/
+/**/
   jump(nexti)
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
