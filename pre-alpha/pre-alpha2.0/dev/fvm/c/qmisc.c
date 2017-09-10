@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.5.4+ for FVM 2.0
+Version:    pre-alpha-0.0.5.5+ for FVM 2.0
 =======
 
                               This Edition:
@@ -24,13 +24,20 @@ Version:    pre-alpha-0.0.5.4+ for FVM 2.0
 
   Removed most notes so as not to prejudice lateral thinking during design.
 
-  Unless content to accept 256 kB standard size
-  (16-bit word-addressed space), masking is required. That is a little
-  large for hardware freedom in 2017 (to not require any OS) but may
-  be acceptable in future. Perhaps ROM/RAM split should be considered.
+  20170910 MILESTONE: a decision has been made to adopt 16 kB (4096 words)
+  as the standard size for VM memory. This ensures modularity and hardware
+  freedom and is a practical medium size from which to compose systems using
+  a hybrid approach (big enough to build a nice little standalone
+  system but small enough to encourage single-purpose modules).
+  Systems are intended to be parallel and multi-node.
+  That is, each node would be a 16-kB VM.
+  Working fine with Arduino Zero.
 
-  Idea: obvious sizes would be 24-26, 16, 8 bit spaces
-    which means 64-256 Mb, 256 kB, 1 kB. Using 1 kB for intial experiments.
+  Note: the main competitor to this would be FVM Lite of pre-alpha 1.1
+  which proposed 16 kB ROM and 16 kB RAM as the standard size of that
+  platform. A comparison should be made of the two approaches at
+  some stage if this qmisc approach doesn't meet expectations.
+  (However, I would simplify the FVM 1.1 instruction set.)
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -43,7 +50,7 @@ Version:    pre-alpha-0.0.5.4+ for FVM 2.0
 #define QVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
 #define QVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
 // -- SPECIFY YOUR TARGET PLATFORM HERE: -------------------------------------
-#define QVMP QVMP_STDIO
+#define QVMP QVMP_ARDUINO_IDE
 // ---------------------------------------------------------------------------
 #include <inttypes.h>
 #include <assert.h>
@@ -63,9 +70,8 @@ Version:    pre-alpha-0.0.5.4+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define MAX_MEM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
-#define MEM_WORDS  0x100    // Must be some power of 2 <= MAX_MEM_WORDS.
-                           // Set to a tiny 1 kB just to test Arduino!
+#define MAX_MEM_WORDS 0x1000    // 16 kB = 4096 words = standard size
+#define MEM_WORDS MAX_MEM_WORDS //     (favours modular design) 
 #define MEM_MASK   MEM_WORDS-1
 int runVM();
 // ---------------------------------------------------------------------------
@@ -96,7 +102,7 @@ WORD mem[MEM_WORDS]; // system memory (now using Von Neumann architecture)
   char traceFmt[80]; // WARNING: only barely wide enough for traceFmt!
   #define traceVM { \
     sprintf(traceFmt, \
-             "%08lx %08lx vA:%08lx vB:%08lx vT:%08lx vR:%08lx vL:%04x ", \
+             "%08lx %08lx vA:%08lx vB:%08lx vT:%08lx vR:%08lx vL:%08lx ", \
               vZ, instr, vA, vB, vT, vR, vL); \
     Serial.println(traceFmt); \
   }
@@ -107,7 +113,7 @@ WORD mem[MEM_WORDS]; // system memory (now using Von Neumann architecture)
     Serial.println("About to run VM...");
     Serial.flush();
     int exitCode = runVM();
-    Serial.print("Ran VM. Exit code: ");
+    Serial.print("Ran VM. Exit code (vA): ");
     Serial.println(exitCode);
     Serial.flush();
   }
