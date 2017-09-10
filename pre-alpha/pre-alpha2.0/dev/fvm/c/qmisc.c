@@ -10,16 +10,20 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.5.2+ for FVM 2.0
+Version:    pre-alpha-0.0.5.3+ for FVM 2.0
 =======
 
                               This Edition:
-                               Portable C
-                            for Linux and gcc
+
+                             Portable C for
+
+        1. QVMP_STDIO: gcc using <stdio.h> for FILEs (eg Linux targets) 
+        2. QVMP_ARDUINO_IDE: Arduino IDE (eg Arduino or chipKIT targets)
 
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
+  Reconsider Harvard vs Van Neumann (it is the latter for now).
 
   Returned to 32-bit. Unless content to accept 256 kB standard size
   (16-bit word-addressed space), masking is required. That is a little
@@ -28,17 +32,21 @@ Version:    pre-alpha-0.0.5.2+ for FVM 2.0
 
   Idea: no limit on the parent, but standard child size(s).
   If so, obvious child sizes would be 24-26, 16, 8 bit spaces
-    which means 64-256 Mb, 256 kB, 1 kB.
-  Was van neumann for child a mistake?
+    which means 64-256 Mb, 256 kB, 1 kB. Using 1 kB for intial experiments.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define TRACING_ENABLED // Comment out unless debugging
-
-#include <stdio.h>
+// -- TRACING (comment out the next line unless debugging): ------------------
+#define TRACING_ENABLED
+// -- SUPPORTED PLATFORMS: ---------------------------------------------------
+#define QVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
+#define QVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
+// -- SPECIFY YOUR TARGET PLATFORM HERE: -------------------------------------
+#define QVMP QVMP_ARDUINO_IDE
+// ---------------------------------------------------------------------------
 #include <inttypes.h>
 #include <assert.h>
 #define WORD uint32_t // Unsigned to avoid undefined behaviour in C
@@ -58,9 +66,11 @@ Version:    pre-alpha-0.0.5.2+ for FVM 2.0
 #define FAILURE 1
 #define ILLEGAL 2
 #define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
-#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
+#define DM_WORDS  0x100    // Must be some power of 2 <= MAX_DM_WORDS.
+                           // Set to a tiny 1 kB just to test Arduino!
 #define DM_MASK   DM_WORDS-1
-#define nopasm "nop" // The name of the native hardware nop instruction
+int runVM();
+// ---------------------------------------------------------------------------
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
@@ -69,7 +79,47 @@ WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
 WORD vZ = 0; // program counter (not accesible) (maybe it should be)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
-int exampleProgram();
+// ---------------------------------------------------------------------------
+#if QVMP == QVMP_STDIO
+  #include <stdio.h>
+  void inline In(CELL a)   { vA = getchar(); } // TODO If fail goto label
+  void inline Out(CELL a)  { putchar(vA); } // TODO If fail goto label
+  #define traceVM { \
+    printf("\n%08x %08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ", \
+            vZ, instr, vA, vB, vT, vR, vL); \
+  }
+  void initVM() {} // Nothing here yet
+  int main() { runVM(); }
+// ---------------------------------------------------------------------------
+#elif QVMP == QVMP_ARDUINO_IDE
+  #include <Arduino.h>
+  void inline In(CELL a)   { vA = Serial.read(); } // TODO If fail goto label
+  void inline Out(CELL a)  { Serial.write(vA); } // TODO If fail goto label
+  char traceFmt[80]; // WARNING: only barely wide enough for traceFmt!
+  #define traceVM { \
+    sprintf(traceFmt, \
+             "%08lx %08lx vA:%08lx vB:%08lx vT:%08lx vR:%08lx vL:%04x ", \
+              vZ, instr, vA, vB, vT, vR, vL); \
+    Serial.println(traceFmt); \
+  }
+  void initVM() {} // Nothing here yet
+  void setup() {
+    Serial.begin(9600);
+    while (!Serial) {}
+    Serial.println("About to run VM...");
+    Serial.flush();
+    int exitCode = runVM();
+    Serial.print("Ran VM. Exit code: ");
+    Serial.println(exitCode);
+    Serial.flush();
+  }
+  void loop() {} // Nothing here since all done in setup()
+// ---------------------------------------------------------------------------
+#else
+  #pragma GCC error "Problem: Invalid target platform for compilation. \
+  Solution: You must set QVMP to QVMP_STDIO or QVMP_ARDUINO_IDE. \
+  Details: See 'qmisc.c' (or similar) source."
+#endif
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
@@ -129,8 +179,6 @@ void inline Jump(CELL a) { vZ = a; }
 void inline Rpt(CELL a)  { if ( vR != 0) { --vR; vZ = a; } }
 void inline Br(CELL a)   { vL = vZ; vZ = a; }
 void inline Link()       { vZ = vL; }
-void inline In(CELL a)   { vA = getchar(); } // If fail goto label
-void inline Out(CELL a)  { putchar(vA); } // If fail goto label
 // ===========================================================================
 // Opcodes are sequential for now, with complex ones highest
 #define NOP   0x00000000 // Simple
@@ -182,7 +230,7 @@ WORD program[] = {
   // for now, since previous experience suggests that would not
   // be properly portable to Arduino with benefits.
   // Will rewrite in assembly language later.
-  IM|3,ADD,IM|5,ADD,IM|0x7fffffff,FROMB,TOR,NOP,RPT|7,HALT
+  IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT
 };
 void loadProgram() {
   for (int i=0; i<(sizeof(program)/WD_BYTES); i++) {
@@ -190,14 +238,14 @@ void loadProgram() {
   }
 }
 // ===========================================================================
-int main() {
+int runVM() {
   assert(sizeof(WORD) == WD_BYTES);
+  initVM();
   loadProgram();
   while(1) {
     WORD instr = dm[vZ];
 #ifdef TRACING_ENABLED
-printf("\n%08x %08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
-        vZ, instr, vA, vB, vT, vR, vL);
+    traceVM
 #endif
     vZ = safe(++vZ);
     // Handle immediates
