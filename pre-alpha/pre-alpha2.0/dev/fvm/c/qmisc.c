@@ -35,7 +35,7 @@ Version:    pre-alpha-0.0.4.2+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define TRACING_ENABLED // Comment out unless debugging
+//#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -86,12 +86,13 @@ void Shr()    { vA>>=enshift(vB); }
 void Get()    { vD = safe(vB); vA = dm[safe(vD)]; }
 void Put()    { dm[safe(vB)] = vA; }
 
-void Pop()    { vD = safe(vB); vA = dm[safe(dm[vD])]; dm[vD] = safe(++dm[vD]); }
-void Push()   { WORD sB = safe(vB); dm[sB] = safe(++dm[sB]); dm[safe(dm[sB])] = vA; } // untested
+void Geti()   { vD = safe(vB); vA = dm[safe(dm[vD])]; }
+void Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
+
+void Decm()   { WORD sB = safe(vB); --dm[sB]; }
+void Incm()   { WORD sB = safe(vB); ++dm[sB]; }
 
 void At()     { vD = safe(vB); vB = dm[vD]; }
-void ASav()   { dm[vD] = vA; } // Probably remove this
-void BSav()   { dm[vD] = vB; } // Perhaps remove this, not worth vD and complexity?
 void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
 void Inc()    { ++vB; }
@@ -138,13 +139,16 @@ void Noop()   { ; }
 #define get Get();
 #define put Put();
 
-#define pop Pop();
-#define push Push();
+#define geti Geti();
+#define puti Puti();
+
+
+#define incm Incm();
+#define decm Decm();
+
 
 #define at At();
 #define copy Copy();
-#define asav ASav();
-#define bsav BSav();
 #define inc Inc();
 #define dec Dec();
 #define i(x) Imm(x);
@@ -174,13 +178,15 @@ void Noop()   { ; }
 #define iGET   0x10000000
 #define iPUT   0x11000000
 
-#define iPOP   0x12000000
-#define iPUSH  0x13000000
+#define iGETI  0x12000000
+#define iPUTI  0x13000000
+
+#define iINCM  0x24000000
+#define iDECM  0x25000000
+
 
 #define iAT    0x14000000
 #define iCOPY  0x15000000
-#define iASAV  0x16000000
-#define iBSAV  0x17000000
 #define iINC   0x20000000
 #define iDEC   0x21000000
 #define iFLIP  0x22000000
@@ -250,7 +256,8 @@ nexti:
 printf("\n%08x ", dm[v_vZ]);
 #endif
 
-  pop
+  geti
+  incm
   tot
 
 #ifdef TRACING_ENABLED
@@ -294,10 +301,6 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
 
       i(iCOPY)
         jmpe(v_Copy)
-      i(iASAV)
-        jmpe(v_ASav)
-      i(iBSAV)
-        jmpe(v_BSav)
 
 
       i(iINC)
@@ -472,22 +475,6 @@ v_Copy: // TODO Untested, also consider sub vs add directions
   put
   jump(nexti)
 // ---------------------------------------------------------------------------
-v_ASav:
-  i(v_vA)
-  get
-  i(v_vD)
-  at
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
-v_BSav:
-  i(v_vB)
-  get
-  i(v_vD)
-  at
-  put
-  jump(nexti)
-// ---------------------------------------------------------------------------
 v_Inc:
   i(v_vB)
   at
@@ -640,13 +627,11 @@ v_Link:
     jump(nexti)
 // ---------------------------------------------------------------------------
 v_Rpt:
-  i(0)
-  fromb
   i(v_vR)
-  at
-  jmpe(v_Repeat_end)
-    dec
-    bsav
+  get
+  jmpa(v_Repeat_end)
+    decm
+
     fromt
     i(CELL_MASK)
     and
@@ -688,7 +673,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  i(0x7fffffff) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
   br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
   i(iFROMB)
