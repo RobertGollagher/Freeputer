@@ -26,6 +26,11 @@ Version:    pre-alpha-0.0.4.3+ for FVM 2.0
   large for hardware freedom in 2017 (to not require any OS) but may
   be acceptable in future. Perhaps ROM/RAM split should be considered.
 
+  Lesson learned: Native implementation (with link using gcc local labels)
+  does not work reliably cross-platform, such as does not work on Arduino.
+  This means either we eliminate link from the instruction set
+  or we go to an interpreted parent (sadly).
+
   Idea: no limit on the parent, but standard child size(s).
   If so, obvious child sizes would be 24-26, 16, 8 bit spaces
     which means 64-256 Mb, 256 kB, 1 kB.
@@ -36,7 +41,7 @@ Version:    pre-alpha-0.0.4.3+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-//#define TRACING_ENABLED // Comment out unless debugging
+#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -671,7 +676,7 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(0x7fffffff) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
   br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
   i(iFROMB)
