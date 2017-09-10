@@ -44,13 +44,17 @@ Version:    pre-alpha-0.0.5.0+ for FVM 2.0
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
-#define WORD uint32_t
+#define WORD uint32_t // Unsigned to avoid undefined behaviour in C
+#define BYTE uint8_t
 #define WD_BYTES 4
 #define WD_BITS WD_BYTES*8
 #define MSb 0x80000000 // Bit mask for most significant bit
+#define IM MSb
 #define LNKT uintptr_t
+#define CELL WORD // reconsider
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
+#define OPCODE_MASK   0xff000000
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
@@ -66,6 +70,7 @@ WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
+WORD vZ = 0; // program counter (not accesible) (maybe it should be)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -114,69 +119,135 @@ void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
 // Other
-void Noop()   { ; }
-#define halt return enbyte(vA);
+void Nop()    { ; }
+void Halt()   { vA = enbyte(vA); } // Exit manually in switch
 // Jumps (static only), maybe reduce these back to jump and jmpe only
-#define jmpa(label) if (vA == 0) { goto label; } // vA is 0
-#define jmpb(label) if (vB == 0) { goto label; } // vB is 0
-#define jmpe(label) if (vA == vB) { goto label; } // vA equals vB
-#define jmpn(label) if (MSb == (vA&MSb)) { goto label; } // MSb set in vA
-#define jmps(label) if (vB == (vA&vB)) { goto label; } // all vB 1s set in vA
-#define jmpu(label) if (vB == (vA|vB)) { goto label; } // all vB 0s unset in vA
-#define jump(label) goto label; // UNCONDITIONAL
-#define rpt(label) if ( vR != 0) { --vR; goto label; }
-#define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
-#define link goto *vL;
-// Basic I/O (experimental)
-#define in(label) vA = getchar(); // If fail goto label
-#define out(label) putchar(vA); // If fail goto label
+void JmpA(CELL a) { if (vA == 0) { vZ = a; } }
+void JmpB(CELL a) { if (vB == 0) { vZ = a; } }
+void JmpE(CELL a) { if (vA == vB) { vZ = a; } }
+void JmpN(CELL a) { if (MSb == (vA&MSb)) { vZ = a; } } // MSb set in vA
+void JmpS(CELL a) { if (vB == (vA&vB)) { vZ = a; } } // all vB 1s set in vA
+void JmpU(CELL a) { if (vB == (vA|vB)) { vZ = a; } } // all vB 0s unset in vA
+void Jump(CELL a) { vZ = a; }
+void Rpt(CELL a)  { if ( vR != 0) { --vR; vZ = a; } }
+void Br(CELL a)   { vL = vZ; vZ = a; }
+void Link()       { vZ = vL; }
+void In(CELL a)   { vA = getchar(); } // If fail goto label
+void Out(CELL a)  { putchar(vA); } // If fail goto label
 // ===========================================================================
 // Opcodes are sequential for now, with complex ones highest
-#define iNOOP  0x00000000
-#define iADD   0x01000000
-#define iSUB   0x02000000
-#define iOR    0x03000000
-#define iAND   0x04000000
-#define iXOR   0x05000000
-#define iSHL   0x06000000
-#define iSHR   0x07000000
-#define iGET   0x08000000
-#define iPUT   0x09000000
-#define iGETI  0x0a000000
-#define iPUTI  0x0b000000
-#define iINCM  0x0c000000
-#define iDECM  0x0d000000
-#define iAT    0x0e000000
-#define iCOPY  0x0f000000
-#define iINC   0x10000000
-#define iDEC   0x11000000
-#define iFLIP  0x12000000
-#define iSWAP  0x13000000
-#define iTOB   0x14000000
-#define iTOR   0x15000000
-#define iTOT   0x16000000
-#define iFROMB 0x17000000
-#define iFROMR 0x18000000
-#define iFROMT 0x19000000
-#define iMDM   0x1a000000
-#define iLINK  0x1b000000
-#define iHALT  0x1c000000
-// Above here = complex
-#define iJMPA  0x1d000000
-#define iJMPB  0x1e000000
-#define iJMPE  0x1f000000
-#define iJUMN  0x20000000
-#define iJMPS  0x21000000
-#define iJMPU  0x22000000
-#define iJUMP  0x23000000
-#define iRPT   0x24000000
-#define iBR    0x25000000
-#define iIN    0x26000000
-#define iOUT   0x27000000
+#define NOP   0x00000000 // Simple
+#define ADD   0x01000000
+#define SUB   0x02000000
+#define OR    0x03000000
+#define AND   0x04000000
+#define XOR   0x05000000
+#define SHL   0x06000000
+#define SHR   0x07000000
+#define GET   0x08000000
+#define PUT   0x09000000
+#define GETI  0x0a000000
+#define PUTI  0x0b000000
+#define INCM  0x0c000000
+#define DECM  0x0d000000
+#define AT    0x0e000000
+#define COPY  0x0f000000
+#define INC   0x10000000
+#define DEC   0x11000000
+#define FLIP  0x12000000
+#define SWAP  0x13000000
+#define TOB   0x14000000
+#define TOR   0x15000000
+#define TOT   0x16000000
+#define FROMB 0x17000000
+#define FROMR 0x18000000
+#define FROMT 0x19000000
+#define MDM   0x1a000000
+#define LINK  0x1b000000
+#define HALT  0x1c000000
+#define JMPA  0x1d000000 // Complex
+#define JMPB  0x1e000000
+#define JMPE  0x1f000000
+#define JMPN  0x20000000
+#define JMPS  0x21000000
+#define JMPU  0x22000000
+#define JUMP  0x23000000
+#define RPT   0x24000000
+#define BR    0x25000000
+#define IN    0x26000000
+#define OUT   0x27000000
+// ===========================================================================
+WORD program[] = {
+  // The NOP is cell 7 in this program
+  IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT
+};
+void loadProgram() {
+  for (int i=0; i<(sizeof(program)/WD_BYTES); i++) {
+    dm[i] = program[i];
+  }
+}
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
-  return 99;
+  loadProgram();
+  while(1) {
+    WORD instr = dm[vZ];
+#ifdef TRACING_ENABLED
+printf("\n%08x %08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
+        vZ, instr, vA, vB, vT, vR, vL);
+#endif
+    vZ = safe(++vZ);
+    // Handle immediates
+    if (instr&MSb) {
+      Imm(instr);
+      continue;
+    }
+    // Handle all other instructions
+    WORD opcode = instr & OPCODE_MASK;
+    switch(opcode) { // TODO Fix order
+      case NOP:    Nop(); break;
+      case ADD:    Add(); break;
+      case SUB:    Sub(); break;
+      case OR:     Or(); break;
+      case AND:    And(); break;
+      case XOR:    Xor(); break;
+      case FLIP:   Flip(); break;
+      case SHL:    Shl(); break;
+      case SHR:    Shr(); break;
+      case GET:    Get(); break;
+      case PUT:    Put(); break;
+      case GETI:   Geti(); break;
+      case PUTI:   Puti(); break;
+      case INCM:   Incm(); break;
+      case DECM:   Decm(); break;
+      case AT:     At(); break;
+      case COPY:   Copy(); break;
+      case INC:    Inc(); break;
+      case DEC:    Dec(); break;
+      case SWAP:   Swap(); break;
+      case TOB:    Tob(); break;
+      case TOR:    Tor(); break;
+      case TOT:    Tot(); break;
+      case FROMB:  Fromb(); break;
+      case FROMR:  Fromr(); break;
+      case FROMT:  Fromt(); break;
+      case JMPA:   JmpA(instr&DM_MASK); break;
+      case JMPB:   JmpB(instr&DM_MASK); break;
+      case JMPE:   JmpE(instr&DM_MASK); break;
+      case JMPN:   JmpN(instr&DM_MASK); break;
+      case JMPS:   JmpS(instr&DM_MASK); break;
+      case JMPU:   JmpU(instr&DM_MASK); break;
+      case JUMP:   Jump(instr&DM_MASK); break;
+      case RPT:    Rpt(instr&DM_MASK);  break;
+      case BR:     Br(instr&DM_MASK);   break;
+      case LINK:   Link(); break;
+      case MDM:    Mdm(); break;
+      case IN:     In(instr&DM_MASK); break;
+      case OUT:    Out(instr&DM_MASK); break;
+      case HALT:   Halt(); return vA; break;
+      default: return ILLEGAL; break;
+    }
+  }
 }
 
 // ===========================================================================

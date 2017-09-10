@@ -4,759 +4,865 @@ qmisc:     file format elf64-x86-64
 
 Disassembly of section .init:
 
-00000000000005a0 <_init>:
- 5a0:	48 83 ec 08          	sub    $0x8,%rsp
- 5a4:	48 8b 05 3d 1a 20 00 	mov    0x201a3d(%rip),%rax        # 201fe8 <__gmon_start__>
- 5ab:	48 85 c0             	test   %rax,%rax
- 5ae:	74 02                	je     5b2 <_init+0x12>
- 5b0:	ff d0                	callq  *%rax
- 5b2:	48 83 c4 08          	add    $0x8,%rsp
- 5b6:	c3                   	retq   
+00000000000005e0 <_init>:
+ 5e0:	48 83 ec 08          	sub    $0x8,%rsp
+ 5e4:	48 8b 05 fd 19 20 00 	mov    0x2019fd(%rip),%rax        # 201fe8 <__gmon_start__>
+ 5eb:	48 85 c0             	test   %rax,%rax
+ 5ee:	74 02                	je     5f2 <_init+0x12>
+ 5f0:	ff d0                	callq  *%rax
+ 5f2:	48 83 c4 08          	add    $0x8,%rsp
+ 5f6:	c3                   	retq   
 
 Disassembly of section .plt:
 
-00000000000005c0 <.plt>:
- 5c0:	ff 35 42 1a 20 00    	pushq  0x201a42(%rip)        # 202008 <_GLOBAL_OFFSET_TABLE_+0x8>
- 5c6:	ff 25 44 1a 20 00    	jmpq   *0x201a44(%rip)        # 202010 <_GLOBAL_OFFSET_TABLE_+0x10>
- 5cc:	0f 1f 40 00          	nopl   0x0(%rax)
+0000000000000600 <.plt>:
+ 600:	ff 35 02 1a 20 00    	pushq  0x201a02(%rip)        # 202008 <_GLOBAL_OFFSET_TABLE_+0x8>
+ 606:	ff 25 04 1a 20 00    	jmpq   *0x201a04(%rip)        # 202010 <_GLOBAL_OFFSET_TABLE_+0x10>
+ 60c:	0f 1f 40 00          	nopl   0x0(%rax)
 
-00000000000005d0 <_IO_putc@plt>:
- 5d0:	ff 25 42 1a 20 00    	jmpq   *0x201a42(%rip)        # 202018 <_IO_putc@GLIBC_2.2.5>
- 5d6:	68 00 00 00 00       	pushq  $0x0
- 5db:	e9 e0 ff ff ff       	jmpq   5c0 <.plt>
+0000000000000610 <printf@plt>:
+ 610:	ff 25 02 1a 20 00    	jmpq   *0x201a02(%rip)        # 202018 <printf@GLIBC_2.2.5>
+ 616:	68 00 00 00 00       	pushq  $0x0
+ 61b:	e9 e0 ff ff ff       	jmpq   600 <.plt>
 
-00000000000005e0 <_IO_getc@plt>:
- 5e0:	ff 25 3a 1a 20 00    	jmpq   *0x201a3a(%rip)        # 202020 <_IO_getc@GLIBC_2.2.5>
- 5e6:	68 01 00 00 00       	pushq  $0x1
- 5eb:	e9 d0 ff ff ff       	jmpq   5c0 <.plt>
+0000000000000620 <_IO_putc@plt>:
+ 620:	ff 25 fa 19 20 00    	jmpq   *0x2019fa(%rip)        # 202020 <_IO_putc@GLIBC_2.2.5>
+ 626:	68 01 00 00 00       	pushq  $0x1
+ 62b:	e9 d0 ff ff ff       	jmpq   600 <.plt>
+
+0000000000000630 <_IO_getc@plt>:
+ 630:	ff 25 f2 19 20 00    	jmpq   *0x2019f2(%rip)        # 202028 <_IO_getc@GLIBC_2.2.5>
+ 636:	68 02 00 00 00       	pushq  $0x2
+ 63b:	e9 c0 ff ff ff       	jmpq   600 <.plt>
 
 Disassembly of section .plt.got:
 
-00000000000005f0 <__cxa_finalize@plt>:
- 5f0:	ff 25 02 1a 20 00    	jmpq   *0x201a02(%rip)        # 201ff8 <__cxa_finalize@GLIBC_2.2.5>
- 5f6:	66 90                	xchg   %ax,%ax
+0000000000000640 <__cxa_finalize@plt>:
+ 640:	ff 25 b2 19 20 00    	jmpq   *0x2019b2(%rip)        # 201ff8 <__cxa_finalize@GLIBC_2.2.5>
+ 646:	66 90                	xchg   %ax,%ax
 
 Disassembly of section .text:
 
-0000000000000600 <main>:
-     600:	31 c0                	xor    %eax,%eax
-     602:	e9 a9 03 00 00       	jmpq   9b0 <exampleProgram>
-     607:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
-     60e:	00 00 
+0000000000000650 <main>:
+     650:	66 0f 6f 05 08 1a 20 	movdqa 0x201a08(%rip),%xmm0        # 202060 <program>
+     657:	00 
+     658:	48 8b 05 21 1a 20 00 	mov    0x201a21(%rip),%rax        # 202080 <program+0x20>
+     65f:	8b 35 5b 1a 20 00    	mov    0x201a5b(%rip),%esi        # 2020c0 <vZ>
+     665:	0f 29 05 74 1a 20 00 	movaps %xmm0,0x201a74(%rip)        # 2020e0 <dm>
+     66c:	44 8b 05 65 1a 20 00 	mov    0x201a65(%rip),%r8d        # 2020d8 <vB>
+     673:	41 54                	push   %r12
+     675:	66 0f 6f 05 f3 19 20 	movdqa 0x2019f3(%rip),%xmm0        # 202070 <program+0x10>
+     67c:	00 
+     67d:	55                   	push   %rbp
+     67e:	48 8d 2d 63 0c 00 00 	lea    0xc63(%rip),%rbp        # 12e8 <_IO_stdin_used+0x8>
+     685:	53                   	push   %rbx
+     686:	0f 29 05 63 1a 20 00 	movaps %xmm0,0x201a63(%rip)        # 2020f0 <dm+0x10>
+     68d:	48 8d 1d 4c 1a 20 00 	lea    0x201a4c(%rip),%rbx        # 2020e0 <dm>
+     694:	48 89 05 65 1a 20 00 	mov    %rax,0x201a65(%rip)        # 202100 <dm+0x20>
+     69b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+     6a0:	89 f0                	mov    %esi,%eax
+     6a2:	48 89 ef             	mov    %rbp,%rdi
+     6a5:	44 8b 24 83          	mov    (%rbx,%rax,4),%r12d
+     6a9:	8b 05 21 1a 20 00    	mov    0x201a21(%rip),%eax        # 2020d0 <vR>
+     6af:	44 8b 0d 1e 1a 20 00 	mov    0x201a1e(%rip),%r9d        # 2020d4 <vT>
+     6b6:	8b 0d 20 1a 20 00    	mov    0x201a20(%rip),%ecx        # 2020dc <vA>
+     6bc:	ff 35 06 1a 20 00    	pushq  0x201a06(%rip)        # 2020c8 <vL>
+     6c2:	50                   	push   %rax
+     6c3:	44 89 e2             	mov    %r12d,%edx
+     6c6:	31 c0                	xor    %eax,%eax
+     6c8:	e8 43 ff ff ff       	callq  610 <printf@plt>
+     6cd:	8b 05 ed 19 20 00    	mov    0x2019ed(%rip),%eax        # 2020c0 <vZ>
+     6d3:	45 85 e4             	test   %r12d,%r12d
+     6d6:	8d 70 01             	lea    0x1(%rax),%esi
+     6d9:	58                   	pop    %rax
+     6da:	0f b7 f6             	movzwl %si,%esi
+     6dd:	89 35 dd 19 20 00    	mov    %esi,0x2019dd(%rip)        # 2020c0 <vZ>
+     6e3:	5a                   	pop    %rdx
+     6e4:	0f 88 d6 00 00 00    	js     7c0 <main+0x170>
+     6ea:	44 89 e0             	mov    %r12d,%eax
+     6ed:	25 00 00 00 ff       	and    $0xff000000,%eax
+     6f2:	3d 00 00 00 13       	cmp    $0x13000000,%eax
+     6f7:	0f 84 e1 05 00 00    	je     cde <main+0x68e>
+     6fd:	77 61                	ja     760 <main+0x110>
+     6ff:	3d 00 00 00 09       	cmp    $0x9000000,%eax
+     704:	0f 84 ca 03 00 00    	je     ad4 <main+0x484>
+     70a:	0f 87 38 01 00 00    	ja     848 <main+0x1f8>
+     710:	3d 00 00 00 04       	cmp    $0x4000000,%eax
+     715:	0f 84 fd 04 00 00    	je     c18 <main+0x5c8>
+     71b:	0f 87 ef 01 00 00    	ja     910 <main+0x2c0>
+     721:	3d 00 00 00 01       	cmp    $0x1000000,%eax
+     726:	0f 84 c3 04 00 00    	je     bef <main+0x59f>
+     72c:	0f 86 2e 03 00 00    	jbe    a60 <main+0x410>
+     732:	3d 00 00 00 02       	cmp    $0x2000000,%eax
+     737:	0f 84 6c 04 00 00    	je     ba9 <main+0x559>
+     73d:	3d 00 00 00 03       	cmp    $0x3000000,%eax
+     742:	0f 85 57 04 00 00    	jne    b9f <main+0x54f>
+     748:	44 8b 05 89 19 20 00 	mov    0x201989(%rip),%r8d        # 2020d8 <vB>
+     74f:	44 09 05 86 19 20 00 	or     %r8d,0x201986(%rip)        # 2020dc <vA>
+     756:	e9 45 ff ff ff       	jmpq   6a0 <main+0x50>
+     75b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+     760:	3d 00 00 00 1d       	cmp    $0x1d000000,%eax
+     765:	0f 84 ef 04 00 00    	je     c5a <main+0x60a>
+     76b:	77 73                	ja     7e0 <main+0x190>
+     76d:	3d 00 00 00 18       	cmp    $0x18000000,%eax
+     772:	0f 84 fb 03 00 00    	je     b73 <main+0x523>
+     778:	0f 87 12 01 00 00    	ja     890 <main+0x240>
+     77e:	3d 00 00 00 15       	cmp    $0x15000000,%eax
+     783:	0f 84 3d 05 00 00    	je     cc6 <main+0x676>
+     789:	0f 86 b3 02 00 00    	jbe    a42 <main+0x3f2>
+     78f:	3d 00 00 00 16       	cmp    $0x16000000,%eax
+     794:	0f 84 63 05 00 00    	je     cfd <main+0x6ad>
+     79a:	3d 00 00 00 17       	cmp    $0x17000000,%eax
+     79f:	0f 85 fa 03 00 00    	jne    b9f <main+0x54f>
+     7a5:	44 8b 05 2c 19 20 00 	mov    0x20192c(%rip),%r8d        # 2020d8 <vB>
+     7ac:	44 89 05 29 19 20 00 	mov    %r8d,0x201929(%rip)        # 2020dc <vA>
+     7b3:	e9 e8 fe ff ff       	jmpq   6a0 <main+0x50>
+     7b8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     7bf:	00 
+     7c0:	45 89 e0             	mov    %r12d,%r8d
+     7c3:	41 81 e0 ff ff ff 7f 	and    $0x7fffffff,%r8d
+     7ca:	44 89 05 07 19 20 00 	mov    %r8d,0x201907(%rip)        # 2020d8 <vB>
+     7d1:	e9 ca fe ff ff       	jmpq   6a0 <main+0x50>
+     7d6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     7dd:	00 00 00 
+     7e0:	3d 00 00 00 22       	cmp    $0x22000000,%eax
+     7e5:	0f 84 d1 03 00 00    	je     bbc <main+0x56c>
+     7eb:	0f 86 5f 01 00 00    	jbe    950 <main+0x300>
+     7f1:	3d 00 00 00 25       	cmp    $0x25000000,%eax
+     7f6:	0f 84 39 03 00 00    	je     b35 <main+0x4e5>
+     7fc:	0f 87 9e 01 00 00    	ja     9a0 <main+0x350>
+     802:	3d 00 00 00 23       	cmp    $0x23000000,%eax
+     807:	0f 84 e0 02 00 00    	je     aed <main+0x49d>
+     80d:	3d 00 00 00 24       	cmp    $0x24000000,%eax
+     812:	0f 85 87 03 00 00    	jne    b9f <main+0x54f>
+     818:	8b 05 b2 18 20 00    	mov    0x2018b2(%rip),%eax        # 2020d0 <vR>
+     81e:	44 8b 05 b3 18 20 00 	mov    0x2018b3(%rip),%r8d        # 2020d8 <vB>
+     825:	85 c0                	test   %eax,%eax
+     827:	0f 84 73 fe ff ff    	je     6a0 <main+0x50>
+     82d:	41 0f b7 f4          	movzwl %r12w,%esi
+     831:	83 e8 01             	sub    $0x1,%eax
+     834:	89 05 96 18 20 00    	mov    %eax,0x201896(%rip)        # 2020d0 <vR>
+     83a:	89 35 80 18 20 00    	mov    %esi,0x201880(%rip)        # 2020c0 <vZ>
+     840:	e9 5b fe ff ff       	jmpq   6a0 <main+0x50>
+     845:	0f 1f 00             	nopl   (%rax)
+     848:	3d 00 00 00 0e       	cmp    $0xe000000,%eax
+     84d:	0f 84 b0 02 00 00    	je     b03 <main+0x4b3>
+     853:	77 7b                	ja     8d0 <main+0x280>
+     855:	3d 00 00 00 0b       	cmp    $0xb000000,%eax
+     85a:	0f 84 f6 02 00 00    	je     b56 <main+0x506>
+     860:	0f 86 91 01 00 00    	jbe    9f7 <main+0x3a7>
+     866:	3d 00 00 00 0c       	cmp    $0xc000000,%eax
+     86b:	0f 84 1a 03 00 00    	je     b8b <main+0x53b>
+     871:	3d 00 00 00 0d       	cmp    $0xd000000,%eax
+     876:	0f 85 23 03 00 00    	jne    b9f <main+0x54f>
+     87c:	44 8b 05 55 18 20 00 	mov    0x201855(%rip),%r8d        # 2020d8 <vB>
+     883:	41 0f b7 c0          	movzwl %r8w,%eax
+     887:	83 2c 83 01          	subl   $0x1,(%rbx,%rax,4)
+     88b:	e9 10 fe ff ff       	jmpq   6a0 <main+0x50>
+     890:	3d 00 00 00 1a       	cmp    $0x1a000000,%eax
+     895:	0f 84 15 04 00 00    	je     cb0 <main+0x660>
+     89b:	0f 86 7e 01 00 00    	jbe    a1f <main+0x3cf>
+     8a1:	3d 00 00 00 1b       	cmp    $0x1b000000,%eax
+     8a6:	0f 84 6e 02 00 00    	je     b1a <main+0x4ca>
+     8ac:	3d 00 00 00 1c       	cmp    $0x1c000000,%eax
+     8b1:	0f 85 e8 02 00 00    	jne    b9f <main+0x54f>
+     8b7:	0f b6 05 1e 18 20 00 	movzbl 0x20181e(%rip),%eax        # 2020dc <vA>
+     8be:	89 05 18 18 20 00    	mov    %eax,0x201818(%rip)        # 2020dc <vA>
+     8c4:	5b                   	pop    %rbx
+     8c5:	5d                   	pop    %rbp
+     8c6:	41 5c                	pop    %r12
+     8c8:	c3                   	retq   
+     8c9:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+     8d0:	3d 00 00 00 10       	cmp    $0x10000000,%eax
+     8d5:	0f 84 27 03 00 00    	je     c02 <main+0x5b2>
+     8db:	0f 86 93 01 00 00    	jbe    a74 <main+0x424>
+     8e1:	3d 00 00 00 11       	cmp    $0x11000000,%eax
+     8e6:	0f 84 3f 03 00 00    	je     c2b <main+0x5db>
+     8ec:	3d 00 00 00 12       	cmp    $0x12000000,%eax
+     8f1:	0f 85 a8 02 00 00    	jne    b9f <main+0x54f>
+     8f7:	8b 05 db 17 20 00    	mov    0x2017db(%rip),%eax        # 2020d8 <vB>
+     8fd:	44 8d 80 00 00 00 80 	lea    -0x80000000(%rax),%r8d
+     904:	44 89 05 cd 17 20 00 	mov    %r8d,0x2017cd(%rip)        # 2020d8 <vB>
+     90b:	e9 90 fd ff ff       	jmpq   6a0 <main+0x50>
+     910:	3d 00 00 00 06       	cmp    $0x6000000,%eax
+     915:	0f 84 a4 01 00 00    	je     abf <main+0x46f>
+     91b:	0f 86 80 01 00 00    	jbe    aa1 <main+0x451>
+     921:	3d 00 00 00 07       	cmp    $0x7000000,%eax
+     926:	0f 84 ae 02 00 00    	je     bda <main+0x58a>
+     92c:	3d 00 00 00 08       	cmp    $0x8000000,%eax
+     931:	0f 85 68 02 00 00    	jne    b9f <main+0x54f>
+     937:	44 8b 05 9a 17 20 00 	mov    0x20179a(%rip),%r8d        # 2020d8 <vB>
+     93e:	41 0f b7 c0          	movzwl %r8w,%eax
+     942:	8b 04 83             	mov    (%rbx,%rax,4),%eax
+     945:	89 05 91 17 20 00    	mov    %eax,0x201791(%rip)        # 2020dc <vA>
+     94b:	e9 50 fd ff ff       	jmpq   6a0 <main+0x50>
+     950:	3d 00 00 00 1f       	cmp    $0x1f000000,%eax
+     955:	0f 84 e6 02 00 00    	je     c41 <main+0x5f1>
+     95b:	76 7d                	jbe    9da <main+0x38a>
+     95d:	3d 00 00 00 20       	cmp    $0x20000000,%eax
+     962:	0f 84 0b 03 00 00    	je     c73 <main+0x623>
+     968:	3d 00 00 00 21       	cmp    $0x21000000,%eax
+     96d:	0f 85 2c 02 00 00    	jne    b9f <main+0x54f>
+     973:	44 8b 05 5e 17 20 00 	mov    0x20175e(%rip),%r8d        # 2020d8 <vB>
+     97a:	8b 05 5c 17 20 00    	mov    0x20175c(%rip),%eax        # 2020dc <vA>
+     980:	44 21 c0             	and    %r8d,%eax
+     983:	41 39 c0             	cmp    %eax,%r8d
+     986:	0f 85 14 fd ff ff    	jne    6a0 <main+0x50>
+     98c:	0f 1f 40 00          	nopl   0x0(%rax)
+     990:	41 0f b7 f4          	movzwl %r12w,%esi
+     994:	89 35 26 17 20 00    	mov    %esi,0x201726(%rip)        # 2020c0 <vZ>
+     99a:	e9 01 fd ff ff       	jmpq   6a0 <main+0x50>
+     99f:	90                   	nop
+     9a0:	3d 00 00 00 26       	cmp    $0x26000000,%eax
+     9a5:	0f 84 e1 02 00 00    	je     c8c <main+0x63c>
+     9ab:	3d 00 00 00 27       	cmp    $0x27000000,%eax
+     9b0:	0f 85 e9 01 00 00    	jne    b9f <main+0x54f>
+     9b6:	48 8b 35 e3 16 20 00 	mov    0x2016e3(%rip),%rsi        # 2020a0 <stdout@@GLIBC_2.2.5>
+     9bd:	8b 3d 19 17 20 00    	mov    0x201719(%rip),%edi        # 2020dc <vA>
+     9c3:	e8 58 fc ff ff       	callq  620 <_IO_putc@plt>
+     9c8:	8b 35 f2 16 20 00    	mov    0x2016f2(%rip),%esi        # 2020c0 <vZ>
+     9ce:	44 8b 05 03 17 20 00 	mov    0x201703(%rip),%r8d        # 2020d8 <vB>
+     9d5:	e9 c6 fc ff ff       	jmpq   6a0 <main+0x50>
+     9da:	3d 00 00 00 1e       	cmp    $0x1e000000,%eax
+     9df:	0f 85 ba 01 00 00    	jne    b9f <main+0x54f>
+     9e5:	44 8b 05 ec 16 20 00 	mov    0x2016ec(%rip),%r8d        # 2020d8 <vB>
+     9ec:	45 85 c0             	test   %r8d,%r8d
+     9ef:	0f 85 ab fc ff ff    	jne    6a0 <main+0x50>
+     9f5:	eb 99                	jmp    990 <main+0x340>
+     9f7:	3d 00 00 00 0a       	cmp    $0xa000000,%eax
+     9fc:	0f 85 9d 01 00 00    	jne    b9f <main+0x54f>
+     a02:	44 8b 05 cf 16 20 00 	mov    0x2016cf(%rip),%r8d        # 2020d8 <vB>
+     a09:	41 0f b7 c0          	movzwl %r8w,%eax
+     a0d:	0f b7 04 83          	movzwl (%rbx,%rax,4),%eax
+     a11:	8b 04 83             	mov    (%rbx,%rax,4),%eax
+     a14:	89 05 c2 16 20 00    	mov    %eax,0x2016c2(%rip)        # 2020dc <vA>
+     a1a:	e9 81 fc ff ff       	jmpq   6a0 <main+0x50>
+     a1f:	3d 00 00 00 19       	cmp    $0x19000000,%eax
+     a24:	0f 85 75 01 00 00    	jne    b9f <main+0x54f>
+     a2a:	8b 05 a4 16 20 00    	mov    0x2016a4(%rip),%eax        # 2020d4 <vT>
+     a30:	44 8b 05 a1 16 20 00 	mov    0x2016a1(%rip),%r8d        # 2020d8 <vB>
+     a37:	89 05 9f 16 20 00    	mov    %eax,0x20169f(%rip)        # 2020dc <vA>
+     a3d:	e9 5e fc ff ff       	jmpq   6a0 <main+0x50>
+     a42:	3d 00 00 00 14       	cmp    $0x14000000,%eax
+     a47:	0f 85 52 01 00 00    	jne    b9f <main+0x54f>
+     a4d:	44 8b 05 88 16 20 00 	mov    0x201688(%rip),%r8d        # 2020dc <vA>
+     a54:	44 89 05 7d 16 20 00 	mov    %r8d,0x20167d(%rip)        # 2020d8 <vB>
+     a5b:	e9 40 fc ff ff       	jmpq   6a0 <main+0x50>
+     a60:	85 c0                	test   %eax,%eax
+     a62:	0f 85 37 01 00 00    	jne    b9f <main+0x54f>
+     a68:	44 8b 05 69 16 20 00 	mov    0x201669(%rip),%r8d        # 2020d8 <vB>
+     a6f:	e9 2c fc ff ff       	jmpq   6a0 <main+0x50>
+     a74:	3d 00 00 00 0f       	cmp    $0xf000000,%eax
+     a79:	0f 85 20 01 00 00    	jne    b9f <main+0x54f>
+     a7f:	44 8b 05 52 16 20 00 	mov    0x201652(%rip),%r8d        # 2020d8 <vB>
+     a86:	41 0f b7 c0          	movzwl %r8w,%eax
+     a8a:	8b 14 83             	mov    (%rbx,%rax,4),%edx
+     a8d:	8b 05 49 16 20 00    	mov    0x201649(%rip),%eax        # 2020dc <vA>
+     a93:	44 01 c0             	add    %r8d,%eax
+     a96:	0f b7 c0             	movzwl %ax,%eax
+     a99:	89 14 83             	mov    %edx,(%rbx,%rax,4)
+     a9c:	e9 ff fb ff ff       	jmpq   6a0 <main+0x50>
+     aa1:	3d 00 00 00 05       	cmp    $0x5000000,%eax
+     aa6:	0f 85 f3 00 00 00    	jne    b9f <main+0x54f>
+     aac:	44 8b 05 25 16 20 00 	mov    0x201625(%rip),%r8d        # 2020d8 <vB>
+     ab3:	44 31 05 22 16 20 00 	xor    %r8d,0x201622(%rip)        # 2020dc <vA>
+     aba:	e9 e1 fb ff ff       	jmpq   6a0 <main+0x50>
+     abf:	44 8b 05 12 16 20 00 	mov    0x201612(%rip),%r8d        # 2020d8 <vB>
+     ac6:	44 89 c1             	mov    %r8d,%ecx
+     ac9:	d3 25 0d 16 20 00    	shll   %cl,0x20160d(%rip)        # 2020dc <vA>
+     acf:	e9 cc fb ff ff       	jmpq   6a0 <main+0x50>
+     ad4:	44 8b 05 fd 15 20 00 	mov    0x2015fd(%rip),%r8d        # 2020d8 <vB>
+     adb:	8b 15 fb 15 20 00    	mov    0x2015fb(%rip),%edx        # 2020dc <vA>
+     ae1:	41 0f b7 c0          	movzwl %r8w,%eax
+     ae5:	89 14 83             	mov    %edx,(%rbx,%rax,4)
+     ae8:	e9 b3 fb ff ff       	jmpq   6a0 <main+0x50>
+     aed:	41 0f b7 f4          	movzwl %r12w,%esi
+     af1:	44 8b 05 e0 15 20 00 	mov    0x2015e0(%rip),%r8d        # 2020d8 <vB>
+     af8:	89 35 c2 15 20 00    	mov    %esi,0x2015c2(%rip)        # 2020c0 <vZ>
+     afe:	e9 9d fb ff ff       	jmpq   6a0 <main+0x50>
+     b03:	0f b7 05 ce 15 20 00 	movzwl 0x2015ce(%rip),%eax        # 2020d8 <vB>
+     b0a:	44 8b 04 83          	mov    (%rbx,%rax,4),%r8d
+     b0e:	44 89 05 c3 15 20 00 	mov    %r8d,0x2015c3(%rip)        # 2020d8 <vB>
+     b15:	e9 86 fb ff ff       	jmpq   6a0 <main+0x50>
+     b1a:	48 8b 05 a7 15 20 00 	mov    0x2015a7(%rip),%rax        # 2020c8 <vL>
+     b21:	44 8b 05 b0 15 20 00 	mov    0x2015b0(%rip),%r8d        # 2020d8 <vB>
+     b28:	89 c6                	mov    %eax,%esi
+     b2a:	89 05 90 15 20 00    	mov    %eax,0x201590(%rip)        # 2020c0 <vZ>
+     b30:	e9 6b fb ff ff       	jmpq   6a0 <main+0x50>
+     b35:	41 0f b7 c4          	movzwl %r12w,%eax
+     b39:	89 f7                	mov    %esi,%edi
+     b3b:	44 8b 05 96 15 20 00 	mov    0x201596(%rip),%r8d        # 2020d8 <vB>
+     b42:	48 89 3d 7f 15 20 00 	mov    %rdi,0x20157f(%rip)        # 2020c8 <vL>
+     b49:	89 05 71 15 20 00    	mov    %eax,0x201571(%rip)        # 2020c0 <vZ>
+     b4f:	89 c6                	mov    %eax,%esi
+     b51:	e9 4a fb ff ff       	jmpq   6a0 <main+0x50>
+     b56:	44 8b 05 7b 15 20 00 	mov    0x20157b(%rip),%r8d        # 2020d8 <vB>
+     b5d:	8b 15 79 15 20 00    	mov    0x201579(%rip),%edx        # 2020dc <vA>
+     b63:	41 0f b7 c0          	movzwl %r8w,%eax
+     b67:	0f b7 04 83          	movzwl (%rbx,%rax,4),%eax
+     b6b:	89 14 83             	mov    %edx,(%rbx,%rax,4)
+     b6e:	e9 2d fb ff ff       	jmpq   6a0 <main+0x50>
+     b73:	8b 05 57 15 20 00    	mov    0x201557(%rip),%eax        # 2020d0 <vR>
+     b79:	44 8b 05 58 15 20 00 	mov    0x201558(%rip),%r8d        # 2020d8 <vB>
+     b80:	89 05 56 15 20 00    	mov    %eax,0x201556(%rip)        # 2020dc <vA>
+     b86:	e9 15 fb ff ff       	jmpq   6a0 <main+0x50>
+     b8b:	44 8b 05 46 15 20 00 	mov    0x201546(%rip),%r8d        # 2020d8 <vB>
+     b92:	41 0f b7 c0          	movzwl %r8w,%eax
+     b96:	83 04 83 01          	addl   $0x1,(%rbx,%rax,4)
+     b9a:	e9 01 fb ff ff       	jmpq   6a0 <main+0x50>
+     b9f:	b8 02 00 00 00       	mov    $0x2,%eax
+     ba4:	e9 1b fd ff ff       	jmpq   8c4 <main+0x274>
+     ba9:	44 8b 05 28 15 20 00 	mov    0x201528(%rip),%r8d        # 2020d8 <vB>
+     bb0:	44 29 05 25 15 20 00 	sub    %r8d,0x201525(%rip)        # 2020dc <vA>
+     bb7:	e9 e4 fa ff ff       	jmpq   6a0 <main+0x50>
+     bbc:	44 8b 05 15 15 20 00 	mov    0x201515(%rip),%r8d        # 2020d8 <vB>
+     bc3:	8b 05 13 15 20 00    	mov    0x201513(%rip),%eax        # 2020dc <vA>
+     bc9:	44 09 c0             	or     %r8d,%eax
+     bcc:	41 39 c0             	cmp    %eax,%r8d
+     bcf:	0f 85 cb fa ff ff    	jne    6a0 <main+0x50>
+     bd5:	e9 b6 fd ff ff       	jmpq   990 <main+0x340>
+     bda:	44 8b 05 f7 14 20 00 	mov    0x2014f7(%rip),%r8d        # 2020d8 <vB>
+     be1:	44 89 c1             	mov    %r8d,%ecx
+     be4:	d3 2d f2 14 20 00    	shrl   %cl,0x2014f2(%rip)        # 2020dc <vA>
+     bea:	e9 b1 fa ff ff       	jmpq   6a0 <main+0x50>
+     bef:	44 8b 05 e2 14 20 00 	mov    0x2014e2(%rip),%r8d        # 2020d8 <vB>
+     bf6:	44 01 05 df 14 20 00 	add    %r8d,0x2014df(%rip)        # 2020dc <vA>
+     bfd:	e9 9e fa ff ff       	jmpq   6a0 <main+0x50>
+     c02:	8b 05 d0 14 20 00    	mov    0x2014d0(%rip),%eax        # 2020d8 <vB>
+     c08:	44 8d 40 01          	lea    0x1(%rax),%r8d
+     c0c:	44 89 05 c5 14 20 00 	mov    %r8d,0x2014c5(%rip)        # 2020d8 <vB>
+     c13:	e9 88 fa ff ff       	jmpq   6a0 <main+0x50>
+     c18:	44 8b 05 b9 14 20 00 	mov    0x2014b9(%rip),%r8d        # 2020d8 <vB>
+     c1f:	44 21 05 b6 14 20 00 	and    %r8d,0x2014b6(%rip)        # 2020dc <vA>
+     c26:	e9 75 fa ff ff       	jmpq   6a0 <main+0x50>
+     c2b:	8b 05 a7 14 20 00    	mov    0x2014a7(%rip),%eax        # 2020d8 <vB>
+     c31:	44 8d 40 ff          	lea    -0x1(%rax),%r8d
+     c35:	44 89 05 9c 14 20 00 	mov    %r8d,0x20149c(%rip)        # 2020d8 <vB>
+     c3c:	e9 5f fa ff ff       	jmpq   6a0 <main+0x50>
+     c41:	44 8b 05 90 14 20 00 	mov    0x201490(%rip),%r8d        # 2020d8 <vB>
+     c48:	44 39 05 8d 14 20 00 	cmp    %r8d,0x20148d(%rip)        # 2020dc <vA>
+     c4f:	0f 85 4b fa ff ff    	jne    6a0 <main+0x50>
+     c55:	e9 36 fd ff ff       	jmpq   990 <main+0x340>
+     c5a:	83 3d 7b 14 20 00 00 	cmpl   $0x0,0x20147b(%rip)        # 2020dc <vA>
+     c61:	44 8b 05 70 14 20 00 	mov    0x201470(%rip),%r8d        # 2020d8 <vB>
+     c68:	0f 85 32 fa ff ff    	jne    6a0 <main+0x50>
+     c6e:	e9 1d fd ff ff       	jmpq   990 <main+0x340>
+     c73:	83 3d 62 14 20 00 00 	cmpl   $0x0,0x201462(%rip)        # 2020dc <vA>
+     c7a:	44 8b 05 57 14 20 00 	mov    0x201457(%rip),%r8d        # 2020d8 <vB>
+     c81:	0f 89 19 fa ff ff    	jns    6a0 <main+0x50>
+     c87:	e9 04 fd ff ff       	jmpq   990 <main+0x340>
+     c8c:	48 8b 3d 1d 14 20 00 	mov    0x20141d(%rip),%rdi        # 2020b0 <stdin@@GLIBC_2.2.5>
+     c93:	e8 98 f9 ff ff       	callq  630 <_IO_getc@plt>
+     c98:	8b 35 22 14 20 00    	mov    0x201422(%rip),%esi        # 2020c0 <vZ>
+     c9e:	89 05 38 14 20 00    	mov    %eax,0x201438(%rip)        # 2020dc <vA>
+     ca4:	44 8b 05 2d 14 20 00 	mov    0x20142d(%rip),%r8d        # 2020d8 <vB>
+     cab:	e9 f0 f9 ff ff       	jmpq   6a0 <main+0x50>
+     cb0:	c7 05 22 14 20 00 00 	movl   $0x10000,0x201422(%rip)        # 2020dc <vA>
+     cb7:	00 01 00 
+     cba:	44 8b 05 17 14 20 00 	mov    0x201417(%rip),%r8d        # 2020d8 <vB>
+     cc1:	e9 da f9 ff ff       	jmpq   6a0 <main+0x50>
+     cc6:	8b 05 10 14 20 00    	mov    0x201410(%rip),%eax        # 2020dc <vA>
+     ccc:	44 8b 05 05 14 20 00 	mov    0x201405(%rip),%r8d        # 2020d8 <vB>
+     cd3:	89 05 f7 13 20 00    	mov    %eax,0x2013f7(%rip)        # 2020d0 <vR>
+     cd9:	e9 c2 f9 ff ff       	jmpq   6a0 <main+0x50>
+     cde:	44 8b 05 f7 13 20 00 	mov    0x2013f7(%rip),%r8d        # 2020dc <vA>
+     ce5:	8b 05 ed 13 20 00    	mov    0x2013ed(%rip),%eax        # 2020d8 <vB>
+     ceb:	44 89 05 e6 13 20 00 	mov    %r8d,0x2013e6(%rip)        # 2020d8 <vB>
+     cf2:	89 05 e4 13 20 00    	mov    %eax,0x2013e4(%rip)        # 2020dc <vA>
+     cf8:	e9 a3 f9 ff ff       	jmpq   6a0 <main+0x50>
+     cfd:	8b 05 d9 13 20 00    	mov    0x2013d9(%rip),%eax        # 2020dc <vA>
+     d03:	44 8b 05 ce 13 20 00 	mov    0x2013ce(%rip),%r8d        # 2020d8 <vB>
+     d0a:	89 05 c4 13 20 00    	mov    %eax,0x2013c4(%rip)        # 2020d4 <vT>
+     d10:	e9 8b f9 ff ff       	jmpq   6a0 <main+0x50>
+     d15:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     d1c:	00 00 00 
+     d1f:	90                   	nop
 
-0000000000000610 <_start>:
-     610:	31 ed                	xor    %ebp,%ebp
-     612:	49 89 d1             	mov    %rdx,%r9
-     615:	5e                   	pop    %rsi
-     616:	48 89 e2             	mov    %rsp,%rdx
-     619:	48 83 e4 f0          	and    $0xfffffffffffffff0,%rsp
-     61d:	50                   	push   %rax
-     61e:	54                   	push   %rsp
-     61f:	4c 8d 05 0a 0b 00 00 	lea    0xb0a(%rip),%r8        # 1130 <__libc_csu_fini>
-     626:	48 8d 0d 93 0a 00 00 	lea    0xa93(%rip),%rcx        # 10c0 <__libc_csu_init>
-     62d:	48 8d 3d cc ff ff ff 	lea    -0x34(%rip),%rdi        # 600 <main>
-     634:	ff 15 a6 19 20 00    	callq  *0x2019a6(%rip)        # 201fe0 <__libc_start_main@GLIBC_2.2.5>
-     63a:	f4                   	hlt    
-     63b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+0000000000000d20 <_start>:
+     d20:	31 ed                	xor    %ebp,%ebp
+     d22:	49 89 d1             	mov    %rdx,%r9
+     d25:	5e                   	pop    %rsi
+     d26:	48 89 e2             	mov    %rsp,%rdx
+     d29:	48 83 e4 f0          	and    $0xfffffffffffffff0,%rsp
+     d2d:	50                   	push   %rax
+     d2e:	54                   	push   %rsp
+     d2f:	4c 8d 05 9a 05 00 00 	lea    0x59a(%rip),%r8        # 12d0 <__libc_csu_fini>
+     d36:	48 8d 0d 23 05 00 00 	lea    0x523(%rip),%rcx        # 1260 <__libc_csu_init>
+     d3d:	48 8d 3d 0c f9 ff ff 	lea    -0x6f4(%rip),%rdi        # 650 <main>
+     d44:	ff 15 96 12 20 00    	callq  *0x201296(%rip)        # 201fe0 <__libc_start_main@GLIBC_2.2.5>
+     d4a:	f4                   	hlt    
+     d4b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
 
-0000000000000640 <deregister_tm_clones>:
-     640:	48 8d 3d f1 19 20 00 	lea    0x2019f1(%rip),%rdi        # 202038 <__TMC_END__>
-     647:	55                   	push   %rbp
-     648:	48 8d 05 e9 19 20 00 	lea    0x2019e9(%rip),%rax        # 202038 <__TMC_END__>
-     64f:	48 39 f8             	cmp    %rdi,%rax
-     652:	48 89 e5             	mov    %rsp,%rbp
-     655:	74 19                	je     670 <deregister_tm_clones+0x30>
-     657:	48 8b 05 7a 19 20 00 	mov    0x20197a(%rip),%rax        # 201fd8 <_ITM_deregisterTMCloneTable>
-     65e:	48 85 c0             	test   %rax,%rax
-     661:	74 0d                	je     670 <deregister_tm_clones+0x30>
-     663:	5d                   	pop    %rbp
-     664:	ff e0                	jmpq   *%rax
-     666:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     66d:	00 00 00 
-     670:	5d                   	pop    %rbp
-     671:	c3                   	retq   
-     672:	0f 1f 40 00          	nopl   0x0(%rax)
-     676:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     67d:	00 00 00 
+0000000000000d50 <deregister_tm_clones>:
+     d50:	48 8d 3d 31 13 20 00 	lea    0x201331(%rip),%rdi        # 202088 <__TMC_END__>
+     d57:	55                   	push   %rbp
+     d58:	48 8d 05 29 13 20 00 	lea    0x201329(%rip),%rax        # 202088 <__TMC_END__>
+     d5f:	48 39 f8             	cmp    %rdi,%rax
+     d62:	48 89 e5             	mov    %rsp,%rbp
+     d65:	74 19                	je     d80 <deregister_tm_clones+0x30>
+     d67:	48 8b 05 6a 12 20 00 	mov    0x20126a(%rip),%rax        # 201fd8 <_ITM_deregisterTMCloneTable>
+     d6e:	48 85 c0             	test   %rax,%rax
+     d71:	74 0d                	je     d80 <deregister_tm_clones+0x30>
+     d73:	5d                   	pop    %rbp
+     d74:	ff e0                	jmpq   *%rax
+     d76:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     d7d:	00 00 00 
+     d80:	5d                   	pop    %rbp
+     d81:	c3                   	retq   
+     d82:	0f 1f 40 00          	nopl   0x0(%rax)
+     d86:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     d8d:	00 00 00 
 
-0000000000000680 <register_tm_clones>:
-     680:	48 8d 3d b1 19 20 00 	lea    0x2019b1(%rip),%rdi        # 202038 <__TMC_END__>
-     687:	48 8d 35 aa 19 20 00 	lea    0x2019aa(%rip),%rsi        # 202038 <__TMC_END__>
-     68e:	55                   	push   %rbp
-     68f:	48 29 fe             	sub    %rdi,%rsi
-     692:	48 89 e5             	mov    %rsp,%rbp
-     695:	48 c1 fe 03          	sar    $0x3,%rsi
-     699:	48 89 f0             	mov    %rsi,%rax
-     69c:	48 c1 e8 3f          	shr    $0x3f,%rax
-     6a0:	48 01 c6             	add    %rax,%rsi
-     6a3:	48 d1 fe             	sar    %rsi
-     6a6:	74 18                	je     6c0 <register_tm_clones+0x40>
-     6a8:	48 8b 05 41 19 20 00 	mov    0x201941(%rip),%rax        # 201ff0 <_ITM_registerTMCloneTable>
-     6af:	48 85 c0             	test   %rax,%rax
-     6b2:	74 0c                	je     6c0 <register_tm_clones+0x40>
-     6b4:	5d                   	pop    %rbp
-     6b5:	ff e0                	jmpq   *%rax
-     6b7:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
-     6be:	00 00 
-     6c0:	5d                   	pop    %rbp
-     6c1:	c3                   	retq   
-     6c2:	0f 1f 40 00          	nopl   0x0(%rax)
-     6c6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     6cd:	00 00 00 
+0000000000000d90 <register_tm_clones>:
+     d90:	48 8d 3d f1 12 20 00 	lea    0x2012f1(%rip),%rdi        # 202088 <__TMC_END__>
+     d97:	48 8d 35 ea 12 20 00 	lea    0x2012ea(%rip),%rsi        # 202088 <__TMC_END__>
+     d9e:	55                   	push   %rbp
+     d9f:	48 29 fe             	sub    %rdi,%rsi
+     da2:	48 89 e5             	mov    %rsp,%rbp
+     da5:	48 c1 fe 03          	sar    $0x3,%rsi
+     da9:	48 89 f0             	mov    %rsi,%rax
+     dac:	48 c1 e8 3f          	shr    $0x3f,%rax
+     db0:	48 01 c6             	add    %rax,%rsi
+     db3:	48 d1 fe             	sar    %rsi
+     db6:	74 18                	je     dd0 <register_tm_clones+0x40>
+     db8:	48 8b 05 31 12 20 00 	mov    0x201231(%rip),%rax        # 201ff0 <_ITM_registerTMCloneTable>
+     dbf:	48 85 c0             	test   %rax,%rax
+     dc2:	74 0c                	je     dd0 <register_tm_clones+0x40>
+     dc4:	5d                   	pop    %rbp
+     dc5:	ff e0                	jmpq   *%rax
+     dc7:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+     dce:	00 00 
+     dd0:	5d                   	pop    %rbp
+     dd1:	c3                   	retq   
+     dd2:	0f 1f 40 00          	nopl   0x0(%rax)
+     dd6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     ddd:	00 00 00 
 
-00000000000006d0 <__do_global_dtors_aux>:
-     6d0:	80 3d 81 19 20 00 00 	cmpb   $0x0,0x201981(%rip)        # 202058 <completed.7001>
-     6d7:	75 2f                	jne    708 <__do_global_dtors_aux+0x38>
-     6d9:	48 83 3d 17 19 20 00 	cmpq   $0x0,0x201917(%rip)        # 201ff8 <__cxa_finalize@GLIBC_2.2.5>
-     6e0:	00 
-     6e1:	55                   	push   %rbp
-     6e2:	48 89 e5             	mov    %rsp,%rbp
-     6e5:	74 0c                	je     6f3 <__do_global_dtors_aux+0x23>
-     6e7:	48 8b 3d 42 19 20 00 	mov    0x201942(%rip),%rdi        # 202030 <__dso_handle>
-     6ee:	e8 fd fe ff ff       	callq  5f0 <__cxa_finalize@plt>
-     6f3:	e8 48 ff ff ff       	callq  640 <deregister_tm_clones>
-     6f8:	c6 05 59 19 20 00 01 	movb   $0x1,0x201959(%rip)        # 202058 <completed.7001>
-     6ff:	5d                   	pop    %rbp
-     700:	c3                   	retq   
-     701:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
-     708:	f3 c3                	repz retq 
-     70a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+0000000000000de0 <__do_global_dtors_aux>:
+     de0:	80 3d d1 12 20 00 00 	cmpb   $0x0,0x2012d1(%rip)        # 2020b8 <completed.7001>
+     de7:	75 2f                	jne    e18 <__do_global_dtors_aux+0x38>
+     de9:	48 83 3d 07 12 20 00 	cmpq   $0x0,0x201207(%rip)        # 201ff8 <__cxa_finalize@GLIBC_2.2.5>
+     df0:	00 
+     df1:	55                   	push   %rbp
+     df2:	48 89 e5             	mov    %rsp,%rbp
+     df5:	74 0c                	je     e03 <__do_global_dtors_aux+0x23>
+     df7:	48 8b 3d 4a 12 20 00 	mov    0x20124a(%rip),%rdi        # 202048 <__dso_handle>
+     dfe:	e8 3d f8 ff ff       	callq  640 <__cxa_finalize@plt>
+     e03:	e8 48 ff ff ff       	callq  d50 <deregister_tm_clones>
+     e08:	c6 05 a9 12 20 00 01 	movb   $0x1,0x2012a9(%rip)        # 2020b8 <completed.7001>
+     e0f:	5d                   	pop    %rbp
+     e10:	c3                   	retq   
+     e11:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+     e18:	f3 c3                	repz retq 
+     e1a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
 
-0000000000000710 <frame_dummy>:
-     710:	55                   	push   %rbp
-     711:	48 89 e5             	mov    %rsp,%rbp
-     714:	5d                   	pop    %rbp
-     715:	e9 66 ff ff ff       	jmpq   680 <register_tm_clones>
-     71a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+0000000000000e20 <frame_dummy>:
+     e20:	55                   	push   %rbp
+     e21:	48 89 e5             	mov    %rsp,%rbp
+     e24:	5d                   	pop    %rbp
+     e25:	e9 66 ff ff ff       	jmpq   d90 <register_tm_clones>
+     e2a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
 
-0000000000000720 <safe>:
-     720:	0f b7 c7             	movzwl %di,%eax
-     723:	c3                   	retq   
-     724:	66 90                	xchg   %ax,%ax
-     726:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     72d:	00 00 00 
+0000000000000e30 <safe>:
+     e30:	0f b7 c7             	movzwl %di,%eax
+     e33:	c3                   	retq   
+     e34:	66 90                	xchg   %ax,%ax
+     e36:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     e3d:	00 00 00 
 
-0000000000000730 <enbyte>:
-     730:	40 0f b6 c7          	movzbl %dil,%eax
-     734:	c3                   	retq   
-     735:	90                   	nop
-     736:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     73d:	00 00 00 
+0000000000000e40 <enbyte>:
+     e40:	40 0f b6 c7          	movzbl %dil,%eax
+     e44:	c3                   	retq   
+     e45:	90                   	nop
+     e46:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     e4d:	00 00 00 
 
-0000000000000740 <enrange>:
-     740:	89 f8                	mov    %edi,%eax
-     742:	25 ff ff ff 7f       	and    $0x7fffffff,%eax
-     747:	c3                   	retq   
-     748:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     74f:	00 
+0000000000000e50 <enrange>:
+     e50:	89 f8                	mov    %edi,%eax
+     e52:	25 ff ff ff 7f       	and    $0x7fffffff,%eax
+     e57:	c3                   	retq   
+     e58:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     e5f:	00 
 
-0000000000000750 <enshift>:
-     750:	89 f8                	mov    %edi,%eax
-     752:	83 e0 1f             	and    $0x1f,%eax
-     755:	c3                   	retq   
-     756:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     75d:	00 00 00 
+0000000000000e60 <enshift>:
+     e60:	89 f8                	mov    %edi,%eax
+     e62:	83 e0 1f             	and    $0x1f,%eax
+     e65:	c3                   	retq   
+     e66:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     e6d:	00 00 00 
 
-0000000000000760 <Add>:
-     760:	8b 05 0a 19 20 00    	mov    0x20190a(%rip),%eax        # 202070 <vB>
-     766:	01 05 08 19 20 00    	add    %eax,0x201908(%rip)        # 202074 <vA>
-     76c:	c3                   	retq   
-     76d:	0f 1f 00             	nopl   (%rax)
+0000000000000e70 <Add>:
+     e70:	8b 05 62 12 20 00    	mov    0x201262(%rip),%eax        # 2020d8 <vB>
+     e76:	01 05 60 12 20 00    	add    %eax,0x201260(%rip)        # 2020dc <vA>
+     e7c:	c3                   	retq   
+     e7d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000770 <Sub>:
-     770:	8b 05 fa 18 20 00    	mov    0x2018fa(%rip),%eax        # 202070 <vB>
-     776:	29 05 f8 18 20 00    	sub    %eax,0x2018f8(%rip)        # 202074 <vA>
-     77c:	c3                   	retq   
-     77d:	0f 1f 00             	nopl   (%rax)
+0000000000000e80 <Sub>:
+     e80:	8b 05 52 12 20 00    	mov    0x201252(%rip),%eax        # 2020d8 <vB>
+     e86:	29 05 50 12 20 00    	sub    %eax,0x201250(%rip)        # 2020dc <vA>
+     e8c:	c3                   	retq   
+     e8d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000780 <Or>:
-     780:	8b 05 ea 18 20 00    	mov    0x2018ea(%rip),%eax        # 202070 <vB>
-     786:	09 05 e8 18 20 00    	or     %eax,0x2018e8(%rip)        # 202074 <vA>
-     78c:	c3                   	retq   
-     78d:	0f 1f 00             	nopl   (%rax)
+0000000000000e90 <Or>:
+     e90:	8b 05 42 12 20 00    	mov    0x201242(%rip),%eax        # 2020d8 <vB>
+     e96:	09 05 40 12 20 00    	or     %eax,0x201240(%rip)        # 2020dc <vA>
+     e9c:	c3                   	retq   
+     e9d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000790 <And>:
-     790:	8b 05 da 18 20 00    	mov    0x2018da(%rip),%eax        # 202070 <vB>
-     796:	21 05 d8 18 20 00    	and    %eax,0x2018d8(%rip)        # 202074 <vA>
-     79c:	c3                   	retq   
-     79d:	0f 1f 00             	nopl   (%rax)
+0000000000000ea0 <And>:
+     ea0:	8b 05 32 12 20 00    	mov    0x201232(%rip),%eax        # 2020d8 <vB>
+     ea6:	21 05 30 12 20 00    	and    %eax,0x201230(%rip)        # 2020dc <vA>
+     eac:	c3                   	retq   
+     ead:	0f 1f 00             	nopl   (%rax)
 
-00000000000007a0 <Xor>:
-     7a0:	8b 05 ca 18 20 00    	mov    0x2018ca(%rip),%eax        # 202070 <vB>
-     7a6:	31 05 c8 18 20 00    	xor    %eax,0x2018c8(%rip)        # 202074 <vA>
-     7ac:	c3                   	retq   
-     7ad:	0f 1f 00             	nopl   (%rax)
+0000000000000eb0 <Xor>:
+     eb0:	8b 05 22 12 20 00    	mov    0x201222(%rip),%eax        # 2020d8 <vB>
+     eb6:	31 05 20 12 20 00    	xor    %eax,0x201220(%rip)        # 2020dc <vA>
+     ebc:	c3                   	retq   
+     ebd:	0f 1f 00             	nopl   (%rax)
 
-00000000000007b0 <Shl>:
-     7b0:	8b 0d ba 18 20 00    	mov    0x2018ba(%rip),%ecx        # 202070 <vB>
-     7b6:	d3 25 b8 18 20 00    	shll   %cl,0x2018b8(%rip)        # 202074 <vA>
-     7bc:	c3                   	retq   
-     7bd:	0f 1f 00             	nopl   (%rax)
+0000000000000ec0 <Shl>:
+     ec0:	8b 0d 12 12 20 00    	mov    0x201212(%rip),%ecx        # 2020d8 <vB>
+     ec6:	d3 25 10 12 20 00    	shll   %cl,0x201210(%rip)        # 2020dc <vA>
+     ecc:	c3                   	retq   
+     ecd:	0f 1f 00             	nopl   (%rax)
 
-00000000000007c0 <Shr>:
-     7c0:	8b 0d aa 18 20 00    	mov    0x2018aa(%rip),%ecx        # 202070 <vB>
-     7c6:	d3 2d a8 18 20 00    	shrl   %cl,0x2018a8(%rip)        # 202074 <vA>
-     7cc:	c3                   	retq   
-     7cd:	0f 1f 00             	nopl   (%rax)
+0000000000000ed0 <Shr>:
+     ed0:	8b 0d 02 12 20 00    	mov    0x201202(%rip),%ecx        # 2020d8 <vB>
+     ed6:	d3 2d 00 12 20 00    	shrl   %cl,0x201200(%rip)        # 2020dc <vA>
+     edc:	c3                   	retq   
+     edd:	0f 1f 00             	nopl   (%rax)
 
-00000000000007d0 <Get>:
-     7d0:	0f b7 15 99 18 20 00 	movzwl 0x201899(%rip),%edx        # 202070 <vB>
-     7d7:	48 8d 05 a2 18 20 00 	lea    0x2018a2(%rip),%rax        # 202080 <dm>
-     7de:	8b 04 90             	mov    (%rax,%rdx,4),%eax
-     7e1:	89 05 8d 18 20 00    	mov    %eax,0x20188d(%rip)        # 202074 <vA>
-     7e7:	c3                   	retq   
-     7e8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     7ef:	00 
+0000000000000ee0 <Get>:
+     ee0:	0f b7 15 f1 11 20 00 	movzwl 0x2011f1(%rip),%edx        # 2020d8 <vB>
+     ee7:	48 8d 05 f2 11 20 00 	lea    0x2011f2(%rip),%rax        # 2020e0 <dm>
+     eee:	8b 04 90             	mov    (%rax,%rdx,4),%eax
+     ef1:	89 05 e5 11 20 00    	mov    %eax,0x2011e5(%rip)        # 2020dc <vA>
+     ef7:	c3                   	retq   
+     ef8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     eff:	00 
 
-00000000000007f0 <Put>:
-     7f0:	0f b7 15 79 18 20 00 	movzwl 0x201879(%rip),%edx        # 202070 <vB>
-     7f7:	8b 0d 77 18 20 00    	mov    0x201877(%rip),%ecx        # 202074 <vA>
-     7fd:	48 8d 05 7c 18 20 00 	lea    0x20187c(%rip),%rax        # 202080 <dm>
-     804:	89 0c 90             	mov    %ecx,(%rax,%rdx,4)
-     807:	c3                   	retq   
-     808:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     80f:	00 
+0000000000000f00 <Put>:
+     f00:	0f b7 15 d1 11 20 00 	movzwl 0x2011d1(%rip),%edx        # 2020d8 <vB>
+     f07:	8b 0d cf 11 20 00    	mov    0x2011cf(%rip),%ecx        # 2020dc <vA>
+     f0d:	48 8d 05 cc 11 20 00 	lea    0x2011cc(%rip),%rax        # 2020e0 <dm>
+     f14:	89 0c 90             	mov    %ecx,(%rax,%rdx,4)
+     f17:	c3                   	retq   
+     f18:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     f1f:	00 
 
-0000000000000810 <Geti>:
-     810:	0f b7 15 59 18 20 00 	movzwl 0x201859(%rip),%edx        # 202070 <vB>
-     817:	48 8d 05 62 18 20 00 	lea    0x201862(%rip),%rax        # 202080 <dm>
-     81e:	0f b7 14 90          	movzwl (%rax,%rdx,4),%edx
-     822:	8b 04 90             	mov    (%rax,%rdx,4),%eax
-     825:	89 05 49 18 20 00    	mov    %eax,0x201849(%rip)        # 202074 <vA>
-     82b:	c3                   	retq   
-     82c:	0f 1f 40 00          	nopl   0x0(%rax)
+0000000000000f20 <Geti>:
+     f20:	0f b7 15 b1 11 20 00 	movzwl 0x2011b1(%rip),%edx        # 2020d8 <vB>
+     f27:	48 8d 05 b2 11 20 00 	lea    0x2011b2(%rip),%rax        # 2020e0 <dm>
+     f2e:	0f b7 14 90          	movzwl (%rax,%rdx,4),%edx
+     f32:	8b 04 90             	mov    (%rax,%rdx,4),%eax
+     f35:	89 05 a1 11 20 00    	mov    %eax,0x2011a1(%rip)        # 2020dc <vA>
+     f3b:	c3                   	retq   
+     f3c:	0f 1f 40 00          	nopl   0x0(%rax)
 
-0000000000000830 <Puti>:
-     830:	0f b7 15 39 18 20 00 	movzwl 0x201839(%rip),%edx        # 202070 <vB>
-     837:	48 8d 05 42 18 20 00 	lea    0x201842(%rip),%rax        # 202080 <dm>
-     83e:	8b 0d 30 18 20 00    	mov    0x201830(%rip),%ecx        # 202074 <vA>
-     844:	0f b7 14 90          	movzwl (%rax,%rdx,4),%edx
-     848:	89 0c 90             	mov    %ecx,(%rax,%rdx,4)
-     84b:	c3                   	retq   
-     84c:	0f 1f 40 00          	nopl   0x0(%rax)
+0000000000000f40 <Puti>:
+     f40:	0f b7 15 91 11 20 00 	movzwl 0x201191(%rip),%edx        # 2020d8 <vB>
+     f47:	48 8d 05 92 11 20 00 	lea    0x201192(%rip),%rax        # 2020e0 <dm>
+     f4e:	8b 0d 88 11 20 00    	mov    0x201188(%rip),%ecx        # 2020dc <vA>
+     f54:	0f b7 14 90          	movzwl (%rax,%rdx,4),%edx
+     f58:	89 0c 90             	mov    %ecx,(%rax,%rdx,4)
+     f5b:	c3                   	retq   
+     f5c:	0f 1f 40 00          	nopl   0x0(%rax)
 
-0000000000000850 <Decm>:
-     850:	0f b7 15 19 18 20 00 	movzwl 0x201819(%rip),%edx        # 202070 <vB>
-     857:	48 8d 05 22 18 20 00 	lea    0x201822(%rip),%rax        # 202080 <dm>
-     85e:	83 2c 90 01          	subl   $0x1,(%rax,%rdx,4)
-     862:	c3                   	retq   
-     863:	0f 1f 00             	nopl   (%rax)
-     866:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     86d:	00 00 00 
+0000000000000f60 <Decm>:
+     f60:	0f b7 15 71 11 20 00 	movzwl 0x201171(%rip),%edx        # 2020d8 <vB>
+     f67:	48 8d 05 72 11 20 00 	lea    0x201172(%rip),%rax        # 2020e0 <dm>
+     f6e:	83 2c 90 01          	subl   $0x1,(%rax,%rdx,4)
+     f72:	c3                   	retq   
+     f73:	0f 1f 00             	nopl   (%rax)
+     f76:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     f7d:	00 00 00 
 
-0000000000000870 <Incm>:
-     870:	0f b7 15 f9 17 20 00 	movzwl 0x2017f9(%rip),%edx        # 202070 <vB>
-     877:	48 8d 05 02 18 20 00 	lea    0x201802(%rip),%rax        # 202080 <dm>
-     87e:	83 04 90 01          	addl   $0x1,(%rax,%rdx,4)
-     882:	c3                   	retq   
-     883:	0f 1f 00             	nopl   (%rax)
-     886:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     88d:	00 00 00 
+0000000000000f80 <Incm>:
+     f80:	0f b7 15 51 11 20 00 	movzwl 0x201151(%rip),%edx        # 2020d8 <vB>
+     f87:	48 8d 05 52 11 20 00 	lea    0x201152(%rip),%rax        # 2020e0 <dm>
+     f8e:	83 04 90 01          	addl   $0x1,(%rax,%rdx,4)
+     f92:	c3                   	retq   
+     f93:	0f 1f 00             	nopl   (%rax)
+     f96:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+     f9d:	00 00 00 
 
-0000000000000890 <At>:
-     890:	0f b7 15 d9 17 20 00 	movzwl 0x2017d9(%rip),%edx        # 202070 <vB>
-     897:	48 8d 05 e2 17 20 00 	lea    0x2017e2(%rip),%rax        # 202080 <dm>
-     89e:	8b 04 90             	mov    (%rax,%rdx,4),%eax
-     8a1:	89 05 c9 17 20 00    	mov    %eax,0x2017c9(%rip)        # 202070 <vB>
-     8a7:	c3                   	retq   
-     8a8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     8af:	00 
+0000000000000fa0 <At>:
+     fa0:	0f b7 15 31 11 20 00 	movzwl 0x201131(%rip),%edx        # 2020d8 <vB>
+     fa7:	48 8d 05 32 11 20 00 	lea    0x201132(%rip),%rax        # 2020e0 <dm>
+     fae:	8b 04 90             	mov    (%rax,%rdx,4),%eax
+     fb1:	89 05 21 11 20 00    	mov    %eax,0x201121(%rip)        # 2020d8 <vB>
+     fb7:	c3                   	retq   
+     fb8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     fbf:	00 
 
-00000000000008b0 <Copy>:
-     8b0:	8b 05 ba 17 20 00    	mov    0x2017ba(%rip),%eax        # 202070 <vB>
-     8b6:	48 8d 15 c3 17 20 00 	lea    0x2017c3(%rip),%rdx        # 202080 <dm>
-     8bd:	0f b7 c8             	movzwl %ax,%ecx
-     8c0:	03 05 ae 17 20 00    	add    0x2017ae(%rip),%eax        # 202074 <vA>
-     8c6:	8b 0c 8a             	mov    (%rdx,%rcx,4),%ecx
-     8c9:	0f b7 c0             	movzwl %ax,%eax
-     8cc:	89 0c 82             	mov    %ecx,(%rdx,%rax,4)
-     8cf:	c3                   	retq   
+0000000000000fc0 <Copy>:
+     fc0:	8b 05 12 11 20 00    	mov    0x201112(%rip),%eax        # 2020d8 <vB>
+     fc6:	48 8d 15 13 11 20 00 	lea    0x201113(%rip),%rdx        # 2020e0 <dm>
+     fcd:	0f b7 c8             	movzwl %ax,%ecx
+     fd0:	03 05 06 11 20 00    	add    0x201106(%rip),%eax        # 2020dc <vA>
+     fd6:	8b 0c 8a             	mov    (%rdx,%rcx,4),%ecx
+     fd9:	0f b7 c0             	movzwl %ax,%eax
+     fdc:	89 0c 82             	mov    %ecx,(%rdx,%rax,4)
+     fdf:	c3                   	retq   
 
-00000000000008d0 <Inc>:
-     8d0:	83 05 99 17 20 00 01 	addl   $0x1,0x201799(%rip)        # 202070 <vB>
-     8d7:	c3                   	retq   
-     8d8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     8df:	00 
+0000000000000fe0 <Inc>:
+     fe0:	83 05 f1 10 20 00 01 	addl   $0x1,0x2010f1(%rip)        # 2020d8 <vB>
+     fe7:	c3                   	retq   
+     fe8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     fef:	00 
 
-00000000000008e0 <Dec>:
-     8e0:	83 2d 89 17 20 00 01 	subl   $0x1,0x201789(%rip)        # 202070 <vB>
-     8e7:	c3                   	retq   
-     8e8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     8ef:	00 
+0000000000000ff0 <Dec>:
+     ff0:	83 2d e1 10 20 00 01 	subl   $0x1,0x2010e1(%rip)        # 2020d8 <vB>
+     ff7:	c3                   	retq   
+     ff8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+     fff:	00 
 
-00000000000008f0 <Imm>:
-     8f0:	81 e7 ff ff ff 7f    	and    $0x7fffffff,%edi
-     8f6:	89 3d 74 17 20 00    	mov    %edi,0x201774(%rip)        # 202070 <vB>
-     8fc:	c3                   	retq   
-     8fd:	0f 1f 00             	nopl   (%rax)
+0000000000001000 <Imm>:
+    1000:	81 e7 ff ff ff 7f    	and    $0x7fffffff,%edi
+    1006:	89 3d cc 10 20 00    	mov    %edi,0x2010cc(%rip)        # 2020d8 <vB>
+    100c:	c3                   	retq   
+    100d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000900 <Flip>:
-     900:	81 05 66 17 20 00 00 	addl   $0x80000000,0x201766(%rip)        # 202070 <vB>
-     907:	00 00 80 
-     90a:	c3                   	retq   
-     90b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+0000000000001010 <Flip>:
+    1010:	81 05 be 10 20 00 00 	addl   $0x80000000,0x2010be(%rip)        # 2020d8 <vB>
+    1017:	00 00 80 
+    101a:	c3                   	retq   
+    101b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
 
-0000000000000910 <Swap>:
-     910:	8b 05 5e 17 20 00    	mov    0x20175e(%rip),%eax        # 202074 <vA>
-     916:	8b 15 54 17 20 00    	mov    0x201754(%rip),%edx        # 202070 <vB>
-     91c:	89 05 4e 17 20 00    	mov    %eax,0x20174e(%rip)        # 202070 <vB>
-     922:	89 15 4c 17 20 00    	mov    %edx,0x20174c(%rip)        # 202074 <vA>
-     928:	c3                   	retq   
-     929:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+0000000000001020 <Swap>:
+    1020:	8b 05 b6 10 20 00    	mov    0x2010b6(%rip),%eax        # 2020dc <vA>
+    1026:	8b 15 ac 10 20 00    	mov    0x2010ac(%rip),%edx        # 2020d8 <vB>
+    102c:	89 05 a6 10 20 00    	mov    %eax,0x2010a6(%rip)        # 2020d8 <vB>
+    1032:	89 15 a4 10 20 00    	mov    %edx,0x2010a4(%rip)        # 2020dc <vA>
+    1038:	c3                   	retq   
+    1039:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
 
-0000000000000930 <Tob>:
-     930:	8b 05 3e 17 20 00    	mov    0x20173e(%rip),%eax        # 202074 <vA>
-     936:	89 05 34 17 20 00    	mov    %eax,0x201734(%rip)        # 202070 <vB>
-     93c:	c3                   	retq   
-     93d:	0f 1f 00             	nopl   (%rax)
+0000000000001040 <Tob>:
+    1040:	8b 05 96 10 20 00    	mov    0x201096(%rip),%eax        # 2020dc <vA>
+    1046:	89 05 8c 10 20 00    	mov    %eax,0x20108c(%rip)        # 2020d8 <vB>
+    104c:	c3                   	retq   
+    104d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000940 <Tot>:
-     940:	8b 05 2e 17 20 00    	mov    0x20172e(%rip),%eax        # 202074 <vA>
-     946:	89 05 20 17 20 00    	mov    %eax,0x201720(%rip)        # 20206c <vT>
-     94c:	c3                   	retq   
-     94d:	0f 1f 00             	nopl   (%rax)
+0000000000001050 <Tot>:
+    1050:	8b 05 86 10 20 00    	mov    0x201086(%rip),%eax        # 2020dc <vA>
+    1056:	89 05 78 10 20 00    	mov    %eax,0x201078(%rip)        # 2020d4 <vT>
+    105c:	c3                   	retq   
+    105d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000950 <Tor>:
-     950:	8b 05 1e 17 20 00    	mov    0x20171e(%rip),%eax        # 202074 <vA>
-     956:	89 05 0c 17 20 00    	mov    %eax,0x20170c(%rip)        # 202068 <vR>
-     95c:	c3                   	retq   
-     95d:	0f 1f 00             	nopl   (%rax)
+0000000000001060 <Tor>:
+    1060:	8b 05 76 10 20 00    	mov    0x201076(%rip),%eax        # 2020dc <vA>
+    1066:	89 05 64 10 20 00    	mov    %eax,0x201064(%rip)        # 2020d0 <vR>
+    106c:	c3                   	retq   
+    106d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000960 <Fromb>:
-     960:	8b 05 0a 17 20 00    	mov    0x20170a(%rip),%eax        # 202070 <vB>
-     966:	89 05 08 17 20 00    	mov    %eax,0x201708(%rip)        # 202074 <vA>
-     96c:	c3                   	retq   
-     96d:	0f 1f 00             	nopl   (%rax)
+0000000000001070 <Fromb>:
+    1070:	8b 05 62 10 20 00    	mov    0x201062(%rip),%eax        # 2020d8 <vB>
+    1076:	89 05 60 10 20 00    	mov    %eax,0x201060(%rip)        # 2020dc <vA>
+    107c:	c3                   	retq   
+    107d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000970 <Fromt>:
-     970:	8b 05 f6 16 20 00    	mov    0x2016f6(%rip),%eax        # 20206c <vT>
-     976:	89 05 f8 16 20 00    	mov    %eax,0x2016f8(%rip)        # 202074 <vA>
-     97c:	c3                   	retq   
-     97d:	0f 1f 00             	nopl   (%rax)
+0000000000001080 <Fromt>:
+    1080:	8b 05 4e 10 20 00    	mov    0x20104e(%rip),%eax        # 2020d4 <vT>
+    1086:	89 05 50 10 20 00    	mov    %eax,0x201050(%rip)        # 2020dc <vA>
+    108c:	c3                   	retq   
+    108d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000980 <Fromr>:
-     980:	8b 05 e2 16 20 00    	mov    0x2016e2(%rip),%eax        # 202068 <vR>
-     986:	89 05 e8 16 20 00    	mov    %eax,0x2016e8(%rip)        # 202074 <vA>
-     98c:	c3                   	retq   
-     98d:	0f 1f 00             	nopl   (%rax)
+0000000000001090 <Fromr>:
+    1090:	8b 05 3a 10 20 00    	mov    0x20103a(%rip),%eax        # 2020d0 <vR>
+    1096:	89 05 40 10 20 00    	mov    %eax,0x201040(%rip)        # 2020dc <vA>
+    109c:	c3                   	retq   
+    109d:	0f 1f 00             	nopl   (%rax)
 
-0000000000000990 <Mdm>:
-     990:	c7 05 da 16 20 00 00 	movl   $0x10000,0x2016da(%rip)        # 202074 <vA>
-     997:	00 01 00 
-     99a:	c3                   	retq   
-     99b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+00000000000010a0 <Mdm>:
+    10a0:	c7 05 32 10 20 00 00 	movl   $0x10000,0x201032(%rip)        # 2020dc <vA>
+    10a7:	00 01 00 
+    10aa:	c3                   	retq   
+    10ab:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
 
-00000000000009a0 <Noop>:
-     9a0:	f3 c3                	repz retq 
-     9a2:	0f 1f 40 00          	nopl   0x0(%rax)
-     9a6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-     9ad:	00 00 00 
+00000000000010b0 <Nop>:
+    10b0:	f3 c3                	repz retq 
+    10b2:	0f 1f 40 00          	nopl   0x0(%rax)
+    10b6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    10bd:	00 00 00 
 
-00000000000009b0 <exampleProgram>:
-     9b0:	41 57                	push   %r15
-     9b2:	48 8d 15 77 00 00 00 	lea    0x77(%rip),%rdx        # a30 <exampleProgram+0x80>
-     9b9:	41 56                	push   %r14
-     9bb:	41 55                	push   %r13
-     9bd:	41 54                	push   %r12
-     9bf:	4c 8d 0d a2 01 00 00 	lea    0x1a2(%rip),%r9        # b68 <exampleProgram+0x1b8>
-     9c6:	55                   	push   %rbp
-     9c7:	53                   	push   %rbx
-     9c8:	4c 8d 15 c9 01 00 00 	lea    0x1c9(%rip),%r10        # b98 <exampleProgram+0x1e8>
-     9cf:	48 8d 1d aa 16 20 00 	lea    0x2016aa(%rip),%rbx        # 202080 <dm>
-     9d6:	4c 8d 1d e3 01 00 00 	lea    0x1e3(%rip),%r11        # bc0 <exampleProgram+0x210>
-     9dd:	48 8d 2d 04 02 00 00 	lea    0x204(%rip),%rbp        # be8 <exampleProgram+0x238>
-     9e4:	48 83 ec 08          	sub    $0x8,%rsp
-     9e8:	4c 8d 25 21 02 00 00 	lea    0x221(%rip),%r12        # c10 <exampleProgram+0x260>
-     9ef:	48 89 15 6a 16 20 00 	mov    %rdx,0x20166a(%rip)        # 202060 <vL>
-     9f6:	c7 05 74 16 20 00 00 	movl   $0x10000,0x201674(%rip)        # 202074 <vA>
-     9fd:	00 01 00 
-     a00:	c7 05 66 16 20 00 00 	movl   $0x10000,0x201666(%rip)        # 202070 <vB>
-     a07:	00 01 00 
-     a0a:	4c 8d 2d 27 02 00 00 	lea    0x227(%rip),%r13        # c38 <exampleProgram+0x288>
-     a11:	4c 8d 35 48 02 00 00 	lea    0x248(%rip),%r14        # c60 <exampleProgram+0x2b0>
-     a18:	4c 8d 3d 21 01 00 00 	lea    0x121(%rip),%r15        # b40 <exampleProgram+0x190>
-     a1f:	8b 05 5b 16 21 00    	mov    0x21165b(%rip),%eax        # 212080 <dm+0x10000>
-     a25:	ff e2                	jmpq   *%rdx
-     a27:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
-     a2e:	00 00 
-     a30:	48 8d 15 99 00 00 00 	lea    0x99(%rip),%rdx        # ad0 <exampleProgram+0x120>
-     a37:	c7 05 27 16 20 00 00 	movl   $0x10000,0x201627(%rip)        # 202068 <vR>
-     a3e:	00 01 00 
-     a41:	c7 05 25 16 20 00 00 	movl   $0x0,0x201625(%rip)        # 202070 <vB>
-     a48:	00 00 00 
-     a4b:	c7 05 1f 16 20 00 00 	movl   $0x0,0x20161f(%rip)        # 202074 <vA>
-     a52:	00 00 00 
-     a55:	48 89 15 04 16 20 00 	mov    %rdx,0x201604(%rip)        # 202060 <vL>
-     a5c:	ff e2                	jmpq   *%rdx
-     a5e:	66 90                	xchg   %ax,%ax
-     a60:	48 8d 15 d9 00 00 00 	lea    0xd9(%rip),%rdx        # b40 <exampleProgram+0x190>
-     a67:	4c 89 3d f2 15 20 00 	mov    %r15,0x2015f2(%rip)        # 202060 <vL>
-     a6e:	31 c0                	xor    %eax,%eax
-     a70:	b9 01 00 00 00       	mov    $0x1,%ecx
-     a75:	be 03 00 00 80       	mov    $0x80000003,%esi
-     a7a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
-     a80:	89 34 83             	mov    %esi,(%rbx,%rax,4)
-     a83:	89 0d e7 15 20 00    	mov    %ecx,0x2015e7(%rip)        # 202070 <vB>
-     a89:	89 0d e5 15 20 00    	mov    %ecx,0x2015e5(%rip)        # 202074 <vA>
-     a8f:	8b 05 eb 15 21 00    	mov    0x2115eb(%rip),%eax        # 212080 <dm+0x10000>
-     a95:	ff e2                	jmpq   *%rdx
-     a97:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
-     a9e:	00 00 
-     aa0:	48 8d 05 01 02 00 00 	lea    0x201(%rip),%rax        # ca8 <exampleProgram+0x2f8>
-     aa7:	be 00 00 00 3f       	mov    $0x3f000000,%esi
-     aac:	48 8d 15 f5 01 00 00 	lea    0x1f5(%rip),%rdx        # ca8 <exampleProgram+0x2f8>
-     ab3:	48 89 05 a6 15 20 00 	mov    %rax,0x2015a6(%rip)        # 202060 <vL>
-     aba:	8b 05 b4 15 20 00    	mov    0x2015b4(%rip),%eax        # 202074 <vA>
-     ac0:	8d 48 01             	lea    0x1(%rax),%ecx
-     ac3:	0f b7 c0             	movzwl %ax,%eax
-     ac6:	eb b8                	jmp    a80 <exampleProgram+0xd0>
-     ac8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-     acf:	00 
-     ad0:	48 8d 05 89 ff ff ff 	lea    -0x77(%rip),%rax        # a60 <exampleProgram+0xb0>
-     ad7:	44 8b 05 8a 15 20 00 	mov    0x20158a(%rip),%r8d        # 202068 <vR>
-     ade:	8b 0d 90 15 20 00    	mov    0x201590(%rip),%ecx        # 202074 <vA>
-     ae4:	48 89 05 75 15 20 00 	mov    %rax,0x201575(%rip)        # 202060 <vL>
-     aeb:	8b 05 7f 15 20 00    	mov    0x20157f(%rip),%eax        # 202070 <vB>
-     af1:	45 85 c0             	test   %r8d,%r8d
-     af4:	8d 78 01             	lea    0x1(%rax),%edi
-     af7:	0f b7 d0             	movzwl %ax,%edx
-     afa:	41 8d 74 00 01       	lea    0x1(%r8,%rax,1),%esi
-     aff:	89 0c 93             	mov    %ecx,(%rbx,%rdx,4)
-     b02:	89 3d 68 15 20 00    	mov    %edi,0x201568(%rip)        # 202070 <vB>
-     b08:	89 f8                	mov    %edi,%eax
-     b0a:	0f 84 00 03 00 00    	je     e10 <exampleProgram+0x460>
-     b10:	0f b7 d0             	movzwl %ax,%edx
-     b13:	83 c0 01             	add    $0x1,%eax
-     b16:	39 c6                	cmp    %eax,%esi
-     b18:	89 0c 93             	mov    %ecx,(%rbx,%rdx,4)
-     b1b:	75 f3                	jne    b10 <exampleProgram+0x160>
-     b1d:	48 8d 15 3c ff ff ff 	lea    -0xc4(%rip),%rdx        # a60 <exampleProgram+0xb0>
-     b24:	44 01 c7             	add    %r8d,%edi
-     b27:	c7 05 37 15 20 00 00 	movl   $0x0,0x201537(%rip)        # 202068 <vR>
-     b2e:	00 00 00 
-     b31:	89 3d 39 15 20 00    	mov    %edi,0x201539(%rip)        # 202070 <vB>
-     b37:	8b 05 43 15 21 00    	mov    0x211543(%rip),%eax        # 212080 <dm+0x10000>
-     b3d:	ff e2                	jmpq   *%rdx
-     b3f:	90                   	nop
-     b40:	8b 05 2e 15 20 00    	mov    0x20152e(%rip),%eax        # 202074 <vA>
-     b46:	4c 89 35 13 15 20 00 	mov    %r14,0x201513(%rip)        # 202060 <vL>
-     b4d:	be 00 00 00 01       	mov    $0x1000000,%esi
-     b52:	48 8d 15 07 01 00 00 	lea    0x107(%rip),%rdx        # c60 <exampleProgram+0x2b0>
-     b59:	8d 48 01             	lea    0x1(%rax),%ecx
-     b5c:	0f b7 c0             	movzwl %ax,%eax
-     b5f:	e9 1c ff ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     b64:	0f 1f 40 00          	nopl   0x0(%rax)
-     b68:	48 8d 05 31 ff ff ff 	lea    -0xcf(%rip),%rax        # aa0 <exampleProgram+0xf0>
-     b6f:	be 07 00 00 50       	mov    $0x50000007,%esi
-     b74:	48 8d 15 25 ff ff ff 	lea    -0xdb(%rip),%rdx        # aa0 <exampleProgram+0xf0>
-     b7b:	48 89 05 de 14 20 00 	mov    %rax,0x2014de(%rip)        # 202060 <vL>
-     b82:	8b 05 ec 14 20 00    	mov    0x2014ec(%rip),%eax        # 202074 <vA>
-     b88:	8d 48 01             	lea    0x1(%rax),%ecx
-     b8b:	0f b7 c0             	movzwl %ax,%eax
-     b8e:	e9 ed fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     b93:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
-     b98:	8b 05 d6 14 20 00    	mov    0x2014d6(%rip),%eax        # 202074 <vA>
-     b9e:	4c 89 0d bb 14 20 00 	mov    %r9,0x2014bb(%rip)        # 202060 <vL>
-     ba5:	31 f6                	xor    %esi,%esi
-     ba7:	48 8d 15 ba ff ff ff 	lea    -0x46(%rip),%rdx        # b68 <exampleProgram+0x1b8>
-     bae:	8d 48 01             	lea    0x1(%rax),%ecx
-     bb1:	0f b7 c0             	movzwl %ax,%eax
-     bb4:	e9 c7 fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     bb9:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
-     bc0:	8b 05 ae 14 20 00    	mov    0x2014ae(%rip),%eax        # 202074 <vA>
-     bc6:	4c 89 15 93 14 20 00 	mov    %r10,0x201493(%rip)        # 202060 <vL>
-     bcd:	be 00 00 00 31       	mov    $0x31000000,%esi
-     bd2:	48 8d 15 bf ff ff ff 	lea    -0x41(%rip),%rdx        # b98 <exampleProgram+0x1e8>
-     bd9:	8d 48 01             	lea    0x1(%rax),%ecx
-     bdc:	0f b7 c0             	movzwl %ax,%eax
-     bdf:	e9 9c fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     be4:	0f 1f 40 00          	nopl   0x0(%rax)
-     be8:	8b 05 86 14 20 00    	mov    0x201486(%rip),%eax        # 202074 <vA>
-     bee:	4c 89 1d 6b 14 20 00 	mov    %r11,0x20146b(%rip)        # 202060 <vL>
-     bf5:	be 00 00 00 33       	mov    $0x33000000,%esi
-     bfa:	48 8d 15 bf ff ff ff 	lea    -0x41(%rip),%rdx        # bc0 <exampleProgram+0x210>
-     c01:	8d 48 01             	lea    0x1(%rax),%ecx
-     c04:	0f b7 c0             	movzwl %ax,%eax
-     c07:	e9 74 fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     c0c:	0f 1f 40 00          	nopl   0x0(%rax)
-     c10:	8b 05 5e 14 20 00    	mov    0x20145e(%rip),%eax        # 202074 <vA>
-     c16:	48 89 2d 43 14 20 00 	mov    %rbp,0x201443(%rip)        # 202060 <vL>
-     c1d:	be ff ff ff ff       	mov    $0xffffffff,%esi
-     c22:	48 8d 15 bf ff ff ff 	lea    -0x41(%rip),%rdx        # be8 <exampleProgram+0x238>
-     c29:	8d 48 01             	lea    0x1(%rax),%ecx
-     c2c:	0f b7 c0             	movzwl %ax,%eax
-     c2f:	e9 4c fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     c34:	0f 1f 40 00          	nopl   0x0(%rax)
-     c38:	8b 05 36 14 20 00    	mov    0x201436(%rip),%eax        # 202074 <vA>
-     c3e:	4c 89 25 1b 14 20 00 	mov    %r12,0x20141b(%rip)        # 202060 <vL>
-     c45:	be 00 00 00 01       	mov    $0x1000000,%esi
-     c4a:	48 8d 15 bf ff ff ff 	lea    -0x41(%rip),%rdx        # c10 <exampleProgram+0x260>
-     c51:	8d 48 01             	lea    0x1(%rax),%ecx
-     c54:	0f b7 c0             	movzwl %ax,%eax
-     c57:	e9 24 fe ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     c5c:	0f 1f 40 00          	nopl   0x0(%rax)
-     c60:	8b 05 0e 14 20 00    	mov    0x20140e(%rip),%eax        # 202074 <vA>
-     c66:	4c 89 2d f3 13 20 00 	mov    %r13,0x2013f3(%rip)        # 202060 <vL>
-     c6d:	be 05 00 00 80       	mov    $0x80000005,%esi
-     c72:	48 8d 15 bf ff ff ff 	lea    -0x41(%rip),%rdx        # c38 <exampleProgram+0x288>
-     c79:	8d 48 01             	lea    0x1(%rax),%ecx
-     c7c:	0f b7 c0             	movzwl %ax,%eax
-     c7f:	e9 fc fd ff ff       	jmpq   a80 <exampleProgram+0xd0>
-     c84:	8b 0d 0a 14 21 00    	mov    0x21140a(%rip),%ecx        # 212094 <dm+0x10014>
-     c8a:	85 c9                	test   %ecx,%ecx
-     c8c:	74 1a                	je     ca8 <exampleProgram+0x2f8>
-     c8e:	89 d0                	mov    %edx,%eax
-     c90:	83 e9 01             	sub    $0x1,%ecx
-     c93:	25 ff ff ff 00       	and    $0xffffff,%eax
-     c98:	89 0d f6 13 21 00    	mov    %ecx,0x2113f6(%rip)        # 212094 <dm+0x10014>
-     c9e:	89 05 dc 13 21 00    	mov    %eax,0x2113dc(%rip)        # 212080 <dm+0x10000>
-     ca4:	0f 1f 40 00          	nopl   0x0(%rax)
-     ca8:	0f b7 d0             	movzwl %ax,%edx
-     cab:	8d 70 01             	lea    0x1(%rax),%esi
-     cae:	8b 14 93             	mov    (%rbx,%rdx,4),%edx
-     cb1:	89 f0                	mov    %esi,%eax
-     cb3:	89 35 c7 13 21 00    	mov    %esi,0x2113c7(%rip)        # 212080 <dm+0x10000>
-     cb9:	85 d2                	test   %edx,%edx
-     cbb:	89 15 ab 13 20 00    	mov    %edx,0x2013ab(%rip)        # 20206c <vT>
-     cc1:	0f 88 d9 01 00 00    	js     ea0 <exampleProgram+0x4f0>
-     cc7:	89 d1                	mov    %edx,%ecx
-     cc9:	81 e1 00 00 00 7f    	and    $0x7f000000,%ecx
-     ccf:	f7 c2 00 00 00 40    	test   $0x40000000,%edx
-     cd5:	0f 85 45 01 00 00    	jne    e20 <exampleProgram+0x470>
-     cdb:	85 c9                	test   %ecx,%ecx
-     cdd:	74 c9                	je     ca8 <exampleProgram+0x2f8>
-     cdf:	81 f9 00 00 00 01    	cmp    $0x1000000,%ecx
-     ce5:	0f 84 e8 01 00 00    	je     ed3 <exampleProgram+0x523>
-     ceb:	81 f9 00 00 00 02    	cmp    $0x2000000,%ecx
-     cf1:	0f 84 06 02 00 00    	je     efd <exampleProgram+0x54d>
-     cf7:	81 f9 00 00 00 04    	cmp    $0x4000000,%ecx
-     cfd:	0f 84 11 02 00 00    	je     f14 <exampleProgram+0x564>
-     d03:	81 f9 00 00 00 03    	cmp    $0x3000000,%ecx
-     d09:	0f 84 d5 01 00 00    	je     ee4 <exampleProgram+0x534>
-     d0f:	81 f9 00 00 00 05    	cmp    $0x5000000,%ecx
-     d15:	0f 84 0a 02 00 00    	je     f25 <exampleProgram+0x575>
-     d1b:	81 f9 00 00 00 08    	cmp    $0x8000000,%ecx
-     d21:	0f 84 3c 02 00 00    	je     f63 <exampleProgram+0x5b3>
-     d27:	81 f9 00 00 00 09    	cmp    $0x9000000,%ecx
-     d2d:	0f 84 5e 02 00 00    	je     f91 <exampleProgram+0x5e1>
-     d33:	81 f9 00 00 00 10    	cmp    $0x10000000,%ecx
-     d39:	0f 84 63 02 00 00    	je     fa2 <exampleProgram+0x5f2>
-     d3f:	81 f9 00 00 00 11    	cmp    $0x11000000,%ecx
-     d45:	0f 84 71 02 00 00    	je     fbc <exampleProgram+0x60c>
-     d4b:	81 f9 00 00 00 14    	cmp    $0x14000000,%ecx
-     d51:	0f 84 84 02 00 00    	je     fdb <exampleProgram+0x62b>
-     d57:	81 f9 00 00 00 15    	cmp    $0x15000000,%ecx
-     d5d:	0f 84 9e 02 00 00    	je     1001 <exampleProgram+0x651>
-     d63:	81 f9 00 00 00 20    	cmp    $0x20000000,%ecx
-     d69:	0f 84 86 02 00 00    	je     ff5 <exampleProgram+0x645>
-     d6f:	81 f9 00 00 00 21    	cmp    $0x21000000,%ecx
-     d75:	0f 84 36 03 00 00    	je     10b1 <exampleProgram+0x701>
-     d7b:	81 f9 00 00 00 23    	cmp    $0x23000000,%ecx
-     d81:	0f 84 19 03 00 00    	je     10a0 <exampleProgram+0x6f0>
-     d87:	81 f9 00 00 00 30    	cmp    $0x30000000,%ecx
-     d8d:	0f 84 0d 03 00 00    	je     10a0 <exampleProgram+0x6f0>
-     d93:	81 f9 00 00 00 31    	cmp    $0x31000000,%ecx
-     d99:	0f 84 f0 02 00 00    	je     108f <exampleProgram+0x6df>
-     d9f:	81 f9 00 00 00 32    	cmp    $0x32000000,%ecx
-     da5:	0f 84 d3 02 00 00    	je     107e <exampleProgram+0x6ce>
-     dab:	81 f9 00 00 00 33    	cmp    $0x33000000,%ecx
-     db1:	0f 84 b6 02 00 00    	je     106d <exampleProgram+0x6bd>
-     db7:	81 f9 00 00 00 34    	cmp    $0x34000000,%ecx
-     dbd:	0f 84 99 02 00 00    	je     105c <exampleProgram+0x6ac>
-     dc3:	81 f9 00 00 00 35    	cmp    $0x35000000,%ecx
-     dc9:	0f 84 7c 02 00 00    	je     104b <exampleProgram+0x69b>
-     dcf:	81 f9 00 00 00 36    	cmp    $0x36000000,%ecx
-     dd5:	0f 84 61 02 00 00    	je     103c <exampleProgram+0x68c>
-     ddb:	81 f9 00 00 00 37    	cmp    $0x37000000,%ecx
-     de1:	0f 84 44 02 00 00    	je     102b <exampleProgram+0x67b>
-     de7:	81 f9 00 00 00 3f    	cmp    $0x3f000000,%ecx
-     ded:	75 31                	jne    e20 <exampleProgram+0x470>
-     def:	0f b6 05 8e 12 21 00 	movzbl 0x21128e(%rip),%eax        # 212084 <dm+0x10004>
-     df6:	c7 05 70 12 20 00 ff 	movl   $0xff,0x201270(%rip)        # 202070 <vB>
-     dfd:	00 00 00 
-     e00:	89 05 6e 12 20 00    	mov    %eax,0x20126e(%rip)        # 202074 <vA>
-     e06:	e9 86 00 00 00       	jmpq   e91 <exampleProgram+0x4e1>
-     e0b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
-     e10:	48 8d 15 49 fc ff ff 	lea    -0x3b7(%rip),%rdx        # a60 <exampleProgram+0xb0>
-     e17:	8b 05 63 12 21 00    	mov    0x211263(%rip),%eax        # 212080 <dm+0x10000>
-     e1d:	ff e2                	jmpq   *%rdx
-     e1f:	90                   	nop
-     e20:	81 f9 00 00 00 43    	cmp    $0x43000000,%ecx
-     e26:	89 0d 48 12 20 00    	mov    %ecx,0x201248(%rip)        # 202074 <vA>
-     e2c:	0f 84 7f 00 00 00    	je     eb1 <exampleProgram+0x501>
-     e32:	81 f9 00 00 00 47    	cmp    $0x47000000,%ecx
-     e38:	0f 84 83 00 00 00    	je     ec1 <exampleProgram+0x511>
-     e3e:	81 f9 00 00 00 50    	cmp    $0x50000000,%ecx
-     e44:	0f 84 3a fe ff ff    	je     c84 <exampleProgram+0x2d4>
-     e4a:	81 f9 00 00 00 61    	cmp    $0x61000000,%ecx
-     e50:	0f 84 9f 00 00 00    	je     ef5 <exampleProgram+0x545>
-     e56:	81 f9 00 00 00 71    	cmp    $0x71000000,%ecx
-     e5c:	c7 05 0a 12 20 00 00 	movl   $0x71000000,0x20120a(%rip)        # 202070 <vB>
-     e63:	00 00 71 
-     e66:	0f 84 08 01 00 00    	je     f74 <exampleProgram+0x5c4>
-     e6c:	81 f9 00 00 00 72    	cmp    $0x72000000,%ecx
-     e72:	0f 84 be 00 00 00    	je     f36 <exampleProgram+0x586>
-     e78:	c7 05 ee 11 20 00 02 	movl   $0x2,0x2011ee(%rip)        # 202070 <vB>
-     e7f:	00 00 00 
-     e82:	c7 05 e8 11 20 00 02 	movl   $0x2,0x2011e8(%rip)        # 202074 <vA>
-     e89:	00 00 00 
-     e8c:	b8 02 00 00 00       	mov    $0x2,%eax
-     e91:	48 83 c4 08          	add    $0x8,%rsp
-     e95:	5b                   	pop    %rbx
-     e96:	5d                   	pop    %rbp
-     e97:	41 5c                	pop    %r12
-     e99:	41 5d                	pop    %r13
-     e9b:	41 5e                	pop    %r14
-     e9d:	41 5f                	pop    %r15
-     e9f:	c3                   	retq   
-     ea0:	81 c2 00 00 00 80    	add    $0x80000000,%edx
-     ea6:	89 15 dc 11 21 00    	mov    %edx,0x2111dc(%rip)        # 212088 <dm+0x10008>
-     eac:	e9 f7 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     eb1:	81 3d c9 11 21 00 01 	cmpl   $0x4001,0x2111c9(%rip)        # 212084 <dm+0x10004>
-     eb8:	40 00 00 
-     ebb:	0f 85 e7 fd ff ff    	jne    ca8 <exampleProgram+0x2f8>
-     ec1:	89 d0                	mov    %edx,%eax
-     ec3:	25 ff ff ff 00       	and    $0xffffff,%eax
-     ec8:	89 05 b2 11 21 00    	mov    %eax,0x2111b2(%rip)        # 212080 <dm+0x10000>
-     ece:	e9 d5 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     ed3:	8b 15 af 11 21 00    	mov    0x2111af(%rip),%edx        # 212088 <dm+0x10008>
-     ed9:	01 15 a5 11 21 00    	add    %edx,0x2111a5(%rip)        # 212084 <dm+0x10004>
-     edf:	e9 c4 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     ee4:	8b 15 9e 11 21 00    	mov    0x21119e(%rip),%edx        # 212088 <dm+0x10008>
-     eea:	09 15 94 11 21 00    	or     %edx,0x211194(%rip)        # 212084 <dm+0x10004>
-     ef0:	e9 b3 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     ef5:	89 35 91 11 21 00    	mov    %esi,0x211191(%rip)        # 21208c <dm+0x1000c>
-     efb:	eb c4                	jmp    ec1 <exampleProgram+0x511>
-     efd:	8b 15 81 11 21 00    	mov    0x211181(%rip),%edx        # 212084 <dm+0x10004>
-     f03:	2b 15 7f 11 21 00    	sub    0x21117f(%rip),%edx        # 212088 <dm+0x10008>
-     f09:	89 15 75 11 21 00    	mov    %edx,0x211175(%rip)        # 212084 <dm+0x10004>
-     f0f:	e9 94 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f14:	8b 15 6e 11 21 00    	mov    0x21116e(%rip),%edx        # 212088 <dm+0x10008>
-     f1a:	21 15 64 11 21 00    	and    %edx,0x211164(%rip)        # 212084 <dm+0x10004>
-     f20:	e9 83 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f25:	8b 15 5d 11 21 00    	mov    0x21115d(%rip),%edx        # 212088 <dm+0x10008>
-     f2b:	31 15 53 11 21 00    	xor    %edx,0x211153(%rip)        # 212084 <dm+0x10004>
-     f31:	e9 72 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f36:	8b 3d 48 11 21 00    	mov    0x211148(%rip),%edi        # 212084 <dm+0x10004>
-     f3c:	48 8b 35 fd 10 20 00 	mov    0x2010fd(%rip),%rsi        # 202040 <stdout@@GLIBC_2.2.5>
-     f43:	c7 05 23 11 20 00 01 	movl   $0x4001,0x201123(%rip)        # 202070 <vB>
-     f4a:	40 00 00 
-     f4d:	89 3d 21 11 20 00    	mov    %edi,0x201121(%rip)        # 202074 <vA>
-     f53:	e8 78 f6 ff ff       	callq  5d0 <_IO_putc@plt>
-     f58:	8b 05 22 11 21 00    	mov    0x211122(%rip),%eax        # 212080 <dm+0x10000>
-     f5e:	e9 45 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f63:	8b 0d 1f 11 21 00    	mov    0x21111f(%rip),%ecx        # 212088 <dm+0x10008>
-     f69:	d3 25 15 11 21 00    	shll   %cl,0x211115(%rip)        # 212084 <dm+0x10004>
-     f6f:	e9 34 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f74:	48 8b 3d d5 10 20 00 	mov    0x2010d5(%rip),%rdi        # 202050 <stdin@@GLIBC_2.2.5>
-     f7b:	e8 60 f6 ff ff       	callq  5e0 <_IO_getc@plt>
-     f80:	89 05 fe 10 21 00    	mov    %eax,0x2110fe(%rip)        # 212084 <dm+0x10004>
-     f86:	8b 05 f4 10 21 00    	mov    0x2110f4(%rip),%eax        # 212080 <dm+0x10000>
-     f8c:	e9 17 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     f91:	8b 0d f1 10 21 00    	mov    0x2110f1(%rip),%ecx        # 212088 <dm+0x10008>
-     f97:	d3 2d e7 10 21 00    	shrl   %cl,0x2110e7(%rip)        # 212084 <dm+0x10004>
-     f9d:	e9 06 fd ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     fa2:	8b 15 e0 10 21 00    	mov    0x2110e0(%rip),%edx        # 212088 <dm+0x10008>
-     fa8:	81 e2 ff 3f 00 00    	and    $0x3fff,%edx
-     fae:	8b 14 93             	mov    (%rbx,%rdx,4),%edx
-     fb1:	89 15 cd 10 21 00    	mov    %edx,0x2110cd(%rip)        # 212084 <dm+0x10004>
-     fb7:	e9 ec fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     fbc:	8b 05 c6 10 21 00    	mov    0x2110c6(%rip),%eax        # 212088 <dm+0x10008>
-     fc2:	8b 15 bc 10 21 00    	mov    0x2110bc(%rip),%edx        # 212084 <dm+0x10004>
-     fc8:	25 ff 3f 00 00       	and    $0x3fff,%eax
-     fcd:	89 14 83             	mov    %edx,(%rbx,%rax,4)
-     fd0:	8b 05 aa 10 21 00    	mov    0x2110aa(%rip),%eax        # 212080 <dm+0x10000>
-     fd6:	e9 cd fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     fdb:	8b 15 a7 10 21 00    	mov    0x2110a7(%rip),%edx        # 212088 <dm+0x10008>
-     fe1:	81 e2 ff 3f 00 00    	and    $0x3fff,%edx
-     fe7:	8b 14 93             	mov    (%rbx,%rdx,4),%edx
-     fea:	89 15 98 10 21 00    	mov    %edx,0x211098(%rip)        # 212088 <dm+0x10008>
-     ff0:	e9 b3 fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-     ff5:	83 05 8c 10 21 00 01 	addl   $0x1,0x21108c(%rip)        # 212088 <dm+0x10008>
-     ffc:	e9 a7 fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    1001:	8b 05 81 10 21 00    	mov    0x211081(%rip),%eax        # 212088 <dm+0x10008>
-    1007:	89 c2                	mov    %eax,%edx
-    1009:	03 05 75 10 21 00    	add    0x211075(%rip),%eax        # 212084 <dm+0x10004>
-    100f:	81 e2 ff 3f 00 00    	and    $0x3fff,%edx
-    1015:	8b 14 93             	mov    (%rbx,%rdx,4),%edx
-    1018:	25 ff 3f 00 00       	and    $0x3fff,%eax
-    101d:	89 14 83             	mov    %edx,(%rbx,%rax,4)
-    1020:	8b 05 5a 10 21 00    	mov    0x21105a(%rip),%eax        # 212080 <dm+0x10000>
-    1026:	e9 7d fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    102b:	8b 05 5b 10 21 00    	mov    0x21105b(%rip),%eax        # 21208c <dm+0x1000c>
-    1031:	89 05 49 10 21 00    	mov    %eax,0x211049(%rip)        # 212080 <dm+0x10000>
-    1037:	e9 6c fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    103c:	c7 05 3e 10 21 00 00 	movl   $0x4000,0x21103e(%rip)        # 212084 <dm+0x10004>
-    1043:	40 00 00 
-    1046:	e9 5d fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    104b:	8b 15 3f 10 21 00    	mov    0x21103f(%rip),%edx        # 212090 <dm+0x10010>
-    1051:	89 15 2d 10 21 00    	mov    %edx,0x21102d(%rip)        # 212084 <dm+0x10004>
-    1057:	e9 4c fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    105c:	8b 15 32 10 21 00    	mov    0x211032(%rip),%edx        # 212094 <dm+0x10014>
-    1062:	89 15 1c 10 21 00    	mov    %edx,0x21101c(%rip)        # 212084 <dm+0x10004>
-    1068:	e9 3b fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    106d:	8b 15 15 10 21 00    	mov    0x211015(%rip),%edx        # 212088 <dm+0x10008>
-    1073:	89 15 0b 10 21 00    	mov    %edx,0x21100b(%rip)        # 212084 <dm+0x10004>
-    1079:	e9 2a fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    107e:	8b 15 00 10 21 00    	mov    0x211000(%rip),%edx        # 212084 <dm+0x10004>
-    1084:	89 15 06 10 21 00    	mov    %edx,0x211006(%rip)        # 212090 <dm+0x10010>
-    108a:	e9 19 fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    108f:	8b 15 ef 0f 21 00    	mov    0x210fef(%rip),%edx        # 212084 <dm+0x10004>
-    1095:	89 15 f9 0f 21 00    	mov    %edx,0x210ff9(%rip)        # 212094 <dm+0x10014>
-    109b:	e9 08 fc ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    10a0:	8b 15 de 0f 21 00    	mov    0x210fde(%rip),%edx        # 212084 <dm+0x10004>
-    10a6:	89 15 dc 0f 21 00    	mov    %edx,0x210fdc(%rip)        # 212088 <dm+0x10008>
-    10ac:	e9 f7 fb ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    10b1:	83 2d d0 0f 21 00 01 	subl   $0x1,0x210fd0(%rip)        # 212088 <dm+0x10008>
-    10b8:	e9 eb fb ff ff       	jmpq   ca8 <exampleProgram+0x2f8>
-    10bd:	0f 1f 00             	nopl   (%rax)
+00000000000010c0 <Halt>:
+    10c0:	81 25 12 10 20 00 ff 	andl   $0xff,0x201012(%rip)        # 2020dc <vA>
+    10c7:	00 00 00 
+    10ca:	c3                   	retq   
+    10cb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
 
-00000000000010c0 <__libc_csu_init>:
-    10c0:	41 57                	push   %r15
-    10c2:	41 56                	push   %r14
-    10c4:	41 89 ff             	mov    %edi,%r15d
-    10c7:	41 55                	push   %r13
-    10c9:	41 54                	push   %r12
-    10cb:	4c 8d 25 16 0d 20 00 	lea    0x200d16(%rip),%r12        # 201de8 <__frame_dummy_init_array_entry>
-    10d2:	55                   	push   %rbp
-    10d3:	48 8d 2d 16 0d 20 00 	lea    0x200d16(%rip),%rbp        # 201df0 <__init_array_end>
-    10da:	53                   	push   %rbx
-    10db:	49 89 f6             	mov    %rsi,%r14
-    10de:	49 89 d5             	mov    %rdx,%r13
-    10e1:	4c 29 e5             	sub    %r12,%rbp
-    10e4:	48 83 ec 08          	sub    $0x8,%rsp
-    10e8:	48 c1 fd 03          	sar    $0x3,%rbp
-    10ec:	e8 af f4 ff ff       	callq  5a0 <_init>
-    10f1:	48 85 ed             	test   %rbp,%rbp
-    10f4:	74 20                	je     1116 <__libc_csu_init+0x56>
-    10f6:	31 db                	xor    %ebx,%ebx
-    10f8:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
-    10ff:	00 
-    1100:	4c 89 ea             	mov    %r13,%rdx
-    1103:	4c 89 f6             	mov    %r14,%rsi
-    1106:	44 89 ff             	mov    %r15d,%edi
-    1109:	41 ff 14 dc          	callq  *(%r12,%rbx,8)
-    110d:	48 83 c3 01          	add    $0x1,%rbx
-    1111:	48 39 dd             	cmp    %rbx,%rbp
-    1114:	75 ea                	jne    1100 <__libc_csu_init+0x40>
-    1116:	48 83 c4 08          	add    $0x8,%rsp
-    111a:	5b                   	pop    %rbx
-    111b:	5d                   	pop    %rbp
-    111c:	41 5c                	pop    %r12
-    111e:	41 5d                	pop    %r13
-    1120:	41 5e                	pop    %r14
-    1122:	41 5f                	pop    %r15
-    1124:	c3                   	retq   
-    1125:	90                   	nop
-    1126:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
-    112d:	00 00 00 
+00000000000010d0 <JmpA>:
+    10d0:	8b 05 06 10 20 00    	mov    0x201006(%rip),%eax        # 2020dc <vA>
+    10d6:	85 c0                	test   %eax,%eax
+    10d8:	75 06                	jne    10e0 <JmpA+0x10>
+    10da:	89 3d e0 0f 20 00    	mov    %edi,0x200fe0(%rip)        # 2020c0 <vZ>
+    10e0:	f3 c3                	repz retq 
+    10e2:	0f 1f 40 00          	nopl   0x0(%rax)
+    10e6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    10ed:	00 00 00 
 
-0000000000001130 <__libc_csu_fini>:
-    1130:	f3 c3                	repz retq 
+00000000000010f0 <JmpB>:
+    10f0:	8b 05 e2 0f 20 00    	mov    0x200fe2(%rip),%eax        # 2020d8 <vB>
+    10f6:	85 c0                	test   %eax,%eax
+    10f8:	75 06                	jne    1100 <JmpB+0x10>
+    10fa:	89 3d c0 0f 20 00    	mov    %edi,0x200fc0(%rip)        # 2020c0 <vZ>
+    1100:	f3 c3                	repz retq 
+    1102:	0f 1f 40 00          	nopl   0x0(%rax)
+    1106:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    110d:	00 00 00 
+
+0000000000001110 <JmpE>:
+    1110:	8b 05 c2 0f 20 00    	mov    0x200fc2(%rip),%eax        # 2020d8 <vB>
+    1116:	39 05 c0 0f 20 00    	cmp    %eax,0x200fc0(%rip)        # 2020dc <vA>
+    111c:	74 02                	je     1120 <JmpE+0x10>
+    111e:	f3 c3                	repz retq 
+    1120:	89 3d 9a 0f 20 00    	mov    %edi,0x200f9a(%rip)        # 2020c0 <vZ>
+    1126:	c3                   	retq   
+    1127:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    112e:	00 00 
+
+0000000000001130 <JmpN>:
+    1130:	8b 05 a6 0f 20 00    	mov    0x200fa6(%rip),%eax        # 2020dc <vA>
+    1136:	85 c0                	test   %eax,%eax
+    1138:	78 06                	js     1140 <JmpN+0x10>
+    113a:	f3 c3                	repz retq 
+    113c:	0f 1f 40 00          	nopl   0x0(%rax)
+    1140:	89 3d 7a 0f 20 00    	mov    %edi,0x200f7a(%rip)        # 2020c0 <vZ>
+    1146:	c3                   	retq   
+    1147:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    114e:	00 00 
+
+0000000000001150 <JmpS>:
+    1150:	8b 05 82 0f 20 00    	mov    0x200f82(%rip),%eax        # 2020d8 <vB>
+    1156:	8b 15 80 0f 20 00    	mov    0x200f80(%rip),%edx        # 2020dc <vA>
+    115c:	21 c2                	and    %eax,%edx
+    115e:	39 d0                	cmp    %edx,%eax
+    1160:	74 06                	je     1168 <JmpS+0x18>
+    1162:	f3 c3                	repz retq 
+    1164:	0f 1f 40 00          	nopl   0x0(%rax)
+    1168:	89 3d 52 0f 20 00    	mov    %edi,0x200f52(%rip)        # 2020c0 <vZ>
+    116e:	c3                   	retq   
+    116f:	90                   	nop
+
+0000000000001170 <JmpU>:
+    1170:	8b 05 62 0f 20 00    	mov    0x200f62(%rip),%eax        # 2020d8 <vB>
+    1176:	8b 15 60 0f 20 00    	mov    0x200f60(%rip),%edx        # 2020dc <vA>
+    117c:	09 c2                	or     %eax,%edx
+    117e:	39 d0                	cmp    %edx,%eax
+    1180:	74 06                	je     1188 <JmpU+0x18>
+    1182:	f3 c3                	repz retq 
+    1184:	0f 1f 40 00          	nopl   0x0(%rax)
+    1188:	89 3d 32 0f 20 00    	mov    %edi,0x200f32(%rip)        # 2020c0 <vZ>
+    118e:	c3                   	retq   
+    118f:	90                   	nop
+
+0000000000001190 <Jump>:
+    1190:	89 3d 2a 0f 20 00    	mov    %edi,0x200f2a(%rip)        # 2020c0 <vZ>
+    1196:	c3                   	retq   
+    1197:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    119e:	00 00 
+
+00000000000011a0 <Rpt>:
+    11a0:	8b 05 2a 0f 20 00    	mov    0x200f2a(%rip),%eax        # 2020d0 <vR>
+    11a6:	85 c0                	test   %eax,%eax
+    11a8:	74 0f                	je     11b9 <Rpt+0x19>
+    11aa:	83 e8 01             	sub    $0x1,%eax
+    11ad:	89 3d 0d 0f 20 00    	mov    %edi,0x200f0d(%rip)        # 2020c0 <vZ>
+    11b3:	89 05 17 0f 20 00    	mov    %eax,0x200f17(%rip)        # 2020d0 <vR>
+    11b9:	f3 c3                	repz retq 
+    11bb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+
+00000000000011c0 <Br>:
+    11c0:	8b 05 fa 0e 20 00    	mov    0x200efa(%rip),%eax        # 2020c0 <vZ>
+    11c6:	89 3d f4 0e 20 00    	mov    %edi,0x200ef4(%rip)        # 2020c0 <vZ>
+    11cc:	48 89 05 f5 0e 20 00 	mov    %rax,0x200ef5(%rip)        # 2020c8 <vL>
+    11d3:	c3                   	retq   
+    11d4:	66 90                	xchg   %ax,%ax
+    11d6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    11dd:	00 00 00 
+
+00000000000011e0 <Link>:
+    11e0:	48 8b 05 e1 0e 20 00 	mov    0x200ee1(%rip),%rax        # 2020c8 <vL>
+    11e7:	89 05 d3 0e 20 00    	mov    %eax,0x200ed3(%rip)        # 2020c0 <vZ>
+    11ed:	c3                   	retq   
+    11ee:	66 90                	xchg   %ax,%ax
+
+00000000000011f0 <In>:
+    11f0:	48 83 ec 08          	sub    $0x8,%rsp
+    11f4:	48 8b 3d b5 0e 20 00 	mov    0x200eb5(%rip),%rdi        # 2020b0 <stdin@@GLIBC_2.2.5>
+    11fb:	e8 30 f4 ff ff       	callq  630 <_IO_getc@plt>
+    1200:	89 05 d6 0e 20 00    	mov    %eax,0x200ed6(%rip)        # 2020dc <vA>
+    1206:	48 83 c4 08          	add    $0x8,%rsp
+    120a:	c3                   	retq   
+    120b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+
+0000000000001210 <Out>:
+    1210:	48 8b 35 89 0e 20 00 	mov    0x200e89(%rip),%rsi        # 2020a0 <stdout@@GLIBC_2.2.5>
+    1217:	8b 3d bf 0e 20 00    	mov    0x200ebf(%rip),%edi        # 2020dc <vA>
+    121d:	e9 fe f3 ff ff       	jmpq   620 <_IO_putc@plt>
+    1222:	0f 1f 40 00          	nopl   0x0(%rax)
+    1226:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    122d:	00 00 00 
+
+0000000000001230 <loadProgram>:
+    1230:	66 0f 6f 05 28 0e 20 	movdqa 0x200e28(%rip),%xmm0        # 202060 <program>
+    1237:	00 
+    1238:	48 8b 05 41 0e 20 00 	mov    0x200e41(%rip),%rax        # 202080 <program+0x20>
+    123f:	0f 29 05 9a 0e 20 00 	movaps %xmm0,0x200e9a(%rip)        # 2020e0 <dm>
+    1246:	66 0f 6f 05 22 0e 20 	movdqa 0x200e22(%rip),%xmm0        # 202070 <program+0x10>
+    124d:	00 
+    124e:	48 89 05 ab 0e 20 00 	mov    %rax,0x200eab(%rip)        # 202100 <dm+0x20>
+    1255:	0f 29 05 94 0e 20 00 	movaps %xmm0,0x200e94(%rip)        # 2020f0 <dm+0x10>
+    125c:	c3                   	retq   
+    125d:	0f 1f 00             	nopl   (%rax)
+
+0000000000001260 <__libc_csu_init>:
+    1260:	41 57                	push   %r15
+    1262:	41 56                	push   %r14
+    1264:	41 89 ff             	mov    %edi,%r15d
+    1267:	41 55                	push   %r13
+    1269:	41 54                	push   %r12
+    126b:	4c 8d 25 76 0b 20 00 	lea    0x200b76(%rip),%r12        # 201de8 <__frame_dummy_init_array_entry>
+    1272:	55                   	push   %rbp
+    1273:	48 8d 2d 76 0b 20 00 	lea    0x200b76(%rip),%rbp        # 201df0 <__init_array_end>
+    127a:	53                   	push   %rbx
+    127b:	49 89 f6             	mov    %rsi,%r14
+    127e:	49 89 d5             	mov    %rdx,%r13
+    1281:	4c 29 e5             	sub    %r12,%rbp
+    1284:	48 83 ec 08          	sub    $0x8,%rsp
+    1288:	48 c1 fd 03          	sar    $0x3,%rbp
+    128c:	e8 4f f3 ff ff       	callq  5e0 <_init>
+    1291:	48 85 ed             	test   %rbp,%rbp
+    1294:	74 20                	je     12b6 <__libc_csu_init+0x56>
+    1296:	31 db                	xor    %ebx,%ebx
+    1298:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+    129f:	00 
+    12a0:	4c 89 ea             	mov    %r13,%rdx
+    12a3:	4c 89 f6             	mov    %r14,%rsi
+    12a6:	44 89 ff             	mov    %r15d,%edi
+    12a9:	41 ff 14 dc          	callq  *(%r12,%rbx,8)
+    12ad:	48 83 c3 01          	add    $0x1,%rbx
+    12b1:	48 39 dd             	cmp    %rbx,%rbp
+    12b4:	75 ea                	jne    12a0 <__libc_csu_init+0x40>
+    12b6:	48 83 c4 08          	add    $0x8,%rsp
+    12ba:	5b                   	pop    %rbx
+    12bb:	5d                   	pop    %rbp
+    12bc:	41 5c                	pop    %r12
+    12be:	41 5d                	pop    %r13
+    12c0:	41 5e                	pop    %r14
+    12c2:	41 5f                	pop    %r15
+    12c4:	c3                   	retq   
+    12c5:	90                   	nop
+    12c6:	66 2e 0f 1f 84 00 00 	nopw   %cs:0x0(%rax,%rax,1)
+    12cd:	00 00 00 
+
+00000000000012d0 <__libc_csu_fini>:
+    12d0:	f3 c3                	repz retq 
 
 Disassembly of section .fini:
 
-0000000000001134 <_fini>:
-    1134:	48 83 ec 08          	sub    $0x8,%rsp
-    1138:	48 83 c4 08          	add    $0x8,%rsp
-    113c:	c3                   	retq   
+00000000000012d4 <_fini>:
+    12d4:	48 83 ec 08          	sub    $0x8,%rsp
+    12d8:	48 83 c4 08          	add    $0x8,%rsp
+    12dc:	c3                   	retq   
