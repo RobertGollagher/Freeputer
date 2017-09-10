@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.4.2+ for FVM 2.0
+Version:    pre-alpha-0.0.4.3+ for FVM 2.0
 =======
 
                               This Edition:
@@ -62,7 +62,6 @@ WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
-WORD vD = 0; // address register (not accessible)
 WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
 int exampleProgram();
 // ---------------------------------------------------------------------------
@@ -83,16 +82,16 @@ void Xor()    { vA^=vB; } // Maybe add NOT and NEG too
 void Shl()    { vA<<=enshift(vB); }
 void Shr()    { vA>>=enshift(vB); }
 // Moves
-void Get()    { vD = safe(vB); vA = dm[safe(vD)]; }
+void Get()    { vA = dm[safe(vB)]; }
 void Put()    { dm[safe(vB)] = vA; }
 
-void Geti()   { vD = safe(vB); vA = dm[safe(dm[vD])]; }
+void Geti()   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; }
 void Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
 
-void Decm()   { WORD sB = safe(vB); --dm[sB]; }
-void Incm()   { WORD sB = safe(vB); ++dm[sB]; }
+void Decm()   { --dm[safe(vB)]; }
+void Incm()   { ++dm[safe(vB)]; }
 
-void At()     { vD = safe(vB); vB = dm[vD]; }
+void At()     { vB = dm[safe(vB)]; }
 void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
 // Increments for addressing
 void Inc()    { ++vB; }
@@ -238,7 +237,6 @@ int exampleProgram() {
 #define v_vL v_vB + 1
 #define v_vT v_vL + 1
 #define v_vR v_vT + 1
-#define v_vD v_vR + 1
 #define OPCODE_MASK   0xff000000
 #define CELL_MASK     0x00ffffff
 // ---------------------------------------------------------------------------
