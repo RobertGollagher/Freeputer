@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.5.0+ for FVM 2.0
+Version:    pre-alpha-0.0.5.1+ for FVM 2.0
 =======
 
                               This Edition:
@@ -77,6 +77,7 @@ METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // CURRENTLY 34+ OPCODES
+/*
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -131,6 +132,7 @@ void Br(CELL a)   { vL = vZ; vZ = a; }
 void Link()       { vZ = vL; }
 void In(CELL a)   { vA = getchar(); } // If fail goto label
 void Out(CELL a)  { putchar(vA); } // If fail goto label
+*/
 // ===========================================================================
 // Opcodes are sequential for now, with complex ones highest
 #define NOP   0x00000000 // Simple
@@ -178,6 +180,8 @@ WORD program[] = {
   // The NOP is cell 7 in this program.
   // Interpreted performance is poor, about 17 sec for 0x7fffffff nop repeats,
   // more than 10 times slower than 'qmisc-native.c' but truly portable.
+  // Incredibly even the below inlined switch is equally slow,
+  // nothing was gained by doing that; might as well return to the above.
   IM|3,ADD,IM|5,ADD,IM|0x7fffffff,FROMB,TOR,NOP,RPT|7,HALT
 };
 void loadProgram() {
@@ -198,52 +202,52 @@ printf("\n%08x %08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
     vZ = safe(++vZ);
     // Handle immediates
     if (instr&MSb) {
-      Imm(instr);
+      vB = enrange(instr);
       continue;
     }
     // Handle all other instructions
     WORD opcode = instr & OPCODE_MASK;
     switch(opcode) { // TODO Fix order
-      case NOP:    Nop(); break;
-      case ADD:    Add(); break;
-      case SUB:    Sub(); break;
-      case OR:     Or(); break;
-      case AND:    And(); break;
-      case XOR:    Xor(); break;
-      case FLIP:   Flip(); break;
-      case SHL:    Shl(); break;
-      case SHR:    Shr(); break;
-      case GET:    Get(); break;
-      case PUT:    Put(); break;
-      case GETI:   Geti(); break;
-      case PUTI:   Puti(); break;
-      case INCM:   Incm(); break;
-      case DECM:   Decm(); break;
-      case AT:     At(); break;
-      case COPY:   Copy(); break;
-      case INC:    Inc(); break;
-      case DEC:    Dec(); break;
-      case SWAP:   Swap(); break;
-      case TOB:    Tob(); break;
-      case TOR:    Tor(); break;
-      case TOT:    Tot(); break;
-      case FROMB:  Fromb(); break;
-      case FROMR:  Fromr(); break;
-      case FROMT:  Fromt(); break;
-      case JMPA:   JmpA(instr&DM_MASK); break;
-      case JMPB:   JmpB(instr&DM_MASK); break;
-      case JMPE:   JmpE(instr&DM_MASK); break;
-      case JMPN:   JmpN(instr&DM_MASK); break;
-      case JMPS:   JmpS(instr&DM_MASK); break;
-      case JMPU:   JmpU(instr&DM_MASK); break;
-      case JUMP:   Jump(instr&DM_MASK); break;
-      case RPT:    Rpt(instr&DM_MASK);  break;
-      case BR:     Br(instr&DM_MASK);   break;
-      case LINK:   Link(); break;
-      case MDM:    Mdm(); break;
-      case IN:     In(instr&DM_MASK); break;
-      case OUT:    Out(instr&DM_MASK); break;
-      case HALT:   Halt(); return vA; break;
+      case NOP:    break;
+      case ADD:    vA+=vB; break;
+      case SUB:    vA-=vB; break;
+      case OR:     vA|=vB; break;
+      case AND:    vA&=vB; break;
+      case XOR:    vA^=vB; break; // Maybe add NOT and NEG too
+      case FLIP:   vB = vB^MSb; break;
+      case SHL:    vA<<=enshift(vB); break;
+      case SHR:    vA>>=enshift(vB); break;
+      case GET:    vA = dm[safe(vB)]; break;
+      case PUT:    dm[safe(vB)] = vA; break;
+      case GETI:   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; } break;
+      case PUTI:   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } break;
+      case INCM:   ++dm[safe(vB)]; break;
+      case DECM:   --dm[safe(vB)]; break;
+      case AT:     vB = dm[safe(vB)]; break;
+      case COPY:   dm[safe(vB+vA)] = dm[safe(vB)]; break; // a smell?
+      case INC:    ++vB; break;
+      case DEC:    --vB; break;
+      case SWAP:   vB = vB^vA; vA = vA^vB; vB = vB^vA; break;
+      case TOB:    vB = vA; break;
+      case TOR:    vR = vA; break;
+      case TOT:    vT = vA; break;
+      case FROMB:  vA = vB; break;
+      case FROMR:  vA = vR; break;
+      case FROMT:  vA = vT; break;
+      case JMPA:   if (vA == 0) { vZ = instr&DM_MASK; } break;
+      case JMPB:   if (vB == 0) { vZ = instr&DM_MASK; } break;
+      case JMPE:   if (vA == vB) { vZ = instr&DM_MASK; } break;
+      case JMPN:   if (MSb == (vA&MSb)) { vZ = instr&DM_MASK; } break;
+      case JMPS:   if (vB == (vA&vB)) { vZ = instr&DM_MASK; } break;
+      case JMPU:   if (vB == (vA|vB)) { vZ = instr&DM_MASK; } break;
+      case JUMP:   vZ = instr&DM_MASK; break;
+      case RPT:    if ( vR != 0) { --vR; vZ = instr&DM_MASK; } break;
+      case BR:     vL = vZ; vZ = instr&DM_MASK; break;
+      case LINK:   vZ = vL; break;
+      case MDM:    vA = DM_WORDS; break;
+      case IN:     vA = getchar(); break; // TODO branch on failure
+      case OUT:    putchar(vA); break; // TODO branch on failure
+      case HALT:   vA = enbyte(vA); return vA; break;
       default: return ILLEGAL; break;
     }
   }
