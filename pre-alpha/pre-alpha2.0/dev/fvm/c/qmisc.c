@@ -29,6 +29,7 @@ Version:    pre-alpha-0.0.4.3+ for FVM 2.0
   Idea: no limit on the parent, but standard child size(s).
   If so, obvious child sizes would be 24-26, 16, 8 bit spaces
     which means 64-256 Mb, 256 kB, 1 kB.
+  Was van neumann for child a mistake?
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -130,9 +131,9 @@ void Noop()   { ; }
 // Convenient macros to save typing
 #define add Add();
 #define sub Sub();
-#define or Or();
-#define and And();
-#define xor Xor();
+#define orr Or();
+#define andd And();
+#define xorr Xor();
 #define shl Shl();
 #define shr Shr();
 #define get Get();
@@ -271,7 +272,7 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
 
   fromt
   i(OPCODE_MASK)
-  and
+  andd
 
       i(iNOOP)
         jmpe(v_Noop)
@@ -329,7 +330,7 @@ printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
     v_complex_instrs:
       fromt
       i(OPCODE_MASK)
-      and
+      andd
 
       i(iJMPE)
         jmpe(v_Jmpe)
@@ -375,7 +376,7 @@ v_And:
   get
   i(v_vB)
   at
-  and
+  andd
   i(v_vA)
   put
   jump(nexti)
@@ -385,7 +386,7 @@ v_Or:
   get
   i(v_vB)
   at
-  or
+  orr
   i(v_vA)
   put
   jump(nexti)
@@ -395,7 +396,7 @@ v_Xor:
   get
   i(v_vB)
   at
-  xor
+  xorr
   i(v_vA)
   put
   jump(nexti)
@@ -424,7 +425,7 @@ v_Get:
   i(v_vB)
   get
   i(v_MEM_MASK)
-  and
+  andd
   tob
   get
   i(v_vA)
@@ -435,7 +436,7 @@ v_Put:
   i(v_vB)
   get
   i(v_MEM_MASK)
-  and
+  andd
   i(v_vA)
   at
   swap
@@ -446,7 +447,7 @@ v_At:
   i(v_vB)
   get
   i(v_MEM_MASK)
-  and
+  andd
   tob
   get
   i(v_vB)
@@ -457,7 +458,7 @@ v_Copy: // TODO Untested, also consider sub vs add directions
   i(v_vB)
   get
   i(v_MEM_MASK)
-  and
+  andd
   tob
   get
   tot // vT now has dm[safe(vB)]
@@ -467,7 +468,7 @@ v_Copy: // TODO Untested, also consider sub vs add directions
   at
   add
   i(v_MEM_MASK)
-  and
+  andd
   tob   // vB now contains safe(vB+vA)
   fromt // vA now has dm[safe(vB)]
   put
@@ -495,7 +496,7 @@ v_Imm:
   fromt
   i(0)
   flip
-  xor
+  xorr
   i(v_vB)
   put
   jump(nexti)
@@ -592,7 +593,7 @@ v_Jmpe:
   v_Jmpe_do:
     fromt
     i(CELL_MASK)
-    and
+    andd
     i(v_vZ)
     put
     jump(nexti)
@@ -600,7 +601,7 @@ v_Jmpe:
 v_Jump:
     fromt
     i(CELL_MASK)
-    and
+    andd
     i(v_vZ)
     put
     jump(nexti)
@@ -612,7 +613,7 @@ v_Br:
     put
     fromt
     i(CELL_MASK)
-    and
+    andd
     i(v_vZ)
     put
     jump(nexti)
@@ -629,10 +630,9 @@ v_Rpt:
   get
   jmpa(v_Repeat_end)
     decm
-
     fromt
     i(CELL_MASK)
-    and
+    andd
     i(v_vZ)
     put
   v_Repeat_end:
@@ -642,7 +642,7 @@ v_Halt:
   i(v_vA)
   get
   i(BYTE_MASK)
-  and
+  andd
   halt
 // ---------------------------------------------------------------------------
 // Program child's program memory then run program
