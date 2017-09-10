@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170910+
-Version:    pre-alpha-0.0.5.3+ for FVM 2.0
+Version:    pre-alpha-0.0.5.4+ for FVM 2.0
 =======
 
                               This Edition:
@@ -23,15 +23,13 @@ Version:    pre-alpha-0.0.5.3+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
-  Reconsider Harvard vs Van Neumann (it is the latter for now).
 
-  Returned to 32-bit. Unless content to accept 256 kB standard size
+  Unless content to accept 256 kB standard size
   (16-bit word-addressed space), masking is required. That is a little
   large for hardware freedom in 2017 (to not require any OS) but may
   be acceptable in future. Perhaps ROM/RAM split should be considered.
 
-  Idea: no limit on the parent, but standard child size(s).
-  If so, obvious child sizes would be 24-26, 16, 8 bit spaces
+  Idea: obvious sizes would be 24-26, 16, 8 bit spaces
     which means 64-256 Mb, 256 kB, 1 kB. Using 1 kB for intial experiments.
 
 ==============================================================================
@@ -45,7 +43,7 @@ Version:    pre-alpha-0.0.5.3+ for FVM 2.0
 #define QVMP_STDIO 0 // gcc using <stdio.h> for FILEs (eg Linux targets)
 #define QVMP_ARDUINO_IDE 1 // Arduino IDE (eg Arduino or chipKIT targets)
 // -- SPECIFY YOUR TARGET PLATFORM HERE: -------------------------------------
-#define QVMP QVMP_ARDUINO_IDE
+#define QVMP QVMP_STDIO
 // ---------------------------------------------------------------------------
 #include <inttypes.h>
 #include <assert.h>
@@ -65,10 +63,10 @@ Version:    pre-alpha-0.0.5.3+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
-#define DM_WORDS  0x100    // Must be some power of 2 <= MAX_DM_WORDS.
+#define MAX_MEM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
+#define MEM_WORDS  0x100    // Must be some power of 2 <= MAX_MEM_WORDS.
                            // Set to a tiny 1 kB just to test Arduino!
-#define DM_MASK   DM_WORDS-1
+#define MEM_MASK   MEM_WORDS-1
 int runVM();
 // ---------------------------------------------------------------------------
 // There are only 4 accessible registers:
@@ -78,7 +76,7 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 LNKT vL = 0; // link register (not accessible)
 WORD vZ = 0; // program counter (not accesible) (maybe it should be)
-WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
+WORD mem[MEM_WORDS]; // system memory (now using Von Neumann architecture)
 // ---------------------------------------------------------------------------
 #if QVMP == QVMP_STDIO
   #include <stdio.h>
@@ -121,7 +119,7 @@ WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
   Details: See 'qmisc.c' (or similar) source."
 #endif
 // ---------------------------------------------------------------------------
-METADATA safe(METADATA addr) { return addr & DM_MASK; }
+METADATA safe(METADATA addr) { return addr & MEM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
@@ -138,17 +136,17 @@ void inline Xor()    { vA^=vB; } // Maybe add NOT and NEG too
 void inline Shl()    { vA<<=enshift(vB); }
 void inline Shr()    { vA>>=enshift(vB); }
 // Moves
-void inline Get()    { vA = dm[safe(vB)]; }
-void inline Put()    { dm[safe(vB)] = vA; }
+void inline Get()    { vA = mem[safe(vB)]; }
+void inline Put()    { mem[safe(vB)] = vA; }
 
-void inline Geti()   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; }
-void inline Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
+void inline Geti()   { WORD sB = safe(vB); vA = mem[safe(mem[sB])]; }
+void inline Puti()   { WORD sB = safe(vB); mem[safe(mem[sB])] = vA; } // untested
 
-void inline Decm()   { --dm[safe(vB)]; }
-void inline Incm()   { ++dm[safe(vB)]; }
+void inline Decm()   { --mem[safe(vB)]; }
+void inline Incm()   { ++mem[safe(vB)]; }
 
-void inline At()     { vB = dm[safe(vB)]; }
-void inline Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
+void inline At()     { vB = mem[safe(vB)]; }
+void inline Copy()   { mem[safe(vB+vA)] = mem[safe(vB)]; } // a smell?
 // Increments for addressing
 void inline Inc()    { ++vB; }
 void inline Dec()    { --vB; }
@@ -164,7 +162,7 @@ void inline Fromb()  { vA = vB; }
 void inline Fromt()  { vA = vT; }
 void inline Fromr()  { vA = vR; }
 // Machine metadata
-void inline Mdm()    { vA = DM_WORDS; }
+void inline Mem()    { vA = MEM_WORDS; }
 // Other
 void inline Nop()    { ; }
 void inline Halt()   { vA = enbyte(vA); } // Exit manually in switch
@@ -207,7 +205,7 @@ void inline Link()       { vZ = vL; }
 #define FROMB 0x17000000
 #define FROMR 0x18000000
 #define FROMT 0x19000000
-#define MDM   0x1a000000
+#define MEM   0x1a000000
 #define LINK  0x1b000000
 #define HALT  0x1c000000
 #define JMPA  0x1d000000 // Complex
@@ -234,7 +232,7 @@ WORD program[] = {
 };
 void loadProgram() {
   for (int i=0; i<(sizeof(program)/WD_BYTES); i++) {
-    dm[i] = program[i];
+    mem[i] = program[i];
   }
 }
 // ===========================================================================
@@ -243,7 +241,7 @@ int runVM() {
   initVM();
   loadProgram();
   while(1) {
-    WORD instr = dm[vZ];
+    WORD instr = mem[vZ];
 #ifdef TRACING_ENABLED
     traceVM
 #endif
@@ -282,19 +280,19 @@ int runVM() {
       case FROMB:  Fromb(); break;
       case FROMR:  Fromr(); break;
       case FROMT:  Fromt(); break;
-      case JMPA:   JmpA(instr&DM_MASK); break;
-      case JMPB:   JmpB(instr&DM_MASK); break;
-      case JMPE:   JmpE(instr&DM_MASK); break;
-      case JMPN:   JmpN(instr&DM_MASK); break;
-      case JMPS:   JmpS(instr&DM_MASK); break;
-      case JMPU:   JmpU(instr&DM_MASK); break;
-      case JUMP:   Jump(instr&DM_MASK); break;
-      case RPT:    Rpt(instr&DM_MASK);  break;
-      case BR:     Br(instr&DM_MASK);   break;
+      case JMPA:   JmpA(instr&MEM_MASK); break;
+      case JMPB:   JmpB(instr&MEM_MASK); break;
+      case JMPE:   JmpE(instr&MEM_MASK); break;
+      case JMPN:   JmpN(instr&MEM_MASK); break;
+      case JMPS:   JmpS(instr&MEM_MASK); break;
+      case JMPU:   JmpU(instr&MEM_MASK); break;
+      case JUMP:   Jump(instr&MEM_MASK); break;
+      case RPT:    Rpt(instr&MEM_MASK);  break;
+      case BR:     Br(instr&MEM_MASK);   break;
       case LINK:   Link(); break;
-      case MDM:    Mdm(); break;
-      case IN:     In(instr&DM_MASK); break;
-      case OUT:    Out(instr&DM_MASK); break;
+      case MEM:    Mem(); break;
+      case IN:     In(instr&MEM_MASK); break;
+      case OUT:    Out(instr&MEM_MASK); break;
       case HALT:   Halt(); return vA; break;
       default: return ILLEGAL; break;
     }
