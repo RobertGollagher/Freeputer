@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170910+
-Version:    pre-alpha-0.0.5.5+ for FVM 2.0
+Updated:    20170911+
+Version:    pre-alpha-0.0.5.6+ for FVM 2.0
 =======
 
                               This Edition:
@@ -30,7 +30,7 @@ Version:    pre-alpha-0.0.5.5+ for FVM 2.0
   a hybrid approach (big enough to build a nice little standalone
   system but small enough to encourage single-purpose modules).
   Systems are intended to be parallel and multi-node.
-  That is, each node would be a 16-kB VM.
+  Each node would be a 16-kB VM (no ROM).
   Working fine with Arduino Zero.
 
   Note: the main competitor to this would be FVM Lite of pre-alpha 1.1

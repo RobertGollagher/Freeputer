@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170701:2336+
- * Version:    pre-alpha-0.0.0.46+ for FVM 2.0
+ * Updated:    20170911+
+ * Version:    pre-alpha-0.0.1.0+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -84,14 +84,14 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>Freeputer Virtual Machine</h2>
+    <h2>QMISC Virtual Machine</h2>
     <table class="fvmMaxed">
        <tr>
         <td>   
           <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.0.46+ for FVM 2.0.
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.0+ for FVM 2.0
         </td>
       </tr>
        <tr>
@@ -119,54 +119,6 @@ function modFVMUI_init(prg) { 'use strict';
           <table class="fvmMaxed">
             <tr>
               <td>
-                <b>stdtrc</b>
-              </td>
-            </tr>
-            <tr>
-              <td class="fvmOut fvmMaxed">
-                  <pre><code><span id="fvmStdtrc"></span></code></pre>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
-            <tr>
-              <td>
-                <b>Source</b> ( 0x = hex, 0f = forward, 0r = reverse, 0s = symbol, 0s000000 = start, / = token is a comment )
-              </td>
-            </tr>
-            <tr>
-              <td>
-                  <textarea id="fvmSrc" class="fvmOut" rows="40" cols="80" wrap="off"></textarea>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
-            <tr>
-              <td>
-                <b>stdlog</b>
-              </td>
-            </tr>
-            <tr>
-              <td class="fvmOut fvmSmall fvmScroll">
-                  <pre><code><span id="fvmStdlog"></span></code></pre>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
-            <tr>
-              <td>
                 <b>stdout</b>
               </td>
             </tr>
@@ -183,28 +135,12 @@ function modFVMUI_init(prg) { 'use strict';
           <table class="fvmMaxed">
             <tr>
               <td>
-                <b>grdout</b>
+                <b>Source</b>
               </td>
             </tr>
-            <tr>
-              <td class="fvmOut fvmSmall fvmScroll">
-                  <pre><code><span id="fvmGrdout"></span></code></pre>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
             <tr>
               <td>
-                <b>usrout</b>
-              </td>
-            </tr>
-            <tr>
-              <td class="fvmOut fvmSmall fvmScroll">
-                  <pre><code><span id="fvmUsrout"></span></code></pre>
+                  <textarea id="fvmSrc" class="fvmOut" rows="40" cols="80" wrap="off"></textarea>
               </td>
             </tr>
           </table>

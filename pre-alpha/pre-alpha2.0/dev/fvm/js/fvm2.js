@@ -5,16 +5,17 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170701:2336+
- * Version:    pre-alpha-0.0.0.46+ for FVM 2.0
+ * Updated:    20170911+
+ * Version:    pre-alpha-0.0.1.0+ for FVM 2.0
  *
- *                   This Edition of the Virtual Machine:
+ *                               This Edition:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
  *
- *               Note: This implementation is only for Plan C, JADE.
+ *   Status: About to begin porting 'qmisc.c' to JavaScript.
+ *   FIXME This is currently completely broken and does not work yet.
  *
  * ===========================================================================
  * 
@@ -23,34 +24,68 @@
  * experimentation and nothing more.
  * 
  * ===========================================================================
- *
+
  */
 
 // Module modFVM will provide an FVM implementation.
 var modFVM = (function () { 'use strict';
 
-  const MM_SIZE = 0xefff; // in bytes .        .       .       .       .
-  const WORD_SIZE_BYTES = 4;
-  const SUCCESS = 0;
-  const FAILURE = 1;
+  const WD_BYTES = 4
+  const WD_BITS = WD_BYTES*8
+  const MSb = 0x80000000 // Bit mask for most significant bit
+  const IM = MSb
+  const METADATA_MASK = 0x7fffffff // 31 bits
+  const OPCODE_MASK   = 0xff000000
+  const BYTE_MASK     = 0x000000ff
+  const SHIFT_MASK    = 0x0000001f
+  const SUCCESS = 0
+  const FAILURE = 1
+  const ILLEGAL = 2
+  const MAX_MEM_WORDS = 0x1000    // 16 kB = 4096 words = standard size
+  const MEM_WORDS = MAX_MEM_WORDS //     (favours modular design) 
+  const MEM_MASK  = MEM_WORDS-1
 
-  const iFAL = 0x00|0; // FIXME
-  const iJMP = 0x01|0;
-  const iADDI = 0x10|0;
-  const iHAL = 0x1f|0; // FIXME
-  const MNEMS = [
-    'fal ','jmp ','','','','','','',
-    '','','','','','','','',
-    'addi','','','','','','','',
-    '','','','','','','','hal ',
-  ]
 
-  const COND = [
-    '=0','=1','=2','=3',
-    '=4','=5','=6','=7',
-    '=8','=9','=a','=b',
-    '=c','=d','=e','all'
-  ]
+  const NOP   = 0x00000000|0 // Simple
+  const ADD   = 0x01000000|0
+  const SUB   = 0x02000000|0
+  const OR    = 0x03000000|0
+  const AND   = 0x04000000|0
+  const XOR   = 0x05000000|0
+  const SHL   = 0x06000000|0
+  const SHR   = 0x07000000|0
+  const GET   = 0x08000000|0
+  const PUT   = 0x09000000|0
+  const GETI  = 0x0a000000|0
+  const PUTI  = 0x0b000000|0
+  const INCM  = 0x0c000000|0
+  const DECM  = 0x0d000000|0
+  const AT    = 0x0e000000|0
+  const COPY  = 0x0f000000|0
+  const INC   = 0x10000000|0
+  const DEC   = 0x11000000|0
+  const FLIP  = 0x12000000|0
+  const SWAP  = 0x13000000|0
+  const TOB   = 0x14000000|0
+  const TOR   = 0x15000000|0
+  const TOT   = 0x16000000|0
+  const FROMB = 0x17000000|0
+  const FROMR = 0x18000000|0
+  const FROMT = 0x19000000|0
+  const MEM   = 0x1a000000|0
+  const LINK  = 0x1b000000|0
+  const HALT  = 0x1c000000|0
+  const JMPA  = 0x1d000000|0 // Complex
+  const JMPB  = 0x1e000000|0
+  const JMPE  = 0x1f000000|0
+  const JMPN  = 0x20000000|0
+  const JMPS  = 0x21000000|0
+  const JMPU  = 0x22000000|0
+  const JUMP  = 0x23000000|0
+  const RPT   = 0x24000000|0
+  const BR    = 0x25000000|0
+  const IN    = 0x26000000|0
+  const OUT   = 0x27000000|0
 
   // Plan C instruction format JADE
   const OPCODE_MASK = 0xff000000; //   11111111000000000000000000000000
@@ -61,10 +96,10 @@ var modFVM = (function () { 'use strict';
 
   class FVM {
     constructor(config) {
-      this.pc = WORD_SIZE_BYTES; // non-zero, also nowadays is byte-addressed
-      this.mm = new DataView(new ArrayBuffer(MM_SIZE));
+      this.pc = WD_BYTES; // non-zero, also nowadays is byte-addressed
+      this.mem = new DataView(new ArrayBuffer(MEM_WORDS));
       this.fnTrc = config.fnTrc;
-      this.loadProg(config.program, this.mm);
+      this.loadProg(config.program, this.mem);
       this.tracing = true;
       this.regs = [
         0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 
@@ -72,7 +107,7 @@ var modFVM = (function () { 'use strict';
       ]
     };
 
-    loadProg(pgm, mm) {
+    loadProg(pgm, mem) {
       if (pgm === undefined) {
         this.loadedProg = false;
         this.fnTrc('No program to load');
@@ -80,7 +115,7 @@ var modFVM = (function () { 'use strict';
         var program = new DataView(pgm);
         for (var i = 0; i < program.byteLength; i++) {
           var w = program.getUint8(i, true);
-          mm.setUint8(i, w, true);
+          mem.setUint8(i, w, true);
         }
         this.loadedProg = true;
       }
@@ -108,7 +143,7 @@ var modFVM = (function () { 'use strict';
           this.trace(this.pc,instr,opcode,dst,dstm,src,srcm); 
         }
 
-        this.pc+=WORD_SIZE_BYTES; // nowadays is byte-addressed
+        this.pc+=WD_BYTES; // nowadays is byte-addressed
         switch (opcode) {
           case iFAL:
             this.fail(); // FIXME
@@ -126,10 +161,10 @@ var modFVM = (function () { 'use strict';
                 break;
               case 0x2:
                 this.store(this.regs[dst], this.load(this.regs[dst]) + src);
-                this.regs[dst]+=WORD_SIZE_BYTES; // TODO what about overflow?
+                this.regs[dst]+=WD_BYTES; // TODO what about overflow?
                 break;
               case 0x3:
-                this.regs[dst]-=WORD_SIZE_BYTES;
+                this.regs[dst]-=WD_BYTES;
                 this.store(this.regs[dst], this.load(this.regs[dst]) + src);
                 break;
               default:
@@ -146,7 +181,7 @@ var modFVM = (function () { 'use strict';
             break;
         }
 
-        if (this.pc > this.mmSize) { //FIXME
+        if (this.pc > this.memSize) { //FIXME
           this.running = false;
         }
 
@@ -167,16 +202,16 @@ var modFVM = (function () { 'use strict';
     }
 
     store(addr,val) {
-      this.mm.setInt32(addr, val, true);
+      this.mem.setInt32(addr, val, true);
     }
 
     load(addr) {
       try {
-        return this.mm.getUint32(addr, true);
+        return this.mem.getUint32(addr, true);
       } catch (e) {
         return 0; // outside bounds of DataView
       }
-      return 0; // outside bounds of mm
+      return 0; // outside bounds of mem
     }
 
     fail() {
@@ -191,20 +226,8 @@ var modFVM = (function () { 'use strict';
       this.fnTrc('VM success');
     }
 
-    trace(pc,instr,opcode,dst,dstm,src,srcm) {
-      this.fnTrc(modFmt.hex6(this.pc) + ' ' + 
-                 modFmt.hex8(instr) + ' ' +
-                 MNEMS[opcode] + ' ' +
-                 //modFmt.hex2(opcode) + '--' +
-                 modFmt.hex2(dst) + ':' +
-                 modFmt.hex1(dstm) + ' | ' +
-                 modFmt.hex4(src) + ':' +
-                 modFmt.hex1(srcm) + 
-                ' r1 ' + modFmt.hex8(this.regs[0x1]) +
-                ' r2 ' + modFmt.hex8(this.regs[0x2]) +
-                ' mm ' + modFmt.hex8(this.load(0x100)) +
-                ' ' + modFmt.hex8(this.load(0x104))
-                 );
+    trace(pc) {
+      this.fnTrc(modFmt.hex8(this.pc));
     }
   }
 
@@ -232,46 +255,6 @@ var modFVM = (function () { 'use strict';
 // Module modFmt provides formatting.
 var modFmt = (function () { 'use strict';
 
-  var hex1 = function(i) {
-    if (typeof i === 'number') {
-      return ('0' + i.toString(16)).substr(-1);
-    } else {
-      return '      ';
-    }
-  };
-
-  var hex2 = function(i) {
-    if (typeof i === 'number') {
-      return ('00' + i.toString(16)).substr(-2);
-    } else {
-      return '      ';
-    }
-  };
-
-  var hex3 = function(i) {
-    if (typeof i === 'number') {
-      return ('000' + i.toString(16)).substr(-3);
-    } else {
-      return '      ';
-    }
-  };
-
-  var hex4 = function(i) {
-    if (typeof i === 'number') {
-      return ('0000' + i.toString(16)).substr(-4);
-    } else {
-      return '      ';
-    }
-  };
-
-  var hex6 = function(i) {
-    if (typeof i === 'number') {
-      return ('000000' + i.toString(16)).substr(-6);
-    } else {
-      return '      ';
-    }
-  };
-
   var hex8 = function(i) {
     if (typeof i === 'number') {
       return ('00000000' + i.toString(16)).substr(-8);
@@ -281,11 +264,6 @@ var modFmt = (function () { 'use strict';
   };
 
   return {
-    hex1: hex1,
-    hex2: hex2,
-    hex3: hex3,
-    hex4: hex4,
-    hex6: hex6,
     hex8: hex8,
   };
 

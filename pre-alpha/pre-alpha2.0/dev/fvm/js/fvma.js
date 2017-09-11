@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170701:2336+
- * Version:    pre-alpha-0.0.0.46+ for FVM 2.0
+ * Updated:    20170911+
+ * Version:    pre-alpha-0.0.1.0+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -14,9 +14,7 @@
  * 
  *                                ( ) [ ] { }
  *
- *              Note: This implementation is only for Plan C, JADE.
- *              FIXME not ported to Plan C, JADE yet.
- *              Currently largely unimplemented!
+ *         FIXME Currently completely broken, not yet updated for QMISC.
  *
  * ===========================================================================
  * 
@@ -65,55 +63,7 @@ var modFVMA = (function () { 'use strict';
     r12: 0xc,
     r13: 0xd,
     r14: 0xe,
-    r15: 0xf,
-    '@r0': 0x40,
-    '@r1': 0x41,
-    '@r2': 0x42,
-    '@r3': 0x43,
-    '@r4': 0x44,
-    '@r5': 0x45,
-    '@r6': 0x46,
-    '@r7': 0x47,
-    '@r8': 0x48,
-    '@r9': 0x49,
-    '@r10': 0x4a,
-    '@r11': 0x4b,
-    '@r12': 0x4c,
-    '@r13': 0x4d,
-    '@r14': 0x4e,
-    '@r15': 0x4f,
-    '@r0++': 0x80,
-    '@r1++': 0x81,
-    '@r2++': 0x82,
-    '@r3++': 0x83,
-    '@r4++': 0x84,
-    '@r5++': 0x85,
-    '@r6++': 0x86,
-    '@r7++': 0x87,
-    '@r8++': 0x88,
-    '@r9++': 0x89,
-    '@r10++': 0x8a,
-    '@r11++': 0x8b,
-    '@r12++': 0x8c,
-    '@r13++': 0x8d,
-    '@r14++': 0x8e,
-    '@r15++': 0x8f,
-    '@--r0': 0xc0,
-    '@--r1': 0xc1,
-    '@--r2': 0xc2,
-    '@--r3': 0xc3,
-    '@--r4': 0xc4,
-    '@--r5': 0xc5,
-    '@--r6': 0xc6,
-    '@--r7': 0xc7,
-    '@--r8': 0xc8,
-    '@--r9': 0xc9,
-    '@--r10': 0xca,
-    '@--r11': 0xcb,
-    '@--r12': 0xcc,
-    '@--r13': 0xcd,
-    '@--r14': 0xce,
-    '@--r15': 0xcf
+    r15: 0xf
   };
 
   const COND = {
@@ -143,6 +93,8 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
+        this.fnMsg('The QMISC assembler is not yet implemented.');
+        return; // FIXME
         this.fnMsg(this.prgElems);
         this.fnMsg('Melding...');
         this.prgElems.meld();
