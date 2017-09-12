@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170911+
-Version:    pre-alpha-0.0.5.6+ for FVM 2.0
+Version:    pre-alpha-0.0.5.7+ for FVM 2.0
 =======
 
                               This Edition:
@@ -23,21 +23,9 @@ Version:    pre-alpha-0.0.5.6+ for FVM 2.0
                                ( ) [ ] { }
 
   Removed most notes so as not to prejudice lateral thinking during design.
-
-  20170910 MILESTONE: a decision has been made to adopt 16 kB (4096 words)
-  as the standard size for VM memory. This ensures modularity and hardware
-  freedom and is a practical medium size from which to compose systems using
-  a hybrid approach (big enough to build a nice little standalone
-  system but small enough to encourage single-purpose modules).
-  Systems are intended to be parallel and multi-node.
-  Each node would be a 16-kB VM (no ROM).
-  Working fine with Arduino Zero.
-
-  Note: the main competitor to this would be FVM Lite of pre-alpha 1.1
-  which proposed 16 kB ROM and 16 kB RAM as the standard size of that
-  platform. A comparison should be made of the two approaches at
-  some stage if this qmisc approach doesn't meet expectations.
-  (However, I would simplify the FVM 1.1 instruction set.)
+  Standard size is 16 kB (all RAM, no ROM). This may be reconsidered.
+  Also consider Harvard in future and any native fallback strategy.
+  Also consider whether 1 or 2 standard sizes.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -70,8 +58,8 @@ Version:    pre-alpha-0.0.5.6+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define MAX_MEM_WORDS 0x1000    // 16 kB = 4096 words = standard size
-#define MEM_WORDS MAX_MEM_WORDS //     (favours modular design) 
+#define MAX_MEM_WORDS 0x1000
+#define MEM_WORDS MAX_MEM_WORDS
 #define MEM_MASK   MEM_WORDS-1
 int runVM();
 // ---------------------------------------------------------------------------

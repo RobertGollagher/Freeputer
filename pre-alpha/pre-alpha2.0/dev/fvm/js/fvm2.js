@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170911+
- * Version:    pre-alpha-0.0.1.0+ for FVM 2.0
+ * Updated:    20170912+
+ * Version:    pre-alpha-0.0.1.1+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -14,8 +14,9 @@
  * 
  *                                ( ) [ ] { }
  *
- *   Status: About to begin porting 'qmisc.c' to JavaScript.
- *   FIXME This is currently completely broken and does not work yet.
+ *  Status: In progress of porting 'qmisc.c' to JavaScript.
+ *  Untested. Incomplete. Non-functional. Do not run this yet.
+*   For notes see 'qmisc.c'.
  *
  * ===========================================================================
  * 
@@ -41,10 +42,9 @@ var modFVM = (function () { 'use strict';
   const SUCCESS = 0
   const FAILURE = 1
   const ILLEGAL = 2
-  const MAX_MEM_WORDS = 0x1000    // 16 kB = 4096 words = standard size
-  const MEM_WORDS = MAX_MEM_WORDS //     (favours modular design) 
+  const MAX_MEM_WORDS = 0x1000
+  const MEM_WORDS = MAX_MEM_WORDS
   const MEM_MASK  = MEM_WORDS-1
-
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -87,27 +87,19 @@ var modFVM = (function () { 'use strict';
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
 
-  // Plan C instruction format JADE
-  const OPCODE_MASK = 0xff000000; //   11111111000000000000000000000000
-  const DST_MASK =    0x003f0000; //   00000000001111110000000000000000
-  const DSTM_MASK =   0x00c00000; //   00000000110000000000000000000000
-  const SRC_MASK =    0x0000ffff; //   00000000000000001111111111111111
-  const SRCM_MASK =   0x0000c000; //   00000000000000001100000000000000
-
   class FVM {
     constructor(config) {
-      this.pc = WD_BYTES; // non-zero, also nowadays is byte-addressed
-      this.mem = new DataView(new ArrayBuffer(MEM_WORDS));
-      this.fnTrc = config.fnTrc;
-      this.loadProg(config.program, this.mem);
-      this.tracing = true;
-      this.regs = [
-        0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 
-        0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0, 0|0
-      ]
+      this.tracing = true; // comment this line out unless debugging
+      this.vA = 0|0; // accumulator
+      this.vB = 0|0; // operand register
+      this.vT = 0|0; // temporary register
+      this.vR = 0|0; // repeat register
+      this.vL = 0|0; // link register (not accessible)
+      this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
+      this.mem = new DataView(new ArrayBuffer(MEM_WORDS)); // Von Neumann
     };
 
-    loadProg(pgm, mem) {
+    loadProgram(pgm, mem) {
       if (pgm === undefined) {
         this.loadedProg = false;
         this.fnTrc('No program to load');
@@ -121,84 +113,75 @@ var modFVM = (function () { 'use strict';
       }
     }
 
-    run() {
-      if (!this.loadedProg) {
-        return;
-      }
-      this.fnTrc('FVM run...');
-      this.running = true;
-      var instr, opcode, dst, dstm, src, srcm;
+    initVM() {} // Nothing here yet
 
-      while (this.running) {
-        instr = this.wordAtPc();
+    safe(addr) { return addr & MEM_MASK; }
+    enbyte(x)  { return x & BYTE_MASK; }
+    enrange(x) { return x & METADATA_MASK; }
+    enshift(x) { return x & SHIFT_MASK; }
 
-        // TODO optimize later
-        opcode = (instr & OPCODE_MASK) >> 24;
-        dst = (instr & DST_MASK) >> 16;
-        dstm = (instr & DSTM_MASK) >> 22;
-        src = (instr & SRC_MASK);
-        srcm = (instr & SRC_MASK) >> 14;
-
+    runVM() {
+      initVM();
+      loadProgram();
+      while(true) {
+        WORD instr = this.load(vZ);
         if (this.tracing) {
-          this.trace(this.pc,instr,opcode,dst,dstm,src,srcm); 
+          traceVM();
         }
 
-        this.pc+=WD_BYTES; // nowadays is byte-addressed
-        switch (opcode) {
-          case iFAL:
-            this.fail(); // FIXME
-            break;
-          case iJMP: // FIXME not properly implemented yet!
-            this.pc = src;
-            break;
-          case iADDI: // FIXME
-            switch(dstm) {
-              case 0x0:
-                this.regs[dst]+=src;
-                break;
-              case 0x1:
-                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
-                break;
-              case 0x2:
-                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
-                this.regs[dst]+=WD_BYTES; // TODO what about overflow?
-                break;
-              case 0x3:
-                this.regs[dst]-=WD_BYTES;
-                this.store(this.regs[dst], this.load(this.regs[dst]) + src);
-                break;
-              default:
-                throw ('VM BUG!');
-                break;
-            }
-            break;
-          case iHAL:
-            this.succeed(); // FIXME
-            break;
-          default:
-            this.fnTrc('Illegal opcode: 0x' + modFmt.hex2(opcode));
-            this.fail();
-            break;
+        vZ = safe(++vZ);
+        // Handle immediates
+        if (instr&MSb) {
+          vB = enrange(x);
+          continue;
         }
 
-        if (this.pc > this.memSize) { //FIXME
-          this.running = false;
+        // Handle all other instructions
+        WORD opcode = instr & OPCODE_MASK;
+        switch(opcode) { // TODO Fix order
+          case NOP:    break;
+          case ADD:    vA+=vB; break;
+          case SUB:    vA-=vB; break;
+          case OR:     vA|=vB; break;
+          case AND:    vA&=vB; break;
+          case XOR:    vA^=vB; break;
+          case FLIP:   vB = vB^MSb; break;
+          case SHL:    vA<<=enshift(vB); break;
+          case SHR:    vA>>=enshift(vB); break;
+          case GET:    vA = this.load(safe(vB)); break;
+          case PUT:    this.store(safe(vB), vA); break;
+          case GETI:   sB = safe(vB); vA = this.load(safe(this.load(sB))); break;
+          case PUTI:   sB = safe(vB); this.store(safe(this.load(sB]), vA); break;
+          case INCM:   sB = safe(vB); val = this.load(sB); this.store(sB, ++val); break;
+          case DECM:   sB = safe(vB); val = this.load(sB); this.store(sB, --val); break;
+          case AT:     vB = this.load(safe(vB)); break;
+          case COPY:   this.store(safe(vB+vA), this.load(safe(vB))); break;
+          case INC:    ++vB; break;
+          case DEC:    --vB; break;
+          case SWAP:   vB = vB^vA; vA = vA^vB; vB = vB^vA; break;
+          case TOB:    vB = vA; break;
+          case TOR:    vR = vA; break;
+          case TOT:    vT = vA; break;
+          case FROMB:  vA = vB; break;
+          case FROMR:  vA = vR; break;
+          case FROMT:  vA = vT; break;
+          case JMPA:   if (vA == 0) vZ = instr&MEM_MASK; break;
+          case JMPB:   if (vB == 0) vZ = instr&MEM_MASK; break;
+          case JMPE:   if (vA == vB) vZ = instr&MEM_MASK; break;
+          case JMPN:   if (MSb == (vA&MSb)) vZ = instr&MEM_MASK; break;
+          case JMPS:   if (vB == (vA&vB)) vZ = instr&MEM_MASK; break;
+          case JMPU:   if (vB == (vA|vB)) vZ = instr&MEM_MASK; break;
+          case JUMP:   vZ = instr&MEM_MASK; break;
+          case RPT:    if ( vR != 0) { --vR; vZ = instr&MEM_MASK; } break;
+          case BR:     vL = vZ; vZ = instr&MEM_MASK; break;
+          case LINK:   vZ = vL; break;
+          case MEM:    vA = MEM_WORDS; break;
+          case IN:     vA = fnStdin(); break; // FIXME
+          case OUT:    this.fnStdout(vA); break; // FIXME
+          case HALT:   vA = enbyte(vA); return vA; break;
+          default: return ILLEGAL; break;
         }
-
       }
-      this.fnTrc('FVM ran. Exit code: ' + this.exitCode);
-    };
-
-    cellAtPc() {
-      var addr = this.load(this.pc);
-      if (addr > PRGt) {
-        throw FAILURE;
-      }
-      return addr;
-    }
-
-    wordAtPc() {
-      return this.load(this.pc);
     }
 
     store(addr,val) {
@@ -214,21 +197,7 @@ var modFVM = (function () { 'use strict';
       return 0; // outside bounds of mem
     }
 
-    fail() {
-      this.exitCode = FAILURE;
-      this.running = false;
-      this.fnTrc('VM failure');
-    }
-
-    succeed() {
-      this.exitCode = SUCCESS;
-      this.running = false;
-      this.fnTrc('VM success');
-    }
-
-    trace(pc) {
-      this.fnTrc(modFmt.hex8(this.pc));
-    }
+    traceVM() {} // TODO
   }
 
   class Config {
@@ -236,7 +205,6 @@ var modFVM = (function () { 'use strict';
       this.program = prg;
       this.fnStdin = null;
       this.fnStdout = null;
-      this.fnTrc = null;
     };
   }
 

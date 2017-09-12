@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170911+
- * Version:    pre-alpha-0.0.1.0+ for FVM 2.0
+ * Updated:    20170912+
+ * Version:    pre-alpha-0.0.1.1+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -90,11 +90,11 @@ var modFVMA = (function () { 'use strict';
       //this.fnMsg('Parsing...');
       var lines = str.split(/\n/);
       try {
+        this.fnMsg('The QMISC assembler is not yet implemented.');
+        return; // FIXME
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        this.fnMsg('The QMISC assembler is not yet implemented.');
-        return; // FIXME
         this.fnMsg(this.prgElems);
         this.fnMsg('Melding...');
         this.prgElems.meld();
