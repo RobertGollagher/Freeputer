@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170913+
- * Version:    pre-alpha-0.0.1.2+ for FVM 2.0
+ * Updated:    20170915+
+ * Version:    pre-alpha-0.0.1.3+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -14,7 +14,7 @@
  * 
  *                                ( ) [ ] { }
  *
- *         FIXME Non-functional; not yet updated for QMISC.
+ *   FIXME Only partially implemented, just enough for the test program.
  *
  * ===========================================================================
  * 
@@ -29,16 +29,15 @@
 // Module modFVMA will provide a Freeputer Assembler implementation.
 var modFVMA = (function () { 'use strict';
 
+  const WD_BYTES = 4;
+
   const DEF = '#def';
   const HERE = '.';
-  const COMSTART = '(';
-  const COMEND = ')';
+  const COMSTART = '/*';
+  const COMEND = '*/';
   const COMWORD= '/';
 
-  const WORD_SIZE_BYTES = 4;
-
   const IM    = 0x80000000|0
-
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -80,8 +79,11 @@ var modFVMA = (function () { 'use strict';
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
 
-  const SYMBOLS = {
+  const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
+    add:    ADD,
+    tor:    TOR,
+    fromb:  FROMB,
     halt:   HALT
   };
 
@@ -105,10 +107,6 @@ var modFVMA = (function () { 'use strict';
     }
 
     asm(str) { // FIXME no enforcement yet
-
-this.fnMsg('The QMISC assembler is not yet implemented.');
-return new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer; // FIXME
-
       this.reset();
       this.fnMsg('Parsing...');
       var lines = str.split(/\n/);
@@ -116,9 +114,6 @@ return new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        this.fnMsg(this.prgElems);
-        this.fnMsg('Melding...');
-        this.prgElems.meld();
         this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
@@ -139,7 +134,7 @@ return new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer
       if (this.expectDef) {
        if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
           // note: nowadays using byte addressing
-         this.dict[this.decl] = (this.prgElems.cursor / 3) * WORD_SIZE_BYTES;
+         this.dict[this.decl] = (this.prgElems.cursor / 3);
        } else {
          this.dict[this.decl] = x;
        }
@@ -148,9 +143,6 @@ return new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer
           this.prgElems.putElem(SYMBOLS['jmp'],3);
           this.prgElems.putElem(0|0,4); // FIXME JADE
           this.prgElems.putElem(this.dict[this.decl],5);
-
-this.fnMsg(this.prgElems);
-
         } 
       }
        this.decl = "";
@@ -174,6 +166,8 @@ this.fnMsg(this.prgElems);
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
+      } else if (this.parseImm(token)) {
+      } else if (this.parseRpt(token)) {
       } else if (this.parseHex2(token)) {
       } else if (this.parseHex4(token)) {
       } else if (this.parseHex6(token)) {
@@ -291,6 +285,28 @@ this.fnMsg(this.prgElems);
       }
     }
 
+    parseImm(token) {
+      if (token.match(/i\([^\s]+\)/)){
+        var n = parseInt(token.substring(2,token.length-1)); //FIXME
+        n = n | IM;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseRpt(token) {
+      if (token.match(/rpt\([^\s]+\)/)){
+        var n = parseInt(token.substring(4,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
     parseHex8(token) {
       if (token.length == 10 && token.match(/0x[0-9a-f]{8}/)){
         var n = parseInt(token,16);
@@ -335,7 +351,7 @@ this.fnMsg(this.prgElems);
       if (token.length == 4 && token.match(/0f[0-9a-f]{2}/)){
         var asHex = token.replace('0f','0x');
         var n = parseInt(asHex,16);
-        var m = (WORD_SIZE_BYTES * Math.floor(this.prgElems.cursor/3)) + n*WORD_SIZE_BYTES;
+        var m = (Math.floor(this.prgElems.cursor/3)) + n;
         this.use(m);
         return true;
       } else {
@@ -347,14 +363,13 @@ this.fnMsg(this.prgElems);
       if (token.length == 4 && token.match(/0r[0-9a-f]{2}/)){
         var asHex = token.replace('0r','0x');
         var n = parseInt(asHex,16);
-        var m = (WORD_SIZE_BYTES * Math.floor(this.prgElems.cursor/3)) - n*WORD_SIZE_BYTES;
+        var m = (Math.floor(this.prgElems.cursor/3)) - n;
         this.use(m);
         return true;
       } else {
         return false;
       }      
     }
-
   };
 
   class PrgElems {
@@ -375,22 +390,16 @@ this.fnMsg(this.prgElems);
       return this.elems[-1];
     }
 
-    meld() {
-      var melded = [];
-      for (var i = 0; i < this.elems.length-1; i=i+3) {
-        // FIXME for Plan C JADE this is just a hack and not working fully
-        melded.push((this.elems[i] << 24) | (this.elems[i+1]) << 16 | this.elems[i+2]);
-      }
-      this.elems = melded;
-    }
-
     toBuf() {
       return new Uint32Array(this.elems).buffer;
     }
 
     toString() {
       var str = ":";
-      this.elems.forEach(x => str = str + modFmt.hex8(x) + ":");
+      var dv = new DataView(this.toBuf());
+      for (var i = 0; i < dv.byteLength; i+=WD_BYTES) {
+        str += modFmt.hex8(dv.getUint32(i, true)) + ":";
+      }
       return str;
     }
 

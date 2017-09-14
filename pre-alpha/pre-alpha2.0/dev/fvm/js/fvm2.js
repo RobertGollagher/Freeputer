@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170913+
- * Version:    pre-alpha-0.0.1.2+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.3+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -15,8 +15,7 @@
  *                                ( ) [ ] { }
  *
  *  Status: In progress of porting 'qmisc.c' to JavaScript.
- *  Untested. Incomplete. Non-functional. Do not run this yet.
-*   For notes see 'qmisc.c'.
+ *  Incomplete. Untested. Barely functional. For notes see 'qmisc.c'.
  *
  * ===========================================================================
  * 
