@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170912+
- * Version:    pre-alpha-0.0.1.1+ for FVM 2.0
+ * Updated:    20170913+
+ * Version:    pre-alpha-0.0.1.2+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -14,7 +14,7 @@
  * 
  *                                ( ) [ ] { }
  *
- *         FIXME Currently completely broken, not yet updated for QMISC.
+ *         FIXME Non-functional; not yet updated for QMISC.
  *
  * ===========================================================================
  * 
@@ -37,33 +37,52 @@ var modFVMA = (function () { 'use strict';
 
   const WORD_SIZE_BYTES = 4;
 
-  const iFAL = 0x00|0; // FIXME
-  const iJMP = 0x01|0;
-  const iADDI = 0x10|0;
-  const iHAL = 0x1f|0; // FIXME
+  const IM    = 0x80000000|0
+
+  const NOP   = 0x00000000|0 // Simple
+  const ADD   = 0x01000000|0
+  const SUB   = 0x02000000|0
+  const OR    = 0x03000000|0
+  const AND   = 0x04000000|0
+  const XOR   = 0x05000000|0
+  const SHL   = 0x06000000|0
+  const SHR   = 0x07000000|0
+  const GET   = 0x08000000|0
+  const PUT   = 0x09000000|0
+  const GETI  = 0x0a000000|0
+  const PUTI  = 0x0b000000|0
+  const INCM  = 0x0c000000|0
+  const DECM  = 0x0d000000|0
+  const AT    = 0x0e000000|0
+  const COPY  = 0x0f000000|0
+  const INC   = 0x10000000|0
+  const DEC   = 0x11000000|0
+  const FLIP  = 0x12000000|0
+  const SWAP  = 0x13000000|0
+  const TOB   = 0x14000000|0
+  const TOR   = 0x15000000|0
+  const TOT   = 0x16000000|0
+  const FROMB = 0x17000000|0
+  const FROMR = 0x18000000|0
+  const FROMT = 0x19000000|0
+  const MEM   = 0x1a000000|0
+  const LINK  = 0x1b000000|0
+  const HALT  = 0x1c000000|0
+  const JMPA  = 0x1d000000|0 // Complex
+  const JMPB  = 0x1e000000|0
+  const JMPE  = 0x1f000000|0
+  const JMPN  = 0x20000000|0
+  const JMPS  = 0x21000000|0
+  const JMPU  = 0x22000000|0
+  const JUMP  = 0x23000000|0
+  const RPT   = 0x24000000|0
+  const BR    = 0x25000000|0
+  const IN    = 0x26000000|0
+  const OUT   = 0x27000000|0
 
   const SYMBOLS = {
-    '--': 0x00|0,
-    hal: iHAL,
-    jmp: iJMP,
-    addi: iADDI,
-    fal: iFAL,
-    r0: 0x0,
-    r1: 0x1,
-    r2: 0x2,
-    r3: 0x3,
-    r4: 0x4,
-    r5: 0x5,
-    r6: 0x6,
-    r7: 0x7,
-    r8: 0x8,
-    r9: 0x9,
-    r10: 0xa,
-    r11: 0xb,
-    r12: 0xc,
-    r13: 0xd,
-    r14: 0xe,
-    r15: 0xf
+    nop:    NOP,
+    halt:   HALT
   };
 
   const COND = {
@@ -86,12 +105,14 @@ var modFVMA = (function () { 'use strict';
     }
 
     asm(str) { // FIXME no enforcement yet
+
+this.fnMsg('The QMISC assembler is not yet implemented.');
+return new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer; // FIXME
+
       this.reset();
-      //this.fnMsg('Parsing...');
+      this.fnMsg('Parsing...');
       var lines = str.split(/\n/);
       try {
-        this.fnMsg('The QMISC assembler is not yet implemented.');
-        return; // FIXME
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }

@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170912+
- * Version:    pre-alpha-0.0.1.1+ for FVM 2.0
+ * Updated:    20170913+
+ * Version:    pre-alpha-0.0.1.2+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -22,7 +22,17 @@ window.onload = function() { 'use strict';
   // Source for assembler is declared as prgSrc within prg.js
   fvmSrc.textContent = prgSrc;
   // Default program is loaded from prgBase64 binary and is unrelated to prgSrc
-  var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
+  //var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
+
+const IM    = 0x80000000|0; // FIXME remove all this hardcoded program...
+const ADD   = 0x01000000|0;
+const FROMB = 0x17000000|0;
+const TOR   = 0x15000000|0;
+const NOP   = 0x00000000|0;
+const RPT   = 0x24000000|0;
+const HALT  = 0x1c000000|0;
+var prg = new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer; // ...FIXME
+
   modFVMUI = modFVMUI_init(prg);
 };
 
@@ -53,10 +63,10 @@ function modFVMUI_init(prg) { 'use strict';
   function clear() {
     clr(fvmAs);
     clr(fvmStdout);
-    clr(fvmUsrout);
-    clr(fvmGrdout);
-    clr(fvmStdlog);
-    clr(fvmStdtrc);
+    //clr(fvmUsrout);
+    //clr(fvmGrdout);
+    //clr(fvmStdlog);
+    //clr(fvmStdtrc);
   };
 
   function run() {
@@ -66,9 +76,8 @@ function modFVMUI_init(prg) { 'use strict';
     cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
-    cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
-    cf.RAMa = 0x100000;
-    cf.RAMz = 0x100400;
+    //cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
+    cf.fnTrc = x => fvmStdout.textContent+=x+'\n';
     modFVM.makeFVM(cf).run();
   };
 
@@ -91,7 +100,7 @@ function modFVMUI_init(prg) { 'use strict';
           <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
           <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
           <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.1+ for FVM 2.0
+          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.2+ for FVM 2.0
         </td>
       </tr>
        <tr>
@@ -123,7 +132,7 @@ function modFVMUI_init(prg) { 'use strict';
               </td>
             </tr>
             <tr>
-              <td class="fvmOut fvmSmall fvmScroll">
+              <td class="fvmOut fvmLarge fvmScroll">
                   <pre><code><span id="fvmStdout"></span></code></pre>
               </td>
             </tr>
@@ -140,7 +149,7 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
             <tr>
               <td>
-                  <textarea id="fvmSrc" class="fvmOut" rows="40" cols="80" wrap="off"></textarea>
+                  <textarea id="fvmSrc" class="fvmOut" rows="20" cols="80" wrap="off"></textarea>
               </td>
             </tr>
           </table>
