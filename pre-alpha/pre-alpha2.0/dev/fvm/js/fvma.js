@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170915+
- * Version:    pre-alpha-0.0.1.3+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.4+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -76,15 +76,41 @@ var modFVMA = (function () { 'use strict';
   const JUMP  = 0x23000000|0
   const RPT   = 0x24000000|0
   const BR    = 0x25000000|0
-  const IN    = 0x26000000|0
+  const IN    = 0x26000000|0 // FIXME make complex
   const OUT   = 0x27000000|0
 
   const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
     add:    ADD,
+    sub:    SUB,
+    or:     OR,
+    and:    AND,
+    xor:    XOR,
+    shl:    SHL,
+    shr:    SHR,
+    get:    GET,
+    put:    PUT,
+    geti:   GETI,
+    puti:   PUTI,
+    incm:   INCM,
+    decm:   DECM,
+    at:     AT,
+    copy:   COPY,
+    inc:    INC,
+    dec:    DEC,
+    flip:   FLIP,
+    swap:   SWAP,
+    tob:    TOB,
     tor:    TOR,
+    tot:    TOT,
     fromb:  FROMB,
-    halt:   HALT
+    fromr:  FROMR,
+    fromt:  FROMT,
+    mem:    MEM,
+    link:   LINK,
+    halt:   HALT,
+    in:     IN, // FIXME make complex
+    out:    OUT
   };
 
   const COND = {
@@ -167,7 +193,15 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
       } else if (this.parseImm(token)) {
+      } else if (this.parseJump(token)) {
+      } else if (this.parseJmpA(token)) {
+      } else if (this.parseJmpB(token)) {
+      } else if (this.parseJmpE(token)) {
+      } else if (this.parseJmpN(token)) {
+      } else if (this.parseJmpS(token)) {
+      } else if (this.parseJmpU(token)) {
       } else if (this.parseRpt(token)) {
+      } else if (this.parseBr(token)) {
       } else if (this.parseHex2(token)) {
       } else if (this.parseHex4(token)) {
       } else if (this.parseHex6(token)) {
@@ -296,10 +330,98 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
+    parseJump(token) {
+      if (token.match(/jump\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpA(token) {
+      if (token.match(/jmpa\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpB(token) {
+      if (token.match(/jmpb\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpE(token) {
+      if (token.match(/jmpe\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpN(token) {
+      if (token.match(/jmpn\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpS(token) {
+      if (token.match(/jmps\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpU(token) {
+      if (token.match(/jmpu\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
     parseRpt(token) {
       if (token.match(/rpt\([^\s]+\)/)){
         var n = parseInt(token.substring(4,token.length-1)); //FIXME
         n = n | RPT;
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseBr(token) {
+      if (token.match(/br\([^\s]+\)/)){
+        var n = parseInt(token.substring(2,token.length-1)); //FIXME
+        n = n | BR;
         this.use(n);
         return true;
       } else {
