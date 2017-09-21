@@ -18,10 +18,11 @@ Version:    pre-alpha-0.0.0.32+ for FVM 2.0
 
                                ( ) [ ] { }
 
-TODO NEXT:
-
-  3. Then implement for ARM (important POC).
-  4. Then fix self-virtualization.
+   TODO:
+   - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
+   - Trap on read/write/jump out of bounds rather than masking
+   - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
+   - Later do ARM assembly language implementation
 
 ==============================================================================
                             BUILDING FOR i386

@@ -17,7 +17,7 @@ Freeputer ( ) \[ \] { } smaller simpler better
 
 Freeputer&nbsp;2.0 will be ***much easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a ***powerful server*** or in a ***web browser*** or on a ***microcontroller***.
 
-Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running while ***maintaining correctness***.
+Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running except upon an illegal instruction or upon memory access out of bounds.
 
 Freeputer&nbsp;2.0 may also have a different architecture and I/O strategy.
 
@@ -33,19 +33,43 @@ However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, 
 
 ### Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)
 
-A MISC machine which aims to have a core of less than 100 lines of code.
+A MISC machine which aims to have a core of a few hundred lines of code.
 
-This plan is very easy to implement but factoring is not especially easy.
+This plan is very easy to implement although factoring is not especially easy.
 
-For ongoing experiments see 'dev/fvm/c/qmisc.c' and 'dev/fvm/x86/qmisc.s'.
+All instructions are fixed-width and 32 bits wide (FW32).
 
-This is now the front-runner for FVM 2.0.
+Internal address space is all RAM, word-addressed, and comes in 5 standard sizes:
 
-Why? Quality (eliminate complexity and undefined behaviour).
+- XS = 1 kB (2 nibbles)
+- S = 16 kB (3 nibbles)
+- M = 256 kB (4 nibbles)
+- L = 4 MB (5 nibbles)
+- XL = 64 MB (6 nibbles)
+
+This scheme makes modular virtualization possible.
+
+The only things which stop the VM are:
+
+- the halt instruction
+- an illegal instruction
+- memory access out of bounds
+
+For ongoing (inconsistent and incomplete) experiments see:
+
+- 'dev/fvm/js/fvm2.js'
+- 'dev/fvm/c/qmisc.c'
+- 'dev/fvm/x86/qmisc.s'
+
+Plan G is now the front-runner for FVM 2.0.
+
+Why? Quality (eliminate complexity and any accidental undefined behaviour in VM implementation).
 
 Quality matters more than performance.
 
 Quality requires simplicity.
+
+Hardware freedom also remains paramount.
 
 ### Proposed Design: Plan A: Improved Stack Machine
 
@@ -262,7 +286,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 27 August 2017+ at 01:04+  
+This document was last updated on 21 September 2017 at 21:01  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

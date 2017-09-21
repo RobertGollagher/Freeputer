@@ -12,7 +12,7 @@
 </ol>
 <h2 id="benefits">Benefits</h2>
 <p>Freeputer 2.0 will be <strong><em>much easier to implement</em></strong> and thus <strong><em>even more portable</em></strong>. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>. Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a <strong><em>powerful server</em></strong> or in a <strong><em>web browser</em></strong> or on a <strong><em>microcontroller</em></strong>.</p>
-<p>Freeputer 2.0 <strong><em>adds robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve <em>correctness</em>, the design of Freeputer 2.0 is more robust in that it keeps running while <strong><em>maintaining correctness</em></strong>.</p>
+<p>Freeputer 2.0 <strong><em>adds robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve <em>correctness</em>, the design of Freeputer 2.0 is more robust in that it keeps running except upon an illegal instruction or upon memory access out of bounds.</p>
 <p>Freeputer 2.0 may also have a different architecture and I/O strategy.</p>
 <p>The motto of Freeputer 2.0 is: <strong><em>smaller simpler better</em></strong>.</p>
 <h2 id="migration">Migration</h2>
@@ -20,13 +20,35 @@
 <p>However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer 1.0 programs to run there.</p>
 <h2 id="shortlist">Shortlist</h2>
 <h3 id="proposed-design-plan-g-minimal-instruction-set-computer-misc">Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)</h3>
-<p>A MISC machine which aims to have a core of less than 100 lines of code.</p>
-<p>This plan is very easy to implement but factoring is not especially easy.</p>
-<p>For ongoing experiments see 'dev/fvm/c/qmisc.c' and 'dev/fvm/x86/qmisc.s'.</p>
-<p>This is now the front-runner for FVM 2.0.</p>
-<p>Why? Quality (eliminate complexity and undefined behaviour).</p>
+<p>A MISC machine which aims to have a core of a few hundred lines of code.</p>
+<p>This plan is very easy to implement although factoring is not especially easy.</p>
+<p>All instructions are fixed-width and 32 bits wide (FW32).</p>
+<p>Internal address space is all RAM, word-addressed, and comes in 5 standard sizes:</p>
+<ul>
+<li>XS = 1 kB (2 nibbles)</li>
+<li>S = 16 kB (3 nibbles)</li>
+<li>M = 256 kB (4 nibbles)</li>
+<li>L = 4 MB (5 nibbles)</li>
+<li>XL = 64 MB (6 nibbles)</li>
+</ul>
+<p>This scheme makes modular virtualization possible.</p>
+<p>The only things which stop the VM are:</p>
+<ul>
+<li>the halt instruction</li>
+<li>an illegal instruction</li>
+<li>memory access out of bounds</li>
+</ul>
+<p>For ongoing (inconsistent and incomplete) experiments see:</p>
+<ul>
+<li>'dev/fvm/js/fvm2.js'</li>
+<li>'dev/fvm/c/qmisc.c'</li>
+<li>'dev/fvm/x86/qmisc.s'</li>
+</ul>
+<p>Plan G is now the front-runner for FVM 2.0.</p>
+<p>Why? Quality (eliminate complexity and any accidental undefined behaviour in VM implementation).</p>
 <p>Quality matters more than performance.</p>
 <p>Quality requires simplicity.</p>
+<p>Hardware freedom also remains paramount.</p>
 <h3 id="proposed-design-plan-a-improved-stack-machine">Proposed Design: Plan A: Improved Stack Machine</h3>
 <p>Plan A is essentially rejected. However, it was interesting so it is listed here for future reference.</p>
 <p>A portable stack machine which is correct and robust by virtue of branching on failure.</p>
@@ -325,7 +347,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 27 August 2017+ at 01:04+<br />
+This document was last updated on 21 September 2017 at 21:01<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

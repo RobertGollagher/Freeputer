@@ -14,8 +14,10 @@
  * 
  *                                ( ) [ ] { }
  *
- *  Status: In progress of porting 'qmisc.c' to JavaScript.
- *  Incomplete. Untested. Barely functional. For notes see 'qmisc.c'.
+ * TODO:
+ * - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
+ * - Trap on read/write/jump out of bounds rather than masking
+ * - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
  *
  * ===========================================================================
  * 

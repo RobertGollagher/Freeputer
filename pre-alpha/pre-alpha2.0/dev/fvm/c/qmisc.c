@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170911+
-Version:    pre-alpha-0.0.5.7+ for FVM 2.0
+Version:    pre-alpha-0.0.5.8+ for FVM 2.0
 =======
 
                               This Edition:
@@ -22,10 +22,11 @@ Version:    pre-alpha-0.0.5.7+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  Removed most notes so as not to prejudice lateral thinking during design.
-  Standard size is 16 kB (all RAM, no ROM). This may be reconsidered.
-  Also consider Harvard in future and any native fallback strategy.
-  Also consider whether 1 or 2 standard sizes.
+   TODO:
+   - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
+   - Trap on read/write/jump out of bounds rather than masking
+   - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
+
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -160,7 +161,7 @@ void inline Mem()    { vA = MEM_WORDS; }
 // Other
 void inline Nop()    { ; }
 void inline Halt()   { vA = enbyte(vA); } // Exit manually in switch
-// Jumps (static only), maybe reduce these back to jump and jmpe only
+// Jumps (TODO add dynamic?), maybe reduce these back to jump and jmpe only
 void inline JmpA(CELL a) { if (vA == 0) { vZ = a; } }
 void inline JmpB(CELL a) { if (vB == 0) { vZ = a; } }
 void inline JmpE(CELL a) { if (vA == vB) { vZ = a; } }
