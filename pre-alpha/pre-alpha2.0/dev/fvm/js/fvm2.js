@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170913+
- * Version:    pre-alpha-0.0.1.4+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.6+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -24,7 +24,7 @@
  *   - Removed GETI, PUTI (2 less)
  *   - Removed BR, LINK (2 less and eliminated vL)
  *   - Removed TOT, FROMT (2 less and eliminated vT)
- *   - 
+ *   - Removed RPT (3 less and eliminated vR but appears rather clumsy)
  *   - 
  *   - 
  *   - 
@@ -75,14 +75,11 @@ var modFVM = (function () { 'use strict';
   const AT    = 0x0e000000|0
   const SWAP  = 0x13000000|0
   const TOB   = 0x14000000|0
-  const TOR   = 0x15000000|0
   const FROMB = 0x17000000|0
-  const FROMR = 0x18000000|0
   const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
   const JMPE  = 0x1f000000|0 // Complex
   const JUMP  = 0x23000000|0
-  const RPT   = 0x24000000|0
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
 
@@ -94,7 +91,7 @@ var modFVM = (function () { 'use strict';
       this.vA = 0|0; // accumulator
       this.vB = 0|0; // operand register
       //this.vT = 0|0; // temporary register
-      this.vR = 0|0; // repeat register
+      //this.vR = 0|0; // repeat register
       //this.vL = 0|0; // link register (not accessible)
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
       this.mem = new DataView(new ArrayBuffer(MEM_WORDS)); // Von Neumann
@@ -153,17 +150,10 @@ var modFVM = (function () { 'use strict';
 
           case SWAP:   this.vB = this.vB^this.vA; this.vA = this.vA^this.vB; this.vB = this.vB^this.vA; break;
           case TOB:    this.vB = this.vA; break;
-          case TOR:    this.vR = this.vA; break;
           case FROMB:  this.vA = this.vB; break;
-          case FROMR:  this.vA = this.vR; break;
 
 
-
-
-
-          case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&MEM_MASK; } break;
           case MEM:    this.vA = MEM_WORDS; break;
-
 
           case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break; /*KEEP*/
           case JUMP:   this.vZ = instr&MEM_MASK; break; /*KEEP*/
@@ -193,9 +183,9 @@ var modFVM = (function () { 'use strict';
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
-        "vB:" + modFmt.hex8(this.vB) + " " +
+        "vB:" + modFmt.hex8(this.vB); // + " " +
         //"vT:" + modFmt.hex8(this.vT) + " " +
-        "vR:" + modFmt.hex8(this.vR); // + " " +
+        //"vR:" + modFmt.hex8(this.vR); // + " " +
         //"vL:" + modFmt.hex8(this.vL);
       this.fnTrc(traceStr);
     }
