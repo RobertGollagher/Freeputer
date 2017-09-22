@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20170911+
-Version:    pre-alpha-0.0.5.8+ for FVM 2.0
+Updated:    20170923+
+Version:    pre-alpha-0.0.5.9+ for FVM 2.0
 =======
 
                               This Edition:
@@ -141,7 +141,6 @@ void inline Decm()   { --mem[safe(vB)]; }
 void inline Incm()   { ++mem[safe(vB)]; }
 
 void inline At()     { vB = mem[safe(vB)]; }
-void inline Copy()   { mem[safe(vB+vA)] = mem[safe(vB)]; } // a smell?
 // Increments for addressing
 void inline Inc()    { ++vB; }
 void inline Dec()    { --vB; }
@@ -166,8 +165,8 @@ void inline JmpA(CELL a) { if (vA == 0) { vZ = a; } }
 void inline JmpB(CELL a) { if (vB == 0) { vZ = a; } }
 void inline JmpE(CELL a) { if (vA == vB) { vZ = a; } }
 void inline JmpN(CELL a) { if (MSb == (vA&MSb)) { vZ = a; } } // MSb set in vA
-void inline JmpS(CELL a) { if (vB == (vA&vB)) { vZ = a; } } // all vB 1s set in vA
-void inline JmpU(CELL a) { if (vB == (vA|vB)) { vZ = a; } } // all vB 0s unset in vA
+void inline JmpG(CELL a) { if (vA > vB) { vZ = a; } }
+void inline JmpL(CELL a) { if (vA < vB) { vZ = a; } }
 void inline Jump(CELL a) { vZ = a; }
 void inline Rpt(CELL a)  { if ( vR != 0) { --vR; vZ = a; } }
 void inline Br(CELL a)   { vL = vZ; vZ = a; }
@@ -189,7 +188,6 @@ void inline Link()       { vZ = vL; }
 #define INCM  0x0c000000
 #define DECM  0x0d000000
 #define AT    0x0e000000
-#define COPY  0x0f000000
 #define INC   0x10000000
 #define DEC   0x11000000
 #define FLIP  0x12000000
@@ -265,7 +263,6 @@ int runVM() {
       case INCM:   Incm(); break;
       case DECM:   Decm(); break;
       case AT:     At(); break;
-      case COPY:   Copy(); break;
       case INC:    Inc(); break;
       case DEC:    Dec(); break;
       case SWAP:   Swap(); break;

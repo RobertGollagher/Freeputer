@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170903+
-Version:    pre-alpha-0.0.0.32+ for FVM 2.0
+Updated:    20170923+
+Version:    pre-alpha-0.0.0.33+ for FVM 2.0
 =======
 
                               This Edition:
@@ -223,7 +223,7 @@ and set the build flag x86_64 to YES to build for x86-64.
 .macro bsav
   movl vB, data_memory(,vD,WD_BYTES)
 .endm
-.macro copy
+.macro copy # FIXME remove this
   movl vB, vD
   andl $DM_MASK, vD
   movl data_memory(,vD,WD_BYTES), vB

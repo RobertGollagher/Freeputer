@@ -6,18 +6,13 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.7+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.8+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
- *
- * TODO:
- * - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
- * - Trap on read/write/jump out of bounds rather than masking
- * - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
  *
  * ===========================================================================
  * 
@@ -43,7 +38,13 @@ var modFVM = (function () { 'use strict';
   const SUCCESS = 0
   const FAILURE = 1
   const ILLEGAL = 2
-  const MAX_MEM_WORDS = 0x1000
+  const BEYOND = 3
+  const XS = 0x100 // 1 kB
+  const  S = 0x1000 // 16 kB
+  const  M = 0x10000 // 256 kB
+  const  L = 0x100000 // 4 MB
+  const XL = 0x1000000 // 64 MB
+  const MAX_MEM_WORDS = S
   const MEM_WORDS = MAX_MEM_WORDS
   const MEM_MASK  = MEM_WORDS-1
 
@@ -62,7 +63,6 @@ var modFVM = (function () { 'use strict';
   const INCM  = 0x0c000000|0
   const DECM  = 0x0d000000|0
   const AT    = 0x0e000000|0
-  const COPY  = 0x0f000000|0
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
@@ -151,14 +151,13 @@ var modFVM = (function () { 'use strict';
           case FLIP:   this.vB = this.vB^MSb; break;
           case SHL:    this.vA<<=enshift(this.vB); break;
           case SHR:    this.vA>>=enshift(this.vB); break;
-          case GET:    this.vA = this.load(this.safe(this.vB)); break;
-          case PUT:    this.store(this.safe(this.vB), this.vA); break;
-          case GETI:   sB = this.safe(this.vB); this.vA = this.load(this.safe(this.load(sB))); break;
-          case PUTI:   sB = this.safe(this.vB); this.store(this.safe(this.load(sB)), this.vA); break;
-          case INCM:   sB = this.safe(this.vB); val = this.load(sB); this.store(sB, ++val); break;
-          case DECM:   sB = this.safe(this.vB); val = this.load(sB); this.store(sB, --val); break;
-          case AT:     this.vB = this.load(this.safe(this.vB)); break;
-          case COPY:   this.store(this.safe(this.vB+this.vA), this.load(this.safe(this.vB))); break;
+          case GET:    if (this.vB&MEM_MASK!=0) return BEYOND; this.vA = this.load(this.vB); break;
+          case PUT:    if (this.vB&MEM_MASK!=0) return BEYOND; this.store(this.vB, this.vA); break;
+          case GETI:   if (this.vB&MEM_MASK!=0) return BEYOND; sI = this.load(vB); if (sI&MEM_MASK!=0) return BEYOND; this.vA = this.load(sI); break;
+          case PUTI:   if (this.vB&MEM_MASK!=0) return BEYOND; sI = this.load(vB); if (sI&MEM_MASK!=0) return BEYOND; this.store(sI), this.vA); break;
+          case INCM:   if (this.vB&MEM_MASK!=0) return BEYOND; val = this.load(vB); this.store(vB, ++val); break;
+          case DECM:   if (this.vB&MEM_MASK!=0) return BEYOND; val = this.load(vB); this.store(vB, --val); break;
+          case AT:     if (this.vB&MEM_MASK!=0) return BEYOND; this.vB = this.load(this.vB); break;
           case INC:    ++this.vB; break;
           case DEC:    --this.vB; break;
           case SWAP:   this.vB = this.vB^this.vA; this.vA = this.vA^this.vB; this.vB = this.vB^this.vA; break;
@@ -172,8 +171,8 @@ var modFVM = (function () { 'use strict';
           case JMPB:   if (this.vB == 0) this.vZ = instr&MEM_MASK; break;
           case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break;
           case JMPN:   if (MSb == (this.vA&MSb)) this.vZ = instr&MEM_MASK; break;
-          case JMPS:   if (this.vB == (this.vA&this.vB)) this.vZ = instr&MEM_MASK; break;
-          case JMPU:   if (this.vB == (this.vA|this.vB)) this.vZ = instr&MEM_MASK; break;
+          case JMPG:   if (this.vA > this.vB) this.vZ = instr&MEM_MASK; break;
+          case JMPL:   if (this.vA < this.vB) this.vZ = instr&MEM_MASK; break;
           case JUMP:   this.vZ = instr&MEM_MASK; break;
           case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&MEM_MASK; } break;
           case BR:     this.vL = this.vZ; this.vZ = instr&MEM_MASK; break;
