@@ -25,7 +25,7 @@
  *   - Removed BR, LINK (2 less and eliminated vL)
  *   - Removed TOT, FROMT (2 less and eliminated vT)
  *   - Removed RPT (3 less and eliminated vR but appears rather clumsy)
- *   - 
+ *   - Removed SWAP (1 less)
  *   - 
  *   - 
  * TODO: Later consider increasing space
@@ -73,7 +73,6 @@ var modFVM = (function () { 'use strict';
   const GET   = 0x08000000|0
   const PUT   = 0x09000000|0
   const AT    = 0x0e000000|0
-  const SWAP  = 0x13000000|0
   const TOB   = 0x14000000|0
   const FROMB = 0x17000000|0
   const MEM   = 0x1a000000|0
@@ -148,17 +147,13 @@ var modFVM = (function () { 'use strict';
           case PUT:    this.store(this.safe(this.vB), this.vA); break; /*KEEP*/
           case AT:     this.vB = this.load(this.safe(this.vB)); break; /*CONVENIENT*/
 
-          case SWAP:   this.vB = this.vB^this.vA; this.vA = this.vA^this.vB; this.vB = this.vB^this.vA; break;
           case TOB:    this.vB = this.vA; break;
           case FROMB:  this.vA = this.vB; break;
-
 
           case MEM:    this.vA = MEM_WORDS; break;
 
           case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break; /*KEEP*/
           case JUMP:   this.vZ = instr&MEM_MASK; break; /*KEEP*/
-
-
 
           case IN:     this.vA = fnStdin(); break; // FIXME /*KEEP*/
           case OUT:    fnStdout(this.vA); break; // FIXME /*KEEP*/
