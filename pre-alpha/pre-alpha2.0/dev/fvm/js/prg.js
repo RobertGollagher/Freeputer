@@ -12,6 +12,6 @@ var prgSrc = `
   The QMISC assembler is not yet implemented.
 */
 
-i(8) add i(11) add i(2) fromb tor nop rpt(7) halt
+i(8) add i(11) add i(2) fromb tor rpt(7) xor halt
 
 `;
