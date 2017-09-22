@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170915+
- * Version:    pre-alpha-0.0.1.4+ for FVM 2.0
+ * Updated:    20170923+
+ * Version:    pre-alpha-0.0.1.5+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -333,7 +333,7 @@ var modFVMA = (function () { 'use strict';
     parseJump(token) {
       if (token.match(/jump\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JUMP;
         this.use(n);
         return true;
       } else {
@@ -344,7 +344,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpA(token) {
       if (token.match(/jmpa\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPA;
         this.use(n);
         return true;
       } else {
@@ -355,7 +355,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpB(token) {
       if (token.match(/jmpb\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPB;
         this.use(n);
         return true;
       } else {
@@ -366,7 +366,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpE(token) {
       if (token.match(/jmpe\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPE;
         this.use(n);
         return true;
       } else {
@@ -377,7 +377,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpN(token) {
       if (token.match(/jmpn\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPN;
         this.use(n);
         return true;
       } else {
@@ -388,7 +388,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpS(token) {
       if (token.match(/jmps\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPS;
         this.use(n);
         return true;
       } else {
@@ -399,7 +399,7 @@ var modFVMA = (function () { 'use strict';
     parseJmpU(token) {
       if (token.match(/jmpu\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | RPT;
+        n = n | JMPU;
         this.use(n);
         return true;
       } else {
