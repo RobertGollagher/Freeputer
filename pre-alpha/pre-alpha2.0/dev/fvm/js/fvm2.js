@@ -5,30 +5,14 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170913+
- * Version:    pre-alpha-0.0.1.6+ for FVM 2.0
+ * Updated:    20170923+
+ * Version:    pre-alpha-0.0.1.7+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
- *
- * THIS IMPLEMENTATION IS EXPERIMENTALLY BEING CUT DOWN TO TRUE MISC:
- *   - Removed all jumps except JMPE, JUMP (5 less)
- *   - Removed NOP (1 less)
- *   - Removed FLIP (1 less)
- *   - Removed INC, DEC (2 less)
- *   - Removed INCM, DECM (2 less)
- *   - Removed COPY (1 less)
- *   - Removed GETI, PUTI (2 less)
- *   - Removed BR, LINK (2 less and eliminated vL)
- *   - Removed TOT, FROMT (2 less and eliminated vT)
- *   - Removed RPT (3 less and eliminated vR but appears rather clumsy)
- *   - Removed SWAP (1 less)
- *   - 
- *   - 
- * TODO: Later consider increasing space
  *
  * TODO:
  * - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
@@ -63,7 +47,8 @@ var modFVM = (function () { 'use strict';
   const MEM_WORDS = MAX_MEM_WORDS
   const MEM_MASK  = MEM_WORDS-1
 
-  const ADD   = 0x01000000|0 // Simple
+  const NOP   = 0x00000000|0 // Simple
+  const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
   const OR    = 0x03000000|0
   const AND   = 0x04000000|0
@@ -72,13 +57,34 @@ var modFVM = (function () { 'use strict';
   const SHR   = 0x07000000|0
   const GET   = 0x08000000|0
   const PUT   = 0x09000000|0
+  const GETI  = 0x0a000000|0
+  const PUTI  = 0x0b000000|0
+  const INCM  = 0x0c000000|0
+  const DECM  = 0x0d000000|0
   const AT    = 0x0e000000|0
+  const COPY  = 0x0f000000|0
+  const INC   = 0x10000000|0
+  const DEC   = 0x11000000|0
+  const FLIP  = 0x12000000|0
+  const SWAP  = 0x13000000|0
   const TOB   = 0x14000000|0
+  const TOR   = 0x15000000|0
+  const TOT   = 0x16000000|0
   const FROMB = 0x17000000|0
+  const FROMR = 0x18000000|0
+  const FROMT = 0x19000000|0
   const MEM   = 0x1a000000|0
+  const LINK  = 0x1b000000|0
   const HALT  = 0x1c000000|0
-  const JMPE  = 0x1f000000|0 // Complex
+  const JMPA  = 0x1d000000|0 // Complex
+  const JMPB  = 0x1e000000|0
+  const JMPE  = 0x1f000000|0
+  const JMPN  = 0x20000000|0
+  const JMPS  = 0x21000000|0
+  const JMPU  = 0x22000000|0
   const JUMP  = 0x23000000|0
+  const RPT   = 0x24000000|0
+  const BR    = 0x25000000|0
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
 
@@ -89,9 +95,9 @@ var modFVM = (function () { 'use strict';
       this.tracing = true; // comment this line out unless debugging
       this.vA = 0|0; // accumulator
       this.vB = 0|0; // operand register
-      //this.vT = 0|0; // temporary register
-      //this.vR = 0|0; // repeat register
-      //this.vL = 0|0; // link register (not accessible)
+      this.vT = 0|0; // temporary register
+      this.vR = 0|0; // repeat register
+      this.vL = 0|0; // link register (not accessible)
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
       this.mem = new DataView(new ArrayBuffer(MEM_WORDS)); // Von Neumann
       this.loadProgram(config.program, this.mem);
@@ -136,30 +142,46 @@ var modFVM = (function () { 'use strict';
         // Handle all other instructions
         var opcode = instr & OPCODE_MASK;
         switch(opcode) { // TODO Fix order
-          case ADD:    this.vA+=this.vB; break; /*KEEP*/
-          case SUB:    this.vA-=this.vB; break; /*KEEP*/
-          case OR:     this.vA|=this.vB; break; /*KEEP*/
-          case AND:    this.vA&=this.vB; break; /*KEEP*/
-          case XOR:    this.vA^=this.vB; break; /*KEEP*/
+          case NOP:    break;
+          case ADD:    this.vA+=this.vB; break;
+          case SUB:    this.vA-=this.vB; break;
+          case OR:     this.vA|=this.vB; break;
+          case AND:    this.vA&=this.vB; break;
+          case XOR:    this.vA^=this.vB; break;
+          case FLIP:   this.vB = this.vB^MSb; break;
           case SHL:    this.vA<<=enshift(this.vB); break;
           case SHR:    this.vA>>=enshift(this.vB); break;
-          case GET:    this.vA = this.load(this.safe(this.vB)); break; /*KEEP*/
-          case PUT:    this.store(this.safe(this.vB), this.vA); break; /*KEEP*/
-          case AT:     this.vB = this.load(this.safe(this.vB)); break; /*CONVENIENT*/
-
+          case GET:    this.vA = this.load(this.safe(this.vB)); break;
+          case PUT:    this.store(this.safe(this.vB), this.vA); break;
+          case GETI:   sB = this.safe(this.vB); this.vA = this.load(this.safe(this.load(sB))); break;
+          case PUTI:   sB = this.safe(this.vB); this.store(this.safe(this.load(sB)), this.vA); break;
+          case INCM:   sB = this.safe(this.vB); val = this.load(sB); this.store(sB, ++val); break;
+          case DECM:   sB = this.safe(this.vB); val = this.load(sB); this.store(sB, --val); break;
+          case AT:     this.vB = this.load(this.safe(this.vB)); break;
+          case COPY:   this.store(this.safe(this.vB+this.vA), this.load(this.safe(this.vB))); break;
+          case INC:    ++this.vB; break;
+          case DEC:    --this.vB; break;
+          case SWAP:   this.vB = this.vB^this.vA; this.vA = this.vA^this.vB; this.vB = this.vB^this.vA; break;
           case TOB:    this.vB = this.vA; break;
+          case TOR:    this.vR = this.vA; break;
+          case TOT:    this.vT = this.vA; break;
           case FROMB:  this.vA = this.vB; break;
-
+          case FROMR:  this.vA = this.vR; break;
+          case FROMT:  this.vA = this.vT; break;
+          case JMPA:   if (this.vA == 0) this.vZ = instr&MEM_MASK; break;
+          case JMPB:   if (this.vB == 0) this.vZ = instr&MEM_MASK; break;
+          case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break;
+          case JMPN:   if (MSb == (this.vA&MSb)) this.vZ = instr&MEM_MASK; break;
+          case JMPS:   if (this.vB == (this.vA&this.vB)) this.vZ = instr&MEM_MASK; break;
+          case JMPU:   if (this.vB == (this.vA|this.vB)) this.vZ = instr&MEM_MASK; break;
+          case JUMP:   this.vZ = instr&MEM_MASK; break;
+          case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&MEM_MASK; } break;
+          case BR:     this.vL = this.vZ; this.vZ = instr&MEM_MASK; break;
+          case LINK:   this.vZ = this.vL; break;
           case MEM:    this.vA = MEM_WORDS; break;
-
-          case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break; /*KEEP*/
-          case JUMP:   this.vZ = instr&MEM_MASK; break; /*KEEP*/
-
-          case IN:     this.vA = fnStdin(); break; // FIXME /*KEEP*/
-          case OUT:    fnStdout(this.vA); break; // FIXME /*KEEP*/
-          case HALT:   this.vA = this.enbyte(this.vA); return this.vA; break; /*KEEP*/
-
-
+          case IN:     this.vA = fnStdin(); break; // FIXME
+          case OUT:    fnStdout(this.vA); break; // FIXME
+          case HALT:   this.vA = this.enbyte(this.vA); return this.vA; break;
           default: return ILLEGAL; break;
         }
       }
@@ -178,10 +200,10 @@ var modFVM = (function () { 'use strict';
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
-        "vB:" + modFmt.hex8(this.vB); // + " " +
-        //"vT:" + modFmt.hex8(this.vT) + " " +
-        //"vR:" + modFmt.hex8(this.vR); // + " " +
-        //"vL:" + modFmt.hex8(this.vL);
+        "vB:" + modFmt.hex8(this.vB) + " " +
+        "vT:" + modFmt.hex8(this.vT) + " " +
+        "vR:" + modFmt.hex8(this.vR) + " " +
+        "vL:" + modFmt.hex8(this.vL);
       this.fnTrc(traceStr);
     }
   }
