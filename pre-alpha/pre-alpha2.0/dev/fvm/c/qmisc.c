@@ -205,8 +205,8 @@ void inline Link()       { vZ = vL; }
 #define JMPB  0x1e000000
 #define JMPE  0x1f000000
 #define JMPN  0x20000000
-#define JMPS  0x21000000
-#define JMPU  0x22000000
+#define JMPG  0x21000000
+#define JMPL  0x22000000
 #define JUMP  0x23000000
 #define RPT   0x24000000
 #define BR    0x25000000
