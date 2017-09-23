@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.8+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.9+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -110,6 +110,7 @@ var modFVMA = (function () { 'use strict';
     mem:    MEM,
     link:   LINK,
     halt:   HALT,
+    br:     BR,
     in:     IN, // FIXME make complex
     out:    OUT
   };
@@ -160,7 +161,7 @@ var modFVMA = (function () { 'use strict';
           }
         }
         // Uncomment next line to see hex dump
-        this.fnMsg(this.prgElems);
+        //this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         var sz = this.prgElems.size();
@@ -499,8 +500,8 @@ var modFVMA = (function () { 'use strict';
 
     parseBr(token) { // Only allows label symbols not raw numbers here
       if (token.match(/br\(s[^\s]+\)/)){
-        var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, RPT);
+        var symbolToken = token.substring(3,token.length-1);
+        return this.parseRef(symbolToken, BR);
       } else {
         return false;
       }

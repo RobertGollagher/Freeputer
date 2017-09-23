@@ -244,8 +244,8 @@ var modFVM = (function () { 'use strict';
           case BR:     this.vL = this.vZ; this.vZ = instr&PM_MASK; break;
           case LINK:   this.vZ = this.vL; break;
           case MEM:    this.vA = PM_WORDS; break;
-          case IN:     this.vA = fnStdin(); break; // FIXME
-          case OUT:    fnStdout(this.vA); break; // FIXME
+          case IN:     this.vA = this.fnStdin(); break; // FIXME
+          case OUT:    this.fnStdout(this.enbyte(this.vA)); break; // FIXME
           case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
           default: return ILLEGAL; break;
         }

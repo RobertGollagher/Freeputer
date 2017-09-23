@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.13+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.14+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -61,7 +61,7 @@ function modFVMUI_init(prg) { 'use strict';
     //clr(fvmUsrout);
     //clr(fvmGrdout);
     //clr(fvmStdlog);
-    //clr(fvmStdtrc);
+    clr(fvmStdtrc);
   };
 
   function run() {
@@ -71,8 +71,8 @@ function modFVMUI_init(prg) { 'use strict';
     cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
-    //cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
-    cf.fnTrc = x => fvmStdout.textContent+=x+'\n';
+    cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
+    //cf.fnTrc = x => fvmStdout.textContent+=x+'\n';
     var exitCode = modFVM.makeFVM(cf).run();
     cf.fnTrc("VM exit code: " + exitCode);
   };
@@ -157,7 +157,7 @@ The only supported forward reference is s0000.
                     </td>
                   </tr>
                   <tr>
-                    <td class="fvmOut fvmLarge fvmScroll">
+                    <td class="fvmOut fvmMid fvmScroll">
                         <pre><code><span id="fvmStdout"></span></code></pre>
                     </td>
                   </tr>
@@ -166,7 +166,23 @@ The only supported forward reference is s0000.
             </tr>
             <tr>
               <td>
-                <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.13+ for FVM 2.0
+                <table class="fvmMaxed">
+                  <tr>
+                    <td>
+                      <b>stdtrc</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fvmOut fvmLarge fvmScroll">
+                        <pre><code><span id="fvmStdtrc"></span></code></pre>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.14+ for FVM 2.0
               </td>
             </tr>
           </table>

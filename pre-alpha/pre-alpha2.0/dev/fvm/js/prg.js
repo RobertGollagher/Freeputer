@@ -8,20 +8,41 @@ var prgSrc = `
   Created:    20170911
   Updated:    20170923+
   ------------------
-  LAST SYMBOL: s0003
+  LAST SYMBOL: s0007
   ------------------
 */
 
-#define /*FOO*/ s0003 0xff
+#define /*FIRST_LETTER*/ s0003 0x41
+#define /*ALPHABET_SIZE*/ s0004 0x1a
 
-jump(s0000) /*start:*/
+// The sole forward reference
+jump(s0000) /*start*/
 
-s0001: /*go:*/
-
+// Success
 s0002: /*end:*/
   i(0) halt
 
+// Print the alphabet
+s0006: /*print_alphabet*/
+    i(s0004) /*ALPHABET_SIZE*/ dec fromb tor
+    i(s0003) /*FIRST_LETTER*/ fromb
+    i(1)
+  s0005: /*loop_alpha:*/
+    out add rpt(s0005) /*loop_alpha*/
+    link
+
+// Hexadecimal word print
+s0007: /*print_hex*/
+  // TODO NEXT   
+  link
+
+// Secondary entry point
+s0001: /*go:*/
+  br(s0006) /*print_alphabet*/
+  jump(s0002) /*end*/
+
+// Primary entry point
 s0000: /*start:*/
-  jump(s0001) /*go:*/
+  jump(s0001) /*go*/
 
 `;
