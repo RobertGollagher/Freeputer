@@ -10,7 +10,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20170923+
-Version:    pre-alpha-0.0.5.9+ for FVM 2.0
+Version:    pre-alpha-0.0.5.10+ for FVM 2.0
 =======
 
                               This Edition:
@@ -26,6 +26,7 @@ Version:    pre-alpha-0.0.5.9+ for FVM 2.0
    - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
    - Trap on read/write/jump out of bounds rather than masking
    - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
+   - Move back to Harvard architecture (allow native)
 
 
 ==============================================================================
@@ -159,7 +160,7 @@ void inline Fromr()  { vA = vR; }
 void inline Mem()    { vA = MEM_WORDS; }
 // Other
 void inline Nop()    { ; }
-void inline Halt()   { vA = enbyte(vA); } // Exit manually in switch
+void inline Halt()   { vB = enbyte(vB); } // Exit manually in switch
 // Jumps (TODO add dynamic?), maybe reduce these back to jump and jmpe only
 void inline JmpA(CELL a) { if (vA == 0) { vZ = a; } }
 void inline JmpB(CELL a) { if (vB == 0) { vZ = a; } }
@@ -285,7 +286,7 @@ int runVM() {
       case MEM:    Mem(); break;
       case IN:     In(instr&MEM_MASK); break;
       case OUT:    Out(instr&MEM_MASK); break;
-      case HALT:   Halt(); return vA; break;
+      case HALT:   Halt(); return vB; break;
       default: return ILLEGAL; break;
     }
   }

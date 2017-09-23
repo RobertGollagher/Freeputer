@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.10+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.11+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -14,6 +14,8 @@
  * 
  *                                ( ) [ ] { }
  *
+ * TODO Move back to Harvard architecture (allow native)
+ * 
  * ===========================================================================
  * 
  * WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -190,7 +192,7 @@ var modFVM = (function () { 'use strict';
 
         // Handle all other instructions
         var opcode = instr & OPCODE_MASK;
-        switch(opcode) { // TODO Fix order
+        switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
           case NOP:    break;
           case ADD:    this.vA+=this.vB; break;
           case SUB:    this.vA-=this.vB; break;
@@ -242,7 +244,7 @@ var modFVM = (function () { 'use strict';
           case MEM:    this.vA = MEM_WORDS; break;
           case IN:     this.vA = fnStdin(); break; // FIXME
           case OUT:    fnStdout(this.vA); break; // FIXME
-          case HALT:   this.vA = this.enbyte(this.vA); return this.vA; break;
+          case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
           default: return ILLEGAL; break;
         }
       }

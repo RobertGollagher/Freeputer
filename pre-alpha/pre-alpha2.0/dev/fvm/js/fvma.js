@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.7+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.8+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -28,7 +28,9 @@
 var modFVMA = (function () { 'use strict';
 
   const WD_BYTES = 4;
+  const ADDR_MASK = 0x00ffffff;
 
+  const START = 's0000';
   const DEF = '#define';
   const HERE = '.';
   const COMSTART = '/*';
@@ -70,8 +72,8 @@ var modFVMA = (function () { 'use strict';
   const JMPB  = 0x1e000000|0
   const JMPE  = 0x1f000000|0
   const JMPN  = 0x20000000|0
-  const JMPS  = 0x21000000|0
-  const JMPU  = 0x22000000|0
+  const JMPG  = 0x21000000|0
+  const JMPL  = 0x22000000|0
   const JUMP  = 0x23000000|0
   const RPT   = 0x24000000|0
   const BR    = 0x25000000|0
@@ -130,6 +132,10 @@ var modFVMA = (function () { 'use strict';
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
+      // s0000 symbol is reserved for /*start*/ label...
+      this.s0000label = null;
+      // ...and it is the only forward reference supported.
+      this.s0000refCell = null;
     }
 
     asm(str) { // FIXME no enforcement yet
@@ -139,6 +145,19 @@ var modFVMA = (function () { 'use strict';
       try {
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
+        }
+        if (this.s0000refCell != null) {
+          this.s0000label = this.dict[0];
+          if (this.s0000label == null) {
+            throw "Missing entry point s0000: /*start*/ referenced at cell:"
+            + this.s0000refCell
+            + "\nDeclare the entry point for your program with a s0000: /*start*/ label.";
+          } else {
+            // Populate the s0000: /*start*/ label referent into its referer
+            var s0000Addr = this.s0000label&ADDR_MASK;
+            var opcode = this.prgElems.getElem(this.s0000refCell);
+            this.prgElems.putElem(opcode|s0000Addr,this.s0000refCell);
+          }
         }
         // Uncomment next line to see hex dump
         this.fnMsg(this.prgElems);
@@ -160,18 +179,11 @@ var modFVMA = (function () { 'use strict';
 
     use(x) {
       if (this.expectDef) {
-       if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
+       if (x === HERE) {
          this.dict[this.decl] = this.prgElems.cursor;
        } else {
          this.dict[this.decl] = x;
        }
-      if (this.decl == 0) { // TODO check corner cases
-        if (this.dict[this.decl] > 1) {
-          this.prgElems.putElem(SYMBOLS['jmp'],3);
-          this.prgElems.putElem(0|0,4); // FIXME JADE
-          this.prgElems.putElem(this.dict[this.decl],5);
-        } 
-      }
        this.decl = "";
        this.expectDef = false;
       } else if (this.expectCond) {
@@ -188,8 +200,8 @@ var modFVMA = (function () { 'use strict';
       //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
-      } else if (this.parseForw(token)) {
-      } else if (this.parseBackw(token)) {
+      //} else if (this.parseForw(token)) {
+      //} else if (this.parseBackw(token)) {
       } else if (this.parseLabelDecl(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
@@ -200,8 +212,8 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseJmpB(token)) {
       } else if (this.parseJmpE(token)) {
       } else if (this.parseJmpN(token)) {
-      } else if (this.parseJmpS(token)) {
-      } else if (this.parseJmpU(token)) {
+      } else if (this.parseJmpG(token)) {
+      } else if (this.parseJmpL(token)) {
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
       } else if (this.parseHex2(token)) {
@@ -294,6 +306,11 @@ var modFVMA = (function () { 'use strict';
            n = n | opcode;
            this.use(n);
            return true;
+       } else if (token === START) { // Special case
+           this.s0000refCell = this.prgElems.cursor;
+           var n = opcode; // Assembler will later overwrite for /*start*/
+           this.use(n);
+           return true;
        } else {
            return false;
        }
@@ -372,7 +389,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJump(token) {
-      if (token.match(/jump\([^\s]+\)/)){
+      if (token.match(/jump\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JUMP);
+      } else if (token.match(/jump\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
         n = n | JUMP;
         this.use(n);
@@ -383,7 +403,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpA(token) {
-      if (token.match(/jmpa\([^\s]+\)/)){
+      if (token.match(/jmpa\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPA);
+      } else if (token.match(/jmpa\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
         n = n | JMPA;
         this.use(n);
@@ -394,7 +417,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpB(token) {
-      if (token.match(/jmpb\([^\s]+\)/)){
+      if (token.match(/jmpb\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPB);
+      } else if (token.match(/jmpb\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
         n = n | JMPB;
         this.use(n);
@@ -405,7 +431,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpE(token) {
-      if (token.match(/jmpe\([^\s]+\)/)){
+      if (token.match(/jmpe\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPE);
+      } else if (token.match(/jmpe\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
         n = n | JMPE;
         this.use(n);
@@ -416,7 +445,10 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpN(token) {
-      if (token.match(/jmpn\([^\s]+\)/)){
+      if (token.match(/jmpn\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPN);
+      } else if (token.match(/jmpn\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
         n = n | JMPN;
         this.use(n);
@@ -426,10 +458,13 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpS(token) {
-      if (token.match(/jmps\([^\s]+\)/)){
+    parseJmpG(token) {
+      if (token.match(/jmpg\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPG);
+      } else if (token.match(/jmpg\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPS;
+        n = n | JMPG;
         this.use(n);
         return true;
       } else {
@@ -437,10 +472,13 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpU(token) {
-      if (token.match(/jmpu\([^\s]+\)/)){
+    parseJmpL(token) {
+      if (token.match(/jmpl\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JMPL);
+      } else if (token.match(/jmpl\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPU;
+        n = n | JMPL;
         this.use(n);
         return true;
       } else {
@@ -448,31 +486,19 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseRpt(token) {
+    parseRpt(token) { // Only allows label symbols not raw numbers here
       if (token.match(/rpt\(s[^\s]+\)/)){
         var symbolToken = token.substring(4,token.length-1);
         return this.parseRef(symbolToken, RPT);
       } else {
         return false;
       }
-
-/*
-        var n = parseInt(token.substring(6,token.length-1)); //FIXME
-        n = n | RPT;
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }
-*/
     }
 
-    parseBr(token) {
-      if (token.match(/br\([^\s]+\)/)){
-        var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        n = n | BR;
-        this.use(n);
-        return true;
+    parseBr(token) { // Only allows label symbols not raw numbers here
+      if (token.match(/br\(s[^\s]+\)/)){
+        var symbolToken = token.substring(2,token.length-1);
+        return this.parseRef(symbolToken, RPT);
       } else {
         return false;
       }
@@ -517,7 +543,7 @@ var modFVMA = (function () { 'use strict';
         return false;
       }      
     }
-
+/*
     parseForw(token) { // TODO check overflow or out of bounds and endless loop
       if (token.length == 4 && token.match(/0f[0-9a-f]{2}/)){
         var asHex = token.replace('0f','0x');
@@ -540,7 +566,7 @@ var modFVMA = (function () { 'use strict';
       } else {
         return false;
       }      
-    }
+    }*/
   };
 
   class PrgElems {
@@ -555,6 +581,10 @@ var modFVMA = (function () { 'use strict';
 
     addElem(n) {
       this.cursor = this.elems.push(n);
+    }
+
+    getElem(index) {
+      return this.elems[index];
     }
 
     topElem() {

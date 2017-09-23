@@ -9,7 +9,7 @@ Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
 Updated:    20170923+
-Version:    pre-alpha-0.0.0.33+ for FVM 2.0
+Version:    pre-alpha-0.0.0.34+ for FVM 2.0
 =======
 
                               This Edition:
@@ -23,6 +23,7 @@ Version:    pre-alpha-0.0.0.33+ for FVM 2.0
    - Trap on read/write/jump out of bounds rather than masking
    - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
    - Later do ARM assembly language implementation
+   - Move back to Harvard architecture (allow native)
 
 ==============================================================================
                             BUILDING FOR i386
@@ -276,8 +277,8 @@ and set the build flag x86_64 to YES to build for x86-64.
   nop
 .endm
 .macro halt
-  andl $BYTE_MASK, vA
-  do_exit vA
+  andl $BYTE_MASK, vB
+  do_exit vB
 .endm
 .macro jump label
   jmp \label
@@ -412,25 +413,25 @@ data_memory: .lcomm dm, DM_BYTES
 # ============================================================================
 #                              VM EXIT POINTS
 # ============================================================================
-.macro do_exit reg_vA
+.macro do_exit reg
   .ifeq LINKING_WITH_LD_ON_LINUX
-    movl \reg_vA, %ebx          # Exit code (status)
+    movl \reg, %ebx             # Exit code (status)
     movl $0x1, %eax             # Linux call ID for exit
     int $0x80                   # Linux interrupt for system call
   .else
-    movl \reg_vA, %eax          # Exit code (status)
+    movl \reg, %eax             # Exit code (status)
     ret
   .endif
 .endm
 vm_success:
-  movl $SUCCESS, vA
-  do_exit vA
+  movl $SUCCESS, vB
+  do_exit vB
 vm_failure:
-  movl $FAILURE, vA
-  do_exit vA
+  movl $FAILURE, vB
+  do_exit vB
 vm_exit:
-  andl $BYTE_MASK, vA
-  do_exit vA
+  andl $BYTE_MASK, vB
+  do_exit vB
 # ============================================================================
 #                             VM INITIALIZATION
 # ============================================================================
