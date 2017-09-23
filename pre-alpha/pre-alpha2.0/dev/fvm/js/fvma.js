@@ -6,15 +6,13 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.5+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.6+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
- *
- *   FIXME Only partially implemented, just enough for the test program.
  *
  * ===========================================================================
  * 
@@ -31,11 +29,12 @@ var modFVMA = (function () { 'use strict';
 
   const WD_BYTES = 4;
 
-  const DEF = '#def';
+  const DEF = '#define';
   const HERE = '.';
   const COMSTART = '/*';
   const COMEND = '*/';
-  const COMWORD= '/';
+  const COMLINE= '//';
+  //const COMWORD= '/';
 
   const IM    = 0x80000000|0
   const NOP   = 0x00000000|0 // Simple
@@ -125,7 +124,8 @@ var modFVMA = (function () { 'use strict';
 
     reset() {
       this.prgElems = new PrgElems();
-      this.inComment = false;
+      this.inBlockComment = false;
+      this.inLineComment = false;
       this.dict = {};
       this.expectDecl = false;
       this.expectDef = false;
@@ -140,7 +140,8 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        this.fnMsg(this.prgElems);
+        // Uncomment next line to see hex dump
+        //this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         this.fnMsg('Done');
@@ -154,13 +155,13 @@ var modFVMA = (function () { 'use strict';
       // Tokens are separated by any whitespace. Tokens contain no whitespace.
       var tokens = line.split(/\s+/).filter(x => x.match(/\S+/));
       tokens.forEach(token => this.parseToken(token,lineNum), this);
+      this.inLineComment = false;
     }
 
     use(x) {
       if (this.expectDef) {
        if (x === HERE) { // FIXME store symbol only as a 32-bit word to save space
-          // note: nowadays using byte addressing
-         this.dict[this.decl] = (this.prgElems.cursor / 3);
+         this.dict[this.decl] = this.prgElems.cursor;
        } else {
          this.dict[this.decl] = x;
        }
@@ -184,11 +185,12 @@ var modFVMA = (function () { 'use strict';
       if (false) {
       } else if (this.inCmt(token)) {
       } else if (this.parseComment(token, lineNum)) {
-      } else if (this.parseComword(token, lineNum)) {
+      //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
       } else if (this.parseForw(token)) {
       } else if (this.parseBackw(token)) {
+      } else if (this.parseLabelDecl(token)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
@@ -212,8 +214,8 @@ var modFVMA = (function () { 'use strict';
     };
 
     symbolToInt(str) {
-      if (str.length == 6 && str.match(/0s[0-9a-f]{4}/)){
-        var asHex = str.replace('0s','0x');
+      if (str.length == 5 && str.match(/s[0-9a-f]{4}/)){
+        var asHex = str.replace('s','0x');
         var intValue = parseInt(asHex,16);
         return intValue;
       } else {
@@ -223,7 +225,7 @@ var modFVMA = (function () { 'use strict';
 
     intToSymbol(i) {
       if (i >= 0x0000 && i <= 0xffff){
-        var str = '0s' + ('0000' + i.toString(16)).substr(-4);
+        var str = 's' + ('0000' + i.toString(16)).substr(-4);
         return str;
       } else {
         throw "Assembler bug in intToSymbol(int) for:" + i;
@@ -233,10 +235,10 @@ var modFVMA = (function () { 'use strict';
     expectingDecl(token, lineNum) {
       if (this.expectDecl) {
         var intValue;
-        if (token.length == 6 && token.match(/0s[0-9a-f]{4}/)){
+        if (token.length == 5 && token.match(/s[0-9a-f]{4}/)){
           intValue = this.symbolToInt(token);
         } else {
-          throw lineNum + ":Illegal symbol format (must be like 0s0001):" + token;
+          throw lineNum + ":Illegal symbol format (must be like s0001):" + token;
         }
         if (this.dict[intValue]) {
           throw lineNum + ":Already defined:" + token;
@@ -262,12 +264,33 @@ var modFVMA = (function () { 'use strict';
          return false;
        }      
      }
+
+     parseLabelDecl(token) { // TODO refactor this whole assembler later
+        var intValue;
+        if (token.length == 6 && token.match(/s[0-9a-f]{4}:/)){
+          intValue = this.symbolToInt(token.substring(0,token.length-1));
+        } else {
+          return false;
+        }
+        if (this.dict[intValue]) {
+          throw lineNum + ":Already defined:" + token;
+        } else {
+          this.decl = intValue;
+          this.expectDecl = false;
+          this.expectDef = true;
+          this.use(HERE);
+        }
+        return true; 
+     }
  
      parseRef(token) {
        if (SYMBOLS[token] >= 0){
            this.use(SYMBOLS[token]);
            return true;
-       } else if (token.length == 6 && token.match(/0s[0-9a-f]{4}/) && this.dict[this.symbolToInt(token)] >= 0){
+       } else if (token.length == 5 && token.match(/s[0-9a-f]{4}/) && this.dict[this.symbolToInt(token)] >= 0){
+
+// FIXME NEXT not working for rpt(s0001)
+
          this.use(this.dict[this.symbolToInt(token)]);
          return true;
        } else {
@@ -289,9 +312,11 @@ var modFVMA = (function () { 'use strict';
      }
 
     inCmt(token, lineNum) {
-        if (this.inComment) {
+        if (this.inLineComment) {
+          return true;
+        } else if (this.inBlockComment) {
           if (token == COMEND){
-            this.inComment = false;
+            this.inBlockComment = false;
           }
           return true;
         } else {
@@ -304,13 +329,24 @@ var modFVMA = (function () { 'use strict';
 
     parseComment(token, lineNum) {
       if (token === COMSTART){
-        this.inComment = true;
+        this.inBlockComment = true;
+        return true;
+      } else if (token.startsWith(COMSTART)){
+          if (token.endsWith(COMEND)) {
+            return true;
+          } else {
+            this.inBlockComment = true;
+            return true;
+          }
+      } else if (token === COMLINE){
+        this.inLineComment = true;
         return true;
       } else {
         return false;
       }      
     }
 
+/*
     parseComword(token, lineNum) {
       if (token.startsWith(COMWORD)) {
         return true;
@@ -318,6 +354,7 @@ var modFVMA = (function () { 'use strict';
         return false;
       }
     }
+*/
 
     parseImm(token) {
       if (token.match(/i\([^\s]+\)/)){
@@ -408,14 +445,22 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseRpt(token) {
-      if (token.match(/rpt\([^\s]+\)/)){
-        var n = parseInt(token.substring(4,token.length-1)); //FIXME
+      if (token.match(/rpt\(s[^\s]+\)/)){
+        var symbolToken = token.substring(4,token.length-1);
+        return this.parseRef(symbolToken);
+      } else {
+        return false;
+      }
+
+/*
+        var n = parseInt(token.substring(6,token.length-1)); //FIXME
         n = n | RPT;
         this.use(n);
         return true;
       } else {
         return false;
       }
+*/
     }
 
     parseBr(token) {

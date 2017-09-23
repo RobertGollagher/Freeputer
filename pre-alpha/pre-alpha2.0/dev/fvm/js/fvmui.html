@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.9+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.10+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -31,7 +31,7 @@ const TOR   = 0x15000000|0;
 const NOP   = 0x00000000|0;
 const RPT   = 0x24000000|0;
 const HALT  = 0x1c000000|0;
-var prg = new Uint32Array([IM|3,ADD,IM|5,ADD,IM|2,FROMB,TOR,NOP,RPT|7,HALT]).buffer; // ...FIXME
+var prg = new Uint32Array([NOP,HALT]).buffer; // ...FIXME
 
   modFVMUI = modFVMUI_init(prg);
 };
@@ -98,14 +98,14 @@ function modFVMUI_init(prg) { 'use strict';
 
     <table class="fvmMaxed">
        <tr>
-        <td>
+        <td width="50%">
           <table class="fvmMaxed">
             <tr>
               <td>
                 <table class="fvmMaxed">
                   <tr>
                     <td>
-                      <b>Source</b>
+                      <b>Example Program</b>
                     </td>
                   </tr>
                   <tr>
@@ -118,7 +118,7 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
           </table>
         </td>
-        <td>
+        <td width="50%">
           <table class="fvmMaxed">
              <tr>
               <td>   
@@ -165,7 +165,7 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
             <tr>
               <td>
-                <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.9+ for FVM 2.0
+                <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.10+ for FVM 2.0
               </td>
             </tr>
           </table>

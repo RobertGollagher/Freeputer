@@ -7,12 +7,23 @@ var prgSrc = `
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
   Updated:    20170923+
-
-  This source file will contain the QMISC program to be assembled.
-  The QMISC assembler is not yet fully functional.
+  ------------------
+  LAST SYMBOL: s0004
+  ------------------
 */
+#define /*X*/ s0002 0x03
+#define /*Y*/ s0003 0x05
+#define /*REPEATS*/ s0004 0x02
 
-i(8) add i(11) add i(2) fromb tor nop rpt(7) xor halt
+i(s0002) /*X*/ add i(s0003) /*Y*/ add
 
+i(s0004) /*REPEATS*/ fromb tor nop
+
+s0001: /*loop:*/
+  nop rpt(s0001) /*loop*/ xor halt
+
+
+
+  /* FIXME The above rpt(s0001) is not being assembled correctly. */
 
 `;

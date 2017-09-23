@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.9+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.10+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -176,7 +176,12 @@ var modFVM = (function () { 'use strict';
           this.traceVM(instr);
         }
 
-        this.vZ = this.safe(++this.vZ);
+        if (this.vZ >= MEM_WORDS || this.vZ < 0 ) {
+          return BEYOND;
+        }
+
+        ++this.vZ;
+
         // Handle immediates
         if (instr&MSb) {
           this.vB = this.enrange(instr);
