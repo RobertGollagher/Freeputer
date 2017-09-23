@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.11+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.12+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -14,7 +14,6 @@
  * 
  *                                ( ) [ ] { }
  *
- * TODO Move back to Harvard architecture (allow native)
  * 
  * ===========================================================================
  * 
@@ -47,8 +46,10 @@ var modFVM = (function () { 'use strict';
   const  L = 0x100000 // 4 MB
   const XL = 0x1000000 // 64 MB
   const MAX_MEM_WORDS = S
-  const MEM_WORDS = MAX_MEM_WORDS
-  const MEM_MASK  = MEM_WORDS-1
+  const PM_WORDS = MAX_MEM_WORDS
+  const PM_MASK  = PM_WORDS-1
+  const DM_WORDS = MAX_MEM_WORDS
+  const DM_MASK  = DM_WORDS-1
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -145,8 +146,9 @@ var modFVM = (function () { 'use strict';
       this.vR = 0|0; // repeat register
       this.vL = 0|0; // link register (not accessible)
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
-      this.mem = new DataView(new ArrayBuffer(MEM_WORDS)); // Von Neumann
-      this.loadProgram(config.program, this.mem);
+      this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
+      this.dm = new DataView(new ArrayBuffer(DM_WORDS)); // Harvard
+      this.loadProgram(config.program, this.pm);
     };
 
     loadProgram(pgm, mem) {
@@ -165,7 +167,7 @@ var modFVM = (function () { 'use strict';
 
     initVM() {} // Nothing here yet
 
-    safe(addr) { return addr & MEM_MASK; }
+    safe(addr) { return addr & DM_MASK; }
     enbyte(x)  { return x & BYTE_MASK; }
     enrange(x) { return x & METADATA_MASK; }
     enshift(x) { return x & SHIFT_MASK; }
@@ -173,12 +175,12 @@ var modFVM = (function () { 'use strict';
     run() {
       this.initVM();
       while(true) {
-        var instr = this.load(this.vZ);
+        var instr = this.pmload(this.vZ);
         if (this.tracing) {
           this.traceVM(instr);
         }
 
-        if (this.vZ >= MEM_WORDS || this.vZ < 0 ) {
+        if (this.vZ >= PM_WORDS || this.vZ < 0 ) {
           return BEYOND;
         }
 
@@ -202,23 +204,23 @@ var modFVM = (function () { 'use strict';
           case FLIP:   this.vB = this.vB^MSb; break;
           case SHL:    this.vA<<=enshift(this.vB); break;
           case SHR:    this.vA>>=enshift(this.vB); break;
-          case GET:    if (this.vB&MEM_MASK!=0) return BEYOND;
+          case GET:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vA = this.load(this.vB); break;
-          case PUT:    if (this.vB&MEM_MASK!=0) return BEYOND;
+          case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.store(this.vB, this.vA); break;
-          case GETI:   if (this.vB&MEM_MASK!=0) return BEYOND;
+          case GETI:   if (this.vB&DM_MASK!=0) return BEYOND;
                        sI = this.load(vB);
-                       if (sI&MEM_MASK!=0) return BEYOND;
+                       if (sI&DM_MASK!=0) return BEYOND;
                        this.vA = this.load(sI); break;
-          case PUTI:   if (this.vB&MEM_MASK!=0) return BEYOND;
+          case PUTI:   if (this.vB&DM_MASK!=0) return BEYOND;
                        sI = this.load(vB);
-                       if (sI&MEM_MASK!=0) return BEYOND;
+                       if (sI&DM_MASK!=0) return BEYOND;
                        this.store(sI, this.vA); break;
-          case INCM:   if (this.vB&MEM_MASK!=0) return BEYOND;
+          case INCM:   if (this.vB&DM_MASK!=0) return BEYOND;
                        val = this.load(vB); this.store(vB, ++val); break;
-          case DECM:   if (this.vB&MEM_MASK!=0) return BEYOND;
+          case DECM:   if (this.vB&DM_MASK!=0) return BEYOND;
                        val = this.load(vB); this.store(vB, --val); break;
-          case AT:     if (this.vB&MEM_MASK!=0) return BEYOND;
+          case AT:     if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vB = this.load(this.vB); break;
           case INC:    ++this.vB; break;
           case DEC:    --this.vB; break;
@@ -231,17 +233,17 @@ var modFVM = (function () { 'use strict';
           case FROMB:  this.vA = this.vB; break;
           case FROMR:  this.vA = this.vR; break;
           case FROMT:  this.vA = this.vT; break;
-          case JMPA:   if (this.vA == 0) this.vZ = instr&MEM_MASK; break;
-          case JMPB:   if (this.vB == 0) this.vZ = instr&MEM_MASK; break;
-          case JMPE:   if (this.vA == this.vB) this.vZ = instr&MEM_MASK; break;
-          case JMPN:   if (MSb == (this.vA&MSb)) this.vZ = instr&MEM_MASK; break;
-          case JMPG:   if (this.vA > this.vB) this.vZ = instr&MEM_MASK; break;
-          case JMPL:   if (this.vA < this.vB) this.vZ = instr&MEM_MASK; break;
-          case JUMP:   this.vZ = instr&MEM_MASK; break;
-          case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&MEM_MASK; } break;
-          case BR:     this.vL = this.vZ; this.vZ = instr&MEM_MASK; break;
+          case JMPA:   if (this.vA == 0) this.vZ = instr&PM_MASK; break;
+          case JMPB:   if (this.vB == 0) this.vZ = instr&PM_MASK; break;
+          case JMPE:   if (this.vA == this.vB) this.vZ = instr&PM_MASK; break;
+          case JMPN:   if (MSb == (this.vA&MSb)) this.vZ = instr&PM_MASK; break;
+          case JMPG:   if (this.vA > this.vB) this.vZ = instr&PM_MASK; break;
+          case JMPL:   if (this.vA < this.vB) this.vZ = instr&PM_MASK; break;
+          case JUMP:   this.vZ = instr&PM_MASK; break;
+          case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } break;
+          case BR:     this.vL = this.vZ; this.vZ = instr&PM_MASK; break;
           case LINK:   this.vZ = this.vL; break;
-          case MEM:    this.vA = MEM_WORDS; break;
+          case MEM:    this.vA = PM_WORDS; break;
           case IN:     this.vA = fnStdin(); break; // FIXME
           case OUT:    fnStdout(this.vA); break; // FIXME
           case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
@@ -251,11 +253,15 @@ var modFVM = (function () { 'use strict';
     }
 
     store(addr,val) {
-      this.mem.setInt32(addr*WD_BYTES, val, true);
+      this.dm.setInt32(addr*WD_BYTES, val, true);
     }
 
     load(addr) {
-      return this.mem.getUint32(addr*WD_BYTES, true);
+      return this.dm.getUint32(addr*WD_BYTES, true);
+    }
+
+    pmload(addr) {
+      return this.pm.getUint32(addr*WD_BYTES, true);
     }
 
     traceVM(instr) {
