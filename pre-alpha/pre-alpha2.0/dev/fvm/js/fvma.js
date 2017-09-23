@@ -163,6 +163,8 @@ var modFVMA = (function () { 'use strict';
         this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
+        var sz = this.prgElems.size();
+        this.fnMsg('Program size: ' + sz + " words = " + sz*WD_BYTES + " bytes");
         this.fnMsg('Done');
         return this.prgElems.toBuf();
       } catch (e) {
@@ -589,6 +591,10 @@ var modFVMA = (function () { 'use strict';
 
     topElem() {
       return this.elems[-1];
+    }
+
+    size() {
+      return this.elems.length;
     }
 
     toBuf() {
