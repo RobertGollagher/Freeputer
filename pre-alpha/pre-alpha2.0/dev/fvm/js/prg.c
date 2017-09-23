@@ -1,4 +1,3 @@
-var prgSrc = `
 /*
   Copyright 2017, Robert Gollagher.
   SPDX-License-Identifier: GPL-3.0+
@@ -31,4 +30,3 @@ s0005: /*end:*/
 s0000: /*start:*/
   jump(s0006) /*foo:*/
 
-`;
