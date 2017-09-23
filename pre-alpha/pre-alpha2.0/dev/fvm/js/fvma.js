@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.6+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.7+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -141,7 +141,7 @@ var modFVMA = (function () { 'use strict';
           this.parseLine(lines[i], i+1);
         }
         // Uncomment next line to see hex dump
-        //this.fnMsg(this.prgElems);
+        this.fnMsg(this.prgElems);
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         this.fnMsg('Done');
@@ -283,18 +283,19 @@ var modFVMA = (function () { 'use strict';
         return true; 
      }
  
-     parseRef(token) {
+     parseRef(token,opcode) {
        if (SYMBOLS[token] >= 0){
-           this.use(SYMBOLS[token]);
+           var n = SYMBOLS[token];
+           n = n | opcode;
+           this.use(n);
            return true;
        } else if (token.length == 5 && token.match(/s[0-9a-f]{4}/) && this.dict[this.symbolToInt(token)] >= 0){
-
-// FIXME NEXT not working for rpt(s0001)
-
-         this.use(this.dict[this.symbolToInt(token)]);
-         return true;
+           var n = this.dict[this.symbolToInt(token)];
+           n = n | opcode;
+           this.use(n);
+           return true;
        } else {
-         return false;
+           return false;
        }
      }
  
@@ -357,7 +358,10 @@ var modFVMA = (function () { 'use strict';
 */
 
     parseImm(token) {
-      if (token.match(/i\([^\s]+\)/)){
+      if (token.match(/i\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(2,token.length-1);
+        return this.parseRef(symbolToken, IM);
+      } else if (token.match(/i\([^\s]+\)/)){
         var n = parseInt(token.substring(2,token.length-1)); //FIXME
         n = n | IM;
         this.use(n);
@@ -447,7 +451,7 @@ var modFVMA = (function () { 'use strict';
     parseRpt(token) {
       if (token.match(/rpt\(s[^\s]+\)/)){
         var symbolToken = token.substring(4,token.length-1);
-        return this.parseRef(symbolToken);
+        return this.parseRef(symbolToken, RPT);
       } else {
         return false;
       }
