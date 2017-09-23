@@ -95,62 +95,77 @@ function modFVMUI_init(prg) { 'use strict';
 <body>
   <div class="fvmDiv">
     <h2>QMISC Virtual Machine</h2>
+
     <table class="fvmMaxed">
        <tr>
-        <td>   
-          <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
-          <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
-          <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
-          <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.9+ for FVM 2.0
-        </td>
-      </tr>
-       <tr>
-        <td>
-        </td>
-      </tr>
-      <tr>
         <td>
           <table class="fvmMaxed">
             <tr>
               <td>
-                <b>Assembler</b>
-              </td>
-            </tr>
-            <tr>
-              <td class="fvmOut fvmMid fvmScroll">
-                  <pre><code><span id="fvmAs"></span></code></pre>
+                <table class="fvmMaxed">
+                  <tr>
+                    <td>
+                      <b>Source</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="vertical-align:top">
+                        <textarea id="fvmSrc" class="fvmOut" rows="30" cols="80" wrap="off"></textarea>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
         </td>
-      </tr>
-      <tr>
         <td>
           <table class="fvmMaxed">
-            <tr>
-              <td>
-                <b>stdout</b>
+             <tr>
+              <td>   
+                <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
+                <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
+                <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
               </td>
             </tr>
-            <tr>
-              <td class="fvmOut fvmLarge fvmScroll">
-                  <pre><code><span id="fvmStdout"></span></code></pre>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <table class="fvmMaxed">
-            <tr>
+             <tr>
               <td>
-                <b>Source</b>
               </td>
             </tr>
             <tr>
               <td>
-                  <textarea id="fvmSrc" class="fvmOut" rows="20" cols="80" wrap="off"></textarea>
+                <table class="fvmMaxed">
+                  <tr>
+                    <td>
+                      <b>Assembler</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fvmOut fvmMid fvmScroll">
+                        <pre><code><span id="fvmAs"></span></code></pre>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <table class="fvmMaxed">
+                  <tr>
+                    <td>
+                      <b>stdout</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fvmOut fvmLarge fvmScroll">
+                        <pre><code><span id="fvmStdout"></span></code></pre>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.9+ for FVM 2.0
               </td>
             </tr>
           </table>
