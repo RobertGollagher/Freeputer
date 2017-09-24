@@ -8,7 +8,7 @@ var prgSrc = `
   Created:    20170911
   Updated:    20170924+
   ------------------
-  FREE: s0003-4
+  FREE:
   LAST SYMBOL: s0007
   ------------------
 */
@@ -25,11 +25,15 @@ jump(s0000) /*start*/
 
 // Success -------------------------------------------------------------------
 
-s0002: /*end:*/
-  i(0) halt
+s0002: /*end:*/ i(0) halt
 
 
-// Print the alphabet --------------------------------------------------------
+// Print newline -------------------------------------------------------------
+
+s0004: /*print_newline*/ i(0x0a) fromb out link
+
+
+// Print the uppercase alphabet ----------------------------------------------
 
 s0006: /*print_alphabet*/
     i(0x19) fromb tor
@@ -39,17 +43,25 @@ s0006: /*print_alphabet*/
     out add rpt(s0005) /*loop_alpha*/
     link
 
+// Hexadecimal nibble print --------------------------------------------------
 
-// Hexadecimal word print ----------------------------------------------------
-
-s0007: /*print_hex*/
-  // TODO NEXT   
-  link
-
+s0003: /*alpha*/ i(0x57) add out fromt link 
+s0007: /*print_hex_nibble*/
+  tot
+  i(0x0000000f) and
+  i(0x09) jmpg(s0003) /*alpha*/
+  i(0x30) add out fromt link
 
 // Secondary entry point -----------------------------------------------------
 
 s0001: /*go:*/
+  i(0x00) fromb br(s0007) /*print_hex_nibble*/
+  i(0x09) fromb br(s0007) /*print_hex_nibble*/
+  i(0x0a) fromb br(s0007) /*print_hex_nibble*/
+  i(0x0f) fromb br(s0007) /*print_hex_nibble*/
+  br(s0004) /*print_newline*/
+  i(0x09abcdef) fromb br(s0007) /*print_hex_nibble*/
+  br(s0004) /*print_newline*/
   br(s0006) /*print_alphabet*/
   jump(s0002) /*end*/
 
