@@ -7,6 +7,7 @@
   Created:    20170911
   Updated:    20170924+
   ------------------
+  FREE: s0003-4
   LAST SYMBOL: s0007
   ------------------
 */
@@ -14,8 +15,6 @@
 
 // Constants -----------------------------------------------------------------
 
-#define /*FIRST_LETTER*/ s0003 0x41
-#define /*ALPHABET_SIZE*/ s0004 0x1a
 
 
 // The sole forward reference ------------------------------------------------
@@ -32,8 +31,8 @@ s0002: /*end:*/
 // Print the alphabet --------------------------------------------------------
 
 s0006: /*print_alphabet*/
-    i(s0004) /*ALPHABET_SIZE*/ dec fromb tor
-    i(s0003) /*FIRST_LETTER*/ fromb
+    i(0x19) fromb tor
+    i(0x41) fromb
     i(1)
   s0005: /*loop_alpha:*/
     out add rpt(s0005) /*loop_alpha*/
