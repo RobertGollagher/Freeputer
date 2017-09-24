@@ -49,7 +49,7 @@ var modFVM = (function () { 'use strict';
   const PM_WORDS = MAX_MEM_WORDS
   const PM_MASK  = PM_WORDS-1
   const DM_WORDS = MAX_MEM_WORDS
-  const DM_MASK  = DM_WORDS-1
+  const DM_MASK  = DM_WORDS-1 // size: p3d3 (see '../../../README.md')
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0

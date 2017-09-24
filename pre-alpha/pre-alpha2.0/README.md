@@ -33,33 +33,79 @@ However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, 
 
 ### Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)
 
-A MISC machine which aims to have a core of a few hundred lines of code.
+A MISC machine which aims to have a simple core of a few hundred lines of code.
 
-This plan is very easy to implement although factoring is not especially easy.
+The standard implementation is a bytecode interpreter and uses 32-bit fixed-width intructions (FW32).
 
-All instructions are fixed-width and 32 bits wide (FW32).
+However, program space may be natively implemented (using AOT native compilation).
 
-Internal address space is all RAM, word-addressed, and comes in 5 standard sizes:
+Data memory is entirely RAM. Program memory cannot be changed at runtime.
 
-- XS = 1 kB (2 nibbles)
-- S = 16 kB (3 nibbles)
-- M = 256 kB (4 nibbles)
-- L = 4 MB (5 nibbles)
-- XL = 64 MB (6 nibbles)
+Dynamic program loading can be achieved by virtualization.
 
-This scheme makes modular virtualization possible.
+Harvard architecture, word-addressed, in nibble sizings.
 
-The only things which stop the VM are:
+Program memory size (designated **p** or **pm**):
+
+  - **p1**: 1 nibble  = 16 instructions = 64 bytes
+  - **p2**: 2 nibbles = 256 instructions = 1 kiB
+  - **p3**: 3 nibbles = 4,096 instructions = 16 kiB
+  - **p4**: 4 nibbles = 65,536 instructions = 256 kiB
+  - **p5**: 5 nibbles = 1,048,576 instructions = 4 MiB
+  - **p6**: 6 nibbles = 16,777,216 instructions = 64 MiB
+
+Data memory size (designated **d** or **dm**):
+
+  - **d1**: 1 nibble  = 16 words = 64 bytes
+  - **d2**: 2 nibbles = 256 words = 1 kiB
+  - **d3**: 3 nibbles = 4,096 words = 16 kiB
+  - **d4**: 4 nibbles = 65,536 words = 256 kiB
+  - **d5**: 5 nibbles = 1,048,576 words = 4 MiB
+  - **d6**: 6 nibbles = 16,777,216 words = 64 MiB
+  - **d7**: 7 nibbles = 268,435,456 words = 1 GiB
+  - **d8**: 8 nibbles = 4,294,967,296 words = 16 GiB
+
+Size is expressed as a combination. For example:
+
+  - **p3d1** = 4,096-instruction program memory, data memory 64 bytes
+  - **p3d3** = 4,096-instruction program memory, data memory 16 kB
+  - **p3d7** = 4,096-instruction program memory, data memory 1 GiB
+
+Actual size *in bytes* of program memory may differ if natively compiled.
+
+Best practice: use the **smallest sufficient size** for your program.
+
+This enables **modular system design** using small components.
+
+This also enables **hardware freedom** and **software reuse**.
+
+Small sizes easily run **without an operating system**.
+
+Using sizes larger than p4 or d3 is typically a mistake because:
+
+  - it severely limits hardware freedom
+  - it typically requires an operating system
+  - it therefore introduces unwanted dependencies
+  - it therefore greatly limits long-term software reuse
+  - it tends to cause undesirably monolithic design
+
+However, there are some good use cases for large VM instances.
+
+The best use of large VM instances is to virtualize small VM instances.
+
+The only things which can cause the VM to stop running are:
 
 - the halt instruction
 - an illegal instruction
-- memory access out of bounds
+- program memory access out of bounds
+- data memory access out of bounds
+- platform failure
 
 For ongoing (inconsistent and incomplete) experiments see:
 
-- 'dev/fvm/js/fvm2.js'
-- 'dev/fvm/c/qmisc.c'
-- 'dev/fvm/x86/qmisc.s'
+- current: 'dev/fvm/js/fvm2.js', 'fvmui.html', 'prg.js', 'prg.c'
+- somewhat out of date: 'dev/fvm/c/qmisc.c'
+- somewhat out of date: 'dev/fvm/x86/qmisc.s'
 
 Plan G is now the front-runner for FVM 2.0.
 
@@ -286,7 +332,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 21 September 2017 at 21:01  
+This document was last updated on 24 September 2017 at 14:20  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
