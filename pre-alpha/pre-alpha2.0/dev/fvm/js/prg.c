@@ -5,23 +5,32 @@
   Program:    prg.js (also known as prg.c)
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20170923+
+  Updated:    20170924+
   ------------------
   LAST SYMBOL: s0007
   ------------------
 */
 
+
+// Constants -----------------------------------------------------------------
+
 #define /*FIRST_LETTER*/ s0003 0x41
 #define /*ALPHABET_SIZE*/ s0004 0x1a
 
-// The sole forward reference
+
+// The sole forward reference ------------------------------------------------
+
 jump(s0000) /*start*/
 
-// Success
+
+// Success -------------------------------------------------------------------
+
 s0002: /*end:*/
   i(0) halt
 
-// Print the alphabet
+
+// Print the alphabet --------------------------------------------------------
+
 s0006: /*print_alphabet*/
     i(s0004) /*ALPHABET_SIZE*/ dec fromb tor
     i(s0003) /*FIRST_LETTER*/ fromb
@@ -30,17 +39,25 @@ s0006: /*print_alphabet*/
     out add rpt(s0005) /*loop_alpha*/
     link
 
-// Hexadecimal word print
+
+// Hexadecimal word print ----------------------------------------------------
+
 s0007: /*print_hex*/
   // TODO NEXT   
   link
 
-// Secondary entry point
+
+// Secondary entry point -----------------------------------------------------
+
 s0001: /*go:*/
   br(s0006) /*print_alphabet*/
   jump(s0002) /*end*/
 
-// Primary entry point
+
+// Primary entry point -------------------------------------------------------
+
 s0000: /*start:*/
   jump(s0001) /*go*/
 
+
+// ---------------------------------------------------------------------------
