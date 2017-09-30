@@ -12,7 +12,10 @@ var prgSrc = `
   LAST SYMBOL: s0009
   ------------------
 
-  FIXME It appears forward references might be necessary for sanity?
+  FIXME Hit a roadblock: it appears a stack is necessary for practicality,
+  rather than just relying on br/link alone; but if a stack is introduced
+  then it probably makes more sense to have a stack machine instead
+  of a register machine, so Plan A not Plan G would win.
 */
 
 

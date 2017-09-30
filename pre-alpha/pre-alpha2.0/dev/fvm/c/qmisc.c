@@ -26,8 +26,8 @@ Version:    pre-alpha-0.0.5.10+ for FVM 2.0
    - Adopt standard sizes: XS, S, M, L, XL (1 kB, 16 kB, 256 kB, 4 MB, 64 MB)
    - Trap on read/write/jump out of bounds rather than masking
    - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
-   - Move back to Harvard architecture (allow native)
-
+   - Move back to Harvard architecture (but does not allow native
+      since need to be able to store Link register values)
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,

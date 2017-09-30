@@ -14,7 +14,11 @@
  * 
  *                                ( ) [ ] { }
  *
- * 
+ *  FIXME Hit a roadblock: it appears a stack is necessary for practicality,
+ *  rather than just relying on br/link alone; but if a stack is introduced
+ *  then it probably makes more sense to have a stack machine instead
+ *  of a register machine, so Plan A not Plan G would win.
+ *
  * ===========================================================================
  * 
  * WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -22,7 +26,6 @@
  * experimentation and nothing more.
  * 
  * ===========================================================================
-
  */
 
 // Module modFVM will provide an FVM implementation.

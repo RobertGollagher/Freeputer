@@ -107,21 +107,25 @@ For ongoing (inconsistent and incomplete) experiments see:
 - somewhat out of date: 'dev/fvm/c/qmisc.c'
 - somewhat out of date: 'dev/fvm/x86/qmisc.s'
 
-Plan G is now the front-runner for FVM 2.0.
+Plan G is appears to have stalled.
 
-Why? Quality (eliminate complexity and any accidental undefined behaviour in VM implementation).
+Why? It turns out that just using a link register is impractical.
 
-Quality matters more than performance.
+Essentially a return stack is necessary.
 
-Quality requires simplicity.
+But if a return stack is necessary then we might as well have a stack machine.
 
-Hardware freedom also remains paramount.
+Furthermore, factoring (and ease of understanding) of Plan G is vastly inferior to a stack machine.
+
+Lastly, all kinds of Von Neumann vs Harvard corner cases arise with any workaround here.
+
+A register machine is hereby rejected, so Plan G is rejected.
+
+**Essentially register machines are for compilers. Stack machines are for humans.**
 
 ### Proposed Design: Plan A: Improved Stack Machine
 
-Plan A is essentially rejected. However, it was interesting so it is listed here for future reference.
-
-A portable stack machine which is correct and robust by virtue of branching on failure.
+Plan A is a portable stack machine which is correct and robust by virtue of branching on failure.
 
 This plan is moderately difficult to implement but makes factoring easy.
 
@@ -332,7 +336,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 24 September 2017 at 14:20  
+This document was last updated on 30 September 2017 at 23:59  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

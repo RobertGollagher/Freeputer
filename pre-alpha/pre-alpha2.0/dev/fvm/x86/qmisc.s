@@ -23,7 +23,8 @@ Version:    pre-alpha-0.0.0.34+ for FVM 2.0
    - Trap on read/write/jump out of bounds rather than masking
    - Bring 'fvm2.js', 'qmisc.c' and 'qmisc.s' into line
    - Later do ARM assembly language implementation
-   - Move back to Harvard architecture (allow native)
+   - Move back to Harvard architecture (but does not allow native
+      since need to be able to store Link register values)
 
 ==============================================================================
                             BUILDING FOR i386
