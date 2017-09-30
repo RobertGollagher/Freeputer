@@ -41,8 +41,6 @@ This plan is moderately difficult to implement but makes factoring easy.
 
 Performance is at least moderate. An excellent stack machine.
 
-Implementation is on hold while Plan G is explored.
-
 The detailed design is:
 
 1. The VM is **correct without trapping**.
@@ -246,7 +244,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 1 October 2017 at 00:54  
+This document was last updated on 1 October 2017 at 01:00  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
