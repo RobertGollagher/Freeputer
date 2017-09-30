@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170930+
- * Version:    pre-alpha-0.0.1.14+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.15+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -203,8 +203,10 @@ var modFVM = (function () { 'use strict';
           case AND:    this.vA&=this.vB; break;
           case XOR:    this.vA^=this.vB; break;
           case FLIP:   this.vB = this.vB^MSb; break;
-          case SHL:    this.vA<<=this.enshift(this.vB); break;
-          case SHR:    this.vA>>=this.enshift(this.vB); break;
+          // So weird in JavaScript that better not to have shl at all?
+          // TODO Needs further testing in JavaScript
+          case SHL:    this.vA=(this.vA*Math.pow(2,this.enshift(this.vB))); break;
+          case SHR:    this.vA>>>=this.enshift(this.vB); break;
           case GET:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vA = this.load(this.vB); break;
           case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
@@ -276,7 +278,6 @@ var modFVM = (function () { 'use strict';
       var traceStr =
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
-        modFmt.hex8(opcode) + " " +
         mnem + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
         "vB:" + modFmt.hex8(this.vB) + " " +
