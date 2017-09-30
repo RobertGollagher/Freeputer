@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170923+
- * Version:    pre-alpha-0.0.1.12+ for FVM 2.0
+ * Updated:    20170930+
+ * Version:    pre-alpha-0.0.1.14+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -30,12 +30,12 @@ var modFVM = (function () { 'use strict';
 
   const WD_BYTES = 4
   const WD_BITS = WD_BYTES*8
-  const MSb = 0x80000000 // Bit mask for most significant bit
+  const MSb = 0x80000000|0 // Bit mask for most significant bit
   const IM = MSb
-  const METADATA_MASK = 0x7fffffff // 31 bits
-  const OPCODE_MASK   = 0xff000000
-  const BYTE_MASK     = 0x000000ff
-  const SHIFT_MASK    = 0x0000001f
+  const METADATA_MASK = 0x7fffffff|0 // 31 bits
+  const OPCODE_MASK   = 0xff000000|0
+  const BYTE_MASK     = 0x000000ff|0
+  const SHIFT_MASK    = 0x0000001f|0
   const SUCCESS = 0
   const FAILURE = 1
   const ILLEGAL = 2
@@ -90,6 +90,7 @@ var modFVM = (function () { 'use strict';
   const BR    = 0x25000000|0
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
+  const IMM   = 0x80000000|0
 
   const SYMBOLS = {
   
@@ -132,7 +133,7 @@ var modFVM = (function () { 'use strict';
     0x25000000: "br   ",
     0x26000000: "in   ",
     0x27000000: "out  ",
-    "-2147483648": "imm  "
+    0x80000000: "imm  "
   };
 
   class FVM {
@@ -202,8 +203,8 @@ var modFVM = (function () { 'use strict';
           case AND:    this.vA&=this.vB; break;
           case XOR:    this.vA^=this.vB; break;
           case FLIP:   this.vB = this.vB^MSb; break;
-          case SHL:    this.vA<<=enshift(this.vB); break;
-          case SHR:    this.vA>>=enshift(this.vB); break;
+          case SHL:    this.vA<<=this.enshift(this.vB); break;
+          case SHR:    this.vA>>=this.enshift(this.vB); break;
           case GET:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vA = this.load(this.vB); break;
           case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
@@ -266,10 +267,17 @@ var modFVM = (function () { 'use strict';
 
     traceVM(instr) {
       var opcode = instr & OPCODE_MASK;
+      var mnem = '?';
+      if (opcode < 0) {
+        mnem = SYMBOLS[0x80000000];
+      } else {
+        mnem = SYMBOLS[opcode];
+      }
       var traceStr =
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
-        SYMBOLS[opcode] + " " +
+        modFmt.hex8(opcode) + " " +
+        mnem + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
         "vB:" + modFmt.hex8(this.vB) + " " +
         "vT:" + modFmt.hex8(this.vT) + " " +
