@@ -15,9 +15,9 @@ Freeputer ( ) \[ \] { } smaller simpler better
 
 ## Benefits
 
-Freeputer&nbsp;2.0 will be ***much easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a ***powerful server*** or in a ***web browser*** or on a ***microcontroller***.
+Freeputer&nbsp;2.0 is intended to be ***easier to implement*** and thus ***even more portable***. To demonstrate this, the prototype for Freeputer&nbsp;2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available ***on billions of consumer devices***. Freeputer&nbsp;2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a ***powerful server*** or in a ***web browser*** or on a ***microcontroller***.
 
-Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is more robust in that it keeps running except upon an illegal instruction or upon memory access out of bounds.
+Freeputer&nbsp;2.0 ***adds robustness***. Whereas Freeputer&nbsp;1.0 trapped (stopping the virtual machine) to preserve *correctness*, the design of Freeputer&nbsp;2.0 is likely to be more robust by *branching on failure*.
 
 Freeputer&nbsp;2.0 may also have a different architecture and I/O strategy.
 
@@ -31,97 +31,7 @@ However, Freeputer&nbsp;1.0 is an open-source platform, and free as in freedom, 
 
 ## Shortlist
 
-### Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)
-
-A MISC machine which aims to have a simple core of a few hundred lines of code.
-
-The standard implementation is a bytecode interpreter and uses 32-bit fixed-width intructions (FW32).
-
-However, program space may be natively implemented (using AOT native compilation).
-
-Data memory is entirely RAM. Program memory cannot be changed at runtime.
-
-Dynamic program loading can be achieved by virtualization.
-
-Harvard architecture, word-addressed, in nibble sizings.
-
-Program memory size (designated **p** or **pm**):
-
-  - **p1**: 1 nibble  = 16 instructions = 64 bytes
-  - **p2**: 2 nibbles = 256 instructions = 1 kiB
-  - **p3**: 3 nibbles = 4,096 instructions = 16 kiB
-  - **p4**: 4 nibbles = 65,536 instructions = 256 kiB
-  - **p5**: 5 nibbles = 1,048,576 instructions = 4 MiB
-  - **p6**: 6 nibbles = 16,777,216 instructions = 64 MiB
-
-Data memory size (designated **d** or **dm**):
-
-  - **d1**: 1 nibble  = 16 words = 64 bytes
-  - **d2**: 2 nibbles = 256 words = 1 kiB
-  - **d3**: 3 nibbles = 4,096 words = 16 kiB
-  - **d4**: 4 nibbles = 65,536 words = 256 kiB
-  - **d5**: 5 nibbles = 1,048,576 words = 4 MiB
-  - **d6**: 6 nibbles = 16,777,216 words = 64 MiB
-  - **d7**: 7 nibbles = 268,435,456 words = 1 GiB
-  - **d8**: 8 nibbles = 4,294,967,296 words = 16 GiB
-
-Size is expressed as a combination. For example:
-
-  - **p3d1** = 4,096-instruction program memory, data memory 64 bytes
-  - **p3d3** = 4,096-instruction program memory, data memory 16 kB
-  - **p3d7** = 4,096-instruction program memory, data memory 1 GiB
-
-Actual size *in bytes* of program memory may differ if natively compiled.
-
-Best practice: use the **smallest sufficient size** for your program.
-
-This enables **modular system design** using small components.
-
-This also enables **hardware freedom** and **software reuse**.
-
-Small sizes easily run **without an operating system**.
-
-Using sizes larger than p4 or d3 is typically a mistake because:
-
-  - it severely limits hardware freedom
-  - it typically requires an operating system
-  - it therefore introduces unwanted dependencies
-  - it therefore greatly limits long-term software reuse
-  - it tends to cause undesirably monolithic design
-
-However, there are some good use cases for large VM instances.
-
-The best use of large VM instances is to virtualize small VM instances.
-
-The only things which can cause the VM to stop running are:
-
-- the halt instruction
-- an illegal instruction
-- program memory access out of bounds
-- data memory access out of bounds
-- platform failure
-
-For ongoing (inconsistent and incomplete) experiments see:
-
-- current: 'dev/fvm/js/fvm2.js', 'fvmui.html', 'prg.js', 'prg.c'
-- somewhat out of date: 'dev/fvm/c/qmisc.c'
-- somewhat out of date: 'dev/fvm/x86/qmisc.s'
-
-Plan G is appears to have stalled.
-
-Why? It turns out that just using a link register is impractical.
-
-Essentially a return stack is necessary.
-
-But if a return stack is necessary then we might as well have a stack machine.
-
-Furthermore, factoring (and ease of understanding) of Plan G is vastly inferior to a stack machine.
-
-Lastly, all kinds of Von Neumann vs Harvard corner cases arise with any workaround here.
-
-A register machine is hereby rejected, so Plan G is rejected.
-
-**Essentially register machines are for compilers. Stack machines are for humans.**
+A final decision has been made (on 1 October 2017) that Freeputer&nbsp;2.0 will be a stack machine not a register machine. It will probably either look like Plan A (see below) or a simplified stack machine. It is noteworthy that extensive thought and experimentation over many weeks has led to the conclusion that: Register machines are for compilers. Stack machines are for humans. Therefore freedom most easily lies in the direction of stack machines not register machines. That is, Freeputer&nbsp;1.0 was on the right track.
 
 ### Proposed Design: Plan A: Improved Stack Machine
 
@@ -336,7 +246,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 30 September 2017 at 23:59  
+This document was last updated on 1 October 2017 at 00:54  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

@@ -11,84 +11,15 @@
 <li>VM <strong>small</strong>.</li>
 </ol>
 <h2 id="benefits">Benefits</h2>
-<p>Freeputer 2.0 will be <strong><em>much easier to implement</em></strong> and thus <strong><em>even more portable</em></strong>. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>. Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a <strong><em>powerful server</em></strong> or in a <strong><em>web browser</em></strong> or on a <strong><em>microcontroller</em></strong>.</p>
-<p>Freeputer 2.0 <strong><em>adds robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve <em>correctness</em>, the design of Freeputer 2.0 is more robust in that it keeps running except upon an illegal instruction or upon memory access out of bounds.</p>
+<p>Freeputer 2.0 is intended to be <strong><em>easier to implement</em></strong> and thus <strong><em>even more portable</em></strong>. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>. Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a <strong><em>powerful server</em></strong> or in a <strong><em>web browser</em></strong> or on a <strong><em>microcontroller</em></strong>.</p>
+<p>Freeputer 2.0 <strong><em>adds robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve <em>correctness</em>, the design of Freeputer 2.0 is likely to be more robust by <em>branching on failure</em>.</p>
 <p>Freeputer 2.0 may also have a different architecture and I/O strategy.</p>
 <p>The motto of Freeputer 2.0 is: <strong><em>smaller simpler better</em></strong>.</p>
 <h2 id="migration">Migration</h2>
 <p>Freeputer 2.0 will not run unmodified Freeputer 1.0 programs.</p>
 <p>However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer 1.0 programs to run there.</p>
 <h2 id="shortlist">Shortlist</h2>
-<h3 id="proposed-design-plan-g-minimal-instruction-set-computer-misc">Proposed Design: Plan G: Minimal Instruction Set Computer (MISC)</h3>
-<p>A MISC machine which aims to have a simple core of a few hundred lines of code.</p>
-<p>The standard implementation is a bytecode interpreter and uses 32-bit fixed-width intructions (FW32).</p>
-<p>However, program space may be natively implemented (using AOT native compilation).</p>
-<p>Data memory is entirely RAM. Program memory cannot be changed at runtime.</p>
-<p>Dynamic program loading can be achieved by virtualization.</p>
-<p>Harvard architecture, word-addressed, in nibble sizings.</p>
-<p>Program memory size (designated <strong>p</strong> or <strong>pm</strong>):</p>
-<ul>
-<li><strong>p1</strong>: 1 nibble = 16 instructions = 64 bytes</li>
-<li><strong>p2</strong>: 2 nibbles = 256 instructions = 1 kiB</li>
-<li><strong>p3</strong>: 3 nibbles = 4,096 instructions = 16 kiB</li>
-<li><strong>p4</strong>: 4 nibbles = 65,536 instructions = 256 kiB</li>
-<li><strong>p5</strong>: 5 nibbles = 1,048,576 instructions = 4 MiB</li>
-<li><strong>p6</strong>: 6 nibbles = 16,777,216 instructions = 64 MiB</li>
-</ul>
-<p>Data memory size (designated <strong>d</strong> or <strong>dm</strong>):</p>
-<ul>
-<li><strong>d1</strong>: 1 nibble = 16 words = 64 bytes</li>
-<li><strong>d2</strong>: 2 nibbles = 256 words = 1 kiB</li>
-<li><strong>d3</strong>: 3 nibbles = 4,096 words = 16 kiB</li>
-<li><strong>d4</strong>: 4 nibbles = 65,536 words = 256 kiB</li>
-<li><strong>d5</strong>: 5 nibbles = 1,048,576 words = 4 MiB</li>
-<li><strong>d6</strong>: 6 nibbles = 16,777,216 words = 64 MiB</li>
-<li><strong>d7</strong>: 7 nibbles = 268,435,456 words = 1 GiB</li>
-<li><strong>d8</strong>: 8 nibbles = 4,294,967,296 words = 16 GiB</li>
-</ul>
-<p>Size is expressed as a combination. For example:</p>
-<ul>
-<li><strong>p3d1</strong> = 4,096-instruction program memory, data memory 64 bytes</li>
-<li><strong>p3d3</strong> = 4,096-instruction program memory, data memory 16 kB</li>
-<li><strong>p3d7</strong> = 4,096-instruction program memory, data memory 1 GiB</li>
-</ul>
-<p>Actual size <em>in bytes</em> of program memory may differ if natively compiled.</p>
-<p>Best practice: use the <strong>smallest sufficient size</strong> for your program.</p>
-<p>This enables <strong>modular system design</strong> using small components.</p>
-<p>This also enables <strong>hardware freedom</strong> and <strong>software reuse</strong>.</p>
-<p>Small sizes easily run <strong>without an operating system</strong>.</p>
-<p>Using sizes larger than p4 or d3 is typically a mistake because:</p>
-<ul>
-<li>it severely limits hardware freedom</li>
-<li>it typically requires an operating system</li>
-<li>it therefore introduces unwanted dependencies</li>
-<li>it therefore greatly limits long-term software reuse</li>
-<li>it tends to cause undesirably monolithic design</li>
-</ul>
-<p>However, there are some good use cases for large VM instances.</p>
-<p>The best use of large VM instances is to virtualize small VM instances.</p>
-<p>The only things which can cause the VM to stop running are:</p>
-<ul>
-<li>the halt instruction</li>
-<li>an illegal instruction</li>
-<li>program memory access out of bounds</li>
-<li>data memory access out of bounds</li>
-<li>platform failure</li>
-</ul>
-<p>For ongoing (inconsistent and incomplete) experiments see:</p>
-<ul>
-<li>current: 'dev/fvm/js/fvm2.js', 'fvmui.html', 'prg.js', 'prg.c'</li>
-<li>somewhat out of date: 'dev/fvm/c/qmisc.c'</li>
-<li>somewhat out of date: 'dev/fvm/x86/qmisc.s'</li>
-</ul>
-<p>Plan G is appears to have stalled.</p>
-<p>Why? It turns out that just using a link register is impractical.</p>
-<p>Essentially a return stack is necessary.</p>
-<p>But if a return stack is necessary then we might as well have a stack machine.</p>
-<p>Furthermore, factoring (and ease of understanding) of Plan G is vastly inferior to a stack machine.</p>
-<p>Lastly, all kinds of Von Neumann vs Harvard corner cases arise with any workaround here.</p>
-<p>A register machine is hereby rejected, so Plan G is rejected.</p>
-<p><strong>Essentially register machines are for compilers. Stack machines are for humans.</strong></p>
+<p>A final decision has been made (on 1 October 2017) that Freeputer 2.0 will be a stack machine not a register machine. It will probably either look like Plan A (see below) or a simplified stack machine. It is noteworthy that extensive thought and experimentation over many weeks has led to the conclusion that: Register machines are for compilers. Stack machines are for humans. Therefore freedom most easily lies in the direction of stack machines not register machines. That is, Freeputer 1.0 was on the right track.</p>
 <h3 id="proposed-design-plan-a-improved-stack-machine">Proposed Design: Plan A: Improved Stack Machine</h3>
 <p>Plan A is a portable stack machine which is correct and robust by virtue of branching on failure.</p>
 <p>This plan is moderately difficult to implement but makes factoring easy.</p>
@@ -386,7 +317,7 @@
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 30 September 2017 at 23:59<br />
+This document was last updated on 1 October 2017 at 00:54<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
