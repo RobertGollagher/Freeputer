@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20170930+
- * Version:    pre-alpha-0.0.1.15+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.16+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript

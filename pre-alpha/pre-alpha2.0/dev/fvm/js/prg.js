@@ -21,7 +21,6 @@ var prgSrc = `
 
 
 // The sole forward reference ------------------------------------------------
-i(0x08000001) fromb i(0x04) shl shr halt
 jump(s0000) /*start*/
 
 // Success -------------------------------------------------------------------
@@ -45,7 +44,7 @@ s0006: /*print_alphabet*/
 s0003: /*alpha*/ i(0x57) /*'a'*/ add out fromt link 
 s0007: /*print_hex_nibble*/
   tot
-  i(0xf0000000) and i(0x1c) shr
+  i(0x0fffffff) xor i(0x1c) shr
   i(0x09) jmpg(s0003) /*alpha*/
   i(0x30) /*'0'*/ add out fromt link
 // ---------------------------------------------------------------------------
@@ -57,7 +56,7 @@ s0007: /*print_hex_nibble*/
 
 s0008: /*print_hex_word*/
   tot
-  i(0x08) fromb tor
+  i(0x07) fromb tor
   fromt
   s0009: /*loop_print_hex*/
     br(s0007) /*print_hex_nibble*/
@@ -69,14 +68,12 @@ s0008: /*print_hex_word*/
 // Secondary entry point -----------------------------------------------------
 
 s0001: /*go:*/
-/*
-  i(0x00) fromb br(s0007) /*print_hex_nibble*/
-  i(0x09) fromb br(s0007) /*print_hex_nibble*/
-  i(0x0a) fromb br(s0007) /*print_hex_nibble*/
-  i(0x0f) fromb br(s0007) /*print_hex_nibble*/
-*/
+  i(0x00) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
+  i(0x09) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
+  i(0x0a) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
+  i(0x0f) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
   br(s0004) /*print_newline*/
-  i(0x09abcdef) fromb br(s0008) /*print_hex_word*/ // FIXME cannot return
+  i(0x7654321a) fromb br(s0008) /*print_hex_word*/ // FIXME cannot return
   br(s0004) /*print_newline*/
   br(s0006) /*print_alphabet*/
   jump(s0002) /*end*/

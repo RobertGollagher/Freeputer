@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20170930+
- * Version:    pre-alpha-0.0.1.11+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.12+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
