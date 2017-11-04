@@ -31,6 +31,7 @@ Version:    pre-alpha-0.0.6.2+ for FVM 2.0
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <setjmp.h>
 #define BYTE uint8_t
 #define WORD uint32_t // Word type for Harvard data memory
 #define NAT uintptr_t // Native pointer type for Harvard program memory
@@ -46,6 +47,10 @@ Version:    pre-alpha-0.0.6.2+ for FVM 2.0
 #define DM_MASK   DM_WORDS-1
 WORD dm[DM_WORDS]; // Harvard data memory
 int exampleProgram();
+static jmp_buf exc_env;
+static int exc_code;
+#define DS_UNDERFLOW 31
+#define DS_OVERFLOW 32
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
@@ -54,16 +59,16 @@ METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Logic for stacks
 // ---------------------------------------------------------------------------
-typedef enum maybe { SOMETHING=0, NOTHING=1 } Maybe;
+typedef enum maybe { SOMETHING=1, NOTHING=0 } Maybe;
 #define STACK_CAPACITY 256
 #define STACK_MAX_INDEX 255
 typedef struct MaybeWord {
   Maybe m;
-  WORD wd;  
+  WORD wd;
 } MWD;
 typedef struct MaybeNat {
   Maybe m;
-  NAT nat;  
+  NAT nat;
 } MNAT;
 typedef struct WordStack {
   BYTE sp;
@@ -84,7 +89,7 @@ WORD wdPush(WORD x, WDSTACK *s) {
     return FAILURE;
   }
 }
-MWD wdPop(WORD x, WDSTACK *s) {
+MWD wdPop(WDSTACK *s) {
   if ((s->sp)>0) {
     s->mwd.m = SOMETHING;
     s->mwd.wd = s->elem[--(s->sp)];
@@ -106,7 +111,7 @@ WORD natPush(NAT x, NATSTACK *s) {
     return FAILURE;
   }
 }
-MNAT natPop(NAT x, NATSTACK *s) {
+MNAT natPop(NATSTACK *s) {
   if ((s->sp)>0) {
     s->mnat.m = SOMETHING;
     s->mnat.nat = s->elem[--(s->sp)];
@@ -152,13 +157,20 @@ void Copy()   { /*FIXME dm[safe(vB+vA)] = dm[safe(vB)];*/ } // a smell?
 void Inc()    { /*FIXME ++vB;*/ }
 void Dec()    { /*FIXME --vB;*/ }
 // Immediates
-void Imm(METADATA x)    { /*FIXME vB = enrange(x);*/ } // bits 31..0
+void Imm(METADATA x)    {  // bits 31..0
+  WORD outcome = wdPush(enrange(x), &ds);
+  if (outcome) {
+    exc_code = DS_OVERFLOW;
+    longjmp(exc_env, exc_code);
+  }
+}
 void Flip()             { /*FIXME vB = vB^MSb;*/ }     // bit  32 (NOT might be better)
+
 // Machine metadata
 void Mdm()    { /*FIXME vA = DM_WORDS;*/ }
 // Other
 void Noop()   { /*FIXME ;*/ }
-/*FIXME 
+/*FIXME
 #define halt return enbyte(vA);
 // Jumps (static only), maybe reduce these back to jump and jmpe only
 #define jmpa(label) if (vA == 0) { goto label; } // vA is 0
@@ -173,17 +185,33 @@ void Noop()   { /*FIXME ;*/ }
 #define link goto *vL;
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
-#define out(label) putchar(vA); // If fail goto label
 */
+void Out() {
+  MWD mwd = wdPop(&ds);
+  if(mwd.m) {
+    putchar(mwd.wd); // FIXME
+  } else {
+    exc_code = DS_UNDERFLOW;
+    longjmp(exc_env, exc_code);
+  }
+}
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
-  return exampleProgram();
+  if (!setjmp(exc_env)) {
+    exampleProgram();
+    return SUCCESS;
+  } else {
+    return exc_code;
+  }
+
 }
 // ===========================================================================
 int exampleProgram() {
-
-
+  Imm(10);
+  Imm(65);
+  Out();
+  Out();
 }
 // ===========================================================================
 
