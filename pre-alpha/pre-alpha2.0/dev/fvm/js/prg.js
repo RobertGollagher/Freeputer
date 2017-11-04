@@ -30,7 +30,8 @@ s0002: /*end:*/ b(0x00) halt
 s000b: /*msn*/ b(0x0fffffff) xor ret
 // Move the most significant nibble to the least significant nibble ----------
 s000c: /*msn_to_lsn*/ b(0x1c) shr ret
-
+// Shift left by 1 nibble ----------------------------------------------------
+s000d: /*shl_nibble*/ b(0x04) shl ret
 
 // ===========================================================================
 // Text Output Utilities
@@ -45,21 +46,21 @@ s0006: /*print_alphabet*/
     out add rpt(s0005) /*loop_alpha*/
     ret
 // ---------------------------------------------------------------------------
-// Hexadecimal print LSN -----------------------------------------------------
-s0003: /*alpha*/ b(0x57) /*'a'*/ add out fromt ret
-s0007: /*print_hex_nibble*/
-  tot
+// Hexadecimal print MSN -----------------------------------------------------
+s0003: /*alpha*/ b(0x57) /*'a'*/ add out tpop ret
+s0007: /*print_hex_msn*/
+  tpush
   call(s000c) /*msn_to_lsn*/
   b(0x09) jmpg(s0003) /*alpha*/
-  b(0x30) /*'0'*/ add out fromt ret
+  b(0x30) /*'0'*/ add out tpop ret
 // ---------------------------------------------------------------------------
 // Hexadecimal print word ----------------------------------------------------
 s0008: /*print_hex_word*/
   r(0x07)
   s0009: /*loop_print_hex*/
-    call(s0007) /*print_hex_nibble*/
-    b(0x04) shl
-    rpt(s0009) /*print_hex_word*/
+    call(s0007) /*print_hex_msn*/
+    call(s000d) /*shl_nibble*/
+    rpt(s0009) /*loop_print_hex*/
     ret
 // ---------------------------------------------------------------------------
 
@@ -67,11 +68,6 @@ s0008: /*print_hex_word*/
 // Secondary entry point
 // ===========================================================================
 s0001: /*go:*/
-  a(0x00000000) call(s0007) /*print_hex_nibble*/
-  a(0x90000000) call(s0007) /*print_hex_nibble*/
-  a(0xa0000000) call(s0007) /*print_hex_nibble*/
-  a(0xf0000000) call(s0007) /*print_hex_nibble*/
-  call(s0004) /*print_newline*/
   a(0x7654321a) call(s0008) /*print_hex_word*/
   call(s0004) /*print_newline*/
   call(s0006) /*print_alphabet*/

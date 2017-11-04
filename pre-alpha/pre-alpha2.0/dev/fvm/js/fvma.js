@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171104+
- * Version:    pre-alpha-0.0.1.13+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.14+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -43,13 +43,13 @@ var modFVMA = (function () { 'use strict';
   const IMMA  = 0x30000000|0
   const IMMB  = 0x31000000|0
   const IMMR  = 0x32000000|0
-  const IMMT  = 0x33000000|0
 
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
   const DPUSH = 0x52000000|0
   const DPOP  = 0x53000000|0
-
+  const TPUSH = 0x54000000|0
+  const TPOP  = 0x55000000|0
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -73,10 +73,10 @@ var modFVMA = (function () { 'use strict';
   const SWAP  = 0x13000000|0
   const TOB   = 0x14000000|0
   const TOR   = 0x15000000|0
-  const TOT   = 0x16000000|0
+
   const FROMB = 0x17000000|0
   const FROMR = 0x18000000|0
-  const FROMT = 0x19000000|0
+
   const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
   const JMPA  = 0x1d000000|0 // Complex
@@ -116,10 +116,10 @@ var modFVMA = (function () { 'use strict';
     swap:   SWAP,
     tob:    TOB,
     tor:    TOR,
-    tot:    TOT,
+
     fromb:  FROMB,
     fromr:  FROMR,
-    fromt:  FROMT,
+
     mem:    MEM,
     halt:   HALT,
     in:     IN, // FIXME make complex
@@ -128,6 +128,8 @@ var modFVMA = (function () { 'use strict';
     pop:    POP,
     dpush:  DPUSH,
     dpop:   DPOP,
+    tpush:  TPUSH,
+    tpop:   TPOP,
     call:   CALL,
     ret:    RET
   };
@@ -229,7 +231,6 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseImmA(token)) {
       } else if (this.parseImmB(token)) {
       } else if (this.parseImmR(token)) {
-      } else if (this.parseImmT(token)) {
       } else if (this.parseCall(token)) {
       } else if (this.parseJump(token)) {
       } else if (this.parseJmpA(token)) {
@@ -433,20 +434,6 @@ var modFVMA = (function () { 'use strict';
       } else if (token.match(/r\([^\s]+\)/)){
         var n = parseInt(token.substring(2,token.length-1)); //FIXME
         this.use(IMMR); // FIXME here moving to VW32/64 instr encoding
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    parseImmT(token) {
-      if (token.match(/t\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
-        var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, IMMT);
-      } else if (token.match(/t\([^\s]+\)/)){
-        var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        this.use(IMMT); // FIXME here moving to VW32/64 instr encoding
         this.use(n);
         return true;
       } else {
