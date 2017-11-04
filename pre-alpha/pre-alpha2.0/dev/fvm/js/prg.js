@@ -9,52 +9,55 @@ var prgSrc = `
   Updated:    20171104+
   ------------------
   FREE:
-  LAST SYMBOL: s000a
+  LAST SYMBOL: s000d
   ------------------
 
 */
-// ===========================================================================
-// Constants -----------------------------------------------------------------
 
-// ===========================================================================
-// The sole forward reference ------------------------------------------------
+// The sole forward reference
 jump(s0000) /*start*/
-// ===========================================================================
-// Success -------------------------------------------------------------------
+
+
+// Success
 s0002: /*end:*/ b(0x00) halt
 
 // ===========================================================================
-// Experiments in factoring
-// ===========================================================================
-// Leave only the most significant nibble ------------------------------------
+
+// Leave only the most significant nibble
 s000b: /*msn*/ b(0x0fffffff) xor ret
-// Move the most significant nibble to the least significant nibble ----------
+
+
+// Move the most significant nibble to the least significant nibble
 s000c: /*msn_to_lsn*/ b(0x1c) shr ret
-// Shift left by 1 nibble ----------------------------------------------------
+
+
+// Shift left by 1 nibble
 s000d: /*shl_nibble*/ b(0x04) shl ret
 
 // ===========================================================================
-// Text Output Utilities
-// ===========================================================================
-// Print a newline character -------------------------------------------------
+
+// Print a newline character
 s0004: /*print_newline*/ a(0x0a) out ret
-// ---------------------------------------------------------------------------
-// Print the uppercase alphabet ----------------------------------------------
+
+
+// Print the uppercase alphabet
 s0006: /*print_alphabet*/
     a(0x41) b(0x01) r(0x19)
   s0005: /*loop_alpha:*/
     out add rpt(s0005) /*loop_alpha*/
     ret
-// ---------------------------------------------------------------------------
-// Hexadecimal print MSN -----------------------------------------------------
+
+
+// Hexadecimal print MSN
 s0003: /*alpha*/ b(0x57) /*'a'*/ add out tpop ret
 s0007: /*print_hex_msn*/
   tpush
   call(s000c) /*msn_to_lsn*/
   b(0x09) jmpg(s0003) /*alpha*/
   b(0x30) /*'0'*/ add out tpop ret
-// ---------------------------------------------------------------------------
-// Hexadecimal print word ----------------------------------------------------
+
+
+// Hexadecimal print word
 s0008: /*print_hex_word*/
   r(0x07)
   s0009: /*loop_print_hex*/
@@ -62,21 +65,16 @@ s0008: /*print_hex_word*/
     call(s000d) /*shl_nibble*/
     rpt(s0009) /*loop_print_hex*/
     ret
-// ---------------------------------------------------------------------------
 
 // ===========================================================================
-// Secondary entry point
-// ===========================================================================
+
 s0001: /*go:*/
   a(0x7654321a) call(s0008) /*print_hex_word*/
-  call(s0004) /*print_newline*/
-  call(s0006) /*print_alphabet*/
+//  call(s0004) /*print_newline*/
+//  call(s0006) /*print_alphabet*/
   jump(s0002) /*end*/
 
-// ===========================================================================
-// Primary entry point
-// ===========================================================================
+
 s0000: /*start:*/
   jump(s0001) /*go*/
-// ---------------------------------------------------------------------------
 `;
