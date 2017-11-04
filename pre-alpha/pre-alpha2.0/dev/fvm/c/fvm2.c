@@ -2,11 +2,11 @@
 Copyright © 2017, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
 
-Program:    qmisc.c
+Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20171104+
-Version:    pre-alpha-0.0.6.0+ for FVM 2.0
+Version:    pre-alpha-0.0.6.1+ for FVM 2.0
 =======
 
                               This Edition:
