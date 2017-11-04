@@ -191,7 +191,6 @@ var modFVM = (function () { 'use strict';
       this.tracing = true; // comment this line out unless debugging
       this.vA = 0|0; // accumulator
       this.vB = 0|0; // operand register
-      this.vR = 0|0; // repeat register
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
 this.sI = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
@@ -202,7 +201,7 @@ this.sI = 0|0; //tmp var only
       this.rs = new Stack(this); // return stack
       this.ds = new Stack(this); // data stack
       this.ts = new Stack(this); // temporary stack
-      this.cs = new Stack(this); // count stack or repeat stack
+      this.cs = new Stack(this); // counter stack or repeat stack
     };
 
     loadProgram(pgm, mem) {
@@ -259,8 +258,8 @@ this.sI = 0|0; //tmp var only
           case IMMB:  this.vB = this.pmload(this.vZ); ++this.vZ; break;
 
 
-          case IMMR:  this.vR = this.pmload(this.vZ); ++this.vZ; this.cs.doPush(this.vR); break;
-          case RPOP:  this.vR = this.cs.doPop(); break;
+          case IMMR:  this.cs.doPush(this.pmload(this.vZ)); ++this.vZ; break;
+          case RPOP:  this.cs.doPop(); break; // FIXME reconsider, maybe to vA? Also need drop
 
 
 // Experiment into making vB a reusable stack pointer
@@ -318,10 +317,10 @@ this.sI = 0|0; //tmp var only
                        this.vA = this.vA^this.vB;
                        this.vB = this.vB^this.vA; break;
           case TOB:    this.vB = this.vA; break;
-          case TOR:    this.vR = this.vA; break;
+          //FIXME reconsider //case TOR:    this.vR = this.vA; break;
 
           case FROMB:  this.vA = this.vB; break;
-          case FROMR:  this.vA = this.vR; break;
+          //FIXME reconsider //case FROMR:  this.vA = this.vR; break;
 
 
           case TOZ:    this.vZ = this.vA; break;
@@ -383,7 +382,6 @@ this.sI = 0|0; //tmp var only
         mnem + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
         "vB:" + modFmt.hex8(this.vB) + " " +
-        "vR:" + modFmt.hex8(this.vR) + " / " +
         this.cs + "/ ( " +
         this.ds + ") [ " +
         this.ts + "] { " +

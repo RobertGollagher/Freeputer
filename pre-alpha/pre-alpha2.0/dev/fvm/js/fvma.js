@@ -73,10 +73,10 @@ var modFVMA = (function () { 'use strict';
   const FLIP  = 0x12000000|0
   const SWAP  = 0x13000000|0
   const TOB   = 0x14000000|0
-  const TOR   = 0x15000000|0
+  //FIXME reconsider //const TOR   = 0x15000000|0
 
   const FROMB = 0x17000000|0
-  const FROMR = 0x18000000|0
+  //FIXME reconsider //const FROMR = 0x18000000|0
 
   const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
@@ -116,10 +116,10 @@ var modFVMA = (function () { 'use strict';
     flip:   FLIP,
     swap:   SWAP,
     tob:    TOB,
-    tor:    TOR,
+    //tor:    TOR,
 
     fromb:  FROMB,
-    fromr:  FROMR,
+    //fromr:  FROMR,
 
     mem:    MEM,
     halt:   HALT,
