@@ -76,6 +76,7 @@ var modFVM = (function () { 'use strict';
   const DPOP  = 0x53000000|0
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
+  const RPOP  = 0x33000000|0
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -164,6 +165,7 @@ var modFVM = (function () { 'use strict';
     0x30000000: "a    ",
     0x31000000: "b    ",
     0x32000000: "r    ",
+    0x33000000: "rpop ",
 
     0x34000000: "z    ",
     0x40000000: "toz  ",
@@ -197,9 +199,10 @@ this.sI = 0|0; //tmp var only
       this.loadProgram(config.program, this.pm);
 
 
-      this.rs = new Stack(this);
-      this.ds = new Stack(this);
-      this.ts = new Stack(this);
+      this.rs = new Stack(this); // return stack
+      this.ds = new Stack(this); // data stack
+      this.ts = new Stack(this); // temporary stack
+      this.cs = new Stack(this); // count stack or repeat stack
     };
 
     loadProgram(pgm, mem) {
@@ -254,7 +257,10 @@ this.sI = 0|0; //tmp var only
 
           case IMMA:  this.vA = this.pmload(this.vZ); ++this.vZ; break;
           case IMMB:  this.vB = this.pmload(this.vZ); ++this.vZ; break;
-          case IMMR:  this.vR = this.pmload(this.vZ); ++this.vZ; break; // TODO make rpt work off the sp like a loop stack
+
+
+          case IMMR:  this.vR = this.pmload(this.vZ); ++this.vZ; this.cs.doPush(this.vR); break;
+          case RPOP:  this.vR = this.cs.doPop(); break;
 
 
 // Experiment into making vB a reusable stack pointer
@@ -329,7 +335,12 @@ this.sI = 0|0; //tmp var only
           case JMPG:   if (this.vA > this.vB) this.vZ = instr&PM_MASK; break;
           case JMPL:   if (this.vA < this.vB) this.vZ = instr&PM_MASK; break;
           case JUMP:   this.vZ = instr&PM_MASK; break;
-          case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } break;
+
+// FIXME more thought needed regarding cs
+          case RPT:    // if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } 
+                        if (!this.cs.zero()) { this.cs.dec(); this.vZ = instr&PM_MASK; } 
+                        else {this.cs.doPop();}
+                        break;
 
 
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
@@ -372,7 +383,8 @@ this.sI = 0|0; //tmp var only
         mnem + " " +
         "vA:" + modFmt.hex8(this.vA) + " " +
         "vB:" + modFmt.hex8(this.vB) + " " +
-        "vR:" + modFmt.hex8(this.vR) + " ( " +
+        "vR:" + modFmt.hex8(this.vR) + " / " +
+        this.cs + "/ ( " +
         this.ds + ") [ " +
         this.ts + "] { " +
         this.rs + "}";
@@ -393,6 +405,22 @@ this.sI = 0|0; //tmp var only
 
     avail() {
       return STACK_ELEMS-this.used();
+    }
+
+    dec() {
+      this.doReplace(this.doPeek()-1);
+    }
+
+    zero() {
+      return this.doPeek() == 0;
+    }
+
+    doReplace(i) {
+      if (this.sp <= STACK_1) {
+        this.elems.setInt32(this.sp, i, true);
+      } else {
+        throw FAILURE; // underflow
+      }
     }
 
     doPush(i) {

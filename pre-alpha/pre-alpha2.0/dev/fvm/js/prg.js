@@ -9,7 +9,7 @@ var prgSrc = `
   Updated:    20171104+
   ------------------
   FREE:
-  LAST SYMBOL: s000d
+  LAST SYMBOL: s0013
   ------------------
 
 */
@@ -35,6 +35,18 @@ s000c: /*msn_to_lsn*/ b(0x1c) shr ret
 s000d: /*shl_nibble*/ b(0x04) shl ret
 
 // ===========================================================================
+
+// Print character in a
+s000e: /*printa*/ out ret
+
+// Print the character in a four times
+s000f: /*print4*/ r(0x03) s0010: /*loopAs*/ call(s000e) /*printa*/ rpt(s0010) /*loopAs*/ ret
+
+// Print the character in a 8 times
+s0012: /*print2*/ r(0x01) s0013: call(s000e) /*printa*/ call(s000f) /*print4*/ rpt(s0013) ret
+
+// Print the character in a four times and 1 plus that character 2 times
+s0011: /*print4_2*/ call(s000f) /*print4*/ b(1) add call(s0012) /*print2*/ ret
 
 // Print a newline character
 s0004: /*print_newline*/ a(0x0a) out ret
@@ -63,6 +75,12 @@ s0008: /*print_hex_word*/
   s0009: /*loop_print_hex*/
     call(s0007) /*print_hex_msn*/
     call(s000d) /*shl_nibble*/
+
+dpush
+a(0x42)
+call(s0011) /*print4_2*/
+dpop
+
     rpt(s0009) /*loop_print_hex*/
     ret
 

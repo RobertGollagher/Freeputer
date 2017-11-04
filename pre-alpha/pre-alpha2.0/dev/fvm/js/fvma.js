@@ -43,6 +43,7 @@ var modFVMA = (function () { 'use strict';
   const IMMA  = 0x30000000|0
   const IMMB  = 0x31000000|0
   const IMMR  = 0x32000000|0
+  const RPOP  = 0x33000000|0
 
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
@@ -130,6 +131,7 @@ var modFVMA = (function () { 'use strict';
     dpop:   DPOP,
     tpush:  TPUSH,
     tpop:   TPOP,
+    rpop:   RPOP,
     call:   CALL,
     ret:    RET
   };
