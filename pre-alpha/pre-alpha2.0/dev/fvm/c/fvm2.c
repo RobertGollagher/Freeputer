@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20171104+
-Version:    pre-alpha-0.0.6.2+ for FVM 2.0
+Version:    pre-alpha-0.0.6.3+ for FVM 2.0
 =======
 
                               This Edition:
@@ -59,45 +59,32 @@ METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
 // Logic for stacks
 // ---------------------------------------------------------------------------
-typedef enum maybe { SOMETHING=1, NOTHING=0 } Maybe;
 #define STACK_CAPACITY 256
 #define STACK_MAX_INDEX 255
-typedef struct MaybeWord {
-  Maybe m;
-  WORD wd;
-} MWD;
-typedef struct MaybeNat {
-  Maybe m;
-  NAT nat;
-} MNAT;
 typedef struct WordStack {
   BYTE sp;
   WORD elem[STACK_CAPACITY];
-  MWD mwd; // Used by wdPop function
 } WDSTACK;
 typedef struct NativeStack {
   BYTE sp;
   NAT elem[STACK_CAPACITY];
-  MNAT mnat; // Used by natPop function
 } NATSTACK;
 
-WORD wdPush(WORD x, WDSTACK *s) {
+void wdPush(WORD x, WDSTACK *s, int error_code) {
   if ((s->sp) < STACK_MAX_INDEX) {
     s->elem[(s->sp)++] = x;
-    return SUCCESS;
   } else {
-    return FAILURE;
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
   }
 }
-MWD wdPop(WDSTACK *s) {
+WORD wdPop(WDSTACK *s, int error_code) {
   if ((s->sp)>0) {
-    s->mwd.m = SOMETHING;
-    s->mwd.wd = s->elem[--(s->sp)];
-    return s->mwd;
+    WORD wd = s->elem[--(s->sp)];
+    return wd;
   } else {
-    s->mwd.m = NOTHING;
-    s->mwd.wd = 0;
-    return s->mwd;
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
   }
 }
 int wdElems(WDSTACK *s) {return (s->sp);}
@@ -111,15 +98,13 @@ WORD natPush(NAT x, NATSTACK *s) {
     return FAILURE;
   }
 }
-MNAT natPop(NATSTACK *s) {
+NAT natPop(NATSTACK *s, int error_code) {
   if ((s->sp)>0) {
-    s->mnat.m = SOMETHING;
-    s->mnat.nat = s->elem[--(s->sp)];
-    return s->mnat;
+    NAT nat = s->elem[--(s->sp)];
+    return nat;
   } else {
-    s->mnat.m = NOTHING;
-    s->mnat.nat = 0;
-    return s->mnat;
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
   }
 }
 WORD natElems(NATSTACK *s) {return (s->sp);}
@@ -158,11 +143,7 @@ void Inc()    { /*FIXME ++vB;*/ }
 void Dec()    { /*FIXME --vB;*/ }
 // Immediates
 void Imm(METADATA x)    {  // bits 31..0
-  WORD outcome = wdPush(enrange(x), &ds);
-  if (outcome) {
-    exc_code = DS_OVERFLOW;
-    longjmp(exc_env, exc_code);
-  }
+  wdPush(enrange(x), &ds, DS_OVERFLOW);
 }
 void Flip()             { /*FIXME vB = vB^MSb;*/ }     // bit  32 (NOT might be better)
 
@@ -187,13 +168,8 @@ void Noop()   { /*FIXME ;*/ }
 #define in(label) vA = getchar(); // If fail goto label
 */
 void Out() {
-  MWD mwd = wdPop(&ds);
-  if(mwd.m) {
-    putchar(mwd.wd); // FIXME
-  } else {
-    exc_code = DS_UNDERFLOW;
-    longjmp(exc_env, exc_code);
-  }
+  WORD wd = wdPop(&ds, DS_UNDERFLOW);
+  putchar(wd); // FIXME
 }
 // ===========================================================================
 int main() {
@@ -204,7 +180,6 @@ int main() {
   } else {
     return exc_code;
   }
-
 }
 // ===========================================================================
 int exampleProgram() {
