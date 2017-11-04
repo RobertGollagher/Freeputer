@@ -78,7 +78,7 @@ var modFVMA = (function () { 'use strict';
   const FROMR = 0x18000000|0
   const FROMT = 0x19000000|0
   const MEM   = 0x1a000000|0
-  const LINK  = 0x1b000000|0
+  const DONE  = 0x1b000000|0
   const HALT  = 0x1c000000|0
   const JMPA  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
@@ -123,9 +123,9 @@ var modFVMA = (function () { 'use strict';
     fromr:  FROMR,
     fromt:  FROMT,
     mem:    MEM,
-    link:   LINK,
+    done:   DONE,
     halt:   HALT,
-    br:     BR,
+    do:     BR,
     in:     IN, // FIXME make complex
     out:    OUT,
     push:   PUSH,
@@ -580,7 +580,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseBr(token) { // Only allows label symbols not raw numbers here
-      if (token.match(/br\(s[^\s]+\)/)){
+      if (token.match(/do\(s[^\s]+\)/)){
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, BR);
       } else {

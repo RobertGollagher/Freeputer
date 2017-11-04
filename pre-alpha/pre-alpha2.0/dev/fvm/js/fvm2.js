@@ -14,10 +14,6 @@
  *
  *                                ( ) [ ] { }
  *
- *  FIXME Hit a roadblock: it appears a stack is necessary for practicality,
- *  rather than just relying on br/link alone; but if a stack is introduced
- *  then it probably makes more sense to have a stack machine instead
- *  of a register machine, so Plan A not Plan G would win.
  *
  * IDEA: we can have an unlimited number of stack pointers using GETI, PUTI
  * and one can represent a return stack so long as we expose the PC and
@@ -107,7 +103,7 @@ var modFVM = (function () { 'use strict';
   const FROMR = 0x18000000|0
   const FROMT = 0x19000000|0
   const MEM   = 0x1a000000|0
-  const LINK  = 0x1b000000|0
+  const DONE  = 0x1b000000|0
   const HALT  = 0x1c000000|0
   const JMPA  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
@@ -154,7 +150,7 @@ var modFVM = (function () { 'use strict';
     0x18000000: "fromr",
     0x19000000: "fromt",
     0x1a000000: "mem  ",
-    0x1b000000: "link ",
+    0x1b000000: "done ",
     0x1c000000: "halt ",
     0x1d000000: "jmpa ",
     0x1e000000: "jmpb ",
@@ -164,7 +160,7 @@ var modFVM = (function () { 'use strict';
     0x22000000: "jmpl ",
     0x23000000: "jump ",
     0x24000000: "rpt  ",
-    0x25000000: "br   ",
+    0x25000000: "do   ",
     0x26000000: "in   ",
     0x27000000: "out  ",
 //    0x80000000: "imm  "
@@ -338,7 +334,7 @@ this.sI = 0|0; //tmp var only
           case JUMP:   this.vZ = instr&PM_MASK; break;
           case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } break;
           case BR:     this.vL = this.vZ; this.vZ = instr&PM_MASK; break;
-          case LINK:   this.vZ = this.vL; break;
+          case DONE:   this.vZ = this.vL; break;
 
 
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
