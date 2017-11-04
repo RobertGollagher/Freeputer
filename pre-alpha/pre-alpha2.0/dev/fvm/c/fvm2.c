@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20171104+
-Version:    pre-alpha-0.0.6.1+ for FVM 2.0
+Version:    pre-alpha-0.0.6.2+ for FVM 2.0
 =======
 
                               This Edition:
@@ -31,29 +31,20 @@ Version:    pre-alpha-0.0.6.1+ for FVM 2.0
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
-#define WORD uint32_t
+#define BYTE uint8_t
+#define WORD uint32_t // Word type for Harvard data memory
+#define NAT uintptr_t // Native pointer type for Harvard program memory
 #define WD_BYTES 4
-#define WD_BITS WD_BYTES*8
-#define MSb 0x80000000 // Bit mask for most significant bit
-#define LNKT uintptr_t
 #define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define ILLEGAL 2
-#define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
-#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
+#define MAX_DM_WORDS 0x10000000 // <= 2^28 due to C limitations
+#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS
 #define DM_MASK   DM_WORDS-1
-#define nopasm "nop" // The name of the native hardware nop instruction
-// There are only 4 accessible registers:
-WORD vA = 0; // accumulator
-WORD vB = 0; // operand register
-WORD vT = 0; // temporary register
-WORD vR = 0; // repeat register
-LNKT vL = 0; // link register (not accessible)
-WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
+WORD dm[DM_WORDS]; // Harvard data memory
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
@@ -61,47 +52,113 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
+// Logic for stacks
+// ---------------------------------------------------------------------------
+typedef enum maybe { SOMETHING=0, NOTHING=1 } Maybe;
+#define STACK_CAPACITY 256
+#define STACK_MAX_INDEX 255
+typedef struct MaybeWord {
+  Maybe m;
+  WORD wd;  
+} MWD;
+typedef struct MaybeNat {
+  Maybe m;
+  NAT nat;  
+} MNAT;
+typedef struct WordStack {
+  BYTE sp;
+  WORD elem[STACK_CAPACITY];
+  MWD mwd; // Used by wdPop function
+} WDSTACK;
+typedef struct NativeStack {
+  BYTE sp;
+  NAT elem[STACK_CAPACITY];
+  MNAT mnat; // Used by natPop function
+} NATSTACK;
+
+WORD wdPush(WORD x, WDSTACK *s) {
+  if ((s->sp) < STACK_MAX_INDEX) {
+    s->elem[(s->sp)++] = x;
+    return SUCCESS;
+  } else {
+    return FAILURE;
+  }
+}
+MWD wdPop(WORD x, WDSTACK *s) {
+  if ((s->sp)>0) {
+    s->mwd.m = SOMETHING;
+    s->mwd.wd = s->elem[--(s->sp)];
+    return s->mwd;
+  } else {
+    s->mwd.m = NOTHING;
+    s->mwd.wd = 0;
+    return s->mwd;
+  }
+}
+int wdElems(WDSTACK *s) {return (s->sp);}
+int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
+
+WORD natPush(NAT x, NATSTACK *s) {
+  if ((s->sp) < STACK_MAX_INDEX) {
+    s->elem[(s->sp)++] = x;
+    return SUCCESS;
+  } else {
+    return FAILURE;
+  }
+}
+MNAT natPop(NAT x, NATSTACK *s) {
+  if ((s->sp)>0) {
+    s->mnat.m = SOMETHING;
+    s->mnat.nat = s->elem[--(s->sp)];
+    return s->mnat;
+  } else {
+    s->mnat.m = NOTHING;
+    s->mnat.nat = 0;
+    return s->mnat;
+  }
+}
+WORD natElems(NATSTACK *s) {return (s->sp);}
+WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
+// ---------------------------------------------------------------------------
+// Stack declarations
+// ---------------------------------------------------------------------------
+WDSTACK ds, ts, cs; // data stack, temporary stack, counter stack
+NATSTACK rs; // return stack
+// ---------------------------------------------------------------------------
 // CURRENTLY 34+ OPCODES
 // Arithmetic
-void Add()    { vA+=vB; }
-void Sub()    { vA-=vB; }
+void Add()    { /*FIXME vA+=vB;*/ }
+void Sub()    { /*FIXME vA-=vB;*/ }
 // Logic
-void Or()     { vA|=vB; }
-void And()    { vA&=vB; }
-void Xor()    { vA^=vB; } // Maybe add NOT and NEG too
+void Or()     { /*FIXME vA|=vB;*/ }
+void And()    { /*FIXME vA&=vB;*/ }
+void Xor()    { /*FIXME vA^=vB;*/ } // Maybe add NOT and NEG too
 // Shifts
-void Shl()    { vA<<=enshift(vB); }
-void Shr()    { vA>>=enshift(vB); }
+void Shl()    { /*FIXME vA<<=enshift(vB);*/ }
+void Shr()    { /*FIXME vA>>=enshift(vB);*/ }
 // Moves
-void Get()    { vA = dm[safe(vB)]; }
-void Put()    { dm[safe(vB)] = vA; }
+void Get()    { /*FIXME vA = dm[safe(vB)];*/ }
+void Put()    { /*FIXME dm[safe(vB)] = vA;*/ }
 
-void Geti()   { WORD sB = safe(vB); vA = dm[safe(dm[sB])]; }
-void Puti()   { WORD sB = safe(vB); dm[safe(dm[sB])] = vA; } // untested
+void Geti()   { /*FIXME WORD sB = safe(vB); vA = dm[safe(dm[sB])];*/ }
+void Puti()   { /*FIXME WORD sB = safe(vB); dm[safe(dm[sB])] = vA;*/ } // untested
 
-void Decm()   { --dm[safe(vB)]; }
-void Incm()   { ++dm[safe(vB)]; }
+void Decm()   { /*FIXME --dm[safe(vB)];*/ }
+void Incm()   { /*FIXME ++dm[safe(vB)];*/ }
 
-void At()     { vB = dm[safe(vB)]; }
-void Copy()   { dm[safe(vB+vA)] = dm[safe(vB)]; } // a smell?
+void At()     { /*FIXME vB = dm[safe(vB)];*/ }
+void Copy()   { /*FIXME dm[safe(vB+vA)] = dm[safe(vB)];*/ } // a smell?
 // Increments for addressing
-void Inc()    { ++vB; }
-void Dec()    { --vB; }
+void Inc()    { /*FIXME ++vB;*/ }
+void Dec()    { /*FIXME --vB;*/ }
 // Immediates
-void Imm(METADATA x)    { vB = enrange(x); } // bits 31..0
-void Flip()             { vB = vB^MSb; }     // bit  32 (NOT might be better)
-// Transfers (maybe expand these)
-void Swap()   { vB = vB^vA; vA = vA^vB; vB = vB^vA; }
-void Tob()    { vB = vA; }
-void Tot()    { vT = vA; }
-void Tor()    { vR = vA; }
-void Fromb()  { vA = vB; }
-void Fromt()  { vA = vT; }
-void Fromr()  { vA = vR; }
+void Imm(METADATA x)    { /*FIXME vB = enrange(x);*/ } // bits 31..0
+void Flip()             { /*FIXME vB = vB^MSb;*/ }     // bit  32 (NOT might be better)
 // Machine metadata
-void Mdm()    { vA = DM_WORDS; }
+void Mdm()    { /*FIXME vA = DM_WORDS;*/ }
 // Other
-void Noop()   { ; }
+void Noop()   { /*FIXME ;*/ }
+/*FIXME 
 #define halt return enbyte(vA);
 // Jumps (static only), maybe reduce these back to jump and jmpe only
 #define jmpa(label) if (vA == 0) { goto label; } // vA is 0
@@ -117,6 +174,7 @@ void Noop()   { ; }
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
 #define out(label) putchar(vA); // If fail goto label
+*/
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
