@@ -21,7 +21,7 @@
  * experimentation and nothing more.
  * 
  * ===========================================================================
- *
+ * FIXME disallow decimal immediates
  */
 
 // Module modFVMA will provide a Freeputer Assembler implementation.
@@ -78,7 +78,6 @@ var modFVMA = (function () { 'use strict';
   const FROMR = 0x18000000|0
   const FROMT = 0x19000000|0
   const MEM   = 0x1a000000|0
-  const DONE  = 0x1b000000|0
   const HALT  = 0x1c000000|0
   const JMPA  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
@@ -88,7 +87,6 @@ var modFVMA = (function () { 'use strict';
   const JMPL  = 0x22000000|0
   const JUMP  = 0x23000000|0
   const RPT   = 0x24000000|0
-  const BR    = 0x25000000|0
   const IN    = 0x26000000|0 // FIXME make complex
   const OUT   = 0x27000000|0
 
@@ -123,9 +121,7 @@ var modFVMA = (function () { 'use strict';
     fromr:  FROMR,
     fromt:  FROMT,
     mem:    MEM,
-    done:   DONE,
     halt:   HALT,
-    do:     BR,
     in:     IN, // FIXME make complex
     out:    OUT,
     push:   PUSH,

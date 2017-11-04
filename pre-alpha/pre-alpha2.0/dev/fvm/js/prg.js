@@ -24,15 +24,12 @@ jump(s0000) /*start*/
 s0002: /*end:*/ b(0x00) halt
 
 // ===========================================================================
-// Pseudoinstructions: only these use do/done (formerly br/link)
-// ===========================================================================
-s000a: /*double*/ tob add done // TODO consider removing vL entirely
-
-// ===========================================================================
 // Experiments in factoring
 // ===========================================================================
-
-
+// Leave only the most significant nibble ------------------------------------
+s000b: /*msn*/ b(0x0fffffff) xor ret
+// Move the most significant nibble to the least significant nibble ----------
+s000c: /*msn_to_lsn*/ b(0x1c) shr ret
 
 
 // ===========================================================================
@@ -49,10 +46,10 @@ s0006: /*print_alphabet*/
     ret
 // ---------------------------------------------------------------------------
 // Hexadecimal print LSN -----------------------------------------------------
-s0003: /*alpha*/ b(0x57) /*'a'*/ add out fromt ret 
+s0003: /*alpha*/ b(0x57) /*'a'*/ add out fromt ret
 s0007: /*print_hex_nibble*/
   tot
-  b(0x0fffffff) xor b(0x1c) shr
+  call(s000c) /*msn_to_lsn*/
   b(0x09) jmpg(s0003) /*alpha*/
   b(0x30) /*'0'*/ add out fromt ret
 // ---------------------------------------------------------------------------
@@ -61,7 +58,7 @@ s0008: /*print_hex_word*/
   r(0x07)
   s0009: /*loop_print_hex*/
     call(s0007) /*print_hex_nibble*/
-    b(0x04) shl // FIXME disallow decimal immediates
+    b(0x04) shl
     rpt(s0009) /*print_hex_word*/
     ret
 // ---------------------------------------------------------------------------
@@ -70,7 +67,6 @@ s0008: /*print_hex_word*/
 // Secondary entry point
 // ===========================================================================
 s0001: /*go:*/
-  a(3) do(s000a) /*double*/
   a(0x00000000) call(s0007) /*print_hex_nibble*/
   a(0x90000000) call(s0007) /*print_hex_nibble*/
   a(0xa0000000) call(s0007) /*print_hex_nibble*/
