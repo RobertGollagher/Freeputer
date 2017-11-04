@@ -6,10 +6,10 @@ var prgSrc = `
   Program:    prg.js (also known as prg.c)
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20170930+
+  Updated:    20171104+
   ------------------
   FREE:
-  LAST SYMBOL: s0009
+  LAST SYMBOL: s000a
   ------------------
 
   FIXME Hit a roadblock: it appears a stack is necessary for practicality,
@@ -28,28 +28,26 @@ jump(s0000) /*start*/
 
 // Success -------------------------------------------------------------------
 
-s0002: /*end:*/ i(0x00) halt
+s0002: /*end:*/ b(0x00) halt
 
 
 // Text Output Utilities -----------------------------------------------------
-s0004: /*print_newline*/ i(0x0a) fromb out link
+s0004: /*print_newline*/ a(0x0a) out link
 // ---------------------------------------------------------------------------
 // Print the uppercase alphabet ----------------------------------------------
 s0006: /*print_alphabet*/
-    i(0x19) fromb tor
-    i(0x41) fromb
-    i(0x01)
+    a(0x41) b(0x01) r(0x19)
   s0005: /*loop_alpha:*/
     out add rpt(s0005) /*loop_alpha*/
     link
 // ---------------------------------------------------------------------------
 // Hexadecimal print LSN -----------------------------------------------------
-s0003: /*alpha*/ i(0x57) /*'a'*/ add out fromt link 
+s0003: /*alpha*/ b(0x57) /*'a'*/ add out fromt link 
 s0007: /*print_hex_nibble*/
   tot
-  i(0x0fffffff) xor i(0x1c) shr
-  i(0x09) jmpg(s0003) /*alpha*/
-  i(0x30) /*'0'*/ add out fromt link
+  b(0x0fffffff) xor b(0x1c) shr
+  b(0x09) jmpg(s0003) /*alpha*/
+  b(0x30) /*'0'*/ add out fromt ret /*link*/ // Changing from link to ret
 // ---------------------------------------------------------------------------
 
 
@@ -58,12 +56,10 @@ s0007: /*print_hex_nibble*/
 // and no way of returning as cannot do >1 level of link
 
 s0008: /*print_hex_word*/
-  tot
-  i(0x07) fromb tor
-  fromt
+  r(0x07)
   s0009: /*loop_print_hex*/
     br(s0007) /*print_hex_nibble*/
-    i(0x04) shl // FIXME disallow decimal immediates
+    b(0x04) shl // FIXME disallow decimal immediates
     rpt(s0009) /*print_hex_word*/
     // FIXME no way of returning
     halt
@@ -71,19 +67,67 @@ s0008: /*print_hex_word*/
 // Secondary entry point -----------------------------------------------------
 
 s0001: /*go:*/
-  i(0x00) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
-  i(0x09) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
-  i(0x0a) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
-  i(0x0f) fromb i(0x1c) shl br(s0007) /*print_hex_nibble*/
+  a(0x00000000) br(s0007) /*print_hex_nibble*/
+  a(0x90000000) br(s0007) /*print_hex_nibble*/
+  a(0xa0000000) br(s0007) /*print_hex_nibble*/
+  a(0xf0000000) br(s0007) /*print_hex_nibble*/
   br(s0004) /*print_newline*/
-  i(0x7654321a) fromb br(s0008) /*print_hex_word*/ // FIXME cannot return
+  a(0x7654321a) br(s0008) /*print_hex_word*/ // FIXME cannot return
   br(s0004) /*print_newline*/
   br(s0006) /*print_alphabet*/
   jump(s0002) /*end*/
 
 // Primary entry point -------------------------------------------------------
 
+s000a: /*halting:*/ halt
 s0000: /*start:*/
+
+
+
+  a(0x300) /*zs*/ // Just some arbitrary stack
+  b(0x200) /*zsp*/
+  put
+
+/*
+  get
+  b(0x02ff)
+  jmpe(s000a) /*halting:*/
+  // b(0x200) /*zsp*/
+*/
+
+  get
+  a(0x11111111)
+  push
+
+  get
+  a(0x22222222)
+  push
+
+  get
+  a(0x33333333)
+  push
+
+  get
+  a(0x44444444)
+  push
+
+  a(0x00)
+  get
+  pop
+
+  get
+  pop
+
+  get
+  pop
+
+  get
+  pop
+
+  call(s0007) /*print_hex_nibble*/
+
+  halt
+
   jump(s0001) /*go*/
 
 

@@ -5,7 +5,7 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20170930+
+ * Updated:    20171104+
  * Version:    pre-alpha-0.0.1.12+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
@@ -38,7 +38,18 @@ var modFVMA = (function () { 'use strict';
   const COMLINE= '//';
   //const COMWORD= '/';
 
-  const IM    = 0x80000000|0
+  // const IM    = 0x80000000|0  // NO LONGER USED
+
+  const IMMA  = 0x30000000|0
+  const IMMB  = 0x31000000|0
+  const IMMR  = 0x32000000|0
+  const IMMT  = 0x33000000|0
+
+  const PUSH  = 0x50000000|0
+  const POP   = 0x51000000|0
+
+
+
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -80,6 +91,9 @@ var modFVMA = (function () { 'use strict';
   const IN    = 0x26000000|0 // FIXME make complex
   const OUT   = 0x27000000|0
 
+  const CALL  = 0x60000000|0
+  const RET   = 0x61000000|0
+
   const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
     add:    ADD,
@@ -112,7 +126,11 @@ var modFVMA = (function () { 'use strict';
     halt:   HALT,
     br:     BR,
     in:     IN, // FIXME make complex
-    out:    OUT
+    out:    OUT,
+    push:   PUSH,
+    pop:    POP,
+    call:   CALL,
+    ret:    RET
   };
 
   const COND = {
@@ -205,11 +223,15 @@ var modFVMA = (function () { 'use strict';
       } else if (this.expectingCond(token, lineNum)) {
       //} else if (this.parseForw(token)) {
       //} else if (this.parseBackw(token)) {
-      } else if (this.parseLabelDecl(token)) {
+      } else if (this.parseLabelDecl(token, lineNum)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
-      } else if (this.parseImm(token)) { // FIXME enforce 31-bit limit
+      } else if (this.parseImmA(token)) {
+      } else if (this.parseImmB(token)) {
+      } else if (this.parseImmR(token)) {
+      } else if (this.parseImmT(token)) {
+      } else if (this.parseCall(token)) {
       } else if (this.parseJump(token)) {
       } else if (this.parseJmpA(token)) {
       } else if (this.parseJmpB(token)) {
@@ -280,7 +302,7 @@ var modFVMA = (function () { 'use strict';
        }      
      }
 
-     parseLabelDecl(token) { // TODO refactor this whole assembler later
+     parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later
         var intValue;
         if (token.length == 6 && token.match(/s[0-9a-f]{4}:/)){
           intValue = this.symbolToInt(token.substring(0,token.length-1));
@@ -377,13 +399,69 @@ var modFVMA = (function () { 'use strict';
     }
 */
 
-    parseImm(token) {
-      if (token.match(/i\(s[^\s]+\)/)){ // FIXME make more strict
+    parseImmA(token) {
+      if (token.match(/a\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
         var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, IM);
-      } else if (token.match(/i\([^\s]+\)/)){
+        return this.parseRef(symbolToken, IMMA);
+      } else if (token.match(/a\([^\s]+\)/)){
         var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        n = n | IM;
+        this.use(IMMA); // FIXME here moving to VW32/64 instr encoding
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseImmB(token) {
+      if (token.match(/b\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
+        var symbolToken = token.substring(2,token.length-1);
+        return this.parseRef(symbolToken, IMMB);
+      } else if (token.match(/b\([^\s]+\)/)){
+        var n = parseInt(token.substring(2,token.length-1)); //FIXME
+        this.use(IMMB); // FIXME here moving to VW32/64 instr encoding
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseImmR(token) {
+      if (token.match(/r\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
+        var symbolToken = token.substring(2,token.length-1);
+        return this.parseRef(symbolToken, IMMR);
+      } else if (token.match(/r\([^\s]+\)/)){
+        var n = parseInt(token.substring(2,token.length-1)); //FIXME
+        this.use(IMMR); // FIXME here moving to VW32/64 instr encoding
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseImmT(token) {
+      if (token.match(/t\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
+        var symbolToken = token.substring(2,token.length-1);
+        return this.parseRef(symbolToken, IMMT);
+      } else if (token.match(/t\([^\s]+\)/)){
+        var n = parseInt(token.substring(2,token.length-1)); //FIXME
+        this.use(IMMT); // FIXME here moving to VW32/64 instr encoding
+        this.use(n);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseCall(token) {
+      if (token.match(/call\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, CALL);
+      } else if (token.match(/call\([^\s]+\)/)){
+        var n = parseInt(token.substring(5,token.length-1)); //FIXME
+        n = n | CALL;
         this.use(n);
         return true;
       } else {

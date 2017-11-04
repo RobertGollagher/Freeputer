@@ -1,17 +1,17 @@
 /*
  * Copyright © 2017, Robert Gollagher.
  * SPDX-License-Identifier: GPL-3.0+
- * 
+ *
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20170930+
+ * Updated:    20171104+
  * Version:    pre-alpha-0.0.1.16+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
  *                           for HTML 5 browsers
- * 
+ *
  *                                ( ) [ ] { }
  *
  *  FIXME Hit a roadblock: it appears a stack is necessary for practicality,
@@ -19,12 +19,16 @@
  *  then it probably makes more sense to have a stack machine instead
  *  of a register machine, so Plan A not Plan G would win.
  *
+ * IDEA: we can have an unlimited number of stack pointers using GETI, PUTI
+ * and one can represent a return stack so long as we expose the PC and
+ * allow values to be copied to and from it.
+ *
  * ===========================================================================
- * 
+ *
  * WARNING: This is pre-alpha software and as such may well be incomplete,
  * unstable and unreliable. It is considered to be suitable only for
  * experimentation and nothing more.
- * 
+ *
  * ===========================================================================
  */
 
@@ -43,6 +47,7 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1
   const ILLEGAL = 2
   const BEYOND = 3
+
   const XS = 0x100 // 1 kB
   const  S = 0x1000 // 16 kB
   const  M = 0x10000 // 256 kB
@@ -53,6 +58,27 @@ var modFVM = (function () { 'use strict';
   const PM_MASK  = PM_WORDS-1
   const DM_WORDS = MAX_MEM_WORDS
   const DM_MASK  = DM_WORDS-1 // size: p3d3 (see '../../../README.md')
+
+  const WORD_BYTES = 4;
+  const WORD_PWR = 2; // FIXME necessary any more?
+  const STACK_ELEMS = 256; //256; FIXME
+  const STACK_BYTES = STACK_ELEMS << WORD_PWR;
+  const STACK_1 = STACK_BYTES - WORD_BYTES;
+
+
+  const IMMA  = 0x30000000|0
+  const IMMB  = 0x31000000|0
+  const IMMR  = 0x32000000|0
+  const IMMT  = 0x33000000|0
+
+
+  const TOZ   = 0x40000000|0
+  const FROMZ = 0x41000000|0
+
+  const PUSH  = 0x50000000|0
+  const POP   = 0x51000000|0
+
+
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -95,8 +121,12 @@ var modFVM = (function () { 'use strict';
   const OUT   = 0x27000000|0
   const IMM   = 0x80000000|0
 
+  const CALL  = 0x60000000|0
+  const RET   = 0x61000000|0
+
+
   const SYMBOLS = {
-  
+
     0x00000000: "nop  ",
     0x01000000: "add  ",
     0x02000000: "sub  ",
@@ -136,7 +166,21 @@ var modFVM = (function () { 'use strict';
     0x25000000: "br   ",
     0x26000000: "in   ",
     0x27000000: "out  ",
-    0x80000000: "imm  "
+//    0x80000000: "imm  "
+
+    0x30000000: "a    ",
+    0x31000000: "b    ",
+    0x32000000: "r    ",
+    0x33000000: "t    ",
+    0x34000000: "z    ",
+    0x40000000: "toz  ",
+    0x41000000: "fromz",
+    0x50000000: "push ",
+    0x51000000: "pop  ",
+
+    0x60000000: "call ",
+    0x61000000: "ret  ",
+
   };
 
   class FVM {
@@ -150,9 +194,13 @@ var modFVM = (function () { 'use strict';
       this.vR = 0|0; // repeat register
       this.vL = 0|0; // link register (not accessible)
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
+this.sI = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS)); // Harvard
       this.loadProgram(config.program, this.pm);
+
+
+      this.rs = new Stack(this);
     };
 
     loadProgram(pgm, mem) {
@@ -190,15 +238,42 @@ var modFVM = (function () { 'use strict';
 
         ++this.vZ;
 
+/*
         // Handle immediates
         if (instr&MSb) {
-          this.vB = this.enrange(instr);
+          this.vB = this.pmload(this.vZ);
+          ++this.vZ;
           continue;
         }
+*/
+
 
         // Handle all other instructions
         var opcode = instr & OPCODE_MASK;
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
+
+
+          case IMMA:  this.vA = this.pmload(this.vZ); ++this.vZ; break;
+          case IMMB:  this.vB = this.pmload(this.vZ); ++this.vZ; break;
+          case IMMR:  this.vR = this.pmload(this.vZ); ++this.vZ; break; // TODO make rpt work off the sp like a loop stack
+          case IMMT:  this.vT = this.pmload(this.vZ); ++this.vZ; break;
+
+
+// Experiment into making vB a reusable stack pointer
+          case POP:    //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
+                       this.sI = this.load(this.vB);
+                       //if (this.sI&DM_MASK!=0) return BEYOND;
+                       this.vA = this.load(this.sI);
+                       this.store(this.vB, ++this.sI); break;
+
+
+          case PUSH:   //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
+                       this.sI = this.load(this.vB);
+                       this.store(this.vB, --this.sI);
+                       //if (this.sI&DM_MASK!=0) return BEYOND;
+                       this.store(this.sI, this.vA); break;
+
+
           case NOP:    break;
           case ADD:    this.vA+=this.vB; break;
           case SUB:    this.vA-=this.vB; break;
@@ -215,13 +290,13 @@ var modFVM = (function () { 'use strict';
           case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.store(this.vB, this.vA); break;
           case GETI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       sI = this.load(vB);
-                       if (sI&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(sI); break;
+                       this.sI = this.load(this.vB);
+                       if (this.sI&DM_MASK!=0) return BEYOND;
+                       this.vA = this.load(this.sI); break;
           case PUTI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       sI = this.load(vB);
-                       if (sI&DM_MASK!=0) return BEYOND;
-                       this.store(sI, this.vA); break;
+                       this.sI = this.load(this.vB);
+                       if (this.sI&DM_MASK!=0) return BEYOND;
+                       this.store(this.sI, this.vA); break;
           case INCM:   if (this.vB&DM_MASK!=0) return BEYOND;
                        val = this.load(vB); this.store(vB, ++val); break;
           case DECM:   if (this.vB&DM_MASK!=0) return BEYOND;
@@ -239,6 +314,12 @@ var modFVM = (function () { 'use strict';
           case FROMB:  this.vA = this.vB; break;
           case FROMR:  this.vA = this.vR; break;
           case FROMT:  this.vA = this.vT; break;
+
+
+          case TOZ:    this.vZ = this.vA; break;
+          case FROMZ:  this.vA = this.vZ; break;
+
+
           case JMPA:   if (this.vA == 0) this.vZ = instr&PM_MASK; break;
           case JMPB:   if (this.vB == 0) this.vZ = instr&PM_MASK; break;
           case JMPE:   if (this.vA == this.vB) this.vZ = instr&PM_MASK; break;
@@ -249,6 +330,13 @@ var modFVM = (function () { 'use strict';
           case RPT:    if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } break;
           case BR:     this.vL = this.vZ; this.vZ = instr&PM_MASK; break;
           case LINK:   this.vZ = this.vL; break;
+
+
+          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
+          case RET:    this.vZ = this.rs.doPop(); break;
+
+
+
           case MEM:    this.vA = PM_WORDS; break;
           case IN:     this.vA = this.fnStdin(); break; // FIXME
           case OUT:    this.fnStdout(this.enbyte(this.vA)); break; // FIXME
@@ -286,8 +374,62 @@ var modFVM = (function () { 'use strict';
         "vB:" + modFmt.hex8(this.vB) + " " +
         "vT:" + modFmt.hex8(this.vT) + " " +
         "vR:" + modFmt.hex8(this.vR) + " " +
-        "vL:" + modFmt.hex8(this.vL);
+        "vL:" + modFmt.hex8(this.vL) + " { " +
+        this.rs + "}";
       this.fnTrc(traceStr);
+    }
+  }
+
+  class Stack {
+    constructor(fvm) {
+      this.fvm = fvm;
+      this.elems = new DataView(new ArrayBuffer(STACK_BYTES));
+      this.sp = STACK_BYTES;
+    }
+
+    used() {
+      return (STACK_BYTES-this.sp)>>WORD_PWR;
+    }
+
+    avail() {
+      return STACK_ELEMS-this.used();
+    }
+
+    doPush(i) {
+      if (this.sp >= WORD_BYTES) {
+        this.sp = (this.sp-WORD_BYTES);
+      } else {
+        throw FAILURE; // overflow
+        return;
+      }
+      this.elems.setInt32(this.sp, i, true);
+    }
+
+    doPop() {
+      if (this.sp <= STACK_1) {
+        var elem = this.elems.getInt32(this.sp, true);
+        this.sp += WORD_BYTES;
+        return elem;
+      } else {
+        throw FAILURE; // underflow
+      }
+    }
+
+    doPeek() {
+      if (this.sp <= STACK_1) {
+        var elem = this.elems.getInt32(this.sp, true);
+        return elem;
+      } else {
+        throw FAILURE; // underflow
+      }
+    }
+
+    toString() {
+      var str = '';
+      for (var i = STACK_1; i >= this.sp; i-=WORD_BYTES) {
+        str = str + modFmt.hex8(this.elems.getUint32(i, true)) + ' ';
+      }
+      return str;
     }
   }
 
@@ -305,7 +447,7 @@ var modFVM = (function () { 'use strict';
     },
     makeConfig: function(prg) {
       return new Config(prg);
-    } 
+    }
   };
 
 })(); // modFVM
