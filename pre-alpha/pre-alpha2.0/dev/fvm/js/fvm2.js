@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171104+
- * Version:    pre-alpha-0.0.1.16+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.17+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -77,7 +77,8 @@ var modFVM = (function () { 'use strict';
 
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
-
+  const DPUSH = 0x52000000|0
+  const DPOP  = 0x53000000|0
 
 
   const NOP   = 0x00000000|0 // Simple
@@ -178,6 +179,9 @@ var modFVM = (function () { 'use strict';
     0x50000000: "push ",
     0x51000000: "pop  ",
 
+    0x52000000: "dpush",
+    0x53000000: "dpop ",
+
     0x60000000: "call ",
     0x61000000: "ret  ",
 
@@ -201,6 +205,7 @@ this.sI = 0|0; //tmp var only
 
 
       this.rs = new Stack(this);
+      this.ds = new Stack(this);
     };
 
     loadProgram(pgm, mem) {
@@ -272,6 +277,10 @@ this.sI = 0|0; //tmp var only
                        this.store(this.vB, --this.sI);
                        //if (this.sI&DM_MASK!=0) return BEYOND;
                        this.store(this.sI, this.vA); break;
+
+
+          case DPUSH:  this.ds.doPush(this.vA); break;
+          case DPOP:   this.vA = this.ds.doPop(); break;
 
 
           case NOP:    break;
@@ -374,7 +383,8 @@ this.sI = 0|0; //tmp var only
         "vB:" + modFmt.hex8(this.vB) + " " +
         "vT:" + modFmt.hex8(this.vT) + " " +
         "vR:" + modFmt.hex8(this.vR) + " " +
-        "vL:" + modFmt.hex8(this.vL) + " { " +
+        "vL:" + modFmt.hex8(this.vL) + " ( " +
+        this.ds + ") { " +
         this.rs + "}";
       this.fnTrc(traceStr);
     }

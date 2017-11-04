@@ -97,18 +97,22 @@ s0000: /*start:*/
 
   get
   a(0x11111111)
+dpush
   push
 
   get
   a(0x22222222)
+dpush
   push
 
   get
   a(0x33333333)
+dpush
   push
 
   get
   a(0x44444444)
+dpush
   push
 
   a(0x00)
@@ -125,6 +129,11 @@ s0000: /*start:*/
   pop
 
   call(s0007) /*print_hex_nibble*/
+
+dpop
+dpop
+dpop
+dpop
 
   halt
 
