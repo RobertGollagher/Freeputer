@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171104+
- * Version:    pre-alpha-0.0.1.19+ for FVM 2.0
+ * Updated:    20171105+
+ * Version:    pre-alpha-0.0.1.20+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -113,7 +113,6 @@ var modFVM = (function () { 'use strict';
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
-  const SWAP  = 0x13000000|0
 
   const TOR   = 0x15000000|0
 
@@ -137,7 +136,10 @@ var modFVM = (function () { 'use strict';
   const RET   = 0x61000000|0
 
   const DROP  = 0x70000000|0
-
+  const SWAP  = 0x71000000|0
+  const OVER  = 0x72000000|0
+  const ROT   = 0x73000000|0
+  const DUP   = 0x74000000|0
 
   const LIT   = 0x80000000|0
 
@@ -161,7 +163,7 @@ var modFVM = (function () { 'use strict';
     0x10000000: "inc  ",
     0x11000000: "dec  ",
     0x12000000: "flip ",
-    0x13000000: "swap ",
+
     0x14000000: "tob  ",
     0x15000000: "tor  ",
 
@@ -201,6 +203,10 @@ var modFVM = (function () { 'use strict';
     0x61000000: "ret  ",
 
     0x70000000: "drop ",
+    0x71000000: "swap ",
+    0x72000000: "over ",
+    0x73000000: "rot  ",
+    0x74000000: "dup  ",
 
     0x80000000: "lit  "
 
@@ -302,7 +308,13 @@ try {
 
 
 
-          case DROP:    this.ds.drop(); break;
+
+// This block is all done except corner cases
+          case DROP:   this.ds.drop(); break;
+          case SWAP:   this.ds.swap(); break;
+          case OVER:   this.ds.over(); break;
+          case ROT:    this.ds.rot(); break; // FIXME
+          case DUP:    this.ds.dup(); break;
           case NOP:    break;
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
@@ -314,12 +326,7 @@ try {
           case SHR:    this.ds.apply2((a,b) => a>>>b); break;
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
-
-
-
-
-
-
+// End of done block
 
 
 
@@ -344,9 +351,6 @@ try {
           case AT:     if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vB = this.load(this.vB); break;
 
-          case SWAP:   this.vB = this.vB^this.vA;
-                       this.vA = this.vA^this.vB;
-                       this.vB = this.vB^this.vA; break;
 
 
           case JMPA:   if (this.vA == 0) this.vZ = instr&PM_MASK; break;
@@ -462,6 +466,45 @@ try {
       } else {
         throw this.uerr; // underflow
       }
+    }
+
+    swap() {
+      if (this.sp <= STACK_1+1) {
+        var a = this.elems.getInt32(this.sp, true);
+        var b = this.elems.getInt32(this.sp+WORD_BYTES, true);
+        this.elems.setInt32(this.sp, b, true);
+        this.elems.setInt32(this.sp+WORD_BYTES, a, true);
+      } else {
+        throw this.uerr; // underflow
+      }
+    }
+
+    over() {
+      if (this.sp <= STACK_1-1) {
+        var elem = this.elems.getInt32(this.sp+WORD_BYTES, true);
+        this.doPush(elem);
+      } else {
+        throw this.uerr; // underflow
+      }
+    }
+
+    rot() {
+      if (this.sp <= STACK_1-2) {
+        var a = this.elems.getInt32(this.sp+WORD_BYTES+WORD_BYTES, true);
+        var b = this.elems.getInt32(this.sp+WORD_BYTES, true);
+        var c = this.elems.getInt32(this.sp, true);
+        this.elems.setInt32(this.sp, a, true);
+        this.elems.setInt32(this.sp+WORD_BYTES, c, true);
+        this.elems.setInt32(this.sp+WORD_BYTES+WORD_BYTES, b, true);
+      } else {
+        throw this.uerr; // underflow
+      }
+    }
+
+
+    dup() {
+      var elem = this.doPeek();
+      this.doPush(elem);
     }
 
     doPop() {

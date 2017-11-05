@@ -6,11 +6,14 @@ var prgSrc = `
   Program:    prg.js (also known as prg.c)
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171104+
+  Updated:    20171105+
   ------------------
   FREE:
   LAST SYMBOL: s0013
   ------------------
+
+  Most of this file can be ignored as obsolete.
+  It is gradually being converted from register machine to stack machine.
 
 */
 
@@ -81,6 +84,7 @@ s0008: /*print_hex_word*/
 // ===========================================================================
 
 s0001: /*go:*/
+/* // All these work thus far but not in corner cases yet:
   3 5 add
   7 sub
   2 or
@@ -92,6 +96,13 @@ s0001: /*go:*/
   3 shr
   inc
   dec
+  2 3 4 dup drop
+  swap swap
+*/
+  1 2 3 4
+  over over drop drop
+  rot rot rot
+
 
 
 //  a(0x7654321a) call(s0008) /*print_hex_word*/
