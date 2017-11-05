@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170826
-Updated:    20170923+
-Version:    pre-alpha-0.0.0.34+ for FVM 2.0
+Updated:    20170923++
+Version:    pre-alpha-0.0.0.35+ for FVM 2.0
 =======
 
                               This Edition:
@@ -116,10 +116,27 @@ and set the build flag x86_64 to YES to build for x86-64.
 # ============================================================================
 #                            INSTRUCTION SET
 # ============================================================================
+/*
 .macro i x
   movl $\x, vB
   andl $METADATA_MASK, vB
 .endm
+*/
+
+.macro a x
+  movl $\x, vA
+.endm
+.macro b x
+  movl $\x, vB
+.endm
+.macro r x
+  movl $\x, vR
+.endm
+.macro t x
+  movl $\x, vT
+.endm
+
+
 .macro add
   addl vB, vA
 .endm

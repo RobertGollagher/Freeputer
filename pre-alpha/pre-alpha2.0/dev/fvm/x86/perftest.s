@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    perftest.s
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170902
-Updated:    20170902+
-Version:    pre-alpha-0.0.0.1+ for FVM 2.0
+Updated:    20170902++
+Version:    pre-alpha-0.0.0.2+ for FVM 2.0
 
 This is an example program using the 'qmisc.s' virtual machine definition.
 This example program is a performance test of noop repeats.
@@ -26,9 +26,7 @@ This requires the build flag NO_PROGRAM to be NO in 'qmisc.c'.
 .include "qmisc.s"
 
 # Runs in less than 1.4 seconds
-i(0x7fffffff)
-fromb
-tor
+r(0x7fffffff)
 foo:
 .ifeq TRACING_ENABLED
   TRACE_INSTR
