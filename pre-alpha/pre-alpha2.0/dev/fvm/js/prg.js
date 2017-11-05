@@ -87,6 +87,7 @@ dpop
 // ===========================================================================
 
 s0001: /*go:*/
+  3 5 add // FIXME NEXT should look like: 3 5 add (but limited to 31 bits)
 //  a(0x7654321a) call(s0008) /*print_hex_word*/
 //  call(s0004) /*print_newline*/
 //  call(s0006) /*print_alphabet*/

@@ -94,6 +94,8 @@ var modFVMA = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+  const LIT   = 0x80000000|0
+
   const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
     add:    ADD,
@@ -133,7 +135,8 @@ var modFVMA = (function () { 'use strict';
     tpop:   TPOP,
     rpop:   RPOP,
     call:   CALL,
-    ret:    RET
+    ret:    RET,
+    lit:    LIT
   };
 
   const COND = {
@@ -243,6 +246,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseJmpL(token)) {
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
+      } else if (this.parseDecimalLiteral(token)) {
       } else if (this.parseHex2(token)) {
       } else if (this.parseHex4(token)) {
       } else if (this.parseHex6(token)) {
@@ -568,6 +572,17 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/do\(s[^\s]+\)/)){
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, BR);
+      } else {
+        return false;
+      }
+    }
+
+    parseDecimalLiteral(token) {
+      if (token.match(/[0-9a]/)){
+        var n = parseInt(token,10);
+        // FIXME add check for literal too big
+        this.use(n|LIT);
+        return true;
       } else {
         return false;
       }

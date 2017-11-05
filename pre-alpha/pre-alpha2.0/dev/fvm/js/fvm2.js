@@ -55,6 +55,12 @@ var modFVM = (function () { 'use strict';
   const ILLEGAL = 2
   const BEYOND = 3
 
+
+  const INT_MAX =  2147483647;
+  const INT_MIN = -2147483648;
+
+
+  const MATH_OVERFLOW = 21
   const DS_UNDERFLOW = 31
   const DS_OVERFLOW = 32
   const RS_UNDERFLOW = 33
@@ -141,6 +147,7 @@ var modFVM = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+  const LIT   = 0x80000000|0
 
   const SYMBOLS = {
 
@@ -203,6 +210,8 @@ var modFVM = (function () { 'use strict';
     0x60000000: "call ",
     0x61000000: "ret  ",
 
+    0x80000000: "lit  ",
+
   };
 
   class FVM {
@@ -262,14 +271,12 @@ this.sI = 0|0; //tmp var only
 
         ++this.vZ;
 
-/*
+
         // Handle immediates
         if (instr&MSb) {
-          this.vB = this.pmload(this.vZ);
-          ++this.vZ;
+          this.ds.doPush(instr&METADATA_MASK);
           continue;
         }
-*/
 
 
         // Handle all other instructions
@@ -312,11 +319,7 @@ try {
 //          case ADD:    this.vA+=this.vB; break;
 
 
-          case ADD: 
-            tos = this.ds.doPop();
-            nos = this.ds.doPop();
-            this.ds.apply2((a,b) => a+b);
-            break;
+          case ADD:    this.ds.apply2((a,b) => a+b); break;
 
 
 
@@ -508,7 +511,7 @@ try {
         if (b) {
           this.doPush(b);
         }
-        throw FAILURE;
+        throw MATH_OVERFLOW;
       }
       return i;
     }
