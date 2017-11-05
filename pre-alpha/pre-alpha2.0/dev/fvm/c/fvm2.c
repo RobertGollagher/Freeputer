@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20171104+
-Version:    pre-alpha-0.0.6.3+ for FVM 2.0
+Version:    pre-alpha-0.0.6.5+ for FVM 2.0
 =======
 
                               This Edition:
@@ -20,6 +20,14 @@ Version:    pre-alpha-0.0.6.3+ for FVM 2.0
   Currently in the process of converting this from a register machine
   to a stack machine with 4 stacks: ds, ts, rs, cs as per recent experiments
   with 'fvm2.js' but here in a native Harvard implementation for simplicity.
+
+  WORDs are unsigned to avoid undefined behaviour in C!
+
+  UPDATE: This 'fvm2.c' has demonstrated that a native Harvard implementation
+  of the new 4-stack architecture is feasible. Of course this implementation
+  is very, very incomplete. Parking this for now in favour of working on
+  an interpreted version in JavaScript; so for now work will continue
+  in 'fvm2.js' which is where the VM will be refined at first.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -51,6 +59,8 @@ static jmp_buf exc_env;
 static int exc_code;
 #define DS_UNDERFLOW 31
 #define DS_OVERFLOW 32
+#define CS_UNDERFLOW 37
+#define CS_OVERFLOW 38
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
@@ -82,6 +92,29 @@ WORD wdPop(WDSTACK *s, int error_code) {
   if ((s->sp)>0) {
     WORD wd = s->elem[--(s->sp)];
     return wd;
+  } else {
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
+  }
+}
+WORD wdPeek(WDSTACK *s, int error_code) {
+  if ((s->sp)>0) {
+    WORD wd = s->elem[(s->sp)-1];
+    return wd;
+  } else {
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
+  }
+}
+WORD wdPeekAndDec(WDSTACK *s, int error_code) {
+  if ((s->sp)>0) {
+    WORD wd = s->elem[(s->sp)-1];
+    if (wd == 0) {
+      return wd; // Already 0, do not decrement further
+    } else {
+      --(s->elem[(s->sp)-1]);
+      return wd-1;
+    }
   } else {
     exc_code = error_code;
     longjmp(exc_env, exc_code);
@@ -150,7 +183,8 @@ void Flip()             { /*FIXME vB = vB^MSb;*/ }     // bit  32 (NOT might be 
 // Machine metadata
 void Mdm()    { /*FIXME vA = DM_WORDS;*/ }
 // Other
-void Noop()   { /*FIXME ;*/ }
+#define nopasm "nop" // The name of the native hardware nop instruction
+void Noop()   { __asm(nopasm); }
 /*FIXME
 #define halt return enbyte(vA);
 // Jumps (static only), maybe reduce these back to jump and jmpe only
@@ -167,6 +201,14 @@ void Noop()   { /*FIXME ;*/ }
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
 */
+
+#define rpt(label) if (wdPeekAndDec(&cs, CS_UNDERFLOW) != 0) { goto label; }
+
+void ToCS() {
+  WORD wd = wdPop(&ds, DS_UNDERFLOW);
+  wdPush(wd, &cs, CS_OVERFLOW);
+}
+
 void Out() {
   WORD wd = wdPop(&ds, DS_UNDERFLOW);
   putchar(wd); // FIXME
@@ -183,10 +225,23 @@ int main() {
 }
 // ===========================================================================
 int exampleProgram() {
-  Imm(10);
-  Imm(65);
-  Out();
-  Out();
+  // Performance test, 0x7fffffff repeats: 2.1/4.1 s without/with Noop()
+  Imm(0x7fffffff);
+  ToCS();
+  perfLoop:
+    //Noop();
+    rpt(perfLoop)
+
+/*
+  Imm(4);
+  ToCS();
+  loop:
+    Imm(10);
+    Imm(65);
+    Out();
+    Out();
+    rpt(loop)
+*/
 }
 // ===========================================================================
 
