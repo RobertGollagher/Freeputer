@@ -87,7 +87,7 @@ dpop
 // ===========================================================================
 
 s0001: /*go:*/
-  a(0x7654321a) call(s0008) /*print_hex_word*/
+//  a(0x7654321a) call(s0008) /*print_hex_word*/
 //  call(s0004) /*print_newline*/
 //  call(s0006) /*print_alphabet*/
   jump(s0002) /*end*/

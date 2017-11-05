@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171104+
- * Version:    pre-alpha-0.0.1.18+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.19+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -15,9 +15,20 @@
  *                                ( ) [ ] { }
  *
  *
- * IDEA: we can have an unlimited number of stack pointers using GETI, PUTI
- * and one can represent a return stack so long as we expose the PC and
- * allow values to be copied to and from it.
+ * FINAL OR NEAR FINAL DECISIONS:
+ * * Intended purpose: computation, algorithms
+ * * Stack machine with 4 stacks: ds, ts, cs, rs
+ * * Signed 32-bit two's complement integers: unfortunately (for portability)
+ * * Special arithmetic behaviour shall make this practical (maybe with NaN)
+ * * Trap rather than branch on failure: simpler and ensures correctness
+ * * No machine reset on trap: the machine simply stops
+ * * Robustness is the programmer's responsibility
+ * * Virtualization is the robustness strategy
+ * * FW32 instruction encoding if possible
+ *
+ * Note: the above is not all implemented yet.
+ * This 'fvm2.js' is being converted from a register machine to a
+ * stack machine and is currently in an inconsistent state.
  *
  * ===========================================================================
  *
@@ -43,6 +54,16 @@ var modFVM = (function () { 'use strict';
   const FAILURE = 1
   const ILLEGAL = 2
   const BEYOND = 3
+
+  const DS_UNDERFLOW = 31
+  const DS_OVERFLOW = 32
+  const RS_UNDERFLOW = 33
+  const RS_OVERFLOW = 34
+  const TS_UNDERFLOW = 35
+  const TS_OVERFLOW = 36
+  const CS_UNDERFLOW = 37
+  const CS_OVERFLOW = 38
+
 
   const XS = 0x100 // 1 kB
   const  S = 0x1000 // 16 kB
@@ -189,8 +210,7 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.fnStdout = config.fnStdout;
       this.tracing = true; // comment this line out unless debugging
-      this.vA = 0|0; // accumulator
-      this.vB = 0|0; // operand register
+
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
 this.sI = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
@@ -198,10 +218,10 @@ this.sI = 0|0; //tmp var only
       this.loadProgram(config.program, this.pm);
 
 
-      this.rs = new Stack(this); // return stack
-      this.ds = new Stack(this); // data stack
-      this.ts = new Stack(this); // temporary stack
-      this.cs = new Stack(this); // counter stack or repeat stack
+      this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
+      this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
+      this.ts = new Stack(this,TS_UNDERFLOW,TS_OVERFLOW); // temporary stack
+      this.cs = new Stack(this,CS_UNDERFLOW,CS_OVERFLOW); // counter stack or repeat stack
     };
 
     loadProgram(pgm, mem) {
@@ -228,6 +248,9 @@ this.sI = 0|0; //tmp var only
     run() {
       this.initVM();
       while(true) {
+        var tos = 0|0;
+        var nos = 0|0;
+
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
           this.traceVM(instr);
@@ -251,6 +274,8 @@ this.sI = 0|0; //tmp var only
 
         // Handle all other instructions
         var opcode = instr & OPCODE_MASK;
+
+try {
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
 
@@ -283,7 +308,18 @@ this.sI = 0|0; //tmp var only
           case TPOP:   this.vA = this.ts.doPop(); break;
 
           case NOP:    break;
-          case ADD:    this.vA+=this.vB; break;
+
+//          case ADD:    this.vA+=this.vB; break;
+
+
+          case ADD: 
+            tos = this.ds.doPop();
+            nos = this.ds.doPop();
+            this.ds.apply2((a,b) => a+b);
+            break;
+
+
+
           case SUB:    this.vA-=this.vB; break;
           case OR:     this.vA|=this.vB; break;
           case AND:    this.vA&=this.vB; break;
@@ -353,6 +389,9 @@ this.sI = 0|0; //tmp var only
           case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
           default: return ILLEGAL; break;
         }
+      } catch(e) {   
+          return e;
+        }
       }
     }
 
@@ -379,9 +418,7 @@ this.sI = 0|0; //tmp var only
       var traceStr =
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
-        mnem + " " +
-        "vA:" + modFmt.hex8(this.vA) + " " +
-        "vB:" + modFmt.hex8(this.vB) + " " +
+        mnem + " / " +
         this.cs + "/ ( " +
         this.ds + ") [ " +
         this.ts + "] { " +
@@ -391,7 +428,9 @@ this.sI = 0|0; //tmp var only
   }
 
   class Stack {
-    constructor(fvm) {
+    constructor(fvm, uerr, oerr) {
+      this.uerr = uerr;
+      this.oerr = oerr;
       this.fvm = fvm;
       this.elems = new DataView(new ArrayBuffer(STACK_BYTES));
       this.sp = STACK_BYTES;
@@ -417,7 +456,7 @@ this.sI = 0|0; //tmp var only
       if (this.sp <= STACK_1) {
         this.elems.setInt32(this.sp, i, true);
       } else {
-        throw FAILURE; // underflow
+        throw this.uerr; // underflow
       }
     }
 
@@ -425,7 +464,7 @@ this.sI = 0|0; //tmp var only
       if (this.sp >= WORD_BYTES) {
         this.sp = (this.sp-WORD_BYTES);
       } else {
-        throw FAILURE; // overflow
+        throw this.oerr; // overflow
         return;
       }
       this.elems.setInt32(this.sp, i, true);
@@ -437,7 +476,7 @@ this.sI = 0|0; //tmp var only
         this.sp += WORD_BYTES;
         return elem;
       } else {
-        throw FAILURE; // underflow
+        throw this.uerr; // underflow
       }
     }
 
@@ -446,8 +485,32 @@ this.sI = 0|0; //tmp var only
         var elem = this.elems.getInt32(this.sp, true);
         return elem;
       } else {
-        throw FAILURE; // underflow
+        throw this.uerr; // underflow
       }
+    }
+
+    apply1(f) {
+      var a = this.doPop();
+      this.doPush(this.verify(f(a), a));
+    }
+
+    apply2(f) {
+      var b = this.doPop();
+      var a = this.doPop();
+      this.doPush(this.verify(f(a,b), a, b));
+    }
+
+    verify(i, a , b) {
+      if (i < INT_MIN || i > INT_MAX) {
+        if (a) {
+          this.doPush(a);
+        }
+        if (b) {
+          this.doPush(b);
+        }
+        throw FAILURE;
+      }
+      return i;
     }
 
     toString() {
