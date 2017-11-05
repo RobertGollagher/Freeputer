@@ -19,7 +19,7 @@ jump(s0000) /*start*/
 
 
 // Success
-s0002: /*end:*/ b(0x00) halt
+s0002: /*end:*/ halt
 
 // ===========================================================================
 
@@ -75,19 +75,25 @@ s0008: /*print_hex_word*/
   s0009: /*loop_print_hex*/
     call(s0007) /*print_hex_msn*/
     call(s000d) /*shl_nibble*/
-
-dpush
-a(0x42)
-call(s0011) /*print4_2*/
-dpop
-
     rpt(s0009) /*loop_print_hex*/
     ret
 
 // ===========================================================================
 
 s0001: /*go:*/
-  3 5 add // FIXME NEXT should look like: 3 5 add (but limited to 31 bits)
+  3 5 add
+  7 sub
+  2 or
+  2 and
+  2 xor
+  flip
+  drop
+  1 3 shl
+  3 shr
+  inc
+  dec
+
+
 //  a(0x7654321a) call(s0008) /*print_hex_word*/
 //  call(s0004) /*print_newline*/
 //  call(s0006) /*print_alphabet*/

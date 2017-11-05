@@ -47,8 +47,7 @@ var modFVMA = (function () { 'use strict';
 
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
-  const DPUSH = 0x52000000|0
-  const DPOP  = 0x53000000|0
+
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
 
@@ -94,6 +93,8 @@ var modFVMA = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+  const DROP  = 0x70000000|0
+
   const LIT   = 0x80000000|0
 
   const SYMBOLS = { // Note: simple only here, complex in code below
@@ -129,14 +130,15 @@ var modFVMA = (function () { 'use strict';
     out:    OUT,
     push:   PUSH,
     pop:    POP,
-    dpush:  DPUSH,
-    dpop:   DPOP,
+
     tpush:  TPUSH,
     tpop:   TPOP,
     rpop:   RPOP,
     call:   CALL,
     ret:    RET,
-    lit:    LIT
+    lit:    LIT,
+
+    drop:   DROP
   };
 
   const COND = {

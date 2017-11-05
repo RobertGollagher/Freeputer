@@ -88,19 +88,9 @@ var modFVM = (function () { 'use strict';
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
 
-
-  const IMMA  = 0x30000000|0
-  const IMMB  = 0x31000000|0
-  const IMMR  = 0x32000000|0
-
-
-  const TOZ   = 0x40000000|0
-  const FROMZ = 0x41000000|0
-
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
-  const DPUSH = 0x52000000|0
-  const DPOP  = 0x53000000|0
+
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
   const RPOP  = 0x33000000|0
@@ -124,10 +114,10 @@ var modFVM = (function () { 'use strict';
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
   const SWAP  = 0x13000000|0
-  const TOB   = 0x14000000|0
+
   const TOR   = 0x15000000|0
 
-  const FROMB = 0x17000000|0
+
   const FROMR = 0x18000000|0
 
   const MEM   = 0x1a000000|0
@@ -142,10 +132,12 @@ var modFVM = (function () { 'use strict';
   const RPT   = 0x24000000|0
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
-  const IMM   = 0x80000000|0
 
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
+
+  const DROP  = 0x70000000|0
+
 
   const LIT   = 0x80000000|0
 
@@ -190,8 +182,6 @@ var modFVM = (function () { 'use strict';
     0x27000000: "out  ",
 //    0x80000000: "imm  "
 
-    0x30000000: "a    ",
-    0x31000000: "b    ",
     0x32000000: "r    ",
     0x33000000: "rpop ",
 
@@ -210,7 +200,9 @@ var modFVM = (function () { 'use strict';
     0x60000000: "call ",
     0x61000000: "ret  ",
 
-    0x80000000: "lit  ",
+    0x70000000: "drop ",
+
+    0x80000000: "lit  "
 
   };
 
@@ -219,9 +211,8 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.fnStdout = config.fnStdout;
       this.tracing = true; // comment this line out unless debugging
-
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
-this.sI = 0|0; //tmp var only
+      this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS)); // Harvard
       this.loadProgram(config.program, this.pm);
@@ -286,84 +277,76 @@ try {
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
 
-          case IMMA:  this.vA = this.pmload(this.vZ); ++this.vZ; break;
-          case IMMB:  this.vB = this.pmload(this.vZ); ++this.vZ; break;
 
-
-          case IMMR:  this.cs.doPush(this.pmload(this.vZ)); ++this.vZ; break;
+         // case IMMR:  this.cs.doPush(this.pmload(this.vZ)); ++this.vZ; break;
           case RPOP:  this.cs.doPop(); break; // FIXME reconsider, maybe to vA? Also need drop
 
 
 // Experiment into making vB a reusable stack pointer
           case POP:    //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
-                       this.sI = this.load(this.vB);
-                       //if (this.sI&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(this.sI);
-                       this.store(this.vB, ++this.sI); break;
+                       this.tmp = this.load(this.vB);
+                       //if (this.tmp&DM_MASK!=0) return BEYOND;
+                       this.vA = this.load(this.tmp);
+                       this.store(this.vB, ++this.tmp); break;
 
 
           case PUSH:   //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
-                       this.sI = this.load(this.vB);
-                       this.store(this.vB, --this.sI);
-                       //if (this.sI&DM_MASK!=0) return BEYOND;
-                       this.store(this.sI, this.vA); break;
+                       this.tmp = this.load(this.vB);
+                       this.store(this.vB, --this.tmp);
+                       //if (this.tmp&DM_MASK!=0) return BEYOND;
+                       this.store(this.tmp, this.vA); break;
 
 
-          case DPUSH:  this.ds.doPush(this.vA); break;
-          case DPOP:   this.vA = this.ds.doPop(); break;
           case TPUSH:  this.ts.doPush(this.vA); break;
           case TPOP:   this.vA = this.ts.doPop(); break;
 
+
+
+          case DROP:    this.ds.drop(); break;
           case NOP:    break;
-
-//          case ADD:    this.vA+=this.vB; break;
-
-
           case ADD:    this.ds.apply2((a,b) => a+b); break;
+          case SUB:    this.ds.apply2((a,b) => a-b); break;
+          case OR:     this.ds.apply2((a,b) => a|b); break;
+          case AND:    this.ds.apply2((a,b) => a&b); break;
+          case XOR:    this.ds.apply2((a,b) => a^b); break;
+          case FLIP:   this.ds.apply1((a) => a^MSb); break;
+          case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
+          case SHR:    this.ds.apply2((a,b) => a>>>b); break;
+          case INC:    this.ds.apply1((a) => ++a); break;
+          case DEC:    this.ds.apply1((a) => --a); break;
 
 
 
-          case SUB:    this.vA-=this.vB; break;
-          case OR:     this.vA|=this.vB; break;
-          case AND:    this.vA&=this.vB; break;
-          case XOR:    this.vA^=this.vB; break;
-          case FLIP:   this.vB = this.vB^MSb; break;
-          // So weird in JavaScript that better not to have shl at all?
-          // TODO Needs further testing in JavaScript
-          case SHL:    this.vA=(this.vA*Math.pow(2,this.enshift(this.vB))); break;
-          case SHR:    this.vA>>>=this.enshift(this.vB); break;
+
+
+
+
+
+
+
+
           case GET:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vA = this.load(this.vB); break;
           case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
                        this.store(this.vB, this.vA); break;
           case GETI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.sI = this.load(this.vB);
-                       if (this.sI&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(this.sI); break;
+                       this.tmp = this.load(this.vB);
+                       if (this.tmp&DM_MASK!=0) return BEYOND;
+                       this.vA = this.load(this.tmp); break;
           case PUTI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.sI = this.load(this.vB);
-                       if (this.sI&DM_MASK!=0) return BEYOND;
-                       this.store(this.sI, this.vA); break;
+                       this.tmp = this.load(this.vB);
+                       if (this.tmp&DM_MASK!=0) return BEYOND;
+                       this.store(this.tmp, this.vA); break;
           case INCM:   if (this.vB&DM_MASK!=0) return BEYOND;
                        val = this.load(vB); this.store(vB, ++val); break;
           case DECM:   if (this.vB&DM_MASK!=0) return BEYOND;
                        val = this.load(vB); this.store(vB, --val); break;
           case AT:     if (this.vB&DM_MASK!=0) return BEYOND;
                        this.vB = this.load(this.vB); break;
-          case INC:    ++this.vB; break;
-          case DEC:    --this.vB; break;
+
           case SWAP:   this.vB = this.vB^this.vA;
                        this.vA = this.vA^this.vB;
                        this.vB = this.vB^this.vA; break;
-          case TOB:    this.vB = this.vA; break;
-          //FIXME reconsider //case TOR:    this.vR = this.vA; break;
-
-          case FROMB:  this.vA = this.vB; break;
-          //FIXME reconsider //case FROMR:  this.vA = this.vR; break;
-
-
-          case TOZ:    this.vZ = this.vA; break;
-          case FROMZ:  this.vA = this.vZ; break;
 
 
           case JMPA:   if (this.vA == 0) this.vZ = instr&PM_MASK; break;
@@ -471,6 +454,14 @@ try {
         return;
       }
       this.elems.setInt32(this.sp, i, true);
+    }
+
+    drop() {
+      if (this.sp <= STACK_1) {
+        this.sp += WORD_BYTES;
+      } else {
+        throw this.uerr; // underflow
+      }
     }
 
     doPop() {
