@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171105+
- * Version:    pre-alpha-0.0.1.20+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.21+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -50,6 +50,9 @@ var modFVMA = (function () { 'use strict';
 
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
+  const CPUSH = 0x56000000|0
+  const CPOP  = 0x57000000|0
+  const CDROP = 0x58000000|0
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -93,11 +96,21 @@ var modFVMA = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+  const DSF   = 0x62000000|0
+  const DSU   = 0x63000000|0
+  const TSF   = 0x64000000|0
+  const TSU   = 0x65000000|0
+  const CSF   = 0x66000000|0
+  const CSU   = 0x67000000|0
+  const RSF   = 0x68000000|0
+  const RSU   = 0x69000000|0
+
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
   const OVER  = 0x72000000|0
   const ROT   = 0x73000000|0
   const DUP   = 0x74000000|0
+  const SAFE  = 0x75000000|0
 
   const LIT   = 0x80000000|0
 
@@ -137,16 +150,30 @@ var modFVMA = (function () { 'use strict';
 
     tpush:  TPUSH,
     tpop:   TPOP,
-    rpop:   RPOP,
+    cpush:  CPUSH,
+    cpop:   CPOP,
+    cpush:  CPUSH,
+
     call:   CALL,
     ret:    RET,
     lit:    LIT,
+
+    dsf:    DSF,
+    dsu:    DSU,
+    tsf:    TSF,
+    tsu:    TSU,
+    csf:    CSF,
+    csu:    CSU,
+    rsf:    RSF,
+    rsu:    RSU,
+
 
     drop:   DROP,
     swap:   SWAP,
     over:   OVER,
     rot:    ROT,
     dup:    DUP,
+    safe:   SAFE
 
   };
 

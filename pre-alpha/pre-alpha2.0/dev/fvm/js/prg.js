@@ -9,7 +9,7 @@ var prgSrc = `
   Updated:    20171105+
   ------------------
   FREE:
-  LAST SYMBOL: s0013
+  LAST SYMBOL: s0015
   ------------------
 
   Most of this file can be ignored as obsolete.
@@ -39,11 +39,11 @@ s000d: /*shl_nibble*/ b(0x04) shl ret
 
 // ===========================================================================
 
-// Print character in a
-s000e: /*printa*/ out ret
+// Print character on tos
+s000e: /*printa*/ dup out ret
 
-// Print the character in a four times
-s000f: /*print4*/ r(0x03) s0010: /*loopAs*/ call(s000e) /*printa*/ rpt(s0010) /*loopAs*/ ret
+// Print character four times
+s000f: /*print4*/ 4 cpush s0010: /*loopAs*/ call(s000e) /*printa*/ rpt(s0010) /*loopAs*/ ret
 
 // Print the character in a 8 times
 s0012: /*print2*/ r(0x01) s0013: call(s000e) /*printa*/ call(s000f) /*print4*/ rpt(s0013) ret
@@ -84,26 +84,10 @@ s0008: /*print_hex_word*/
 // ===========================================================================
 
 s0001: /*go:*/
-/* // All these work thus far but not in corner cases yet:
-  3 5 add
-  7 sub
-  2 or
-  2 and
-  2 xor
-  flip
-  drop
-  1 3 shl
-  3 shr
-  inc
-  dec
-  2 3 4 dup drop
-  swap swap
-*/
-  1 2 3 4
-  over over drop drop
-  rot rot rot
 
-
+67
+call(s000f) /*print4*/
+halt
 
 //  a(0x7654321a) call(s0008) /*print_hex_word*/
 //  call(s0004) /*print_newline*/

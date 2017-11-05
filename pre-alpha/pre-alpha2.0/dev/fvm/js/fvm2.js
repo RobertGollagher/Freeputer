@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171105+
- * Version:    pre-alpha-0.0.1.20+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.21+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -21,6 +21,7 @@
  * * Signed 32-bit two's complement integers: unfortunately (for portability)
  * * Special arithmetic behaviour shall make this practical (maybe with NaN)
  * * Trap rather than branch on failure: simpler and ensures correctness
+ * *   BUT RECONSIDER: Isn't there some easy robust approach (without fret)?
  * * No machine reset on trap: the machine simply stops
  * * Robustness is the programmer's responsibility
  * * Virtualization is the robustness strategy
@@ -59,6 +60,9 @@ var modFVM = (function () { 'use strict';
   const INT_MAX =  2147483647;
   const INT_MIN = -2147483648;
 
+  // Experimental robustness features:
+  const SAFE_MARGIN = 2; // SAFE branches unless data stack has this free
+
 
   const MATH_OVERFLOW = 21
   const DS_UNDERFLOW = 31
@@ -93,7 +97,9 @@ var modFVM = (function () { 'use strict';
 
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
-  const RPOP  = 0x33000000|0
+  const CPUSH = 0x56000000|0
+  const CPOP  = 0x57000000|0
+  const CDROP = 0x58000000|0
 
   const NOP   = 0x00000000|0 // Simple
   const ADD   = 0x01000000|0
@@ -135,11 +141,25 @@ var modFVM = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+
+  const DSF   = 0x62000000|0
+  const DSU   = 0x63000000|0
+  const TSF   = 0x64000000|0
+  const TSU   = 0x65000000|0
+  const CSF   = 0x66000000|0
+  const CSU   = 0x67000000|0
+  const RSF   = 0x68000000|0
+  const RSU   = 0x69000000|0
+
+
+
+
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
   const OVER  = 0x72000000|0
   const ROT   = 0x73000000|0
   const DUP   = 0x74000000|0
+  const SAFE  = 0x75000000|0
 
   const LIT   = 0x80000000|0
 
@@ -185,7 +205,6 @@ var modFVM = (function () { 'use strict';
 //    0x80000000: "imm  "
 
     0x32000000: "r    ",
-    0x33000000: "rpop ",
 
     0x34000000: "z    ",
     0x40000000: "toz  ",
@@ -198,15 +217,29 @@ var modFVM = (function () { 'use strict';
 
     0x54000000: "tpush",
     0x55000000: "tpop ",
+    0x56000000: "cpush",
+    0x57000000: "cpop ",
+    0x58000000: "cdrop",
 
     0x60000000: "call ",
     0x61000000: "ret  ",
+
+    0x62000000: "dsf  ",
+    0x63000000: "dsu  ",
+    0x64000000: "tsf  ",
+    0x65000000: "tsu  ",
+    0x66000000: "csf  ",
+    0x67000000: "csu  ",
+    0x68000000: "rsf  ",
+    0x69000000: "rsu  ",
+
 
     0x70000000: "drop ",
     0x71000000: "swap ",
     0x72000000: "over ",
     0x73000000: "rot  ",
     0x74000000: "dup  ",
+    0x74000000: "safe ",
 
     0x80000000: "lit  "
 
@@ -283,11 +316,6 @@ try {
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
 
-
-         // case IMMR:  this.cs.doPush(this.pmload(this.vZ)); ++this.vZ; break;
-          case RPOP:  this.cs.doPop(); break; // FIXME reconsider, maybe to vA? Also need drop
-
-
 // Experiment into making vB a reusable stack pointer
           case POP:    //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
                        this.tmp = this.load(this.vB);
@@ -303,18 +331,51 @@ try {
                        this.store(this.tmp, this.vA); break;
 
 
-          case TPUSH:  this.ts.doPush(this.vA); break;
-          case TPOP:   this.vA = this.ts.doPop(); break;
 
 
 
+// This block is to allow the programmer to achieve robustness,
+// but it is entirely the programmer's responsibility to do so.
+          // Branch if ds does not have at least SAFE_MARGIN free
+          case SAFE:  if (
+            this.ds.free < SAFE_MARGIN
+          ) {
+             this.vZ = instr&PM_MASK;
+             break;
+          }
+          case DSF:     this.ds.doPush(this.ds.free()); break;
+          case DSU:     this.ds.doPush(this.ds.used()); break;
+          case TSF:     this.ds.doPush(this.ts.free()); break;
+          case TSU:     this.ds.doPush(this.ts.used()); break; 
+          case CSF:     this.ds.doPush(this.cs.free()); break;
+          case CSU:     this.ds.doPush(this.cs.used()); break; 
+          case RSF:     this.ds.doPush(this.rs.free()); break;
+          case RSU:     this.ds.doPush(this.rs.used()); break; 
+          // TODO add memory metadata here
+// End of robustness block
 
 // This block is all done except corner cases
           case DROP:   this.ds.drop(); break;
           case SWAP:   this.ds.swap(); break;
           case OVER:   this.ds.over(); break;
-          case ROT:    this.ds.rot(); break; // FIXME
+          case ROT:    this.ds.rot(); break;
           case DUP:    this.ds.dup(); break;
+          case TPUSH:  this.ts.doPush(this.ds.doPop()); break;
+          case TPOP:   this.ds.doPush(this.ts.doPop()); break;
+          /* FIXME This cs idea might accidentally reduce correctness? */
+          case CPUSH:  this.cs.doPush(this.ds.doPop()); break;
+          case CPOP:   this.ds.doPush(this.cs.doPop()); break;
+          case CDROP:  this.cs.drop(); break;
+          case RPT:    if (this.cs.gtOne()) {
+                          this.cs.dec();
+                          this.vZ = instr&PM_MASK;
+                       } else {
+                          this.cs.doPop();
+                       }
+                       break;
+          /**/
+          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
+          case RET:    this.vZ = this.rs.doPop(); break;
           case NOP:    break;
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
@@ -323,9 +384,10 @@ try {
           case XOR:    this.ds.apply2((a,b) => a^b); break;
           case FLIP:   this.ds.apply1((a) => a^MSb); break;
           case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
-          case SHR:    this.ds.apply2((a,b) => a>>>b); break;
+          case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
+          case OUT:    this.fnStdout(this.enbyte(this.ds.doPop())); break;
 // End of done block
 
 
@@ -361,21 +423,14 @@ try {
           case JMPL:   if (this.vA < this.vB) this.vZ = instr&PM_MASK; break;
           case JUMP:   this.vZ = instr&PM_MASK; break;
 
-// FIXME more thought needed regarding cs
-          case RPT:    // if ( this.vR != 0) { --this.vR; this.vZ = instr&PM_MASK; } 
-                        if (!this.cs.zero()) { this.cs.dec(); this.vZ = instr&PM_MASK; } 
-                        else {this.cs.doPop();}
-                        break;
 
 
-          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
-          case RET:    this.vZ = this.rs.doPop(); break;
 
 
 
           case MEM:    this.vA = PM_WORDS; break;
           case IN:     this.vA = this.fnStdin(); break; // FIXME
-          case OUT:    this.fnStdout(this.enbyte(this.vA)); break; // FIXME
+
           case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
           default: return ILLEGAL; break;
         }
@@ -430,7 +485,7 @@ try {
       return (STACK_BYTES-this.sp)>>WORD_PWR;
     }
 
-    avail() {
+    free() {
       return STACK_ELEMS-this.used();
     }
 
@@ -438,8 +493,8 @@ try {
       this.doReplace(this.doPeek()-1);
     }
 
-    zero() {
-      return this.doPeek() == 0;
+    gtOne() {
+      return this.doPeek() > 1;
     }
 
     doReplace(i) {
@@ -539,6 +594,7 @@ try {
 
     verify(i, a , b) {
       if (i < INT_MIN || i > INT_MAX) {
+        // This works fine for trapping
         if (a) {
           this.doPush(a);
         }
