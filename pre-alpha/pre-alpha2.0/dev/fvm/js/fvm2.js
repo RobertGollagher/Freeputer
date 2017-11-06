@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171105+
- * Version:    pre-alpha-0.0.1.21+ for FVM 2.0
+ * Updated:    20171106+
+ * Version:    pre-alpha-0.0.1.22+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -19,9 +19,7 @@
  * * Intended purpose: computation, algorithms
  * * Stack machine with 4 stacks: ds, ts, cs, rs
  * * Signed 32-bit two's complement integers: unfortunately (for portability)
- * * Special arithmetic behaviour shall make this practical (maybe with NaN)
  * * Trap rather than branch on failure: simpler and ensures correctness
- * *   BUT RECONSIDER: Isn't there some easy robust approach (without fret)?
  * * No machine reset on trap: the machine simply stops
  * * Robustness is the programmer's responsibility
  * * Virtualization is the robustness strategy
@@ -115,7 +113,7 @@ var modFVM = (function () { 'use strict';
   const PUTI  = 0x0b000000|0
   const INCM  = 0x0c000000|0
   const DECM  = 0x0d000000|0
-  const AT    = 0x0e000000|0
+
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
@@ -125,9 +123,8 @@ var modFVM = (function () { 'use strict';
 
   const FROMR = 0x18000000|0
 
-  const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
-  const JMPA  = 0x1d000000|0 // Complex
+  const JMPZ  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
   const JMPE  = 0x1f000000|0
   const JMPN  = 0x20000000|0
@@ -137,6 +134,9 @@ var modFVM = (function () { 'use strict';
   const RPT   = 0x24000000|0
   const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
+
+  const PMW   = 0x28000000|0
+  const DMW   = 0x29000000|0
 
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
@@ -179,7 +179,7 @@ var modFVM = (function () { 'use strict';
     0x0b000000: "puti ",
     0x0c000000: "incm ",
     0x0d000000: "decm ",
-    0x0e000000: "at   ",
+
     0x10000000: "inc  ",
     0x11000000: "dec  ",
     0x12000000: "flip ",
@@ -190,9 +190,9 @@ var modFVM = (function () { 'use strict';
     0x17000000: "fromb",
     0x18000000: "fromr",
 
-    0x1a000000: "mem  ",
+
     0x1c000000: "halt ",
-    0x1d000000: "jmpa ",
+    0x1d000000: "jmpz ",
     0x1e000000: "jmpb ",
     0x1f000000: "jmpe ",
     0x20000000: "jmpn ",
@@ -203,6 +203,11 @@ var modFVM = (function () { 'use strict';
     0x26000000: "in   ",
     0x27000000: "out  ",
 //    0x80000000: "imm  "
+
+    0x28000000: "pmw  ",
+    0x29000000: "dmw  ",
+
+
 
     0x32000000: "r    ",
 
@@ -239,7 +244,7 @@ var modFVM = (function () { 'use strict';
     0x72000000: "over ",
     0x73000000: "rot  ",
     0x74000000: "dup  ",
-    0x74000000: "safe ",
+    0x75000000: "safe ",
 
     0x80000000: "lit  "
 
@@ -252,8 +257,8 @@ var modFVM = (function () { 'use strict';
       this.tracing = true; // comment this line out unless debugging
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
       this.tmp = 0|0; //tmp var only
-      this.pm = new DataView(new ArrayBuffer(PM_WORDS)); // Harvard
-      this.dm = new DataView(new ArrayBuffer(DM_WORDS)); // Harvard
+      this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
+      this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
       this.loadProgram(config.program, this.pm);
 
 
@@ -287,8 +292,7 @@ var modFVM = (function () { 'use strict';
     run() {
       this.initVM();
       while(true) {
-        var tos = 0|0;
-        var nos = 0|0;
+        var addr, val;
 
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
@@ -315,25 +319,6 @@ var modFVM = (function () { 'use strict';
 try {
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
-
-// Experiment into making vB a reusable stack pointer
-          case POP:    //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
-                       this.tmp = this.load(this.vB);
-                       //if (this.tmp&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(this.tmp);
-                       this.store(this.vB, ++this.tmp); break;
-
-
-          case PUSH:   //if (this.vB&DM_MASK!=0) return BEYOND; // FIXME incorrect logic
-                       this.tmp = this.load(this.vB);
-                       this.store(this.vB, --this.tmp);
-                       //if (this.tmp&DM_MASK!=0) return BEYOND;
-                       this.store(this.tmp, this.vA); break;
-
-
-
-
-
 // This block is to allow the programmer to achieve robustness,
 // but it is entirely the programmer's responsibility to do so.
           // Branch if ds does not have at least SAFE_MARGIN free
@@ -350,11 +335,13 @@ try {
           case CSF:     this.ds.doPush(this.cs.free()); break;
           case CSU:     this.ds.doPush(this.cs.used()); break; 
           case RSF:     this.ds.doPush(this.rs.free()); break;
-          case RSU:     this.ds.doPush(this.rs.used()); break; 
+          case RSU:     this.ds.doPush(this.rs.used()); break;
+          case PMW:     this.ds.doPush(PM_WORDS); break;
+          case DMW:     this.ds.doPush(DM_WORDS); break;
           // TODO add memory metadata here
 // End of robustness block
 
-// This block is all done except corner cases
+// This block is all done except corner cases:
           case DROP:   this.ds.drop(); break;
           case SWAP:   this.ds.swap(); break;
           case OVER:   this.ds.over(); break;
@@ -362,7 +349,6 @@ try {
           case DUP:    this.ds.dup(); break;
           case TPUSH:  this.ts.doPush(this.ds.doPop()); break;
           case TPOP:   this.ds.doPush(this.ts.doPop()); break;
-          /* FIXME This cs idea might accidentally reduce correctness? */
           case CPUSH:  this.cs.doPush(this.ds.doPop()); break;
           case CPOP:   this.ds.doPush(this.cs.doPop()); break;
           case CDROP:  this.cs.drop(); break;
@@ -388,50 +374,33 @@ try {
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop())); break;
+          case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
+          case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
+          case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
+          case PUTI:   this.store(this.load(this.ds.doPop()),this.ds.doPop()); break;
+          case INCM:   addr = this.ds.doPop();
+                       this.store(addr,this.load(addr)+1); break;
+          case DECM:   addr = this.ds.doPop();
+                       this.store(addr,this.load(addr)-1); break;
+          case POP:    addr = this.ds.doPop();
+                       val = this.load(addr);
+                       this.store(addr,val+1);
+                       this.ds.doPush(this.load(val)); break;
+          case PUSH:   addr = this.ds.doPop();
+                       val = this.load(addr)-1;
+                       this.store(addr,val);
+                       this.store(val,this.ds.doPop()); break;
+
+          case JUMP:   this.vZ = instr&PM_MASK; break;
+          case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK; break;
+          case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
+          case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; break;
+          case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
+
+          case HALT:   return SUCCESS; break;
 // End of done block
 
-
-
-
-
-          case GET:    if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(this.vB); break;
-          case PUT:    if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.store(this.vB, this.vA); break;
-          case GETI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.tmp = this.load(this.vB);
-                       if (this.tmp&DM_MASK!=0) return BEYOND;
-                       this.vA = this.load(this.tmp); break;
-          case PUTI:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.tmp = this.load(this.vB);
-                       if (this.tmp&DM_MASK!=0) return BEYOND;
-                       this.store(this.tmp, this.vA); break;
-          case INCM:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       val = this.load(vB); this.store(vB, ++val); break;
-          case DECM:   if (this.vB&DM_MASK!=0) return BEYOND;
-                       val = this.load(vB); this.store(vB, --val); break;
-          case AT:     if (this.vB&DM_MASK!=0) return BEYOND;
-                       this.vB = this.load(this.vB); break;
-
-
-
-          case JMPA:   if (this.vA == 0) this.vZ = instr&PM_MASK; break;
-          case JMPB:   if (this.vB == 0) this.vZ = instr&PM_MASK; break;
-          case JMPE:   if (this.vA == this.vB) this.vZ = instr&PM_MASK; break;
-          case JMPN:   if (MSb == (this.vA&MSb)) this.vZ = instr&PM_MASK; break;
-          case JMPG:   if (this.vA > this.vB) this.vZ = instr&PM_MASK; break;
-          case JMPL:   if (this.vA < this.vB) this.vZ = instr&PM_MASK; break;
-          case JUMP:   this.vZ = instr&PM_MASK; break;
-
-
-
-
-
-
-          case MEM:    this.vA = PM_WORDS; break;
-          case IN:     this.vA = this.fnStdin(); break; // FIXME
-
-          case HALT:   this.vB = this.enbyte(this.vB); return this.vB; break;
+          case IN:     this.ds.doPush(fnStdin()); break; // FIXME
           default: return ILLEGAL; break;
         }
       } catch(e) {   
@@ -441,11 +410,19 @@ try {
     }
 
     store(addr,val) {
-      this.dm.setInt32(addr*WD_BYTES, val, true);
+      try {
+        this.dm.setInt32(addr*WD_BYTES, val, true);
+      } catch (e) {
+        throw BEYOND;
+      }
     }
 
     load(addr) {
-      return this.dm.getUint32(addr*WD_BYTES, true);
+      try {
+        return this.dm.getUint32(addr*WD_BYTES, true);
+      } catch (e) {
+        throw BEYOND;
+      }
     }
 
     pmload(addr) {

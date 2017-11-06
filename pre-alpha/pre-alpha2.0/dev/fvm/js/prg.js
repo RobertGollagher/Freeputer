@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as prg.c)
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171105+
+  Updated:    20171106+
   ------------------
   FREE:
   LAST SYMBOL: s0015
@@ -85,8 +85,7 @@ s0008: /*print_hex_word*/
 
 s0001: /*go:*/
 
-67
-call(s000f) /*print4*/
+pmw dmw 0 jmpz(s0002) /*end*/ 99
 halt
 
 //  a(0x7654321a) call(s0008) /*print_hex_word*/

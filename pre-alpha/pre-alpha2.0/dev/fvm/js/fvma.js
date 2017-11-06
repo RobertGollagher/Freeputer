@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171105+
- * Version:    pre-alpha-0.0.1.21+ for FVM 2.0
+ * Updated:    20171106+
+ * Version:    pre-alpha-0.0.1.22+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -68,7 +68,7 @@ var modFVMA = (function () { 'use strict';
   const PUTI  = 0x0b000000|0
   const INCM  = 0x0c000000|0
   const DECM  = 0x0d000000|0
-  const AT    = 0x0e000000|0
+
   const COPY  = 0x0f000000|0
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
@@ -82,7 +82,7 @@ var modFVMA = (function () { 'use strict';
 
   const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
-  const JMPA  = 0x1d000000|0 // Complex
+  const JMPZ  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
   const JMPE  = 0x1f000000|0
   const JMPN  = 0x20000000|0
@@ -92,6 +92,9 @@ var modFVMA = (function () { 'use strict';
   const RPT   = 0x24000000|0
   const IN    = 0x26000000|0 // FIXME make complex
   const OUT   = 0x27000000|0
+
+  const PMW   = 0x28000000|0
+  const DMW   = 0x29000000|0
 
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
@@ -129,7 +132,7 @@ var modFVMA = (function () { 'use strict';
     puti:   PUTI,
     incm:   INCM,
     decm:   DECM,
-    at:     AT,
+
     copy:   COPY,
     inc:    INC,
     dec:    DEC,
@@ -141,7 +144,7 @@ var modFVMA = (function () { 'use strict';
     fromb:  FROMB,
     //fromr:  FROMR,
 
-    mem:    MEM,
+
     halt:   HALT,
     in:     IN, // FIXME make complex
     out:    OUT,
@@ -153,6 +156,11 @@ var modFVMA = (function () { 'use strict';
     cpush:  CPUSH,
     cpop:   CPOP,
     cpush:  CPUSH,
+
+
+    pmw:    PMW,
+    dmw:    DMW,
+
 
     call:   CALL,
     ret:    RET,
@@ -276,7 +284,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseImmR(token)) {
       } else if (this.parseCall(token)) {
       } else if (this.parseJump(token)) {
-      } else if (this.parseJmpA(token)) {
+      } else if (this.parseJmpZ(token)) {
       } else if (this.parseJmpB(token)) {
       } else if (this.parseJmpE(token)) {
       } else if (this.parseJmpN(token)) {
@@ -513,13 +521,13 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpA(token) {
-      if (token.match(/jmpa\(s[^\s]+\)/)){ // FIXME make more strict
+    parseJmpZ(token) {
+      if (token.match(/jmpz\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPA);
-      } else if (token.match(/jmpa\([^\s]+\)/)){
+        return this.parseRef(symbolToken, JMPZ);
+      } else if (token.match(/jmpz\([^\s]+\)/)){
         var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPA;
+        n = n | JMPZ;
         this.use(n);
         return true;
       } else {
