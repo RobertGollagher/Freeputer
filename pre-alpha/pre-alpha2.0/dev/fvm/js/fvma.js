@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171112+
- * Version:    pre-alpha-0.0.1.23+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.24+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -47,6 +47,13 @@ var modFVMA = (function () { 'use strict';
   const CDROP = 0x58000000|0
 
   const NOP   = 0x00000000|0 // Simple
+
+
+  const MUL   = 0x30000000|0
+  const DIV   = 0x31000000|0
+  const MOD   = 0x32000000|0
+
+
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
   const OR    = 0x03000000|0
@@ -98,12 +105,20 @@ var modFVMA = (function () { 'use strict';
   const OVER  = 0x72000000|0
   const ROT   = 0x73000000|0
   const DUP   = 0x74000000|0
+
   const SAFE  = 0x75000000|0
+  const CATCH = 0x76000000|0
 
   const LIT   = 0x80000000|0
 
   const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
+
+    mul:    MUL,
+    div:    DIV,
+    mod:    MOD,
+
+
     add:    ADD,
     sub:    SUB,
     or:     OR,
@@ -159,7 +174,9 @@ var modFVMA = (function () { 'use strict';
     over:   OVER,
     rot:    ROT,
     dup:    DUP,
-    safe:   SAFE
+
+    safe:   SAFE,
+    catch:  CATCH
 
   };
 
@@ -266,7 +283,8 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
       // } else if (this.parseDecimalLiteral(token)) { // Disallowed for now
-      } else if (this.parseHexLiteral(token)) {
+      } else if (this.parseHexLiteral(token, lineNum)) {
+      } else if (this.parseCatch(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
       }
@@ -423,11 +441,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/call\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, CALL);
-      } else if (token.match(/call\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | CALL;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -437,11 +450,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jump\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JUMP);
-      } else if (token.match(/jump\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JUMP;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -451,11 +459,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpz\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPZ);
-      } else if (token.match(/jmpz\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPZ;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -465,11 +468,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpb\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPB);
-      } else if (token.match(/jmpb\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPB;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -479,11 +477,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpe\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPE);
-      } else if (token.match(/jmpe\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPE;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -493,11 +486,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpn\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPN);
-      } else if (token.match(/jmpn\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPN;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -507,11 +495,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpg\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPG);
-      } else if (token.match(/jmpg\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPG;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -521,11 +504,6 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpl\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPL);
-      } else if (token.match(/jmpl\([^\s]+\)/)){
-        var n = parseInt(token.substring(5,token.length-1)); //FIXME
-        n = n | JMPL;
-        this.use(n);
-        return true;
       } else {
         return false;
       }
@@ -552,7 +530,9 @@ var modFVMA = (function () { 'use strict';
     parseDecimalLiteral(token) {
       if (token.match(/^[0-9]+/)){
         var n = parseInt(token,10);
-        // FIXME add check for literal too big
+        if (n > 0x7fffffff) {
+          throw lineNum + ":Literal value out of bounds:" + token;
+        }
         this.use(n|LIT);
         return true;
       } else {
@@ -560,12 +540,23 @@ var modFVMA = (function () { 'use strict';
       }
     }
 */
-    parseHexLiteral(token) {
+    parseHexLiteral(token, lineNum) {
       if (token.match(/^0x[0-9a-f]{1,8}/)){
         var n = parseInt(token,16);
-        // FIXME add check for literal too big
+        if (n > 0x7fffffff) {
+          throw lineNum + ":Literal value out of bounds:" + token;
+        }
         this.use(n|LIT);
         return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseCatch(token) {
+      if (token.match(/catch\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(6,token.length-1);
+        return this.parseRef(symbolToken, CATCH);
       } else {
         return false;
       }

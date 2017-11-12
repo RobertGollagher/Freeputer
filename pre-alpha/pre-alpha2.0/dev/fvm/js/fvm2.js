@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171112+
- * Version:    pre-alpha-0.0.1.23+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.24+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -89,6 +89,14 @@ var modFVM = (function () { 'use strict';
   const CDROP = 0x58000000|0
 
   const NOP   = 0x00000000|0 // Simple
+
+
+  const MUL   = 0x30000000|0
+  const DIV   = 0x31000000|0
+  const MOD   = 0x32000000|0
+
+
+
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
   const OR    = 0x03000000|0
@@ -144,6 +152,7 @@ var modFVM = (function () { 'use strict';
 
 
   const SAFE  = 0x75000000|0
+  const CATCH = 0x76000000|0
 
   const LIT   = 0x80000000|0
 
@@ -152,6 +161,13 @@ var modFVM = (function () { 'use strict';
     0x00000000: "nop  ",
     0x01000000: "add  ",
     0x02000000: "sub  ",
+
+
+    0x30000000: "mul  ",
+    0x31000000: "div  ",
+    0x32000000: "mod  ",
+
+
     0x03000000: "or   ",
     0x04000000: "and  ",
     0x05000000: "xor  ",
@@ -213,7 +229,9 @@ var modFVM = (function () { 'use strict';
     0x72000000: "over ",
     0x73000000: "rot  ",
     0x74000000: "dup  ",
+
     0x75000000: "safe ",
+    0x76000000: "catch",
 
     0x80000000: "lit  "
 
@@ -274,7 +292,6 @@ var modFVM = (function () { 'use strict';
 
         ++this.vZ;
 
-
         // Handle immediates
         if (instr&MSb) {
           this.ds.doPush(instr&METADATA_MASK);
@@ -332,12 +349,19 @@ try {
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
           case RET:    this.vZ = this.rs.doPop(); break;
           case NOP:    break;
+
+          case CATCH:  break;
+
+          case MUL:    this.ds.apply2((a,b) => a*b); break;
+          case DIV:    this.ds.apply2((a,b) => a/b); break; //FIXME
+          case MOD:    this.ds.apply2((a,b) => a%b); break; //FIXME
+
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
           case OR:     this.ds.apply2((a,b) => a|b); break;
           case AND:    this.ds.apply2((a,b) => a&b); break;
           case XOR:    this.ds.apply2((a,b) => a^b); break;
-          case FLIP:   this.ds.apply1((a) => a^MSb); break;
+          case FLIP:   this.ds.apply1((a) => a^MSb); break; // TODO maybe add NEG
           case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
           case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
           case INC:    this.ds.apply1((a) => ++a); break;
@@ -372,8 +396,18 @@ try {
           case IN:     this.ds.doPush(fnStdin()); break; // FIXME
           default: return ILLEGAL; break;
         }
-      } catch(e) {   
-          return e;
+      } catch(e) {
+          var nextInstr = this.pmload(this.vZ);
+          var nextOpcode = nextInstr & OPCODE_MASK;
+          if (nextOpcode == CATCH) {
+            if (this.tracing) {
+              this.traceVM(nextInstr, true);
+            }
+            this.vZ = nextInstr&PM_MASK;
+          } else {
+            // FIXME need to go here if e is not a trap!
+            return e;
+          }
         }
       }
     }
@@ -398,13 +432,18 @@ try {
       return this.pm.getUint32(addr*WD_BYTES, true);
     }
 
-    traceVM(instr) {
+    traceVM(instr, highlight) {
       var opcode = instr & OPCODE_MASK;
       var mnem = '?';
       if (opcode < 0) {
         mnem = SYMBOLS[0x80000000];
       } else {
         mnem = SYMBOLS[opcode];
+      }
+      if (highlight) {
+        mnem = "*" + mnem;
+      } else {
+        mnem = " " + mnem;
       }
       var traceStr =
         modFmt.hex8(this.vZ) + " " +

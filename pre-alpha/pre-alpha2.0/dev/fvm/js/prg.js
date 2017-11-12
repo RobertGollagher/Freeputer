@@ -9,7 +9,7 @@ var prgSrc = `
   Updated:    20171112+
   ------------------
   FREE:
-  LAST SYMBOL: s0002
+  LAST SYMBOL: s0004
   ------------------
 
   NOTES:
@@ -26,8 +26,11 @@ s0001: /*forward*/
 s0002: /*halt*/
   halt
 
+s0004: /*foo*/
+  0x10 jump(s0002) /*halt*/
+
 s0003: /*go*/
-  dse dsa 0x40 dse dsa
+  0x7fffffff 0x7ffffffe flip div catch(s0004) /*foo*/
   jump(s0002) /*halt*/
 
 s0000: /*start*/
