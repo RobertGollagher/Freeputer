@@ -3,320 +3,69 @@
 <p>Freeputer ( ) [ ] { } smaller simpler better</p>
 <h2 id="values">Values</h2>
 <ol style="list-style-type: decimal">
-<li>VM <strong>simple and easy to implement</strong>.</li>
-<li>VM exceedingly <strong>portable</strong>.</li>
-<li>VM entirely <strong>correct</strong>.</li>
-<li>VM largely <strong>robust</strong>.</li>
-<li>VM <strong>standard</strong>.</li>
-<li>VM <strong>small</strong>.</li>
+<li>VM <strong>simpler and easier to implement</strong>.</li>
+<li>VM <strong>even more portable</strong>.</li>
+<li>VM <strong>entirely correct</strong>.</li>
+<li>VM <strong>standardized</strong>.</li>
+<li>VM <strong>smaller</strong>.</li>
+<li>VM <strong>faster</strong>.</li>
 </ol>
-<h2 id="benefits">Benefits</h2>
-<p>Freeputer 2.0 is intended to be <strong><em>easier to implement</em></strong> and thus <strong><em>even more portable</em></strong>. To demonstrate this, the prototype for Freeputer 2.0 is now being developed in JavaScript and HTML 5, which for the first time should make it easy to run Freeputer in popular web browsers available <strong><em>on billions of consumer devices</em></strong>. Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a <strong><em>powerful server</em></strong> or in a <strong><em>web browser</em></strong> or on a <strong><em>microcontroller</em></strong>.</p>
-<p>Freeputer 2.0 <strong><em>adds robustness</em></strong>. Whereas Freeputer 1.0 trapped (stopping the virtual machine) to preserve <em>correctness</em>, the design of Freeputer 2.0 is likely to be more robust by <em>branching on failure</em>.</p>
-<p>Freeputer 2.0 may also have a different architecture and I/O strategy.</p>
-<p>The motto of Freeputer 2.0 is: <strong><em>smaller simpler better</em></strong>.</p>
-<h2 id="migration">Migration</h2>
-<p>Freeputer 2.0 will not run unmodified Freeputer 1.0 programs.</p>
-<p>However, Freeputer 1.0 is an open-source platform, and free as in freedom, so you are welcome to keep using it forever (according to the provisions of the GPL-3.0+) if you prefer it to Freeputer 2.0. Furthermore, it may well be possible to create an FVM 1.0 implementation which runs on FVM 2.0 (as a virtual machine within a virtual machine) which would allow Freeputer 1.0 programs to run there.</p>
-<h2 id="shortlist">Shortlist</h2>
-<p>A final decision has been made (on 1 October 2017) that Freeputer 2.0 will be a stack machine not a register machine. It will probably either look like Plan A (see below) or a simplified stack machine. It is noteworthy that extensive thought and experimentation over many weeks has led to the conclusion that: Register machines are for compilers. Stack machines are for humans. Therefore freedom most easily lies in the direction of stack machines not register machines. That is, Freeputer 1.0 was on the right track.</p>
-<h3 id="proposed-design-plan-a-improved-stack-machine">Proposed Design: Plan A: Improved Stack Machine</h3>
-<p>Plan A is a portable stack machine which is correct and robust by virtue of branching on failure.</p>
-<p>This plan is moderately difficult to implement but makes factoring easy.</p>
-<p>Performance is at least moderate. An excellent stack machine.</p>
-<p>The detailed design is:</p>
-<ol style="list-style-type: decimal">
-<li>The VM is <strong>correct without trapping</strong>.</li>
-<li>Program execution begins at cell 1 (not cell 0).</li>
-<li>Its termination results in <strong>success or failure</strong> (0 or 1).</li>
-<li>The only cause of VM success is:
-<ol style="list-style-type: decimal">
-<li>The halt opcode (0xff).</li>
-</ol></li>
-<li>The only causes of VM failure are:
-<ol style="list-style-type: decimal">
-<li>The fail opcode (0x00);</li>
-<li>Platform failure.</li>
-</ol></li>
-<li>All opcodes <strong>branch on failure</strong> except: halt (0xff), fail (0x00) and branches.</li>
-<li>The following opcodes cause immediate VM termination regardless of any <em>metadata</em>:
-<ol style="list-style-type: decimal">
-<li>The halt opcode (0xff);</li>
-<li>The fail opcode (0x00).</li>
-</ol></li>
-<li>A program can be an infinite loop which never terminates.</li>
-<li>Failure is typically rare and means the run <strong>cannot be trusted</strong>.</li>
-<li>For most opcodes, <strong>branch on failure is equivalent to a noop branching on failure</strong>.</li>
-<li>All illegal opcodes are always treated as <strong>a noop branching on failure</strong>.</li>
-<li>Addressing is <strong>absolute</strong> and <strong>word-indexed</strong> (1 cell = 1 word).</li>
-<li>Common sense applies but generally speaking the default value of cells is <strong>zero</strong>.</li>
-<li><em>Address space</em> is <strong>32 signed bits</strong> (the 16 GiB from word -2147483648 to word 2147483647).</li>
-<li><em>Address space</em> consists of 5 <em>zones</em> (regions of contiguous cells): VOL, SYS, PRG, MEM and BLK.</li>
-<li><em>Program space</em> (the PRG <em>zone</em>) is <strong>24 unsigned bits</strong> (the 64 MiB from word 0 to word 16777215).</li>
-<li>Program <strong>execution loops</strong> back to the start of PRG when it reaches the end of PRG.</li>
-<li>The VM can be implemented on <strong>powerful servers</strong> using physical memory.</li>
-<li>The VM can be implemented on <strong>small microcontrollers</strong> using mainly logical memory.</li>
-<li>Words are <strong>32 signed bits</strong> (little endian, two's complement).</li>
-<li>All instructions are <strong>1 cell wide</strong> (that is, 32 bits wide) but a few use data from the following cell.</li>
-<li>Thus instructions are <strong>simple</strong>, <strong>symmetrical</strong>, <strong>compact</strong> and <strong>small-device friendly</strong>.</li>
-<li>The least-significant 8 bits of an instruction comprise its <em>opcode</em>.</li>
-<li>The most-significant 24 bits of an instruction comprise its <em>metadata</em>.</li>
-<li>For instructions which cannot fail the <em>metadata</em> is an <em>address</em> (in the case of <em>branch instructions</em>) or is ignored.</li>
-<li>Most instructions can fail. For instructions which can fail, the <em>metadata</em> is a <em>failure address</em>.</li>
-<li><em>Literal instructions</em> and <em>call instructions</em> can fail. They are unusual in that they use data from the following cell:
+<h2 id="discussion">Discussion</h2>
+<p>Although Freeputer 2.0 will not run unmodified Freeputer 1.0 programs, the fundamental design remains similar: a stack machine which is easy for human beings to understand and which favours correctness over robustness. The architecture enforces correctness by trapping. Robustness is the responsibility of the programmer and can be aided by self-virtualization of virtual machine instances.</p>
+<p>Freeputer 2.0 will be implemented in JavaScript, which for the first time should make it easy to run Freeputer in popular web browsers available on billions of consumer devices. Furthermore, Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in a web browser or on a microcontroller. This is true software reuse.</p>
+<h3 id="proposed-design">Proposed Design</h3>
 <ul>
-<li>the following cell is skipped upon success and contains the address or literal used by the instruction.</li>
+<li>Stack machine with 4 stacks: data (ds), temporary (ts), return (rs), counter (cs).</li>
+<li>Harvard architecture ensures ease of native implementation:
+<ul>
+<li>program logic is entirely independent of instruction encoding;</li>
+<li>program memory (pm) &lt;= 2^24 <em>instructions</em> (as reported by the pmi instruction);</li>
+<li>data memory (dm) &lt;= 2^30 <em>words</em> (as reported by the dmw instruction).</li>
 </ul></li>
-<li>The VM has <strong>3 stacks</strong> of words: a data stack (ds), a software stack (ss) and a return stack (rs).</li>
-<li>Each stack has a maximum depth of <strong>256 elements</strong>.</li>
-<li>Inability to call a subroutine (call failure due to rs full) triggers <strong>branch on failure</strong>.</li>
-<li>Inability to return from a subroutine (return failure due to rs empty) triggers <strong>branch on failure</strong>.</li>
-<li>The fret opcode retrospectively triggers <strong>branch on failure</strong> of the currently executing subroutine call instruction.</li>
-<li>The fret opcode itself undergoes <strong>branch on failure</strong> if that is not possible (fret failure due to rs empty or no call instruction).</li>
-<li>All I/O is <strong>non-blocking</strong> and unavailable I/O triggers <strong>branch on failure</strong>.</li>
-<li>All I/O is <strong>memory mapped</strong> and unsupported I/O triggers <strong>branch on failure</strong>.</li>
-<li>A <em>read-only cell</em> is one which only supports the @ instruction.</li>
-<li>A <em>write-only cell</em> is one which only supports the ! instruction.</li>
-<li>A <em>read/write cell</em> is one which supports both the @ and ! instructions.</li>
-<li>A <em>plumbed cell</em> is one which supports at least one of the @ or ! instructions.</li>
-<li>A <em>fully plumbed zone</em> is one containing only <em>plumbed cells</em>. PRG is always a <em>fully plumbed zone</em>.</li>
-<li>An <em>unplumbed cell</em> is one which supports neither the @ instruction nor the ! instruction.</li>
-<li>A <em>partially plumbed zone</em> is one containing <em>plumbed cells</em> and <em>unplumbed cells</em>.</li>
-<li>An <em>unplumbed zone</em> is one in which all cells are <em>unplumbed</em>.</li>
-<li>A <em>volatile cell</em> is either a <em>write-only cell</em> or a cell whose value can change spontaneously at runtime.</li>
-<li>A <em>faithful cell</em> faithfully holds stored data; its value cannot change spontaneously at runtime.</li>
-<li>A <em>faithful zone</em> is one containing no <em>volatile cells</em>.</li>
-<li>A <em>faithful zone</em> neither causes nor is affected by side-effects at runtime.</li>
-<li>A <em>volatile zone</em> is any zone which contains at least one <em>volatile cell</em>.</li>
-<li>Any use of the @ or ! instructions in a <em>volatile zone</em> may cause side-effects:
+<li>Words and stack elements are 32-bit and arithmetic is two's complement.</li>
+<li>Non-native implementations use fixed-width 32-bit instructions (FW32):
 <ul>
-<li>directly in the <em>volatile zone</em> itself; and</li>
-<li>in any external systems with which it communicates; and</li>
-<li>indirectly in any <em>volatile zone</em> via external systems.</li>
+<li>literals 1:31 (bit 31 <em>literal bit</em>, 30..0 <em>literal value</em>);</li>
+<li>other 8:24 (bits 31..24 <em>opcode</em>, 23..0 <em>instruction number</em>, <em>metadata</em>, or unused).</li>
 </ul></li>
-<li>The nature of any such side-effects is determined by:
+<li>The VM traps to fail fast and finally. This includes:
 <ul>
-<li>the nature of the <em>volatile zone</em> itself; and</li>
-<li>the nature of any relevant external systems; and</li>
-<li>the nature of any <em>volatile zones</em> with which relevant external systems communicate.</li>
+<li>arithmetic traps (from add, sub, inc, dec, mul, div, mod); and</li>
+<li>all other traps as seen in FVM 1.0; but</li>
+<li>without any reset capability.</li>
 </ul></li>
-<li><strong>All zones which begin at or above cell 0 are faithful zones:</strong>
+<li>However, it is possible to achieve robustness using:
 <ul>
-<li><strong>PRG</strong> is the 64 MiB from cell 0 to cell 16777215 (<code>0xffffff</code>).
+<li>the catch instruction which:
 <ul>
-<li>PRG is for <em>program space</em>.</li>
-<li>PRG is always a <em>fully plumbed zone</em>.</li>
-<li>PRG must entirely consist of one of the following:
-<ul>
-<li><em>read-only cells</em> (ROM); or</li>
-<li><em>read/write cells</em> (RAM); or</li>
-<li><em>read-only cells</em> followed by <em>read/write cells</em> (ROM then RAM).</li>
+<li>branches if the previously executed instruction trapped;</li>
+<li>otherwise functions as a no-op.</li>
 </ul></li>
-<li>For a large application, PRG may require megabytes of physical memory.</li>
-<li>For a small application, PRG may require less than a kilobyte of physical memory.</li>
-</ul></li>
-<li><strong>MEM</strong> is the 4032 MiB from cell 16777216 (<code>0x1000000</code>) to cell 1073741823 (<code>0x3fffffff</code>).
+<li>several convenient metadata instructions which:
 <ul>
-<li>MEM is for RAM.</li>
-<li>MEM must entirely consist of one of the following:
-<ul>
-<li><em>unplumbed cells</em>; or</li>
-<li><em>read/write cells</em> (RAM); or</li>
-<li><em>read/write cells</em> (RAM) followed by <em>unplumbed cells</em>.</li>
-</ul></li>
-<li>If MEM is an <em>unplumbed zone</em> then it requires no physical RAM at all.</li>
-<li>Note: a VM may provide additional RAM via VOL.</li>
-</ul></li>
-<li><strong>BLK</strong> is the 4 GiB from cell 1073741824 (<code>0x40000000</code>) to cell 2147483647 (<code>0x7fffffff</code>).
-<ul>
-<li>BLK is for persistent storage (retained between runtimes).</li>
-<li>BLK must entirely consist of one of the following:
-<ul>
-<li><em>unplumbed cells</em>; or</li>
-<li><em>read/write cells</em> (persistent storage); or</li>
-<li><em>read/write cells</em> (persistent storage) followed by <em>unplumbed cells</em>.</li>
-</ul></li>
-<li>If BLK is an <em>unplumbed zone</em> then it requires no physical persistent storage at all.</li>
-<li>Note: a VM may provide additional persistent storage via VOL.</li>
+<li>make it easy to conditionally branch if prerequisites are not met;</li>
+<li>include the pmi, dmw, dsa, dse, tsa, tse, rsa, rse, csa and cse instructions.</li>
 </ul></li>
 </ul></li>
-<li><strong>All zones which end below cell 0 are volatile zones:</strong>
+<li>The instruction set will include:
 <ul>
-<li><strong>SYS</strong> is the 64 MiB from cell -1 (<code>0xffffffff</code>) to cell -16777216 (<code>0xff000000</code>).
+<li>somewhat fewer instructions than FVM 1.0; but</li>
+<li>a sufficiently large set of convenient RISC instructions; and</li>
+<li>a few convenient CISC instructions such as copy; and</li>
+<li>the instructions: halt, fail.</li>
+</ul></li>
+<li>The I/O strategy is yet to be detemined.</li>
+<li>The design might possibly include a ground state such as:
 <ul>
-<li>SYS is reserved for system use. It provides standard system services to the VM:
-<ul>
-<li>the optional log stream <strong><code>stdlog</code></strong> as the <em>volatile write-only cell</em> -2 (<code>0xfffffffe</code>).</li>
-<li>the optional data streams <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as the <em>volatile read/write cell</em> -4 (<code>0xfffffffc</code>);</li>
-<li>the optional standard UI streams <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> as the <em>volatile read/write cell</em> -6 (<code>0xfffffffa</code>).</li>
-<li>the optional non-standard UI streams <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> as the <em>volatile read/write cell</em> -8 (<code>0xfffffff8</code>).</li>
-<li>the ability to query the 4 values which define <em>faithful VM size</em>:
-<ol style="list-style-type: decimal">
-<li>the <strong>address of the first cell of RAM</strong> (called <code>RAMa</code>):
-<ul>
-<li>this will be between 0 and 16777215 if PRG contains RAM; otherwise</li>
-<li>this will be 16777216 if MEM contains RAM; otherwise</li>
-<li>this will be -1.</li>
+<li>a REPL fallback after a trap ends execution; or</li>
+<li>a hypervisor.</li>
 </ul></li>
-<li>the <strong>address of the last cell of RAM</strong> (called <code>RAMz</code>):
-<ul>
-<li>this will be between 16777216 and 1073741823 if MEM contains RAM; otherwise</li>
-<li>this will be between 0 and 16777215 if PRG contains RAM; otherwise</li>
-<li>this will be -1.</li>
-</ul></li>
-<li>the <strong>address of the last <em>plumbed cell</em> of BLK</strong> (called <code>BLKz</code>):
-<ul>
-<li>this will be -1 if BLK is an <em>unplumbed zone</em>; otherwise</li>
-<li>this will be between 1073741824 and 2147483647.</li>
-</ul></li>
-<li>the <strong>address of the last <em>plumbed cell</em> of VOL</strong> (called <code>VOLz</code>):
-<ul>
-<li>this will be -1 if VOL is an <em>unplumbed zone</em>; otherwise</li>
-<li>this will be between -16777217 and -2147483648.</li>
-</ul></li>
-</ol></li>
-</ul></li>
-<li>SYS is largely <em>unplumbed</em> and for itself requires very little physical memory.</li>
-<li>SYS contains the cell -1 (<code>0xffffffff</code>) which is always <em>unplumbed</em>.</li>
-</ul></li>
-<li><strong>VOL</strong> is the 8128 MiB from cell -16777217 (<code>0xfeffffff</code>) to cell -2147483648 (<code>0x80000000</code>).
-<ul>
-<li>The default implementation of VOL is as an <em>unplumbed zone</em> which does nothing and requires no resources.</li>
-<li>VM implementors may add custom functionality within VOL in a reasonable and modular manner.</li>
-<li>VOL is a <em>volatile zone</em> in which memory-mapped devices could be added to:
-<ul>
-<li>extend the connectivity of the VM; and/or</li>
-<li>extend the I/O capabilities of the VM; and/or</li>
-<li>extend the storage capabilities of the VM; and/or</li>
-<li>extend the functionality of the VM; and all</li>
-<li>to a virtually limitless extent.</li>
-</ul></li>
-</ul></li>
-</ul></li>
-<li><strong>Data streams:</strong>
-<ul>
-<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available, are intended for use as data streams (not for user interaction).</li>
-<li>Using <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as data streams allows VM instances to be chained together as a processing pipeline.</li>
-<li>Using <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> as data streams allows modular systems to be created by composition of VM instances.</li>
-<li>The nature, behaviour and effect of the <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams may vary from environment to environment.</li>
-<li>The log stream <strong><code>stdlog</code></strong>, if available, allows Freeputer programs to log information when logging is enabled.</li>
-<li>The trace stream <strong><code>stdtrc</code></strong>, if available, outputs accurate trace information when tracing is enabled.</li>
-<li>The information provided by <strong><code>stdtrc</code></strong> may reasonably differ between VM implementations.</li>
-<li>There is no means for a Freeputer program to itself write to the <strong><code>stdtrc</code></strong> stream.</li>
-<li>Note: a VM may provide additional data streams via VOL.</li>
-</ul></li>
-<li><strong>User interfaces:</strong>
-<ul>
-<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available, must represent some kind of user interface.</li>
-<li>The user interface represented by <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> can be highly sophisticated and customized.</li>
-<li>The nature, behaviour and effect of the <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams may vary from environment to environment.</li>
-<li>The <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams, if available, represent the standard textual user interface known as the grid.</li>
-<li>The logical behaviour of the <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams does not vary between environments.</li>
-<li>It is best practice never to use <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> to interact with the user.</li>
-<li>Note: a VM may provide additional user interfaces via VOL.</li>
-</ul></li>
-<li><strong>If the VM is running as an process:</strong>
-<ul>
-<li>The <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> streams, if available:
-<ul>
-<li><em>may be connected to stdin and stdout of the VM process</em>; or</li>
-<li><em>may instead reasonably be connected to named pipes or other conduits.</em></li>
-</ul></li>
-<li>The <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> streams, if available:
-<ul>
-<li><em>may directly drive a custom user interface bundled in the VM process</em>; or</li>
-<li><em>may (instead of <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong>) be interactively connected to stdin and stdout of the VM process</em>; or</li>
-<li><em>may reasonably be connected to a custom user interface via named pipes or other conduits.</em></li>
-</ul></li>
-<li>The <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong> streams, if available:
-<ul>
-<li><em>may directly drive a grid implementation bundled in the VM process</em>; or</li>
-<li><em>may reasonably be connected to a grid via named pipes or other conduits.</em></li>
-</ul></li>
-<li>It is best practice to use a grid (via <strong><code>grdin</code></strong> and <strong><code>grdout</code></strong>) for all command-line interaction.
-<ul>
-<li>In that case, <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> may simply be connected to stdin and stdout of the VM process.</li>
-</ul></li>
-<li>Less desirable is terminal interaction via <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong> connected to stdin and stdout of the VM process.
-<ul>
-<li>In that case, <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> would reasonably be connected to named pipes or other conduits.</li>
-</ul></li>
-<li>Terminal interaction should not be done via <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> directly.
-<ul>
-<li>This is because <strong><code>stdin</code></strong> and <strong><code>stdout</code></strong> are intended for use as data streams.</li>
-</ul></li>
-<li>Note: the VM design requires neither file system nor operating system.</li>
-</ul></li>
-<li><strong>Examples of VM sizings:</strong>
-<ul>
-<li>For a small microcontroller (to run a small program not using BLK):
-<ul>
-<li>1 KiB of RAM in MEM; no BLK; PRG entirely ROM (using very little physical ROM):
-<ul>
-<li><code>RAMa</code> 16777216, <code>RAMz</code> 16777471, <code>BLKz</code> -1, <code>VOLz</code> -1</li>
-</ul></li>
-</ul></li>
-<li>For a powerful server (to run that same program or a much larger program):
-<ul>
-<li>4 GiB of RAM (the whole of PRG and MEM); 4 GiB of BLK:
-<ul>
-<li><code>RAMa</code> 0, <code>RAMz</code> 1073741823, <code>BLKz</code> 2147483647, <code>VOLz</code> -1</li>
-</ul></li>
-</ul></li>
-</ul></li>
-<li><strong>Load and store is wordwise:</strong>
-<ul>
-<li>The only load and store instructions are @ and !</li>
-<li>That is, all loads and all stores are nominally of whole words not individual bytes.</li>
-<li>To compensate for this, fast 'bytewise' logical operators facilitate byte manipulation.</li>
-</ul></li>
-<li><strong>Some I/O is bytewise:</strong>
-<ul>
-<li>Some volatile cells are dedicated to byte transfer of their least significant byte.</li>
-<li>These always include the SYS cells for <strong><code>stdlog</code></strong>, <strong><code>stdin</code></strong>, <strong><code>stdout</code></strong>, <strong><code>grdin</code></strong>, <strong><code>grdout</code></strong>, <strong><code>usrin</code></strong> and <strong><code>usrout</code></strong>.</li>
-<li>The other bytes of such cells are unaffected by @ and ! and are always zero.</li>
-</ul></li>
-<li><strong>Stack Assertions:</strong>
-<ul>
-<li>There is a minimal set of fast stack-assertion instructions that branch on failure if:
-<ul>
-<li>there is not a minimum of free space (1,2,3 or 4 cells) available on the data stack;</li>
-<li>there is not a minimum amount of data (1,2,3 or 4 elements) present on the data stack.</li>
-</ul></li>
-<li>This minimal set of stack assertions exists to:
-<ul>
-<li>allow programs to quickly deduce the cause of subsequent instruction failures;</li>
-<li>allow programs to quickly branch when stack state is inappropriate.</li>
-</ul></li>
-<li>This minimal set is logically sufficient.</li>
-</ul></li>
-<li><strong>Plumbed Assertions:</strong>
-<ul>
-<li>There is a minimal set of safe plumbed-assertion instructions that branch on failure if:
-<ul>
-<li>a cell will certainly never (during this runtime) support the @ instruction;</li>
-<li>a cell will certainly never (during this runtime) support the ! instruction.</li>
-</ul></li>
-<li>These plumbed assertions cause no side-effects whatsoever.</li>
-</ul></li>
-<li><strong>Instruction set:</strong>
-<ul>
-<li>The instruction set for Freeputer 2.0:
-<ul>
-<li>has not yet been <em>fully</em> decided upon;</li>
-<li>will be broadly similar to that of Freeputer 1.0;</li>
-<li>is likely to omit several very CISC-like instructions;</li>
-<li>is certain to have no complex (2-word) instructions.</li>
-</ul></li>
-<li>The prototype will use an experimental subset of proposed instructions.</li>
-<li>The prototype will at first have very few instructions as its implementation gradually proceeds.</li>
-</ul></li>
-</ol>
+</ul>
 <hr />
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 1 October 2017 at 01:00<br />
+This document was last updated on 12 November 2017 at 14:25<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
