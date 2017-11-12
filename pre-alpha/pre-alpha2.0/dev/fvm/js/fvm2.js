@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171106+
- * Version:    pre-alpha-0.0.1.22+ for FVM 2.0
+ * Updated:    20171112+
+ * Version:    pre-alpha-0.0.1.23+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -15,19 +15,8 @@
  *                                ( ) [ ] { }
  *
  *
- * FINAL OR NEAR FINAL DECISIONS:
- * * Intended purpose: computation, algorithms
- * * Stack machine with 4 stacks: ds, ts, cs, rs
- * * Signed 32-bit two's complement integers: unfortunately (for portability)
- * * Trap rather than branch on failure: simpler and ensures correctness
- * * No machine reset on trap: the machine simply stops
- * * Robustness is the programmer's responsibility
- * * Virtualization is the robustness strategy
- * * FW32 instruction encoding if possible
- *
- * Note: the above is not all implemented yet.
- * This 'fvm2.js' is being converted from a register machine to a
- * stack machine and is currently in an inconsistent state.
+ * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
+ * This FVM 2.0 implementation is still very incomplete and very inconsistent.
  *
  * ===========================================================================
  *
@@ -118,11 +107,6 @@ var modFVM = (function () { 'use strict';
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
 
-  const TOR   = 0x15000000|0
-
-
-  const FROMR = 0x18000000|0
-
   const HALT  = 0x1c000000|0
   const JMPZ  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
@@ -142,16 +126,14 @@ var modFVM = (function () { 'use strict';
   const RET   = 0x61000000|0
 
 
-  const DSF   = 0x62000000|0
-  const DSU   = 0x63000000|0
-  const TSF   = 0x64000000|0
-  const TSU   = 0x65000000|0
-  const CSF   = 0x66000000|0
-  const CSU   = 0x67000000|0
-  const RSF   = 0x68000000|0
-  const RSU   = 0x69000000|0
-
-
+  const DSA   = 0x62000000|0
+  const DSE   = 0x63000000|0
+  const TSA   = 0x64000000|0
+  const TSE   = 0x65000000|0
+  const CSA   = 0x66000000|0
+  const CSE   = 0x67000000|0
+  const RSA   = 0x68000000|0
+  const RSE   = 0x69000000|0
 
 
   const DROP  = 0x70000000|0
@@ -159,6 +141,8 @@ var modFVM = (function () { 'use strict';
   const OVER  = 0x72000000|0
   const ROT   = 0x73000000|0
   const DUP   = 0x74000000|0
+
+
   const SAFE  = 0x75000000|0
 
   const LIT   = 0x80000000|0
@@ -184,13 +168,6 @@ var modFVM = (function () { 'use strict';
     0x11000000: "dec  ",
     0x12000000: "flip ",
 
-    0x14000000: "tob  ",
-    0x15000000: "tor  ",
-
-    0x17000000: "fromb",
-    0x18000000: "fromr",
-
-
     0x1c000000: "halt ",
     0x1d000000: "jmpz ",
     0x1e000000: "jmpb ",
@@ -202,18 +179,11 @@ var modFVM = (function () { 'use strict';
     0x24000000: "rpt  ",
     0x26000000: "in   ",
     0x27000000: "out  ",
-//    0x80000000: "imm  "
 
     0x28000000: "pmw  ",
     0x29000000: "dmw  ",
 
 
-
-    0x32000000: "r    ",
-
-    0x34000000: "z    ",
-    0x40000000: "toz  ",
-    0x41000000: "fromz",
     0x50000000: "push ",
     0x51000000: "pop  ",
 
@@ -229,15 +199,14 @@ var modFVM = (function () { 'use strict';
     0x60000000: "call ",
     0x61000000: "ret  ",
 
-    0x62000000: "dsf  ",
-    0x63000000: "dsu  ",
-    0x64000000: "tsf  ",
-    0x65000000: "tsu  ",
-    0x66000000: "csf  ",
-    0x67000000: "csu  ",
-    0x68000000: "rsf  ",
-    0x69000000: "rsu  ",
-
+    0x62000000: "dsa  ",
+    0x63000000: "dse  ",
+    0x64000000: "tsa  ",
+    0x65000000: "tse  ",
+    0x66000000: "csa  ",
+    0x67000000: "cse  ",
+    0x68000000: "rsa  ",
+    0x69000000: "rse  ",
 
     0x70000000: "drop ",
     0x71000000: "swap ",
@@ -328,14 +297,14 @@ try {
              this.vZ = instr&PM_MASK;
              break;
           }
-          case DSF:     this.ds.doPush(this.ds.free()); break;
-          case DSU:     this.ds.doPush(this.ds.used()); break;
-          case TSF:     this.ds.doPush(this.ts.free()); break;
-          case TSU:     this.ds.doPush(this.ts.used()); break; 
-          case CSF:     this.ds.doPush(this.cs.free()); break;
-          case CSU:     this.ds.doPush(this.cs.used()); break; 
-          case RSF:     this.ds.doPush(this.rs.free()); break;
-          case RSU:     this.ds.doPush(this.rs.used()); break;
+          case DSA:     this.ds.doPush(this.ds.free()); break;
+          case DSE:     this.ds.doPush(this.ds.used()); break;
+          case TSA:     this.ds.doPush(this.ts.free()); break;
+          case TSE:     this.ds.doPush(this.ts.used()); break; 
+          case CSA:     this.ds.doPush(this.cs.free()); break;
+          case CSE:     this.ds.doPush(this.cs.used()); break; 
+          case RSA:     this.ds.doPush(this.rs.free()); break;
+          case RSE:     this.ds.doPush(this.rs.used()); break;
           case PMW:     this.ds.doPush(PM_WORDS); break;
           case DMW:     this.ds.doPush(DM_WORDS); break;
           // TODO add memory metadata here

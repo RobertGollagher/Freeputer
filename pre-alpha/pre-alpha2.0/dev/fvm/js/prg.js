@@ -3,97 +3,33 @@ var prgSrc = `
   Copyright 2017, Robert Gollagher.
   SPDX-License-Identifier: GPL-3.0+
 
-  Program:    prg.js (also known as prg.c)
+  Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171106+
+  Updated:    20171112+
   ------------------
   FREE:
-  LAST SYMBOL: s0015
+  LAST SYMBOL: s0002
   ------------------
 
-  Most of this file can be ignored as obsolete.
-  It is gradually being converted from register machine to stack machine.
+  NOTES:
+
+  - This is written in a C-compatible assembly language.
+  - This is a demonstration program for FVM 2.0 (see 'fvm2.js').
+  - The assembler is very simplistic (see 'fvma.js') and uses little memory.
+  - s0000 is the only forward reference the assembler allows.
 
 */
+s0001: /*forward*/
+  jump(s0000) /*start*/
 
-// The sole forward reference
-jump(s0000) /*start*/
+s0002: /*halt*/
+  halt
 
+s0003: /*go*/
+  dse dsa 0x40 dse dsa
+  jump(s0002) /*halt*/
 
-// Success
-s0002: /*end:*/ halt
-
-// ===========================================================================
-
-// Leave only the most significant nibble
-s000b: /*msn*/ b(0x0fffffff) xor ret
-
-
-// Move the most significant nibble to the least significant nibble
-s000c: /*msn_to_lsn*/ b(0x1c) shr ret
-
-
-// Shift left by 1 nibble
-s000d: /*shl_nibble*/ b(0x04) shl ret
-
-// ===========================================================================
-
-// Print character on tos
-s000e: /*printa*/ dup out ret
-
-// Print character four times
-s000f: /*print4*/ 4 cpush s0010: /*loopAs*/ call(s000e) /*printa*/ rpt(s0010) /*loopAs*/ ret
-
-// Print the character in a 8 times
-s0012: /*print2*/ r(0x01) s0013: call(s000e) /*printa*/ call(s000f) /*print4*/ rpt(s0013) ret
-
-// Print the character in a four times and 1 plus that character 2 times
-s0011: /*print4_2*/ call(s000f) /*print4*/ b(1) add call(s0012) /*print2*/ ret
-
-// Print a newline character
-s0004: /*print_newline*/ a(0x0a) out ret
-
-
-// Print the uppercase alphabet
-s0006: /*print_alphabet*/
-    a(0x41) b(0x01) r(0x19)
-  s0005: /*loop_alpha:*/
-    out add rpt(s0005) /*loop_alpha*/
-    ret
-
-
-// Hexadecimal print MSN
-s0003: /*alpha*/ b(0x57) /*'a'*/ add out tpop ret
-s0007: /*print_hex_msn*/
-  tpush
-  call(s000c) /*msn_to_lsn*/
-  b(0x09) jmpg(s0003) /*alpha*/
-  b(0x30) /*'0'*/ add out tpop ret
-
-
-// Hexadecimal print word
-s0008: /*print_hex_word*/
-  r(0x07)
-  s0009: /*loop_print_hex*/
-    call(s0007) /*print_hex_msn*/
-    call(s000d) /*shl_nibble*/
-    rpt(s0009) /*loop_print_hex*/
-    ret
-
-// ===========================================================================
-
-s0001: /*go:*/
-
-pmw dmw 0 jmpz(s0002) /*end*/ 99
-halt
-
-//  a(0x7654321a) call(s0008) /*print_hex_word*/
-//  call(s0004) /*print_newline*/
-//  call(s0006) /*print_alphabet*/
-  jump(s0002) /*end*/
-
-
-s0000: /*start:*/
-  jump(s0001) /*go*/
+s0000: /*start*/
+  jump(s0003) /*go*/
 `;

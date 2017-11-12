@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171106+
- * Version:    pre-alpha-0.0.1.22+ for FVM 2.0
+ * Updated:    20171112+
+ * Version:    pre-alpha-0.0.1.23+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -21,7 +21,6 @@
  * experimentation and nothing more.
  * 
  * ===========================================================================
- * FIXME disallow decimal immediates
  */
 
 // Module modFVMA will provide a Freeputer Assembler implementation.
@@ -36,14 +35,7 @@ var modFVMA = (function () { 'use strict';
   const COMSTART = '/*';
   const COMEND = '*/';
   const COMLINE= '//';
-  //const COMWORD= '/';
-
-  // const IM    = 0x80000000|0  // NO LONGER USED
-
-  const IMMA  = 0x30000000|0
-  const IMMB  = 0x31000000|0
-  const IMMR  = 0x32000000|0
-  const RPOP  = 0x33000000|0
+  const COMWORD= '/';
 
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
@@ -74,13 +66,6 @@ var modFVMA = (function () { 'use strict';
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
 
-  const TOB   = 0x14000000|0
-  //FIXME reconsider //const TOR   = 0x15000000|0
-
-  const FROMB = 0x17000000|0
-  //FIXME reconsider //const FROMR = 0x18000000|0
-
-  const MEM   = 0x1a000000|0
   const HALT  = 0x1c000000|0
   const JMPZ  = 0x1d000000|0 // Complex
   const JMPB  = 0x1e000000|0
@@ -99,14 +84,14 @@ var modFVMA = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
-  const DSF   = 0x62000000|0
-  const DSU   = 0x63000000|0
-  const TSF   = 0x64000000|0
-  const TSU   = 0x65000000|0
-  const CSF   = 0x66000000|0
-  const CSU   = 0x67000000|0
-  const RSF   = 0x68000000|0
-  const RSU   = 0x69000000|0
+  const DSA   = 0x62000000|0
+  const DSE   = 0x63000000|0
+  const TSA   = 0x64000000|0
+  const TSE   = 0x65000000|0
+  const CSA   = 0x66000000|0
+  const CSE   = 0x67000000|0
+  const RSA   = 0x68000000|0
+  const RSE   = 0x69000000|0
 
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
@@ -138,12 +123,6 @@ var modFVMA = (function () { 'use strict';
     dec:    DEC,
     flip:   FLIP,
 
-    tob:    TOB,
-    //tor:    TOR,
-
-    fromb:  FROMB,
-    //fromr:  FROMR,
-
 
     halt:   HALT,
     in:     IN, // FIXME make complex
@@ -166,15 +145,14 @@ var modFVMA = (function () { 'use strict';
     ret:    RET,
     lit:    LIT,
 
-    dsf:    DSF,
-    dsu:    DSU,
-    tsf:    TSF,
-    tsu:    TSU,
-    csf:    CSF,
-    csu:    CSU,
-    rsf:    RSF,
-    rsu:    RSU,
-
+    dsa:    DSA,
+    dse:    DSE,
+    tsa:    TSA,
+    tse:    TSE,
+    csa:    CSA,
+    cse:    CSE,
+    rsa:    RSA,
+    rse:    RSE,
 
     drop:   DROP,
     swap:   SWAP,
@@ -273,15 +251,10 @@ var modFVMA = (function () { 'use strict';
       //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
-      //} else if (this.parseForw(token)) {
-      //} else if (this.parseBackw(token)) {
       } else if (this.parseLabelDecl(token, lineNum)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
-      } else if (this.parseImmA(token)) {
-      } else if (this.parseImmB(token)) {
-      } else if (this.parseImmR(token)) {
       } else if (this.parseCall(token)) {
       } else if (this.parseJump(token)) {
       } else if (this.parseJmpZ(token)) {
@@ -292,11 +265,8 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseJmpL(token)) {
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
-      } else if (this.parseDecimalLiteral(token)) {
-      } else if (this.parseHex2(token)) {
-      } else if (this.parseHex4(token)) {
-      } else if (this.parseHex6(token)) {
-      } else if (this.parseHex8(token)) {
+      // } else if (this.parseDecimalLiteral(token)) { // Disallowed for now
+      } else if (this.parseHexLiteral(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
       }
@@ -440,7 +410,6 @@ var modFVMA = (function () { 'use strict';
         return false;
       }      
     }
-
 /*
     parseComword(token, lineNum) {
       if (token.startsWith(COMWORD)) {
@@ -450,49 +419,6 @@ var modFVMA = (function () { 'use strict';
       }
     }
 */
-
-    parseImmA(token) {
-      if (token.match(/a\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
-        var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, IMMA);
-      } else if (token.match(/a\([^\s]+\)/)){
-        var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        this.use(IMMA); // FIXME here moving to VW32/64 instr encoding
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    parseImmB(token) {
-      if (token.match(/b\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
-        var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, IMMB);
-      } else if (token.match(/b\([^\s]+\)/)){
-        var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        this.use(IMMB); // FIXME here moving to VW32/64 instr encoding
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    parseImmR(token) {
-      if (token.match(/r\(s[^\s]+\)/)){ // FIXME broken now we are VW32/64; also make more strict
-        var symbolToken = token.substring(2,token.length-1);
-        return this.parseRef(symbolToken, IMMR);
-      } else if (token.match(/r\([^\s]+\)/)){
-        var n = parseInt(token.substring(2,token.length-1)); //FIXME
-        this.use(IMMR); // FIXME here moving to VW32/64 instr encoding
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }
-    }
-
     parseCall(token) {
       if (token.match(/call\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
@@ -622,9 +548,9 @@ var modFVMA = (function () { 'use strict';
         return false;
       }
     }
-
+/*
     parseDecimalLiteral(token) {
-      if (token.match(/[0-9a]/)){
+      if (token.match(/^[0-9]+/)){
         var n = parseInt(token,10);
         // FIXME add check for literal too big
         this.use(n|LIT);
@@ -633,70 +559,18 @@ var modFVMA = (function () { 'use strict';
         return false;
       }
     }
-
-    parseHex8(token) {
-      if (token.length == 10 && token.match(/0x[0-9a-f]{8}/)){
+*/
+    parseHexLiteral(token) {
+      if (token.match(/^0x[0-9a-f]{1,8}/)){
         var n = parseInt(token,16);
-        this.use(n);
+        // FIXME add check for literal too big
+        this.use(n|LIT);
         return true;
       } else {
         return false;
       }
     }
 
-    parseHex6(token) {
-      if (token.length == 8 && token.match(/0x[0-9a-f]{6}/)){
-        var n = parseInt(token,16);
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseHex4(token) {
-      if (token.length == 6 && token.match(/0x[0-9a-f]{4}/)){
-        var n = parseInt(token,16);
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseHex2(token) {
-      if (token.length == 4 && token.match(/0x[0-9a-f]{2}/)){
-        var n = parseInt(token,16);
-        this.use(n);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-/*
-    parseForw(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 4 && token.match(/0f[0-9a-f]{2}/)){
-        var asHex = token.replace('0f','0x');
-        var n = parseInt(asHex,16);
-        var m = (Math.floor(this.prgElems.cursor/3)) + n;
-        this.use(m);
-        return true;
-      } else {
-        return false;
-      }      
-    }
-
-    parseBackw(token) { // TODO check overflow or out of bounds and endless loop
-      if (token.length == 4 && token.match(/0r[0-9a-f]{2}/)){
-        var asHex = token.replace('0r','0x');
-        var n = parseInt(asHex,16);
-        var m = (Math.floor(this.prgElems.cursor/3)) - n;
-        this.use(m);
-        return true;
-      } else {
-        return false;
-      }      
-    }*/
   };
 
   class PrgElems {
