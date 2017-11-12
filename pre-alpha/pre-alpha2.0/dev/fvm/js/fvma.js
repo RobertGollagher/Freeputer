@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171112+
- * Version:    pre-alpha-0.0.1.24+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.25+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -40,8 +40,12 @@ var modFVMA = (function () { 'use strict';
   const PUSH  = 0x50000000|0
   const POP   = 0x51000000|0
 
+  const TPEEK = 0x52000000|0
+  const CPEEK = 0x53000000|0
+
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
+  const TDROP = 0x59000000|0
   const CPUSH = 0x56000000|0
   const CPOP  = 0x57000000|0
   const CDROP = 0x58000000|0
@@ -72,6 +76,7 @@ var modFVMA = (function () { 'use strict';
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
+  const NEG   = 0x13000000|0
 
   const HALT  = 0x1c000000|0
   const JMPZ  = 0x1d000000|0 // Complex
@@ -137,6 +142,7 @@ var modFVMA = (function () { 'use strict';
     inc:    INC,
     dec:    DEC,
     flip:   FLIP,
+    neg:    NEG,
 
 
     halt:   HALT,
@@ -147,9 +153,13 @@ var modFVMA = (function () { 'use strict';
 
     tpush:  TPUSH,
     tpop:   TPOP,
+    tpeek:  TPEEK,
     cpush:  CPUSH,
     cpop:   CPOP,
+    cpeek:  CPEEK,
     cpush:  CPUSH,
+    tdrop:  TDROP,
+    cdrop:  CDROP,
 
 
     pmw:    PMW,

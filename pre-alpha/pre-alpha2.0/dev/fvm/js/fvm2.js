@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171112+
- * Version:    pre-alpha-0.0.1.24+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.25+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -17,6 +17,8 @@
  *
  * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
  * This FVM 2.0 implementation is still very incomplete and very inconsistent.
+ *
+ * TODO consider adding non-consuming instrs for convenience aka []
  *
  * ===========================================================================
  *
@@ -84,6 +86,9 @@ var modFVM = (function () { 'use strict';
 
   const TPUSH = 0x54000000|0
   const TPOP  = 0x55000000|0
+  const TPEEK = 0x52000000|0
+  const CPEEK = 0x53000000|0
+  const TDROP = 0x59000000|0
   const CPUSH = 0x56000000|0
   const CPOP  = 0x57000000|0
   const CDROP = 0x58000000|0
@@ -114,6 +119,7 @@ var modFVM = (function () { 'use strict';
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
+  const NEG   = 0x13000000|0
 
   const HALT  = 0x1c000000|0
   const JMPZ  = 0x1d000000|0 // Complex
@@ -184,6 +190,8 @@ var modFVM = (function () { 'use strict';
     0x11000000: "dec  ",
     0x12000000: "flip ",
 
+    0x13000000: "neg  ",
+
     0x1c000000: "halt ",
     0x1d000000: "jmpz ",
     0x1e000000: "jmpb ",
@@ -203,11 +211,12 @@ var modFVM = (function () { 'use strict';
     0x50000000: "push ",
     0x51000000: "pop  ",
 
-    0x52000000: "dpush",
-    0x53000000: "dpop ",
+    0x52000000: "tpeek",
+    0x53000000: "cpeek",
 
     0x54000000: "tpush",
     0x55000000: "tpop ",
+    0x59000000: "tdrop ",
     0x56000000: "cpush",
     0x57000000: "cpop ",
     0x58000000: "cdrop",
@@ -303,6 +312,9 @@ var modFVM = (function () { 'use strict';
         var opcode = instr & OPCODE_MASK;
 
 try {
+
+var foop = 2%0;
+
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
 // This block is to allow the programmer to achieve robustness,
@@ -335,8 +347,11 @@ try {
           case DUP:    this.ds.dup(); break;
           case TPUSH:  this.ts.doPush(this.ds.doPop()); break;
           case TPOP:   this.ds.doPush(this.ts.doPop()); break;
+          case TPEEK:  this.ds.doPush(this.ts.doPeek()); break;
+          case TDROP:  this.ts.drop(); break;
           case CPUSH:  this.cs.doPush(this.ds.doPop()); break;
           case CPOP:   this.ds.doPush(this.cs.doPop()); break;
+          case CPEEK:  this.ds.doPush(this.cs.doPeek()); break;
           case CDROP:  this.cs.drop(); break;
           case RPT:    if (this.cs.gtOne()) {
                           this.cs.dec();
@@ -353,15 +368,19 @@ try {
           case CATCH:  break;
 
           case MUL:    this.ds.apply2((a,b) => a*b); break;
-          case DIV:    this.ds.apply2((a,b) => a/b); break; //FIXME
-          case MOD:    this.ds.apply2((a,b) => a%b); break; //FIXME
+          // TODO Give 'proper' divide by zero trap for div, mod (not just math overflow)
+          case DIV:    this.ds.apply2((a,b) => a/b); break;
+          case MOD:    this.ds.apply2((a,b) => a%b); break;
 
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
           case OR:     this.ds.apply2((a,b) => a|b); break;
           case AND:    this.ds.apply2((a,b) => a&b); break;
           case XOR:    this.ds.apply2((a,b) => a^b); break;
-          case FLIP:   this.ds.apply1((a) => a^MSb); break; // TODO maybe add NEG
+          case FLIP:   this.ds.apply1((a) => a^MSb); break;
+          case NEG:    this.ds.apply1((a) => (~a)+1); break;
+
+
           case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
           case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
           case INC:    this.ds.apply1((a) => ++a); break;
@@ -579,13 +598,6 @@ try {
 
     verify(i, a , b) {
       if (i < INT_MIN || i > INT_MAX) {
-        // This works fine for trapping
-        if (a) {
-          this.doPush(a);
-        }
-        if (b) {
-          this.doPush(b);
-        }
         throw MATH_OVERFLOW;
       }
       return i;

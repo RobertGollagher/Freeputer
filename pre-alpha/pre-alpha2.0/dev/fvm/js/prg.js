@@ -9,7 +9,7 @@ var prgSrc = `
   Updated:    20171112+
   ------------------
   FREE:
-  LAST SYMBOL: s0004
+  LAST SYMBOL: s0005
   ------------------
 
   NOTES:
@@ -26,11 +26,15 @@ s0001: /*forward*/
 s0002: /*halt*/
   halt
 
-s0004: /*foo*/
+s0004: /*recover*/
   0x10 jump(s0002) /*halt*/
 
 s0003: /*go*/
-  0x7fffffff 0x7ffffffe flip div catch(s0004) /*foo*/
+  0x1 0x2 0x3
+  0x3 cpush
+  s0005: /*droploop*/
+    drop catch(s0004) /*recover*/
+    rpt(s0005) /*droploop*/
   jump(s0002) /*halt*/
 
 s0000: /*start*/
