@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171113+
- * Version:    pre-alpha-0.0.1.27+ for FVM 2.0
+ * Updated:    20171203+
+ * Version:    pre-alpha-0.0.1.29+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -136,6 +136,8 @@ var modFVM = (function () { 'use strict';
   const PMW   = 0x28000000|0
   const DMW   = 0x29000000|0
 
+  const FAIL  = 0x40000000|0
+
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
@@ -207,6 +209,7 @@ var modFVM = (function () { 'use strict';
     0x28000000: "pmw  ",
     0x29000000: "dmw  ",
 
+    0x40000000: "fail ",
 
     0x50000000: "push ",
     0x51000000: "pop  ",
@@ -249,6 +252,7 @@ var modFVM = (function () { 'use strict';
   class FVM {
     constructor(config) {
       this.fnTrc = config.fnTrc;
+      this.fnStdin = config.fnStdin;
       this.fnStdout = config.fnStdout;
       this.tracing = true; // comment this line out unless debugging
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
@@ -385,7 +389,16 @@ var foop = 2%0;
           case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
+          // FIXME in theory OUT could branch on failure, should implement this
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop())); break;
+          case IN:
+              var inputChar = this.fnStdin();
+              if (inputChar === undefined) {
+                  this.vZ = instr&PM_MASK;
+              } else {
+                  this.ds.doPush(inputChar);
+              }
+              break;
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
           case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
@@ -410,9 +423,9 @@ var foop = 2%0;
           case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
 
           case HALT:   return SUCCESS; break;
+          case FAIL:   return FAILURE; break;
 // End of done block
 
-          case IN:     this.ds.doPush(fnStdin()); break; // FIXME
           default: return ILLEGAL; break;
         }
       } catch(e) {

@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171113+
- * Version:    pre-alpha-0.0.1.27+ for FVM 2.0
+ * Updated:    20171203+
+ * Version:    pre-alpha-0.0.1.29+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -40,6 +40,8 @@ function modFVMUI_init(prg) { 'use strict';
   var fvmSrc = elem('fvmSrc');
   var fvmAs = elem('fvmAs');
   var fvmStdout = elem('fvmStdout');
+  const fvmInput = elem('fvmStdin');
+
   var fvmUsrout = elem('fvmUsrout');
   var fvmGrdout = elem('fvmGrdout');
   var fvmStdlog = elem('fvmStdlog');
@@ -64,10 +66,26 @@ function modFVMUI_init(prg) { 'use strict';
     clr(fvmStdtrc);
   };
 
+
+  var inCursor = 0;
+  function inchar() {
+    var inputChars = fvmStdin.value;
+    var result;
+    if (inCursor < inputChars.length) {
+      result = fvmStdin.value.charCodeAt(inCursor++);
+    }
+    return result;
+  }
+
   function run() {
+    inCursor = 0; // for fvmStdin
+
     var cf = modFVM.makeConfig(prg);
     var chr = x => String.fromCharCode(x);
     cf.fnStdout = x => fvmStdout.textContent+=chr(x);
+    cf.fnStdin = inchar; // FIXME
+
+
     cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
     cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
     cf.fnLog = x => fvmStdlog.textContent+=chr(x);
@@ -89,7 +107,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.27+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.29+</h2>
 
     <table class="fvmMaxed">
        <tr>
@@ -148,6 +166,26 @@ The only supported forward reference is s0000.
                 </table>
               </td>
             </tr>
+
+            <tr>
+              <td>
+                <table class="fvmMaxed">
+                  <tr>
+                    <td>
+                      <b>stdin</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fvmOut">
+                        <input type="text" id="fvmStdin" value="1234"><br>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+
+
             <tr>
               <td>
                 <table class="fvmMaxed">

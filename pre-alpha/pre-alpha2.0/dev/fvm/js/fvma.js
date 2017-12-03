@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171113+
- * Version:    pre-alpha-0.0.1.27+ for FVM 2.0
+ * Updated:    20171203+
+ * Version:    pre-alpha-0.0.1.29+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -93,6 +93,8 @@ var modFVMA = (function () { 'use strict';
   const PMW   = 0x28000000|0
   const DMW   = 0x29000000|0
 
+  const FAIL  = 0x40000000|0
+
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
@@ -146,8 +148,6 @@ var modFVMA = (function () { 'use strict';
 
 
     halt:   HALT,
-    in:     IN, // FIXME make complex
-    out:    OUT,
     push:   PUSH,
     pop:    POP,
 
@@ -164,6 +164,8 @@ var modFVMA = (function () { 'use strict';
 
     pmw:    PMW,
     dmw:    DMW,
+
+    fail:   FAIL,
 
 
     call:   CALL,
@@ -290,6 +292,8 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseJmpN(token)) {
       } else if (this.parseJmpG(token)) {
       } else if (this.parseJmpL(token)) {
+      } else if (this.parseIn(token)) {
+      } else if (this.parseOut(token)) {
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
       // } else if (this.parseDecimalLiteral(token)) { // Disallowed for now
@@ -514,6 +518,24 @@ var modFVMA = (function () { 'use strict';
       if (token.match(/jmpl\(s[^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPL);
+      } else {
+        return false;
+      }
+    }
+
+    parseIn(token) {
+      if (token.match(/in\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(3,token.length-1);
+        return this.parseRef(symbolToken, IN);
+      } else {
+        return false;
+      }
+    }
+
+    parseOut(token) {
+      if (token.match(/out\(s[^\s]+\)/)){ // FIXME make more strict
+        var symbolToken = token.substring(4,token.length-1);
+        return this.parseRef(symbolToken, OUT);
       } else {
         return false;
       }
