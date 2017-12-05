@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20171203+
- * Version:    pre-alpha-0.0.1.29+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.31+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -18,7 +18,14 @@
  * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
  * This FVM 2.0 implementation is still very incomplete and very inconsistent.
  *
- * TODO consider adding non-consuming instrs for convenience aka []
+ * TODO
+ * - think hard about assembly language format and forward references
+ * - consider adding non-consuming instrs for convenience aka []
+ *
+ * ===========================================================================
+ * DESIGN NOTES:
+ * - An environ can supply blocking I/O and/or non-blocking I/O;
+ *   use an environ appropriate to the program at hand.
  *
  * ===========================================================================
  *

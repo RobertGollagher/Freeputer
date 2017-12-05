@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171203+
- * Version:    pre-alpha-0.0.1.29+ for FVM 2.0
+ * Updated:    20171205+
+ * Version:    pre-alpha-0.0.1.31+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -29,7 +29,7 @@ var modFVMA = (function () { 'use strict';
   const WD_BYTES = 4;
   const ADDR_MASK = 0x00ffffff;
 
-  const START = 's0000';
+  const START = 's0'; // FIXME also support s0000 format
   const DEF = '#define';
   const HERE = '.';
   const COMSTART = '/*';
@@ -305,7 +305,7 @@ var modFVMA = (function () { 'use strict';
     };
 
     symbolToInt(str) {
-      if (str.length == 5 && str.match(/s[0-9a-f]{4}/)){
+      if (str.match(/s[0-9a-f]{1,4}$/)){
         var asHex = str.replace('s','0x');
         var intValue = parseInt(asHex,16);
         return intValue;
@@ -326,10 +326,10 @@ var modFVMA = (function () { 'use strict';
     expectingDecl(token, lineNum) {
       if (this.expectDecl) {
         var intValue;
-        if (token.length == 5 && token.match(/s[0-9a-f]{4}/)){
+        if (token.length == 5 && token.match(/s[0-9a-f]{1,4}/)){
           intValue = this.symbolToInt(token);
         } else {
-          throw lineNum + ":Illegal symbol format (must be like s0001):" + token;
+          throw lineNum + ":Illegal symbol format (must be like s1 or s0001):" + token;
         }
         if (this.dict[intValue]) {
           throw lineNum + ":Already defined:" + token;
@@ -358,7 +358,7 @@ var modFVMA = (function () { 'use strict';
 
      parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later
         var intValue;
-        if (token.length == 6 && token.match(/s[0-9a-f]{4}:/)){
+        if (token.match(/s[0-9a-f]{1,4}:/)){
           intValue = this.symbolToInt(token.substring(0,token.length-1));
         } else {
           return false;
@@ -380,7 +380,7 @@ var modFVMA = (function () { 'use strict';
            n = n | opcode;
            this.use(n);
            return true;
-       } else if (token.length == 5 && token.match(/s[0-9a-f]{4}/) && this.dict[this.symbolToInt(token)] >= 0){
+       } else if (token.match(/s[0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
            var n = this.dict[this.symbolToInt(token)];
            n = n | opcode;
            this.use(n);
