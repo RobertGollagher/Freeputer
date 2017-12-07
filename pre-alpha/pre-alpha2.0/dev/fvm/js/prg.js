@@ -6,9 +6,9 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171205+
+  Updated:    20171208+
   ------------------
-  FREE: s2 s5
+  FREE:
   LAST SYMBOL: s8
   ------------------
 
@@ -23,7 +23,7 @@ var prgSrc = `
 
   +/+ Third space needed (pm, dm, rom) such as for strings or von Neumann
   +/+ Some concept of modules or namespaces is needed
-  +/+ Might be best to drop C compatibility
+  +/- Might be best to drop C compatibility
   +/- Might be best to adopt FW32
 
 */
@@ -37,5 +37,7 @@ s8: cpush s7: in(s4) out(s6) rpt(s7) jump(s4)
 // ( -- ) Print 'A' plus no more than 4 characters from stdin
 s3: lit(0x41) out(s6) lit(0x4) call(s8) ret
 
-s0: call(s3) halt
+s2: lit(0x100) cpush s5: rpt(s5) ret
+
+s0: call(s2) halt
 `;

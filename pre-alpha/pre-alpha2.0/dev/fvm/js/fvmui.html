@@ -5,15 +5,15 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171203+
- * Version:    pre-alpha-0.0.1.31+ for FVM 2.0
+ * Updated:    20171208+
+ * Version:    pre-alpha-0.0.1.33+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
 <head>
 <title>FVM</title>
 <meta charset="UTF-8">
-<script src="fvm2.js"></script>
+<!--script src="fvm2.js"></script-->
 <script src="fvma.js"></script>
 <script src="prg.js"></script>
 <script src="prgBase64.js"></script>
@@ -78,21 +78,26 @@ function modFVMUI_init(prg) { 'use strict';
   }
 
   function run() {
-    inCursor = 0; // for fvmStdin
-
-    var cf = modFVM.makeConfig(prg);
-    var chr = x => String.fromCharCode(x);
-    cf.fnStdout = x => fvmStdout.textContent+=chr(x);
-    cf.fnStdin = inchar; // FIXME
-
-
-    cf.fnUsrout = x => fvmUsrout.textContent+=chr(x);
-    cf.fnGrdout = x => fvmGrdout.textContent+=chr(x);
-    cf.fnLog = x => fvmStdlog.textContent+=chr(x);
-    cf.fnTrc = x => fvmStdtrc.textContent+=x+'\n';
-    //cf.fnTrc = x => fvmStdout.textContent+=x+'\n';
-    var exitCode = modFVM.makeFVM(cf).run();
-    cf.fnTrc("VM exit code: " + exitCode);
+    console.time("fvmRun");
+    var wkr = new Worker("fvm2.js");
+    wkr.onmessage = function(e) {
+      switch(e.data[0]) {
+        case(0):
+          console.log('stdout'); //FIXME
+          break;
+        case(1):
+          console.log('stdin'); //FIXME
+          break;
+        case(2):
+          console.log(e.data[1]); // stdtrc output
+          break;
+        default: // FIXME check if really is completion occuring
+          console.timeEnd("fvmRun");
+          console.log("VM exit code: " + e.data);
+          break;
+      }
+    }
+    wkr.postMessage(prg); // Causes the fvm run to begin
   };
 
   return {

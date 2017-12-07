@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171203+
- * Version:    pre-alpha-0.0.1.31+ for FVM 2.0
+ * Updated:    20171208+
+ * Version:    pre-alpha-0.0.1.33+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -299,6 +299,7 @@ var modFVM = (function () { 'use strict';
     run() {
       this.initVM();
       while(true) {
+
         var addr, val;
 
         var instr = this.pmload(this.vZ);
@@ -323,8 +324,6 @@ var modFVM = (function () { 'use strict';
         var opcode = instr & OPCODE_MASK;
 
 try {
-
-var foop = 2%0;
 
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
 
@@ -651,6 +650,18 @@ var foop = 2%0;
 
 })(); // modFVM
 
+onmessage = function(e) {
+  console.log('Message received by FVM');
+    var prg = e.data; 
+    var cf = modFVM.makeConfig(prg);
+    cf.fnStdout = x => postMessage([0,x]);
+    cf.fnStdin = x => postMessage([1,0]);
+    cf.fnTrc = x => postMessage([2,x]);
+
+  var exitCode = modFVM.makeFVM(cf).run();
+  console.log('Posting message back from FVM at end of run');
+  postMessage(exitCode);
+}
 
 // Module modFmt provides formatting.
 var modFmt = (function () { 'use strict';
