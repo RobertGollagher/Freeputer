@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171208+
- * Version:    pre-alpha-0.0.1.33+ for FVM 2.0
+ * Updated:    20171209+
+ * Version:    pre-alpha-0.0.1.35+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -17,6 +17,12 @@
  *
  * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
  * This FVM 2.0 implementation is still very incomplete and very inconsistent.
+ *
+ * When run as a Web Worker, if using Chromium, you must start the browser by:
+ *    chromium --allow-file-access-from-files
+ *
+ * Uses SharedArrayBuffer (ES2017), so on Firefox 46-54 about:config needs:
+ *    javascript.options.shared_memory = true 
  *
  * TODO
  * - think hard about assembly language format and forward references
@@ -107,7 +113,8 @@ var modFVM = (function () { 'use strict';
   const DIV   = 0x31000000|0
   const MOD   = 0x32000000|0
 
-
+  const TRON  = 0x33000000|0 // FIXME find a better way than tron, troff
+  const TROFF = 0x34000000|0
 
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -181,7 +188,8 @@ var modFVM = (function () { 'use strict';
     0x30000000: "mul  ",
     0x31000000: "div  ",
     0x32000000: "mod  ",
-
+    0x33000000: "tron ",
+    0x34000000: "troff",
 
     0x03000000: "or   ",
     0x04000000: "and  ",
@@ -297,6 +305,11 @@ var modFVM = (function () { 'use strict';
     enshift(x) { return x & SHIFT_MASK; }
 
     run() {
+      if (!this.loadedProg) {
+        this.fnTrc('No program to run');
+        return FAILURE;
+      }
+
       this.initVM();
       while(true) {
 
@@ -381,6 +394,11 @@ try {
           // TODO Give 'proper' divide by zero trap for div, mod (not just math overflow)
           case DIV:    this.ds.apply2((a,b) => a/b); break;
           case MOD:    this.ds.apply2((a,b) => a%b); break;
+
+
+          case TRON:   this.tracing = true; break;
+          case TROFF:  this.tracing = false; break;
+
 
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
@@ -650,17 +668,42 @@ try {
 
 })(); // modFVM
 
-onmessage = function(e) {
-  console.log('Message received by FVM');
-    var prg = e.data; 
-    var cf = modFVM.makeConfig(prg);
-    cf.fnStdout = x => postMessage([0,x]);
-    cf.fnStdin = x => postMessage([1,0]);
-    cf.fnTrc = x => postMessage([2,x]);
+var stdinBuf;   // TODO make per FVM instance rather than global
+var stdinArray; // TODO make per FVM instance rather than global
+function awaitReadStdin() {
+  postMessage([1]);
+  Atomics.wait(stdinArray,0,0); // TODO maybe add timeout here
+  var inWord = Atomics.load(stdinArray,1);
+  Atomics.store(stdinArray,0,0);  // Flips ready flag back to 0 = not ready
+  return inWord;
+}
 
+function invokeRun(e) {
+  console.log('Message received by FVM to invoke its run');
+  var prg = e.data[1];
+  var cf = modFVM.makeConfig(prg);
+  cf.fnStdout = x => postMessage([0,x]);
+
+  stdinBuf = e.data[2];
+  stdinArray = new Int32Array(stdinBuf);
+  cf.fnStdin = awaitReadStdin;
+
+  cf.fnTrc = x => postMessage([2,x]);
   var exitCode = modFVM.makeFVM(cf).run();
   console.log('Posting message back from FVM at end of run');
-  postMessage(exitCode);
+  postMessage([3,exitCode]);
+}
+
+onmessage = function(e) {
+  switch(e.data[0]) {
+    // TODO Declare appropriate constants for message types
+    case(0): // Message type 0 = invokeRun
+      invokeRun(e);
+      break;
+    default:
+      throw ("FIXME unhandled type of message to FVM");
+      break;
+  }
 }
 
 // Module modFmt provides formatting.

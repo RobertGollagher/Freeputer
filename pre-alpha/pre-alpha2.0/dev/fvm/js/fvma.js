@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171208+
- * Version:    pre-alpha-0.0.1.33+ for FVM 2.0
+ * Updated:    20171209+
+ * Version:    pre-alpha-0.0.1.35+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -56,6 +56,10 @@ var modFVMA = (function () { 'use strict';
   const MUL   = 0x30000000|0
   const DIV   = 0x31000000|0
   const MOD   = 0x32000000|0
+
+
+  const TRON  = 0x33000000|0
+  const TROFF = 0x34000000|0
 
 
   const ADD   = 0x01000000|0
@@ -124,6 +128,10 @@ var modFVMA = (function () { 'use strict';
     mul:    MUL,
     div:    DIV,
     mod:    MOD,
+
+
+    tron:   TRON,
+    troff:  TROFF,
 
 
     add:    ADD,

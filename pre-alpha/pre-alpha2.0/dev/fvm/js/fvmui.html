@@ -5,15 +5,15 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171208+
- * Version:    pre-alpha-0.0.1.33+ for FVM 2.0
+ * Updated:    20171209+
+ * Version:    pre-alpha-0.0.1.35+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
 <head>
 <title>FVM</title>
 <meta charset="UTF-8">
-<!--script src="fvm2.js"></script-->
+<script src="fvm2.js"></script>
 <script src="fvma.js"></script>
 <script src="prg.js"></script>
 <script src="prgBase64.js"></script>
@@ -24,10 +24,10 @@ fvmSrc.textContent = prgSrc;
 // Default program was loaded from prgBase64 binary and is unrelated to prgSrc
 //var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
 
-const NOP   = 0x00000000|0; // FIXME remove all this hardcoded program...
-const HALT  = 0x1c000000|0;
-var prg = new Uint32Array([NOP,HALT]).buffer; // ...FIXME
-
+  // A tiny default program
+  const NOP   = 0x00000000|0;
+  const HALT  = 0x1c000000|0;
+  var prg = new Uint32Array([NOP,HALT]).buffer;
   modFVMUI = modFVMUI_init(prg);
 };
 
@@ -78,26 +78,47 @@ function modFVMUI_init(prg) { 'use strict';
   }
 
   function run() {
+    inCursor = 0; // for fvmStdin
+
+    var chr = x => String.fromCharCode(x);
+    var fnTrc = x => fvmStdtrc.textContent+=x+'\n';
+    var fnStdout = x => fvmStdout.textContent+=chr(x);
+    var fnStdin = inchar; // FIXME
+
     console.time("fvmRun");
     var wkr = new Worker("fvm2.js");
+
+    // A SharedArrayBuffer the size of a 2 words only:
+    //   - word 0 is used as a flag, value 0 = not ready, 1 = ready
+    //   - word 1 is the value for the Worker to read once ready to be read
+    const stdinBuf = new SharedArrayBuffer(2*Int32Array.BYTES_PER_ELEMENT);
+    const stdinArray = new Int32Array(stdinBuf);
+
     wkr.onmessage = function(e) {
       switch(e.data[0]) {
-        case(0):
-          console.log('stdout'); //FIXME
+        // TODO Declare appropriate constants for message types
+        case(0): // Message type 0 = stdout
+          fnStdout(e.data[1]);
           break;
-        case(1):
-          console.log('stdin'); //FIXME
+        case(1): // Message type 1 = stdin
+          Atomics.store(stdinArray,1,fnStdin()); // FIXME could fail undefined
+          Atomics.store(stdinArray,0,1); // Flips flag to 1 = ready
+          // Wake up the 1st agent waiting on element 0 of stdinArray
+          Atomics.wake(stdinArray, 0, 1);
           break;
-        case(2):
-          console.log(e.data[1]); // stdtrc output
+        case(2): // Message type 2 = stdtrc
+          fnTrc(e.data[1]);
           break;
-        default: // FIXME check if really is completion occuring
+        case(3): // Message type 3 = end of FVM run
           console.timeEnd("fvmRun");
-          console.log("VM exit code: " + e.data);
+          fnTrc("VM exit code: " + e.data[1]);
+          break;
+        default:
+          throw ("FIXME unhandled type of message from FVM");
           break;
       }
     }
-    wkr.postMessage(prg); // Causes the fvm run to begin
+    wkr.postMessage([0,prg,stdinBuf]); // Causes the fvm run to begin
   };
 
   return {
@@ -112,7 +133,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.31+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.35+</h2>
 
     <table class="fvmMaxed">
        <tr>
@@ -123,7 +144,7 @@ function modFVMUI_init(prg) { 'use strict';
                 <table class="fvmMaxed">
                   <tr>
                     <td>
-                      <b>Example Program</b>
+                      <b>Example Program</b> (see prg.js)
                     </td>
                   </tr>
                   <tr>
@@ -136,6 +157,17 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
             <tr>
               <td>
+If using Chrome you must start it with: <code>chrome --allow-file-access-from-files</code></br>
+If using Firefox 46-54 you must in <code>about:config</code> set: <code>javascript.options.shared_memory = true</code></br>
+</br>
+Click "Run" to run the default program. The default program is a <code>nop</code> followed by a <code>halt</code>.</br>
+Click "Assemble" to assemble the Example Program. Then click "Run" to run the assembled program.</br>
+Click "Clear" to clear all output messages. Edit the Example Program if desired.<br/>
+</br>
+The VM now runs in a separate thread as a web worker loaded from a file (hence the Chrome setting).</br>
+The VM uses postMessage for its output to stdout and SharedArrayBuffer for its input from stdin.</br>
+The input from stdin is accomplished using Atomics load, store, wait and wake.</br>
+<br/>
 The assembler is designed to run in <i>tiny</i> amounts of RAM.</br>
 The only supported forward reference is s0000.
               </td>
@@ -147,7 +179,7 @@ The only supported forward reference is s0000.
              <tr>
               <td>   
                 <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
-                <input type="button" id="restartFVM" value="Restart" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
+                <input type="button" id="restartFVM" value="Run" title="Start or restart the FVM instance" onclick="modFVMUI.run()"/>
                 <input type="button" id="clear" value="Clear" title="Clear previous output" onclick="modFVMUI.clear()"/>
               </td>
             </tr>
@@ -182,7 +214,7 @@ The only supported forward reference is s0000.
                   </tr>
                   <tr>
                     <td class="fvmOut">
-                        <input type="text" id="fvmStdin" value="1234"><br>
+                        <input type="text" id="fvmStdin" value="123456789"><br>
                     </td>
                   </tr>
                 </table>
