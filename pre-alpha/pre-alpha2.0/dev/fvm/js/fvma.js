@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171209+
- * Version:    pre-alpha-0.0.1.35+ for FVM 2.0
+ * Updated:    20171210+
+ * Version:    pre-alpha-0.0.1.36+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -29,7 +29,7 @@ var modFVMA = (function () { 'use strict';
   const WD_BYTES = 4;
   const ADDR_MASK = 0x00ffffff;
 
-  const START = 's0'; // FIXME also support s0000 format
+  const START = 'g0'; // FIXME also support g0000 format
   const DEF = '#define';
   const HERE = '.';
   const COMSTART = '/*';
@@ -218,10 +218,10 @@ var modFVMA = (function () { 'use strict';
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
-      // s0000 symbol is reserved for /*start*/ label...
-      this.s0000label = null;
+      // g0000 symbol is reserved for /*start*/ label...
+      this.g0000label = null;
       // ...and it is the only forward reference supported.
-      this.s0000refCell = null;
+      this.g0000refCell = null;
     }
 
     asm(str) { // FIXME no enforcement yet
@@ -232,17 +232,17 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        if (this.s0000refCell != null) {
-          this.s0000label = this.dict[0];
-          if (this.s0000label == null) {
-            throw "Missing entry point s0000: /*start*/ referenced at cell:"
-            + this.s0000refCell
-            + "\nDeclare the entry point for your program with a s0000: /*start*/ label.";
+        if (this.g0000refCell != null) {
+          this.g0000label = this.dict[0];
+          if (this.g0000label == null) {
+            throw "Missing entry point g0000: /*start*/ referenced at cell:"
+            + this.g0000refCell
+            + "\nDeclare the entry point for your program with a g0000: /*start*/ label.";
           } else {
-            // Populate the s0000: /*start*/ label referent into its referer
-            var s0000Addr = this.s0000label&ADDR_MASK;
-            var opcode = this.prgElems.getElem(this.s0000refCell);
-            this.prgElems.putElem(opcode|s0000Addr,this.s0000refCell);
+            // Populate the g0000: /*start*/ label referent into its referer
+            var g0000Addr = this.g0000label&ADDR_MASK;
+            var opcode = this.prgElems.getElem(this.g0000refCell);
+            this.prgElems.putElem(opcode|g0000Addr,this.g0000refCell);
           }
         }
         // Uncomment next line to see hex dump
@@ -313,9 +313,17 @@ var modFVMA = (function () { 'use strict';
     };
 
     symbolToInt(str) {
-      if (str.match(/s[0-9a-f]{1,4}$/)){
-        var asHex = str.replace('s','0x');
-        var intValue = parseInt(asHex,16);
+      if (str.match(/[sg][0-9a-f]{1,4}$/)){
+        if (str.match(/s[0-9a-f]{1,4}$/)) { //FIXME
+          var asHex = str.replace('s','0x');
+          var intValue = parseInt(asHex,16);
+        } else {
+          var asHex = str.replace('g','0x');
+          var intValue = parseInt(asHex,16);
+          if(str != 'g0') { // FIXME g0000 etc, also disallow s0
+            intValue += 0x10000; // FIXME Disallow overflow here
+          }
+        }
         return intValue;
       } else {
         throw "Assembler bug in symbolToInt(str) for:" + str;
@@ -334,7 +342,7 @@ var modFVMA = (function () { 'use strict';
     expectingDecl(token, lineNum) {
       if (this.expectDecl) {
         var intValue;
-        if (token.length == 5 && token.match(/s[0-9a-f]{1,4}/)){
+        if (token.length == 5 && token.match(/[sg][0-9a-f]{1,4}/)){
           intValue = this.symbolToInt(token);
         } else {
           throw lineNum + ":Illegal symbol format (must be like s1 or s0001):" + token;
@@ -365,13 +373,13 @@ var modFVMA = (function () { 'use strict';
      }
 
      parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later
-        var intValue;
-        if (token.match(/s[0-9a-f]{1,4}:/)){
+        var intValue; // FIXME disallow redefinition of global symbols (other than labels...)
+        if (token.match(/[sg][0-9a-f]{1,4}:/)){ // FIXME actually have been only writing these as decimal
           intValue = this.symbolToInt(token.substring(0,token.length-1));
         } else {
           return false;
         }
-        if (this.dict[intValue]) {
+        if (token.startsWith('g') && this.dict[intValue]) {
           throw lineNum + ":Already defined:" + token;
         } else {
           this.decl = intValue;
@@ -388,13 +396,13 @@ var modFVMA = (function () { 'use strict';
            n = n | opcode;
            this.use(n);
            return true;
-       } else if (token.match(/s[0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
+       } else if (token.match(/[sg][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
            var n = this.dict[this.symbolToInt(token)];
            n = n | opcode;
            this.use(n);
            return true;
        } else if (token === START) { // Special case
-           this.s0000refCell = this.prgElems.cursor;
+           this.g0000refCell = this.prgElems.cursor;
            var n = opcode; // Assembler will later overwrite for /*start*/
            this.use(n);
            return true;
@@ -460,7 +468,7 @@ var modFVMA = (function () { 'use strict';
     }
 */
     parseCall(token) {
-      if (token.match(/call\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/call\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, CALL);
       } else {
@@ -469,7 +477,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJump(token) {
-      if (token.match(/jump\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jump\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JUMP);
       } else {
@@ -478,7 +486,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpZ(token) {
-      if (token.match(/jmpz\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpz\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPZ);
       } else {
@@ -487,7 +495,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpB(token) {
-      if (token.match(/jmpb\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpb\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPB);
       } else {
@@ -496,7 +504,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpE(token) {
-      if (token.match(/jmpe\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpe\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPE);
       } else {
@@ -505,7 +513,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpN(token) {
-      if (token.match(/jmpn\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpn\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPN);
       } else {
@@ -514,7 +522,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpG(token) {
-      if (token.match(/jmpg\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpg\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPG);
       } else {
@@ -523,7 +531,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseJmpL(token) {
-      if (token.match(/jmpl\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/jmpl\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPL);
       } else {
@@ -532,7 +540,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseIn(token) {
-      if (token.match(/in\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/in\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, IN);
       } else {
@@ -541,7 +549,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseOut(token) {
-      if (token.match(/out\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/out\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(4,token.length-1);
         return this.parseRef(symbolToken, OUT);
       } else {
@@ -550,7 +558,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseRpt(token) { // Only allows label symbols not raw numbers here
-      if (token.match(/rpt\(s[^\s]+\)/)){
+      if (token.match(/rpt\([sg][^\s]+\)/)){
         var symbolToken = token.substring(4,token.length-1);
         return this.parseRef(symbolToken, RPT);
       } else {
@@ -559,7 +567,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseBr(token) { // Only allows label symbols not raw numbers here
-      if (token.match(/do\(s[^\s]+\)/)){
+      if (token.match(/do\([sg][^\s]+\)/)){
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, BR);
       } else {
@@ -595,7 +603,7 @@ var modFVMA = (function () { 'use strict';
     }
 
     parseCatch(token) {
-      if (token.match(/catch\(s[^\s]+\)/)){ // FIXME make more strict
+      if (token.match(/catch\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(6,token.length-1);
         return this.parseRef(symbolToken, CATCH);
       } else {

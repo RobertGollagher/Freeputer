@@ -6,10 +6,10 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171209+
+  Updated:    20171210+
   ------------------
-  FREE: s6
-  LAST SYMBOL: s14
+  FREE: 
+  LAST SYMBOL: g6
   ------------------
 
   NOTES:
@@ -22,51 +22,48 @@ var prgSrc = `
   ISSUES:
 
   +/+ Third space needed (pm, dm, rom) such as for strings or von Neumann
-  +/+ Some concept of modules or namespaces would be nice
-  +/- Possibly consider dropping C compatibility
-  +/- Possibly consider adopting FW32
+  +/+ Some concept of modules or namespaces would be nice:
+        trying this now with s (local) vs g (global) symbols experiment
 
 */
-s1: jump(s0) /*main*/
+jump(g0) /*main*/
 
 
 // ( n1 -- n2 ) doIncs
 // Increment n1 times to give the number of increments n2.
 // This is only to test that the VM is working correctly. 
-    s2: cpush lit(0x0) s5: inc rpt(s5) ret
+    g1: cpush lit(0x0) s1: inc rpt(s1) ret
 
 
 // ( -- 0x100000 ) doManyIncs
 // Do 1,048,576 increments to test VM performance.
 // Temporarily disable tracing while doing so.
 // See browser console for timer output.
-    s14: lit(0x100000) troff call(s2) /*doIncs*/ tron ret
+    g2: lit(0x100000) troff call(g1) /*doIncs*/ tron ret
 
 
-    s12: fail
+    s1: fail
 // ( n -- ) send
 // Output n to stdout or fail if not possible.
-    s13: out(s12) ret
+    g3: out(s1) ret
 
 
-    s11: fail
 // ( -- ) sendA
 // Output 'A' to stdout
-    s10: lit(0x41) call(s13) /*send*/ ret
+    g5: lit(0x41) call(g3) /*send*/ ret
 
 
-    s4: fail
+    s1: fail
 // ( n -- ) nInOut
 // Output to stdout no more than n characters from stdin.
-    s8: cpush s7: in(s4) call(s13) /*send*/ rpt(s7) ret
+    g6: cpush s2: in(s1) call(g3) /*send*/ rpt(s2) ret
 
 
-    s9: fail
 // ( -- ) max9InOut
 // Output to stdout no more than 9 characters from stdin.
-    s3:  lit(0x9) call(s8) ret
+    g4:  lit(0x9) call(g6) ret
 
 
 // ( -- ) main
-s0: call(s3) /*max9InOut*/ halt
+g0: lit(0x3) call(g1) /*doIncs*/ halt
 `;
