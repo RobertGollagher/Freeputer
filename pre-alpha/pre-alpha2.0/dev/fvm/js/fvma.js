@@ -29,7 +29,8 @@ var modFVMA = (function () { 'use strict';
   const WD_BYTES = 4;
   const ADDR_MASK = 0x00ffffff;
 
-  const START = 'g0'; // FIXME also support g0000 format
+  const START = 'g0';
+  const START_INDEX = 0x10000;
   const DEF = '#define';
   const HERE = '.';
   const COMSTART = '/*';
@@ -218,10 +219,10 @@ var modFVMA = (function () { 'use strict';
       this.expectDecl = false;
       this.expectDef = false;
       this.Decl = "";
-      // g0000 symbol is reserved for /*start*/ label...
-      this.g0000label = null;
+      // g0 symbol is reserved for /*start*/ label...
+      this.g0label = null;
       // ...and it is the only forward reference supported.
-      this.g0000refCell = null;
+      this.g0refCell = null;
     }
 
     asm(str) { // FIXME no enforcement yet
@@ -232,17 +233,17 @@ var modFVMA = (function () { 'use strict';
         for (var i = 0; i < lines.length; i++) {
           this.parseLine(lines[i], i+1);
         }
-        if (this.g0000refCell != null) {
-          this.g0000label = this.dict[0];
-          if (this.g0000label == null) {
-            throw "Missing entry point g0000: /*start*/ referenced at cell:"
-            + this.g0000refCell
-            + "\nDeclare the entry point for your program with a g0000: /*start*/ label.";
+        if (this.g0refCell != null) {
+          this.g0label = this.dict[START_INDEX];
+          if (this.g0label == null) {
+            throw "Missing entry point g0: /*start*/ referenced at cell:"
+            + this.g0refCell
+            + "\nDeclare the entry point for your program with a g0: /*start*/ label.";
           } else {
-            // Populate the g0000: /*start*/ label referent into its referer
-            var g0000Addr = this.g0000label&ADDR_MASK;
-            var opcode = this.prgElems.getElem(this.g0000refCell);
-            this.prgElems.putElem(opcode|g0000Addr,this.g0000refCell);
+            // Populate the g0: /*start*/ label referent into its referer
+            var g0Addr = this.g0label&ADDR_MASK;
+            var opcode = this.prgElems.getElem(this.g0refCell);
+            this.prgElems.putElem(opcode|g0Addr,this.g0refCell);
           }
         }
         // Uncomment next line to see hex dump
@@ -288,6 +289,7 @@ var modFVMA = (function () { 'use strict';
       //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
+      } else if (this.parseUnit(token)) {
       } else if (this.parseLabelDecl(token, lineNum)) {
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
@@ -320,9 +322,7 @@ var modFVMA = (function () { 'use strict';
         } else {
           var asHex = str.replace('g','0x');
           var intValue = parseInt(asHex,16);
-          if(str != 'g0') { // FIXME g0000 etc, also disallow s0
-            intValue += 0x10000; // FIXME Disallow overflow here
-          }
+          intValue += START_INDEX; // FIXME Disallow overflow here
         }
         return intValue;
       } else {
@@ -372,14 +372,31 @@ var modFVMA = (function () { 'use strict';
        }      
      }
 
+     // The C preprocessor would replace {unit with { __label__ s0, s1 ...
+     parseUnit(token) { // FIXME this is inefficient
+        var intValue;
+        if (token == '{unit' || token == '}'){ // FIXME weak logic
+          // Clear symbols from 0x0000 to 0xffff, the local symbols range,
+          // so that this compilation unit can reuse them and cannot accidentally
+          // refer to their declarations in any previous compilation unit.
+          for (var key in this.dict) {
+            if (key < START_INDEX) {
+              delete this.dict[key];
+            }            
+          }
+          return true;
+        }
+        return false;
+     }
+
      parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later
-        var intValue; // FIXME disallow redefinition of global symbols (other than labels...)
+        var intValue;
         if (token.match(/[sg][0-9a-f]{1,4}:/)){ // FIXME actually have been only writing these as decimal
           intValue = this.symbolToInt(token.substring(0,token.length-1));
         } else {
           return false;
         }
-        if (token.startsWith('g') && this.dict[intValue]) {
+        if (this.dict[intValue]) {
           throw lineNum + ":Already defined:" + token;
         } else {
           this.decl = intValue;
@@ -402,7 +419,7 @@ var modFVMA = (function () { 'use strict';
            this.use(n);
            return true;
        } else if (token === START) { // Special case
-           this.g0000refCell = this.prgElems.cursor;
+           this.g0refCell = this.prgElems.cursor;
            var n = opcode; // Assembler will later overwrite for /*start*/
            this.use(n);
            return true;
