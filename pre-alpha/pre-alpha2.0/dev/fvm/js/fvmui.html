@@ -137,7 +137,7 @@ function modFVMUI_init(prg) { 'use strict';
 
     <table class="fvmMaxed">
        <tr>
-        <td width="50%">
+        <td width="40%">
           <table class="fvmMaxed">
             <tr>
               <td>
@@ -157,15 +157,15 @@ function modFVMUI_init(prg) { 'use strict';
             </tr>
             <tr>
               <td>
-If using Chrome you must start it with: <code>chrome --allow-file-access-from-files</code></br>
-If using Firefox 46-54 you must in <code>about:config</code> set: <code>javascript.options.shared_memory = true</code></br>
+If using Chrome you must start it with: <code>chrome --allow-file-access-from-files</code>. 
+If using Firefox 46-54 you must in <code>about:config</code> set: <code>javascript.options.shared_memory = true</code>.</br>
 </br>
-Click "Run" to run the default program. The default program is a <code>nop</code> followed by a <code>halt</code>.</br>
-Click "Assemble" to assemble the Example Program. Then click "Run" to run the assembled program.</br>
+Click "Run" to run the default program. The default program is a <code>nop</code> followed by a <code>halt</code>. 
+Click "Assemble" to assemble the Example Program. Then click "Run" to run the assembled program. 
 Click "Clear" to clear all output messages. Edit the Example Program if desired.<br/>
 </br>
-The VM now runs in a separate thread as a web worker loaded from a file (hence the Chrome setting).</br>
-The VM uses postMessage for its output to stdout and SharedArrayBuffer for its input from stdin.</br>
+The VM now runs in a separate thread as a web worker loaded from a file (hence the Chrome setting). 
+The VM uses postMessage for its output to stdout and SharedArrayBuffer for its input from stdin. 
 The input from stdin is accomplished using Atomics load, store, wait and wake.</br>
 <br/>
 The assembler is designed to run in <i>tiny</i> amounts of RAM.</br>
@@ -174,7 +174,7 @@ The only supported forward reference is s0000.
             </tr>
           </table>
         </td>
-        <td width="50%">
+        <td width="60%">
           <table class="fvmMaxed">
              <tr>
               <td>   
