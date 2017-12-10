@@ -42,14 +42,25 @@ Freeputer 2.0 will be implemented in JavaScript, which for the first time should
         - make it easy to conditionally branch if prerequisites are not met;
         - include the pmi, dmw, dsa, dse, tsa, tse, rsa, rse, csa and cse instructions.
 - The instruction set will include:
-    - somewhat fewer instructions than FVM 1.0; but
-    - a sufficiently large set of convenient RISC instructions; and
-    - a few convenient CISC instructions such as copy; and
+    - significantly fewer instructions than FVM 1.0;
+    - no instructions prematurely optimizing performance;
+    - a sufficiently large set of convenient RISC instructions;
+    - no CISC instructions (instead there will be RISC instructions plus rpt);
     - the instructions: halt, fail.
-- The I/O strategy is yet to be detemined.
+- The I/O strategy is profoundly simple:
+    - the only I/O instructions are in, out; and
+    - these branch on failure but usually succeed; and
+    - they simply move 1 word to/from the data stack; and
+    - there is only 1 input stream (stdin) for the in instruction; and
+    - there is only 1 output stream (stdout) for the out instruction; and
+    - it is the responsibility of the *environ* to make these streams intelligent; and
+    - there is no limit to how intelligent an *environ* and these streams can be; and
+    - the protocol an *environ* uses is explicit in a program written for it; and
+    - correct outcomes require deployment to an appropriate *environ*.
 - The design might possibly include a ground state such as:
     - a REPL fallback after a trap ends execution; or
     - a hypervisor.
+- Support for tracing is optional.
 
 
 ---
@@ -58,7 +69,7 @@ Copyright © Robert Gollagher 2017
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 12 November 2017 at 14:25  
+This document was last updated on 10 December 2017 at 11:36  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

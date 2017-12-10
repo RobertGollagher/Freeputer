@@ -431,6 +431,10 @@ try {
                        this.store(addr,this.load(addr)+1); break;
           case DECM:   addr = this.ds.doPop();
                        this.store(addr,this.load(addr)-1); break;
+
+          // TODO probably should add reverse-direction pop and push so as
+          // to easily support bidirectional move and fill by use of rpt;
+          // this is an alternative to adding CISC instructions.
           case POP:    addr = this.ds.doPop();
                        val = this.load(addr);
                        this.store(addr,val+1);

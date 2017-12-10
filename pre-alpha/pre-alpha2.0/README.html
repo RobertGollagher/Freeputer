@@ -49,23 +49,36 @@
 </ul></li>
 <li>The instruction set will include:
 <ul>
-<li>somewhat fewer instructions than FVM 1.0; but</li>
-<li>a sufficiently large set of convenient RISC instructions; and</li>
-<li>a few convenient CISC instructions such as copy; and</li>
+<li>significantly fewer instructions than FVM 1.0;</li>
+<li>no instructions prematurely optimizing performance;</li>
+<li>a sufficiently large set of convenient RISC instructions;</li>
+<li>no CISC instructions (instead there will be RISC instructions plus rpt);</li>
 <li>the instructions: halt, fail.</li>
 </ul></li>
-<li>The I/O strategy is yet to be detemined.</li>
+<li>The I/O strategy is profoundly simple:
+<ul>
+<li>the only I/O instructions are in, out; and</li>
+<li>these branch on failure but usually succeed; and</li>
+<li>they simply move 1 word to/from the data stack; and</li>
+<li>there is only 1 input stream (stdin) for the in instruction; and</li>
+<li>there is only 1 output stream (stdout) for the out instruction; and</li>
+<li>it is the responsibility of the <em>environ</em> to make these streams intelligent; and</li>
+<li>there is no limit to how intelligent an <em>environ</em> and these streams can be; and</li>
+<li>the protocol an <em>environ</em> uses is explicit in a program written for it; and</li>
+<li>correct outcomes require deployment to an appropriate <em>environ</em>.</li>
+</ul></li>
 <li>The design might possibly include a ground state such as:
 <ul>
 <li>a REPL fallback after a trap ends execution; or</li>
 <li>a hypervisor.</li>
 </ul></li>
+<li>Support for tracing is optional.</li>
 </ul>
 <hr />
 <p>Copyright © Robert Gollagher 2017</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 12 November 2017 at 14:25<br />
+This document was last updated on 10 December 2017 at 11:36<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
