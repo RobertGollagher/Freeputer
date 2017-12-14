@@ -5,14 +5,21 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171210+
- * Version:    pre-alpha-0.0.1.36+ for FVM 2.0
+ * Updated:    20171215
+ * Version:    pre-alpha-0.0.1.37+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
  *                           for HTML 5 browsers
  * 
  *                                ( ) [ ] { }
+ *
+ *
+ * Trying a {module ... {unit ...} ...} scheme for namespaces,
+ * where module is the two most significant bytes of the symbol.
+ *
+ * TODO Limit s range to 0xffff, same for m range.
+ * FIXME make end of module take effect or remove all } symbols
  *
  * ===========================================================================
  * 
@@ -218,6 +225,8 @@ var modFVMA = (function () { 'use strict';
       this.dict = {};
       this.expectDecl = false;
       this.expectDef = false;
+      this.expectModuleNum = false;
+      this.currentModuleNum = 0;
       this.Decl = "";
       // g0 symbol is reserved for /*start*/ label...
       this.g0label = null;
@@ -289,6 +298,8 @@ var modFVMA = (function () { 'use strict';
       //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
+      } else if (this.expectingModuleNum(token, lineNum)) {
+      } else if (this.parseModule(token)) {
       } else if (this.parseUnit(token)) {
       } else if (this.parseLabelDecl(token, lineNum)) {
       } else if (this.parseDef(token)) {
@@ -315,9 +326,25 @@ var modFVMA = (function () { 'use strict';
     };
 
     symbolToInt(str) {
-      if (str.match(/[sg][0-9a-f]{1,4}$/)){
+
+console.log('FIXME str: ' + str);
+
+      if (str.match(/[m][0-9a-f]{1,4}\.[g][0-9a-f]{1,4}$/)){
+          var modNumStr = str.match(/[m][0-9a-f]{1,4}/)[0];
+          var symNumStr = str.match(/[g][0-9a-f]{1,4}/)[0];
+          var symAsHex = symNumStr.replace('g','0x');
+          var symIntValue = parseInt(symAsHex,16);
+          var modAsHex = modNumStr.replace('m','0x');
+          var modIntValue = parseInt(modAsHex,16);
+          modIntValue = modIntValue << 16;
+          var intValue = modIntValue | symIntValue;
+          return intValue;
+      } else if (str.match(/[sgm][0-9a-f]{1,4}$/)){
         if (str.match(/s[0-9a-f]{1,4}$/)) { //FIXME
           var asHex = str.replace('s','0x');
+          var intValue = parseInt(asHex,16);
+        } else if (str.match(/m[0-9a-f]{1,4}$/)) { //FIXME
+          var asHex = str.replace('m','0x');
           var intValue = parseInt(asHex,16);
         } else {
           var asHex = str.replace('g','0x');
@@ -372,6 +399,40 @@ var modFVMA = (function () { 'use strict';
        }      
      }
 
+    expectingModuleNum(token, lineNum) {
+      if (this.expectModuleNum) {
+        var expectModuleNum;
+        var intValue
+        if (token.match(/[m][0-9a-f]{1,4}/)){
+          intValue = this.symbolToInt(token);
+        } else {
+          throw lineNum + ":Illegal module name (must be like m1):" + token;
+        }
+/* FIXME
+        if (this.dict[intValue]) {
+          throw lineNum + ":Already defined:" + token;
+        } else {
+*/
+          this.currentModuleNum = intValue;
+          this.expectModuleNum = false;
+//        }
+        return true;
+      }
+      return false;
+    }
+
+     // FIXME Unclear if this can work with the C preprocessor
+     parseModule(token) {
+       if (token === '{module'){
+         this.expectModuleNum = true;
+         return true;
+       } else {
+         return false;
+       }      
+     }
+
+
+
      // The C preprocessor would replace {unit with { __label__ s0, s1 ...
      parseUnit(token) { // FIXME this is inefficient
         var intValue;
@@ -393,6 +454,7 @@ var modFVMA = (function () { 'use strict';
         var intValue;
         if (token.match(/[sg][0-9a-f]{1,4}:/)){ // FIXME actually have been only writing these as decimal
           intValue = this.symbolToInt(token.substring(0,token.length-1));
+          intValue += this.currentModuleNum;
         } else {
           return false;
         }
@@ -414,6 +476,11 @@ var modFVMA = (function () { 'use strict';
            this.use(n);
            return true;
        } else if (token.match(/[sg][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
+           var n = this.dict[this.symbolToInt(token)];
+           n = n | opcode;
+           this.use(n);
+           return true;
+       } else if (token.match(/[m][0-9a-f]{1,4}\.[g][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
            var n = this.dict[this.symbolToInt(token)];
            n = n | opcode;
            this.use(n);
@@ -485,7 +552,12 @@ var modFVMA = (function () { 'use strict';
     }
 */
     parseCall(token) {
-      if (token.match(/call\([sg][^\s]+\)/)){ // FIXME make more strict
+      // FIXME refactor all these and eliminate duplicated code
+
+      if (token.match(/call\([m][0-9a-f]{1,4}\.[g][0-9a-f]{1,4}\)/) ||
+          token.match(/call\([sg][^\s]+\)/)
+      ) {
+      //if (token.match(/call\([sg][^\s]+\)/)){ // FIXME make more strict
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, CALL);
       } else {
