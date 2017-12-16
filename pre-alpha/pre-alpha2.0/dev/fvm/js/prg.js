@@ -15,9 +15,9 @@ var prgSrc = `
   NOTES:
 
   - This is written in an assembly language which aims to be C-compatible.
-  - This is a demonstration program for FVM2 pre-alpha (see 'fvm1.js').
+  - This is a demonstration program for FVM2 pre-alpha (see 'fvm2.js').
   - The assembler is very simplistic (see 'fvma.js') and uses little memory.
-  - x0 is the only forward reference the assembler allows (effectively m0.x0)
+  - m0.x0 is the only forward reference the assembler allows
   - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
   - u symbols are local to a module (u0..uff)
   - s symbols are local to a unit (s0..sff)
@@ -31,8 +31,7 @@ var prgSrc = `
 
 {module /*forward*/ m1
   unit
-    jump(x0) /*run*/
-
+    jump(m0.x0) /*run*/
 end}
 
 {module /*incs*/ m2
@@ -72,14 +71,12 @@ end}
     // ( -- ) max9InOut
     // Output to stdout no more than 9 characters from stdin.
     x2:  lit(0x9) call(u2) ret
-
 end}
 
 {module /*simpleProgram*/ m0
   unit
     // ( -- n ) run
     x0: lit(0x3) call(m2.x1) /*doIncs*/ call(m3.x1) /*sendA*/ halt
-
 end}
 
 `;

@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171216+
- * Version:    pre-alpha-0.0.1.40+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.41+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -20,7 +20,7 @@
  *
  * Note: Need to limit s range to 0xffff, same for m range.
  * FIXME Enforce no duplication of modules.
- * FIXME Enforce no unreasonable use of m0.x0 (reserved for x0 forward).
+ * FIXME Enforce no unreasonable use of m0.x0 (reserved the sole forward).
  * FIXME Refactor and greatly simplify this whole implementation.
  * TODO  Consider constants, variables and scope for them.
  *
@@ -39,7 +39,7 @@ var modFVMA = (function () { 'use strict';
   const WD_BYTES = 4;
   const ADDR_MASK = 0x00ffffff;
 
-  const START = 'x0';
+  const START = 'm0.x0';
   const START_INDEX = 0x10000;
   const DEF = '#define';
   const HERE = '.';
@@ -612,13 +612,19 @@ console.log('FIXME str: ' + str);
       }
     }
 */
-    parseCall(token) {
-      // FIXME refactor all these and eliminate duplicated code
 
-      if (token.match(/call\([m][0-9a-f]{1,4}\.[x][0-9a-f]{1,4}\)/) ||
-          token.match(/call\([sux][^\s]+\)/)
-      ) {
-      //if (token.match(/call\([sux][^\s]+\)/)){ // FIXME make more strict
+    refMatch(mnem,token) {
+      var re1 = new RegExp(mnem + '\\([m][0-9a-f]{1,4}\\.[x][0-9a-f]{1,4}\\)');
+      var re2 = new RegExp(mnem + '\\([sux][^\\s]+\\)');
+      if (token.match(re1) || token.match(re2)) { 
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseCall(token) {
+      if (this.refMatch('call', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, CALL);
       } else {
@@ -627,7 +633,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJump(token) {
-      if (token.match(/jump\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jump', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JUMP);
       } else {
@@ -636,7 +642,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpZ(token) {
-      if (token.match(/jmpz\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpz', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPZ);
       } else {
@@ -645,7 +651,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpB(token) {
-      if (token.match(/jmpb\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpb', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPB);
       } else {
@@ -654,7 +660,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpE(token) {
-      if (token.match(/jmpe\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpe', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPE);
       } else {
@@ -663,7 +669,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpN(token) {
-      if (token.match(/jmpn\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpn', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPN);
       } else {
@@ -672,7 +678,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpG(token) {
-      if (token.match(/jmpg\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpg', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPG);
       } else {
@@ -681,7 +687,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseJmpL(token) {
-      if (token.match(/jmpl\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('jmpl', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPL);
       } else {
@@ -690,7 +696,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseIn(token) {
-      if (token.match(/in\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('in', token)) {
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, IN);
       } else {
@@ -699,7 +705,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseOut(token) {
-      if (token.match(/out\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('out', token)) {
         var symbolToken = token.substring(4,token.length-1);
         return this.parseRef(symbolToken, OUT);
       } else {
@@ -708,7 +714,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseRpt(token) { // Only allows label symbols not raw numbers here
-      if (token.match(/rpt\([sux][^\s]+\)/)){
+      if (this.refMatch('rpt', token)) {
         var symbolToken = token.substring(4,token.length-1);
         return this.parseRef(symbolToken, RPT);
       } else {
@@ -717,7 +723,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseBr(token) { // Only allows label symbols not raw numbers here
-      if (token.match(/do\([sux][^\s]+\)/)){
+      if (this.refMatch('br', token)) {
         var symbolToken = token.substring(3,token.length-1);
         return this.parseRef(symbolToken, BR);
       } else {
@@ -753,7 +759,7 @@ console.log('FIXME str: ' + str);
     }
 
     parseCatch(token) {
-      if (token.match(/catch\([sux][^\s]+\)/)){ // FIXME make more strict
+      if (this.refMatch('catch', token)) {
         var symbolToken = token.substring(6,token.length-1);
         return this.parseRef(symbolToken, CATCH);
       } else {
