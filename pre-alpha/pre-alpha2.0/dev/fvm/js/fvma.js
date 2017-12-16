@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171215
- * Version:    pre-alpha-0.0.1.37+ for FVM 2.0
+ * Updated:    20171216+
+ * Version:    pre-alpha-0.0.1.38+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -15,7 +15,7 @@
  *                                ( ) [ ] { }
  *
  *
- * Trying a {module ... {unit ...} ...} scheme for namespaces,
+ * Trying a {mod ... {unit ...} ...} scheme for namespaces,
  * where module is the two most significant bytes of the symbol.
  *
  * TODO Limit s range to 0xffff, same for m range.
@@ -349,7 +349,6 @@ console.log('FIXME str: ' + str);
         } else {
           var asHex = str.replace('g','0x');
           var intValue = parseInt(asHex,16);
-          intValue += START_INDEX; // FIXME Disallow overflow here
         }
         return intValue;
       } else {
@@ -404,7 +403,13 @@ console.log('FIXME str: ' + str);
         var expectModuleNum;
         var intValue
         if (token.match(/[m][0-9a-f]{1,4}/)){
-          intValue = this.symbolToInt(token);
+          if (token === 'm0') {
+            // m0 cannot be used due to the single-word label-encoding scheme
+            // (since it would be the same as global scope)
+            throw lineNum + ":Illegal module name m0 (must be m1 or higher)";
+          } else {
+            intValue = this.symbolToInt(token);
+          }
         } else {
           throw lineNum + ":Illegal module name (must be like m1):" + token;
         }
@@ -423,7 +428,7 @@ console.log('FIXME str: ' + str);
 
      // FIXME Unclear if this can work with the C preprocessor
      parseModule(token) {
-       if (token === '{module'){
+       if (token === '{mod'){
          this.expectModuleNum = true;
          return true;
        } else {
@@ -450,11 +455,13 @@ console.log('FIXME str: ' + str);
         return false;
      }
 
-     parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later
+     parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later, add u
         var intValue;
-        if (token.match(/[sg][0-9a-f]{1,4}:/)){ // FIXME actually have been only writing these as decimal
+        if (token.match(/[s][0-9a-f]{1,4}:/)){
           intValue = this.symbolToInt(token.substring(0,token.length-1));
-          intValue += this.currentModuleNum;
+        } else if (token.match(/[g][0-9a-f]{1,4}:/)){
+          intValue = this.symbolToInt(token.substring(0,token.length-1));
+          intValue |= (this.currentModuleNum << 16);
         } else {
           return false;
         }

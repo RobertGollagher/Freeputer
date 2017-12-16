@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171215+
+  Updated:    20171216+
   ------------------
   FREE: 
   LAST SYMBOL: g6
@@ -22,7 +22,7 @@ var prgSrc = `
   - s symbols are local to a unit.
   - Units begin with {unit and end with }
   - The C-preprocessor would replace {unit with { __label__ s0, s1 ...
-  - Currently adding {module and m1...
+  - Currently adding {mod and m1...
   - Will add u1...
 
   ISSUES:
@@ -31,14 +31,14 @@ var prgSrc = `
   +/+ Module system needed (add m sybols, u symbols)
 
 */
-{module /*forward*/ m1
+{mod /*forward*/ m2
   // imports m0.g0 /*simpleProgram.run*/ as g0
   {unit
     jump(g0) /*run*/
   }
 }
 
-{module /*incs*/ m2
+{mod /*incs*/ m3
   {unit
     // ( n1 -- n2 ) doIncs
     // Increment n1 times to give the number of increments n2.
@@ -50,10 +50,10 @@ var prgSrc = `
     // Do 1,048,576 increments to test VM performance.
     // Temporarily disable tracing while doing so.
     // See browser console for timer output.
-    g2: lit(0x100000) troff call(g1) /*doIncs*/ tron ret }
+    g2: lit(0x100000) troff call(m3.g1) /*doIncs*/ tron ret }
 }
 
-{module /*io*/ m3
+{mod /*io*/ m4
   {unit
     s0: fail
     // ( n -- ) send
@@ -63,29 +63,31 @@ var prgSrc = `
 
   {unit
     // ( -- ) sendA
-    // Output 'A' to stdout
-    g5: lit(0x41) call(g3) /*send*/ ret
+    // Output 'A' to stdout FIXME remove m3 self references
+    g5: lit(0x41) call(m4.g3) /*send*/ ret
   }
 
   {unit
     s0: fail
     // ( n -- ) nInOut
     // Output to stdout no more than n characters from stdin.
-    g6: cpush s1: in(s0) call(g3) /*send*/ rpt(s1) ret
+    g6: cpush s1: in(s0) call(m4.g3) /*send*/ rpt(s1) ret
   }
 
   {unit
     // ( -- ) max9InOut
     // Output to stdout no more than 9 characters from stdin.
-    g4:  lit(0x9) call(g6) ret
+    g4:  lit(0x9) call(m4.g6) ret
   }
 }
 
-{module /*simpleProgram*/ m0
+{mod /*simpleProgram*/ m1
   {unit
     // ( -- n ) run
-    g0: lit(0x3) call(m2.g1) /*doIncs*/ call(m3.g5) /*sendA*/ halt
+    g99: lit(0x3) call(m3.g1) /*doIncs*/ call(m4.g5) /*sendA*/ halt
   }
 }
+
+g0: lit(0x3) call(m3.g1) /*doIncs*/ call(m4.g5) /*sendA*/ halt
 
 `;
