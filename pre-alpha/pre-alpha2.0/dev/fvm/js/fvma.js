@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20171216+
- * Version:    pre-alpha-0.0.1.38+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.39+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -229,7 +229,7 @@ var modFVMA = (function () { 'use strict';
       this.expectDecl = false;
       this.expectDef = false;
       this.expectModuleNum = false;
-      this.currentModuleNum = undefined;
+      this.currentModuleNum = null;
       this.Decl = "";
       // g0 symbol is reserved for /*start*/ label...
       this.g0label = null;
@@ -304,7 +304,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
       } else if (this.expectingModuleNum(token, lineNum)) {
-      } else if (this.parseModuleStart(token)) {
+      } else if (this.parseModuleStart(token,lineNum)) {
       } else if (this.parseModuleEnd(token)) {
       } else if (this.disallowGlobals(token, lineNum)) {
       } else if (this.parseUnit(token)) {
@@ -434,7 +434,7 @@ console.log('FIXME str: ' + str);
     }
 
     disallowGlobals(token, lineNum) {
-      if (this.currentModuleNum === undefined) {
+      if (this.currentModuleNum === null) {
         // Global code shall not be allowed. All code must be modular.
         throw lineNum + ":Global code is not allowed. You must move this to a module: " + token;
       } else {
@@ -443,9 +443,13 @@ console.log('FIXME str: ' + str);
     }
 
      // FIXME Unclear if this can work with the C preprocessor
-     parseModuleStart(token) {
+     parseModuleStart(token, lineNum) {
        if (token === '{module'){
+         if (this.currentModuleNum !== null) {
+           throw lineNum + ":Cannot nest modules: " + token;
+         }
          this.expectModuleNum = true;
+         this.clearLocals(); // FIXME maybe disallow omission of explicit unit keyword
          return true;
        } else {
          return false;
@@ -454,26 +458,30 @@ console.log('FIXME str: ' + str);
 
      parseModuleEnd(token) {
        if (token === 'end}'){
-         this.currentModuleNum = undefined;
+         this.currentModuleNum = null;
+         this.clearLocals(); // FIXME maybe disallow omission of explicit unit keyword
          return true;
        } else {
          return false;
        }      
      }
 
+    clearLocals() {
+      // Clear symbols from 0x0000 to 0xffff, the local symbols range,
+      // so that this compilation unit can reuse them and cannot accidentally
+      // refer to their declarations in any previous compilation unit.
+      for (var key in this.dict) {
+        if (key < START_INDEX) {
+          delete this.dict[key];
+        }            
+      }
+    }
 
      // The C preprocessor would replace {unit with { __label__ s0, s1 ...
      parseUnit(token) { // FIXME this is inefficient
         var intValue;
-        if (token == '{unit' || token == '}'){ // FIXME weak logic
-          // Clear symbols from 0x0000 to 0xffff, the local symbols range,
-          // so that this compilation unit can reuse them and cannot accidentally
-          // refer to their declarations in any previous compilation unit.
-          for (var key in this.dict) {
-            if (key < START_INDEX) {
-              delete this.dict[key];
-            }            
-          }
+        if (token == 'unit'){ // FIXME weak logic
+          this.clearLocals();
           return true;
         }
         return false;

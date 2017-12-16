@@ -20,9 +20,9 @@ var prgSrc = `
   - g0 is the only forward reference the assembler allows.
   - g symbols are exported from a module (e.g. g0 in m1 is m1.g0)
   - s symbols are local to a unit
-  - Units begin with {unit and end with }
+  - Units begin with unit and have no explicit end
   - Modules begin with {module and end with end}
-  - The C-preprocessor would replace {unit with { __label__ s0, s1 ...
+  - The C-preprocessor would replace unit with { __label__ s0, s1 ...
   - TODO NEXT Will add u1... for non-exported units
   - See 'fvma.js' for further caveats
 
@@ -32,59 +32,56 @@ var prgSrc = `
 */
 
 {module /*forward*/ m1
-  {unit
+  unit
     jump(g0) /*run*/
-  }
+
 end}
 
 {module /*incs*/ m2
-  {unit
+  unit
     // ( n1 -- n2 ) doIncs
     // Increment n1 times to give the number of increments n2.
     // This is only to test that the VM is working correctly. 
-    g1: cpush lit(0x0) s0: inc rpt(s0) ret }
+    g1: cpush lit(0x0) s0: inc rpt(s0) ret
 
-  {unit
+  unit
     // ( -- 0x100000 ) doManyIncs
     // Do 1,048,576 increments to test VM performance.
     // Temporarily disable tracing while doing so.
     // See browser console for timer output.
-    g2: lit(0x100000) troff call(m2.g1) /*doIncs*/ tron ret }
+    g2: lit(0x100000) troff call(m2.g1) /*doIncs*/ tron ret
 end}
 
 {module /*io*/ m3
-  {unit
+  unit
     s0: fail
     // ( n -- ) send
     // Output n to stdout or fail if not possible.
     g3: out(s0) ret
-  }
 
-  {unit
+  unit
     // ( -- ) sendA
     // Output 'A' to stdout FIXME remove m2 self references
     g5: lit(0x41) call(m3.g3) /*send*/ ret
-  }
 
-  {unit
+  unit
     s0: fail
     // ( n -- ) nInOut
     // Output to stdout no more than n characters from stdin.
     g6: cpush s1: in(s0) call(m3.g3) /*send*/ rpt(s1) ret
-  }
 
-  {unit
+  unit
     // ( -- ) max9InOut
     // Output to stdout no more than 9 characters from stdin.
     g4:  lit(0x9) call(m3.g6) ret
-  }
+
 end}
 
 {module /*simpleProgram*/ m0
-  {unit
+  unit
     // ( -- n ) run
     g0: lit(0x3) call(m2.g1) /*doIncs*/ call(m3.g5) /*sendA*/ halt
-  }
+
 end}
 
 `;
