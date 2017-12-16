@@ -18,8 +18,11 @@
  * Trying a {mod ... {unit ...} ...} scheme for namespaces,
  * where module is the two most significant bytes of the symbol.
  *
- * TODO Limit s range to 0xffff, same for m range.
- * FIXME make end of module take effect or remove all } symbols
+ * Note: Need to limit s range to 0xffff, same for m range.
+ * FIXME Enforce no duplication of modules.
+ * FIXME Enforce no unreasonable use of m0.g0 (reserved for g0 forward).
+ * FIXME Refactor and greatly simplify this whole implementation.
+ * TODO  Consider constants, variables and scope for them.
  *
  * ===========================================================================
  * 
@@ -226,7 +229,7 @@ var modFVMA = (function () { 'use strict';
       this.expectDecl = false;
       this.expectDef = false;
       this.expectModuleNum = false;
-      this.currentModuleNum = 0;
+      this.currentModuleNum = undefined;
       this.Decl = "";
       // g0 symbol is reserved for /*start*/ label...
       this.g0label = null;
@@ -243,11 +246,10 @@ var modFVMA = (function () { 'use strict';
           this.parseLine(lines[i], i+1);
         }
         if (this.g0refCell != null) {
-          this.g0label = this.dict[START_INDEX];
           if (this.g0label == null) {
-            throw "Missing entry point g0: /*start*/ referenced at cell:"
+            throw "Missing entry point g0: referenced at cell:"
             + this.g0refCell
-            + "\nDeclare the entry point for your program with a g0: /*start*/ label.";
+            + "\nDeclare the entry point for your program with a g0: label.";
           } else {
             // Populate the g0: /*start*/ label referent into its referer
             var g0Addr = this.g0label&ADDR_MASK;
@@ -257,6 +259,9 @@ var modFVMA = (function () { 'use strict';
         }
         // Uncomment next line to see hex dump
         //this.fnMsg(this.prgElems);
+        if (this.g0label != null) {
+          this.fnMsg('Label g0: ' + this.g0label);
+        }
         this.fnMsg('Dictionary...');
         this.fnMsg(JSON.stringify(this.dict));
         var sz = this.prgElems.size();
@@ -299,7 +304,9 @@ var modFVMA = (function () { 'use strict';
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
       } else if (this.expectingModuleNum(token, lineNum)) {
-      } else if (this.parseModule(token)) {
+      } else if (this.parseModuleStart(token)) {
+      } else if (this.parseModuleEnd(token)) {
+      } else if (this.disallowGlobals(token, lineNum)) {
       } else if (this.parseUnit(token)) {
       } else if (this.parseLabelDecl(token, lineNum)) {
       } else if (this.parseDef(token)) {
@@ -403,13 +410,13 @@ console.log('FIXME str: ' + str);
         var expectModuleNum;
         var intValue
         if (token.match(/[m][0-9a-f]{1,4}/)){
-          if (token === 'm0') {
+          /*if (token === 'm0') {
             // m0 cannot be used due to the single-word label-encoding scheme
             // (since it would be the same as global scope)
             throw lineNum + ":Illegal module name m0 (must be m1 or higher)";
-          } else {
+          } else {*/
             intValue = this.symbolToInt(token);
-          }
+          //}
         } else {
           throw lineNum + ":Illegal module name (must be like m1):" + token;
         }
@@ -426,9 +433,18 @@ console.log('FIXME str: ' + str);
       return false;
     }
 
+    disallowGlobals(token, lineNum) {
+      if (this.currentModuleNum === undefined) {
+        // Global code shall not be allowed. All code must be modular.
+        throw lineNum + ":Global code is not allowed. You must move this to a module: " + token;
+      } else {
+        return false;
+      }
+    }
+
      // FIXME Unclear if this can work with the C preprocessor
-     parseModule(token) {
-       if (token === '{mod'){
+     parseModuleStart(token) {
+       if (token === '{module'){
          this.expectModuleNum = true;
          return true;
        } else {
@@ -436,6 +452,14 @@ console.log('FIXME str: ' + str);
        }      
      }
 
+     parseModuleEnd(token) {
+       if (token === 'end}'){
+         this.currentModuleNum = undefined;
+         return true;
+       } else {
+         return false;
+       }      
+     }
 
 
      // The C preprocessor would replace {unit with { __label__ s0, s1 ...
@@ -457,6 +481,12 @@ console.log('FIXME str: ' + str);
 
      parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later, add u
         var intValue;
+        if (token === 'g0:') {
+           this.g0label = this.prgElems.cursor;
+           this.decl = ""; // FIXME redundant?
+           this.expectDef = false; // FIXME redundant?
+           return true;
+        }
         if (token.match(/[s][0-9a-f]{1,4}:/)){
           intValue = this.symbolToInt(token.substring(0,token.length-1));
         } else if (token.match(/[g][0-9a-f]{1,4}:/)){
