@@ -17,9 +17,10 @@ var prgSrc = `
   - This is written in a C-compatible assembly language.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm1.js').
   - The assembler is very simplistic (see 'fvma.js') and uses little memory.
-  - g0 is the only forward reference the assembler allows.
-  - g symbols are exported from a module (e.g. g0 in m1 is m1.g0)
-  - s symbols are local to a unit
+  - x0 is the only forward reference the assembler allows.
+  - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
+  - u symbols are local to a module (u0..uff)
+  - s symbols are local to a unit (s0..sff)
   - Units begin with unit and have no explicit end
   - Modules begin with {module and end with end}
   - The C-preprocessor would replace unit with { __label__ s0, s1 ...
@@ -33,7 +34,7 @@ var prgSrc = `
 
 {module /*forward*/ m1
   unit
-    jump(g0) /*run*/
+    jump(x0) /*run*/
 
 end}
 
@@ -42,14 +43,14 @@ end}
     // ( n1 -- n2 ) doIncs
     // Increment n1 times to give the number of increments n2.
     // This is only to test that the VM is working correctly. 
-    g1: cpush lit(0x0) s0: inc rpt(s0) ret
+    x1: cpush lit(0x0) s0: inc rpt(s0) ret
 
   unit
     // ( -- 0x100000 ) doManyIncs
     // Do 1,048,576 increments to test VM performance.
     // Temporarily disable tracing while doing so.
     // See browser console for timer output.
-    g2: lit(0x100000) troff call(m2.g1) /*doIncs*/ tron ret
+    x2: lit(0x100000) troff call(m2.x1) /*doIncs*/ tron ret
 end}
 
 {module /*io*/ m3
@@ -57,30 +58,30 @@ end}
     s0: fail
     // ( n -- ) send
     // Output n to stdout or fail if not possible.
-    g3: out(s0) ret
+    u1: out(s0) ret
 
   unit
     // ( -- ) sendA
     // Output 'A' to stdout FIXME remove m2 self references
-    g5: lit(0x41) call(m3.g3) /*send*/ ret
+    x1: lit(0x41) call(u1) /*send*/ ret
 
   unit
     s0: fail
     // ( n -- ) nInOut
     // Output to stdout no more than n characters from stdin.
-    g6: cpush s1: in(s0) call(m3.g3) /*send*/ rpt(s1) ret
+    u2: cpush s1: in(s0) call(u1) /*send*/ rpt(s1) ret
 
   unit
     // ( -- ) max9InOut
     // Output to stdout no more than 9 characters from stdin.
-    g4:  lit(0x9) call(m3.g6) ret
+    x2:  lit(0x9) call(u2) ret
 
 end}
 
 {module /*simpleProgram*/ m0
   unit
     // ( -- n ) run
-    g0: lit(0x3) call(m2.g1) /*doIncs*/ call(m3.g5) /*sendA*/ halt
+    x0: lit(0x3) call(m2.x1) /*doIncs*/ call(m3.x1) /*sendA*/ halt
 
 end}
 
