@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171215+
- * Version:    pre-alpha-0.0.1.37+ for FVM 2.0
+ * Updated:    20171216+
+ * Version:    pre-alpha-0.0.1.40+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -27,6 +27,7 @@
  * TODO
  * - think hard about assembly language format and forward references
  * - consider adding non-consuming instrs for convenience aka []
+ * - third space needed (pm, dm, rom) such as for strings or von Neumann
  *
  * ===========================================================================
  * DESIGN NOTES:

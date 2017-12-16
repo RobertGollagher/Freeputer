@@ -14,22 +14,19 @@ var prgSrc = `
 
   NOTES:
 
-  - This is written in a C-compatible assembly language.
+  - This is written in an assembly language which aims to be C-compatible.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm1.js').
   - The assembler is very simplistic (see 'fvma.js') and uses little memory.
-  - x0 is the only forward reference the assembler allows.
+  - x0 is the only forward reference the assembler allows (effectively m0.x0)
   - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
   - u symbols are local to a module (u0..uff)
   - s symbols are local to a unit (s0..sff)
   - Units begin with unit and have no explicit end
   - Modules begin with {module and end with end}
   - The C-preprocessor would replace unit with { __label__ s0, s1 ...
-  - TODO NEXT Will add u1... for non-exported units
+  - TODO NEXT Add imports to allow remapping of module names
   - See 'fvma.js' for further caveats
 
-  ISSUES:
-
-  +/+ Third space needed (pm, dm, rom) such as for strings or von Neumann
 */
 
 {module /*forward*/ m1
@@ -62,7 +59,7 @@ end}
 
   unit
     // ( -- ) sendA
-    // Output 'A' to stdout FIXME remove m2 self references
+    // Output 'A' to stdout
     x1: lit(0x41) call(u1) /*send*/ ret
 
   unit
