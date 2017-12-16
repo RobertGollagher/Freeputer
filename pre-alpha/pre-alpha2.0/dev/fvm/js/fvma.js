@@ -15,7 +15,7 @@
  *                                ( ) [ ] { }
  *
  *
- * Trying a {mod ... {unit ...} ...} scheme for namespaces,
+ * Trying a m{ ... {unit ...} ...} scheme for namespaces,
  * where module is the two most significant bytes of the symbol.
  *
  * Note: Need to limit s range to 0xffff, same for m range.
@@ -359,6 +359,7 @@ console.log('FIXME str: ' + str);
         } else {
           var asHex = str.replace('x','0x');
           var intValue = parseInt(asHex,16);
+          intValue |= (this.currentModuleNum << 16);
         }
         return intValue;
       } else {
@@ -447,7 +448,7 @@ console.log('FIXME str: ' + str);
 
      // FIXME Unclear if this can work with the C preprocessor
      parseModuleStart(token, lineNum) {
-       if (token === '{module'){
+       if (token === 'm{'){
          if (this.currentModuleNum !== null) {
            throw lineNum + ":Cannot nest modules: " + token;
          }
@@ -460,7 +461,7 @@ console.log('FIXME str: ' + str);
      }
 
      parseModuleEnd(token) {
-       if (token === 'end}'){
+       if (token === '}m'){
          this.currentModuleNum = null;
          this.clearLocalsu();
          return true;
@@ -494,7 +495,7 @@ console.log('FIXME str: ' + str);
      // The C preprocessor would replace {unit with { __label__ s0, s1 ...
      parseUnit(token) { // FIXME this is inefficient
         var intValue;
-        if (token == 'unit'){ // FIXME weak logic
+        if (token == 'u{' || token == '}u'){ // FIXME weak logic
           this.clearLocals();
           return true;
         }
@@ -536,12 +537,17 @@ console.log('FIXME str: ' + str);
            n = n | opcode;
            this.use(n);
            return true;
-       } else if (token.match(/[sux][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
+       } else if (token.match(/[su][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
            var n = this.dict[this.symbolToInt(token)];
            n = n | opcode;
            this.use(n);
            return true;
-       } else if (token.match(/[m][0-9a-f]{1,4}\.[x][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
+       } else if (token.match(/[x][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
+           var n = this.dict[this.symbolToInt(token)];
+           n = n | opcode;
+           this.use(n);
+           return true;
+      } else if (token.match(/[m][0-9a-f]{1,4}\.[x][0-9a-f]{1,4}$/) && this.dict[this.symbolToInt(token)] >= 0){
            var n = this.dict[this.symbolToInt(token)];
            n = n | opcode;
            this.use(n);

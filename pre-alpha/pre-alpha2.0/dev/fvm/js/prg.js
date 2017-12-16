@@ -21,62 +21,63 @@ var prgSrc = `
   - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
   - u symbols are local to a module (u0..uff)
   - s symbols are local to a unit (s0..sff)
-  - Units begin with unit and have no explicit end
-  - Modules begin with {module and end with end}
-  - The C-preprocessor would replace unit with { __label__ s0, s1 ...
+  - Units begin with u{ and end with }u
+  - Modules begin with m{ and end with }m
+  - The C-preprocessor would replace u{ with { __label__ s0, s1 ...
   - TODO NEXT Add imports to allow remapping of module names
+  - TODO Enforce use of u{ keyword prior to any locals
   - See 'fvma.js' for further caveats
 
 */
 
-{module /*forward*/ m1
-  unit
-    jump(m0.x0) /*run*/
-end}
+m{ m1 /*forward*/ jump(m0.x0) }m
 
-{module /*incs*/ m2
-  unit
-    // ( n1 -- n2 ) doIncs
-    // Increment n1 times to give the number of increments n2.
-    // This is only to test that the VM is working correctly. 
-    x1: cpush lit(0x0) s0: inc rpt(s0) ret
+m{ m2 /*incs*/
 
-  unit
-    // ( -- 0x100000 ) doManyIncs
-    // Do 1,048,576 increments to test VM performance.
-    // Temporarily disable tracing while doing so.
-    // See browser console for timer output.
-    x2: lit(0x100000) troff call(m2.x1) /*doIncs*/ tron ret
-end}
+  // ( n1 -- n2 ) doIncs
+  // Increment n1 times to give the number of increments n2.
+  // This is only to test that the VM is working correctly. 
+  u{ x1: cpush lit(0x0) s0: inc rpt(s0) ret }u
 
-{module /*io*/ m3
-  unit
-    s0: fail
-    // ( n -- ) send
-    // Output n to stdout or fail if not possible.
-    u1: out(s0) ret
+  // ( -- 0x100000 ) doManyIncs
+  // Do 1,048,576 increments to test VM performance.
+  // Temporarily disable tracing while doing so.
+  // See browser console for timer output.
+  u{ x2: lit(0x100000) troff call(x1) /*doIncs*/ tron ret }u
 
-  unit
-    // ( -- ) sendA
-    // Output 'A' to stdout
-    x1: lit(0x41) call(u1) /*send*/ ret
+}m
 
-  unit
-    s0: fail
-    // ( n -- ) nInOut
-    // Output to stdout no more than n characters from stdin.
-    u2: cpush s1: in(s0) call(u1) /*send*/ rpt(s1) ret
+m{ m3 /*io*/
 
-  unit
-    // ( -- ) max9InOut
-    // Output to stdout no more than 9 characters from stdin.
-    x2:  lit(0x9) call(u2) ret
-end}
+  // ( n -- ) send
+  // Output n to stdout or fail if not possible.
+  u{ s0: fail x1: out(s0) ret }u
 
-{module /*simpleProgram*/ m0
-  unit
-    // ( -- n ) run
-    x0: lit(0x3) call(m2.x1) /*doIncs*/ call(m3.x1) /*sendA*/ halt
-end}
+  // ( -- ) sendA
+  // Output 'A' to stdout
+  u{ x2: lit(0x41) call(x1) /*send*/ ret }u
+
+  // ( n -- ) nInOut
+  // Output to stdout no more than n characters from stdin.
+  u{ s0: fail u1: cpush s1: in(s0) call(x1) /*send*/ rpt(s1) ret }u
+
+  // ( -- ) max9InOut
+  // Output to stdout no more than 9 characters from stdin.
+  u{ x3: lit(0x9) call(u1) /*nInOut*/ ret }u
+
+}m
+
+m{ m0 /*run*/
+
+  // Do 3 meaningless increments
+  //   then output 'D' by addition
+  u{
+    x0: 
+      lit(0x3) call(m2.x1) /*incs.doIncs*/
+      lit(0x41) add call(m3.x1) /*io.send*/
+      halt
+  }u
+
+}m
 
 `;
