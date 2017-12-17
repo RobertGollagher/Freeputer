@@ -262,8 +262,13 @@ var modFVMA = (function () { 'use strict';
         if (this.x0label != null) {
           this.fnMsg('Label x0: ' + this.x0label);
         }
+        var dictStr = "";
         this.fnMsg('Dictionary...');
-        this.fnMsg(JSON.stringify(this.dict));
+        //this.fnMsg(JSON.stringify(this.dict));
+        for (var key in this.dict) {
+          dictStr += modFmt.hex8(key|0) + ':' + this.dict[key].toString(16) + " ";
+        }
+        this.fnMsg(dictStr);
         var sz = this.prgElems.size();
         this.fnMsg('Program size: ' + sz + " words = " + sz*WD_BYTES + " bytes");
         this.fnMsg('Done');

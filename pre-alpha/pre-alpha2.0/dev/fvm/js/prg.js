@@ -92,7 +92,7 @@ m{ mod(m0) /*run*/
     x0: 
       lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
       lit(0x41) add call(m3.x1) /*io.send*/   // Output 'D' by addition
-      call(m3.x1) /*bar.peach*/ // FIXME Solve the namespace conflict
+      call(m5.x1) /*bar.peach*/ // FIXME Solve the namespace conflict
       halt
   }u
 
