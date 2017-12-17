@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171216+
- * Version:    pre-alpha-0.0.1.41+ for FVM 2.0
+ * Updated:    20171217+
+ * Version:    pre-alpha-0.0.1.42+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -333,9 +333,6 @@ var modFVMA = (function () { 'use strict';
     };
 
     symbolToInt(str) {
-
-console.log('FIXME str: ' + str);
-
       if (str.match(/[m][0-9a-f]{1,4}\.[x][0-9a-f]{1,4}$/)){
           var modNumStr = str.match(/[m][0-9a-f]{1,4}/)[0];
           var symNumStr = str.match(/[x][0-9a-f]{1,4}/)[0];
@@ -413,15 +410,14 @@ console.log('FIXME str: ' + str);
       if (this.expectModuleNum) {
         var expectModuleNum;
         var intValue
-        if (token.match(/[m][0-9a-f]{1,4}/)){
-          /*if (token === 'm0') {
-            // m0 cannot be used due to the single-word label-encoding scheme
-            // (since it would be the same as global scope)
-            throw lineNum + ":Illegal module name m0 (must be m1 or higher)";
-          } else {*/
-            intValue = this.symbolToInt(token);
-          //}
-        } else {
+//      if (token.match(/[m][0-9a-f]{1,4}/)){
+        if (token.match(/^mod\(m[0-9a-f]{1,4}\)$/)){
+            var symbolToken = token.substring(4,token.length-1);
+            intValue = this.symbolToInt(symbolToken);
+        } /*else if (token.match(/^mod\(m[0-9a-f]{1,4},m[0-9a-f]{1,4}\)$/)){
+            var symbolToken = token.substring(5,token.length-1); // FIXME
+            intValue = this.symbolToInt(symbolToken);
+        } */else {
           throw lineNum + ":Illegal module name (must be like m1):" + token;
         }
 /* FIXME

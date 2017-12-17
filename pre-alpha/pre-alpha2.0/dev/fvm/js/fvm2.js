@@ -418,7 +418,7 @@ try {
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop())); break;
           case IN:
               var inputChar = this.fnStdin();
-              if (inputChar === undefined) {
+              if (inputChar === undefined) { //FIXME use null not undefined for these
                   this.vZ = instr&PM_MASK;
               } else {
                   this.ds.doPush(inputChar);

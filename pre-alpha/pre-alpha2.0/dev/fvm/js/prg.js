@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171216+
+  Updated:    20171217+
   ------------------
   FREE: 
   LAST SYMBOL: g6
@@ -23,16 +23,19 @@ var prgSrc = `
   - s symbols are local to a unit (s0..sff)
   - Units begin with u{ and end with }u
   - Modules begin with m{ and end with }m
+  - Modules are named by mod(m1)
+  - Modules are aliased by mod(m1,m4) as (name,alias)
   - The C-preprocessor would replace u{ with { __label__ s0, s1 ...
   - TODO NEXT Add imports to allow remapping of module names
   - TODO Enforce use of u{ keyword prior to any locals
+  - TODO Classify (graph theory style) modules
   - See 'fvma.js' for further caveats
 
 */
 
-m{ m1 /*forward*/ jump(m0.x0) }m
+m{ mod(m1) /*forward*/ jump(m0.x0) }m
 
-m{ m2 /*incs*/
+m{ mod(m2) /*incs*/
 
   // ( n1 -- n2 ) doIncs
   // Increment n1 times to give the number of increments n2.
@@ -47,7 +50,7 @@ m{ m2 /*incs*/
 
 }m
 
-m{ m3 /*io*/
+m{ mod(m3) /*io*/
 
   // ( n -- ) send
   // Output n to stdout or fail if not possible.
@@ -67,14 +70,29 @@ m{ m3 /*io*/
 
 }m
 
-m{ m0 /*run*/
+// Testing remapping of module names -----------------------------------------
+m{ mod(m4) /*foo*/ // FIXME Solve the namespace conflict
 
-  // Do 3 meaningless increments
-  //   then output 'D' by addition
+  // ( -- ) banana
+  u{ x1: nop ret }u
+
+}m
+
+m{ mod(m5) /*bar*/ // FIXME Solve the namespace conflict
+
+  // ( -- ) peach
+  u{ x1: call(m4.x1) /*foo.banana*/ ret }u
+
+}m
+// ---------------------------------------------------------------------------
+
+m{ mod(m0) /*run*/
+
   u{
     x0: 
-      lit(0x3) call(m2.x1) /*incs.doIncs*/
-      lit(0x41) add call(m3.x1) /*io.send*/
+      lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
+      lit(0x41) add call(m3.x1) /*io.send*/   // Output 'D' by addition
+      call(m3.x1) /*bar.peach*/ // FIXME Solve the namespace conflict
       halt
   }u
 
