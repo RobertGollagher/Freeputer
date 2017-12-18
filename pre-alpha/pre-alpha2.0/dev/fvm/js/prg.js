@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20171217+
+  Updated:    20171218+
   ------------------
   FREE: 
   LAST SYMBOL: g6
@@ -24,11 +24,8 @@ var prgSrc = `
   - Units begin with u{ and end with }u
   - Modules begin with m{ and end with }m
   - Modules are named by mod(m1)
-  - Modules are aliased by mod(m1,m4) as (name,alias)
   - The C-preprocessor would replace u{ with { __label__ s0, s1 ...
-  - TODO NEXT Add imports to allow remapping of module names
   - TODO Enforce use of u{ keyword prior to any locals
-  - TODO Classify (graph theory style) modules
   - See 'fvma.js' for further caveats
 
 */
@@ -71,14 +68,14 @@ m{ mod(m3) /*io*/
 }m
 
 // Testing remapping of module names -----------------------------------------
-m{ mod(m4) /*foo*/ // FIXME Solve the namespace conflict
+m{ mod(m4) /*foo*/
 
   // ( -- ) banana
   u{ x1: nop ret }u
 
 }m
 
-m{ mod(m5) /*bar*/ // FIXME Solve the namespace conflict
+m{ mod(m5) /*bar*/
 
   // ( -- ) peach
   u{ x1: call(m4.x1) /*foo.banana*/ ret }u
@@ -92,7 +89,7 @@ m{ mod(m0) /*run*/
     x0: 
       lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
       lit(0x41) add call(m3.x1) /*io.send*/   // Output 'D' by addition
-      call(m5.x1) /*bar.peach*/ // FIXME Solve the namespace conflict
+      call(m5.x1) /*bar.peach*/
       halt
   }u
 

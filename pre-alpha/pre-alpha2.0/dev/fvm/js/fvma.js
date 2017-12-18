@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171217+
- * Version:    pre-alpha-0.0.1.42+ for FVM 2.0
+ * Updated:    20171218+
+ * Version:    pre-alpha-0.0.1.43+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -18,8 +18,7 @@
  * Trying a m{ ... {unit ...} ...} scheme for namespaces,
  * where module is the two most significant bytes of the symbol.
  *
- * Note: Need to limit s range to 0xffff, same for m range.
- * FIXME Enforce no duplication of modules.
+ * Note: Need to limit ranges of m, u, s...
  * FIXME Enforce no unreasonable use of m0.x0 (reserved the sole forward).
  * FIXME Refactor and greatly simplify this whole implementation.
  * TODO  Consider constants, variables and scope for them.
