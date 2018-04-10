@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20171216+
- * Version:    pre-alpha-0.0.1.40+ for FVM 2.0
+ * Updated:    20180410+
+ * Version:    pre-alpha-0.0.1.41+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -14,9 +14,10 @@
  *
  *                                ( ) [ ] { }
  *
- *
- * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
- * This FVM 2.0 implementation is still very incomplete and very inconsistent.
+ * 
+ * This implementation is now being experimentally cut down to a much
+ * simpler (and possibly generic, configurable) stack machine in an effort
+ * to find a way of reducing VM complexity by an order of magnitude.
  *
  * When run as a Web Worker, if using Chromium, you must start the browser by:
  *    chromium --allow-file-access-from-files
@@ -156,17 +157,6 @@ var modFVM = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
-
-  const DSA   = 0x62000000|0
-  const DSE   = 0x63000000|0
-  const TSA   = 0x64000000|0
-  const TSE   = 0x65000000|0
-  const CSA   = 0x66000000|0
-  const CSE   = 0x67000000|0
-  const RSA   = 0x68000000|0
-  const RSE   = 0x69000000|0
-
-
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
   const OVER  = 0x72000000|0
@@ -242,15 +232,6 @@ var modFVM = (function () { 'use strict';
 
     0x60000000: "call ",
     0x61000000: "ret  ",
-
-    0x62000000: "dsa  ",
-    0x63000000: "dse  ",
-    0x64000000: "tsa  ",
-    0x65000000: "tse  ",
-    0x66000000: "csa  ",
-    0x67000000: "cse  ",
-    0x68000000: "rsa  ",
-    0x69000000: "rse  ",
 
     0x70000000: "drop ",
     0x71000000: "swap ",
@@ -350,17 +331,6 @@ try {
              this.vZ = instr&PM_MASK;
              break;
           }
-          case DSA:     this.ds.doPush(this.ds.free()); break;
-          case DSE:     this.ds.doPush(this.ds.used()); break;
-          case TSA:     this.ds.doPush(this.ts.free()); break;
-          case TSE:     this.ds.doPush(this.ts.used()); break; 
-          case CSA:     this.ds.doPush(this.cs.free()); break;
-          case CSE:     this.ds.doPush(this.cs.used()); break; 
-          case RSA:     this.ds.doPush(this.rs.free()); break;
-          case RSE:     this.ds.doPush(this.rs.used()); break;
-          case PMW:     this.ds.doPush(PM_WORDS); break;
-          case DMW:     this.ds.doPush(DM_WORDS); break;
-          // TODO add memory metadata here
 // End of robustness block
 
 // This block is all done except corner cases:

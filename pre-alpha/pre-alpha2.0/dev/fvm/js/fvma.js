@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20171218+
- * Version:    pre-alpha-0.0.1.43+ for FVM 2.0
+ * Updated:    20180410+
+ * Version:    pre-alpha-0.0.1.44+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -14,6 +14,10 @@
  * 
  *                                ( ) [ ] { }
  *
+ * This implementation is now being experimentally cut down to a much
+ * simpler (and possibly generic, configurable) stack machine in an effort
+ * to find a way of reducing VM complexity by an order of magnitude.
+ * ===========================================================================
  *
  * Trying a m{ ... {unit ...} ...} scheme for namespaces,
  * where module is the two most significant bytes of the symbol.
@@ -112,15 +116,6 @@ var modFVMA = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
-  const DSA   = 0x62000000|0
-  const DSE   = 0x63000000|0
-  const TSA   = 0x64000000|0
-  const TSE   = 0x65000000|0
-  const CSA   = 0x66000000|0
-  const CSE   = 0x67000000|0
-  const RSA   = 0x68000000|0
-  const RSE   = 0x69000000|0
-
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
   const OVER  = 0x72000000|0
@@ -189,15 +184,6 @@ var modFVMA = (function () { 'use strict';
     call:   CALL,
     ret:    RET,
     lit:    LIT,
-
-    dsa:    DSA,
-    dse:    DSE,
-    tsa:    TSA,
-    tse:    TSE,
-    csa:    CSA,
-    cse:    CSE,
-    rsa:    RSA,
-    rse:    RSE,
 
     drop:   DROP,
     swap:   SWAP,
