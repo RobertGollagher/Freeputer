@@ -21,6 +21,10 @@ Freeputer 2.0 will be implemented in JavaScript, which for the first time should
 
 ### Proposed Design
 
+Experiments are in progress to radically simplify the design (see 'fvm2.js' and 'prg.js').
+
+Therefore the most recently proposed design, shown below, is no longer current.
+
 - Stack machine with 4 stacks: data (ds), temporary (ts), return (rs), counter (cs).
 - Harvard architecture ensures ease of native implementation:
     - program logic is entirely independent of instruction encoding;
@@ -65,11 +69,11 @@ Freeputer 2.0 will be implemented in JavaScript, which for the first time should
 
 ---
 
-Copyright © Robert Gollagher 2017  
+Copyright © Robert Gollagher 2017, 2018  
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 10 December 2017 at 11:36  
+This document was last updated on 11 April 2018 at 00:48  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

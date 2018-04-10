@@ -30,7 +30,7 @@ See also [Other Resources](#other-resources) below.
 
 [Freeputer&nbsp;2.0](pre-alpha/pre-alpha2.0) is coming!
 
-It is expected as an alpha release in late 2017.
+It is expected as an alpha release in the second half of 2018.
 
 ## So where's the code?
 
@@ -59,11 +59,11 @@ All current development effort is now on [Freeputer&nbsp;2.0](pre-alpha/pre-alph
 
 ---
 
-Copyright © Robert Gollagher 2016, 2017  
+Copyright © Robert Gollagher 2016, 2017, 2018  
 
 This document was written by Robert Gollagher.  
 This document was first published on 11 March 2016.  
-This document was last updated on 10 May 2017 at 20:32.  
+This document was last updated on 11 April 2018 at 01:02.  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
