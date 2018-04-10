@@ -16,7 +16,7 @@ Build and run by:
 
   ./go.sh perftest
 
-This requires the build flag NO_PROGRAM to be NO in 'qmisc.c'.
+This requires the build flag NO_PROGRAM to be NO in 'qmisc.s'.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
