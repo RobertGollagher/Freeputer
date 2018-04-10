@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20180410+
- * Version:    pre-alpha-0.0.1.44+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.45+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -125,6 +125,7 @@ var modFVMA = (function () { 'use strict';
   const SAFE  = 0x75000000|0
   const CATCH = 0x76000000|0
 
+  const SP    = 0x79000000|0
   const LIT   = 0x80000000|0
 
   const SYMBOLS = { // Note: simple only here, complex in code below
@@ -183,6 +184,8 @@ var modFVMA = (function () { 'use strict';
 
     call:   CALL,
     ret:    RET,
+
+    sp:     SP,
     lit:    LIT,
 
     drop:   DROP,
@@ -314,6 +317,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseOut(token)) {
       } else if (this.parseRpt(token)) {
       } else if (this.parseBr(token)) {
+      } else if (this.parseSP(token)) {
       // } else if (this.parseDecimalLiteral(token)) { // Disallowed for now
       } else if (this.parseHexLiteral(token, lineNum)) {
       } else if (this.parseCatch(token)) {
@@ -722,6 +726,21 @@ var modFVMA = (function () { 'use strict';
         return false;
       }
     }
+
+    parseSP(token) {
+      if (token.match(/^sp\(0x[0-9a-f]{1,8}\)/)){
+        var symbolToken = token.substring(3,token.length-1);
+        var n = parseInt(symbolToken,16);
+        if (n > 0x00ffffff) { // FIXME
+          throw lineNum + ":SP value out of bounds:" + token;
+        }
+        this.use(n|SP);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
 /*
     parseDecimalLiteral(token) {
       if (token.match(/^[0-9]+/)){
