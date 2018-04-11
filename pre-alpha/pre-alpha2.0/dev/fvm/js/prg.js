@@ -75,9 +75,6 @@ m{ mod(m4) /*foo*/
   // ( -- ) banana
   u{ x1: nop ret }u
 
-  // ( -- ) nopHalt
-  u{ x2: nop halt }u
-
 }m
 
 m{ mod(m5) /*bar*/
@@ -94,27 +91,7 @@ m{ mod(m0) /*run*/
     x0:
 
       sp(0x100) // Radical experiment
-      lit(0x12345678)
-
-/*
-
-The following result in the same flow control. A simple jump:
-
-      jump(m4.x2)
-
-Or jumping by copying the destination address into cell 0 (i.e. the PC):
-
-      lit(0x0)
-      lit(m4.x2)
-      put
-
-*/
-
-      lit(0x0)
-      lit(m4.x2)
-      put
-
-
+      lit(0x12345678);
       halt
 
       // TODO NEXT: add another instruction rp(0x200), to declare
