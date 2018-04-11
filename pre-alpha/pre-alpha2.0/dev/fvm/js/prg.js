@@ -75,6 +75,9 @@ m{ mod(m4) /*foo*/
   // ( -- ) banana
   u{ x1: nop ret }u
 
+  // ( -- ) nopHalt
+  u{ x2: nop halt }u
+
 }m
 
 m{ mod(m5) /*bar*/
@@ -91,7 +94,17 @@ m{ mod(m0) /*run*/
     x0:
 
       sp(0x100) // Radical experiment
-      lit(0x12345678);
+      lit(0x12345678)
+
+/*
+      jump(m4.x2) /*foo.nopHalt*/
+*/
+
+      lit(0x0)
+      lit(m4.x2)
+      put
+
+
       halt
 
       // TODO NEXT: add another instruction rp(0x200), to declare

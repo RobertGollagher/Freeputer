@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180410+
- * Version:    pre-alpha-0.0.1.45+ for FVM 2.0
+ * Updated:    20180411+
+ * Version:    pre-alpha-0.0.1.46+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -65,7 +65,7 @@ var modFVM = (function () { 'use strict';
   const INT_MIN = -2147483648;
 
   // Radical experiments (including making stacks generic)
-  const PC_CELL = 0; // Later we will move the PC to cell 0.
+  const PC_CELL = 0; // Cell to hold the PC!
   const SP_CELL = 1; // Cell to hold address of generic stack pointer!
 
 
@@ -259,11 +259,14 @@ var modFVM = (function () { 'use strict';
       this.fnStdin = config.fnStdin;
       this.fnStdout = config.fnStdout;
       this.tracing = true; // comment this line out unless debugging
-      this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
+
       this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
       this.loadProgram(config.program, this.pm);
+
+      // Radical experiment: move PC into cell 0 of data memory
+      this.store(PC_CELL, 0|0);
 
 /*
       this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
@@ -308,17 +311,21 @@ var modFVM = (function () { 'use strict';
         // Radical experiment (generic stack pointer for whole VM):
         var vmsp;
 
+        // Radical experiment (PC in cell 0 of data memory)
+        this.vZ = this.load(PC_CELL); // TODO refactor away this.vZ
+
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
           this.traceVM(instr);
         }
 
         if (this.vZ >= PM_WORDS || this.vZ < 0 ) {
-          return BEYOND;
+          return BEYOND; // TODO maybe make circular
         }
 
         ++this.vZ;
-
+        this.store(PC_CELL, this.vZ);
+        
         // Handle immediates
         if (instr&MSb) {
           // this.ds.doPush(instr&METADATA_MASK);
@@ -348,6 +355,7 @@ try {
             this.ds.free < SAFE_MARGIN
           ) {
              this.vZ = instr&PM_MASK;
+             this.store(PC_CELL, this.vZ);
              break;
           }
 // End of robustness block
@@ -369,13 +377,14 @@ try {
           case RPT:    if (this.cs.gtOne()) {
                           this.cs.dec();
                           this.vZ = instr&PM_MASK;
+                          this.store(PC_CELL, this.vZ);
                        } else {
                           this.cs.doPop();
                        }
                        break;
           /**/
-          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
-          case RET:    this.vZ = this.rs.doPop(); break;
+          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; this.store(PC_CELL, this.vZ); break;
+          case RET:    this.vZ = this.rs.doPop(); this.store(PC_CELL, this.vZ); break;
           case NOP:    break;
 
           case CATCH:  break;
@@ -408,13 +417,14 @@ try {
           case IN:
               var inputChar = this.fnStdin();
               if (inputChar === undefined) { //FIXME use null not undefined for these
-                  this.vZ = instr&PM_MASK;
+                  this.vZ = instr&PM_MASK; this.store(PC_CELL, this.vZ);
               } else {
                   this.ds.doPush(inputChar);
               }
               break;
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
-          case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
+          case PUT:    //this.store(this.ds.doPop(),this.ds.doPop()); break;
+                        this.store(this.ppop(),this.ppop()); break
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
           case PUTI:   this.store(this.load(this.ds.doPop()),this.ds.doPop()); break;
           case INCM:   addr = this.ds.doPop();
@@ -434,11 +444,15 @@ try {
                        this.store(addr,val);
                        this.store(val,this.ds.doPop()); break;
 
-          case JUMP:   this.vZ = instr&PM_MASK; break;
-          case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
+          case JUMP:   this.vZ = instr&PM_MASK; this.store(PC_CELL, this.vZ); break;
+          case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK;
+                        this.store(PC_CELL, this.vZ); break;
+          case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; 
+                        this.store(PC_CELL, this.vZ); break;
+          case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; 
+                        this.store(PC_CELL, this.vZ); break;
+          case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; 
+                        this.store(PC_CELL, this.vZ); break;
 
           // Radical experiment; sets address of general stack-pointer cell
           case SP:     this.store(SP_CELL,instr&PM_MASK); break;
@@ -456,13 +470,26 @@ try {
             if (this.tracing) {
               this.traceVM(nextInstr, true);
             }
-            this.vZ = nextInstr&PM_MASK;
+            this.vZ = nextInstr&PM_MASK; this.store(PC_CELL, this.vZ); break;
           } else {
             // FIXME need to go here if e is not a trap!
             return e;
           }
         }
       }
+    }
+
+    ppop() { // FIXME no underflow check here yet, not yet circular
+      var val, sp;
+      sp = this.load(SP_CELL);
+      val = this.load(sp++);
+      this.store(SP_CELL, sp);
+      return val;
+    }
+
+    ppush(val) { // FIXME no overflow check here yet, not yet circular
+      var sp = this.load(SP_CELL);
+      this.store(val, sp--);
     }
 
     store(addr,val) {
@@ -499,7 +526,8 @@ try {
         mnem = " " + mnem;
       }
       var traceStr =
-        modFmt.hex8(this.vZ) + " " +
+        "vZ:" + modFmt.hex8(this.vZ) +
+        " c0:" + modFmt.hex8(this.load(PC_CELL)) + " " +
         modFmt.hex8(instr) + " " +
         mnem 
         // Radical experiment: // FIXME

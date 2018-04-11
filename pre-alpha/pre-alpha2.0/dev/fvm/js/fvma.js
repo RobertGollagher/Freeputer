@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180410+
- * Version:    pre-alpha-0.0.1.45+ for FVM 2.0
+ * Updated:    20180411+
+ * Version:    pre-alpha-0.0.1.46+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -320,6 +320,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseSP(token)) {
       // } else if (this.parseDecimalLiteral(token)) { // Disallowed for now
       } else if (this.parseHexLiteral(token, lineNum)) {
+      } else if (this.parseRefLiteral(token, lineNum)) {
       } else if (this.parseCatch(token)) {
       } else {
         throw lineNum + ":Unknown symbol:" + token;
@@ -764,6 +765,15 @@ var modFVMA = (function () { 'use strict';
         }
         this.use(n|LIT);
         return true;
+      } else {
+        return false;
+      }
+    }
+
+    parseRefLiteral(token, lineNum) {
+      if (this.refMatch('lit', token)) {
+        var symbolToken = token.substring(4,token.length-1);
+        return this.parseRef(symbolToken, LIT);
       } else {
         return false;
       }
