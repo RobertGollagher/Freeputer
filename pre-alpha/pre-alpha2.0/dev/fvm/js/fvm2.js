@@ -373,7 +373,7 @@ try {
                           this.cs.doPop();
                        }
                        break;
-          /**/
+          /* nb perhaps need rpop/rpush/rpeek and/or could counter use rs/ts instead? */
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
           case RET:    this.vZ = this.rs.doPop(); break;
           case NOP:    break;
@@ -425,6 +425,7 @@ try {
           // TODO probably should add reverse-direction pop and push so as
           // to easily support bidirectional move and fill by use of rpt;
           // this is an alternative to adding CISC instructions.
+          // FIXME seems like a code smell
           case POP:    addr = this.ds.doPop();
                        val = this.load(addr);
                        this.store(addr,val+1);

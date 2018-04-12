@@ -1,21 +1,24 @@
 <p><meta http-equiv="content-type" content="text/html;charset=utf-8"></p>
-<h1 id="freeputer2.0">Freeputer 2.0</h1>
-<p>Freeputer ( ) [ ] { } smaller simpler better</p>
-<h2 id="values">Values</h2>
+<h1 id="freeputer-2.0">Freeputer 2.0</h1>
+<p>Freeputer ( ) [ ] { } forever free</p>
+<h2 id="guidelines">Guidelines</h2>
 <ol style="list-style-type: decimal">
 <li>VM <strong>simpler and easier to implement</strong>.</li>
 <li>VM <strong>even more portable</strong>.</li>
-<li>VM <strong>entirely correct</strong>.</li>
 <li>VM <strong>standardized</strong>.</li>
-<li>VM <strong>smaller</strong>.</li>
-<li>VM <strong>faster</strong>.</li>
+<li>VM <strong>improved</strong>.</li>
 </ol>
 <h2 id="discussion">Discussion</h2>
-<p>Although Freeputer 2.0 will not run unmodified Freeputer 1.0 programs, the fundamental design remains similar: a stack machine which is easy for human beings to understand and which favours correctness over robustness. The architecture enforces correctness by trapping. Robustness is the responsibility of the programmer and can be aided by self-virtualization of virtual machine instances.</p>
-<p>Freeputer 2.0 will be implemented in JavaScript, which for the first time should make it easy to run Freeputer in popular web browsers available on billions of consumer devices. Furthermore, Freeputer 2.0 will continue to support targeting x86, C, Linux, and Java. There will also be new bare-metal support for targeting Arduino (ARM) and chipKIT (PIC32) boards via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in a web browser or on a microcontroller. This is true software reuse.</p>
-<h3 id="proposed-design">Proposed Design</h3>
-<p>Experiments are in progress to radically simplify the design (see 'fvm2.js' and 'prg.js').</p>
-<p>Therefore the most recently proposed design, shown below, is no longer current.</p>
+<p>Although Freeputer 2.0 will not run unmodified Freeputer 1.0 programs, the fundamental design remains similar: a stack machine which is easy for human beings to understand and which favours correctness over robustness. It aims to be simpler and easier to implement so that it is more easily portable.</p>
+<p>Freeputer 2.0 will first be demonstrated in <strong>JavaScript</strong> so that it runs in popular web <strong>browsers</strong>. Later it may be ported to <strong>WebAssembly</strong> for greater performance. Freeputer 2.0 will also continue to target <strong>native x86</strong> (assembly language on <strong>Linux</strong>) as well as <strong>C</strong> (via gcc) and <strong>Java</strong>. There will also be <strong>bare-metal</strong> support for <strong>microcontrollers</strong> via the Arduino IDE. So the same small Freeputer program could run on a powerful server or in the cloud or in a web browser or on a microcontroller. That is true software reuse.</p>
+<p>The ability to run Freeputer on bare metal (requiring neither file system nor operating system) will always remain of paramount importance. Future platforms could include other microcontrollers or soft microprocessors implemented as reconfigurable logic in <strong>FPGAs</strong>.</p>
+<h3 id="reasons-for-proposed-design">Reasons for Proposed Design</h3>
+<p>Although simplistic platforms (such as OISC machines and most MISC machines) may appear attractive at first glance, upon deeper examination they are found not to effectively partition complexity in a manner easily understood by humans and not to be suitable for general-purpose computing on platforms with extremely limited program memory. Therefore such an architecture was rejected for Freeputer 2.0.</p>
+<p>Moderately simple register machines (see 'qmisc.c') which lack a stack pointer suffer from the same drawbacks to a degree sufficient to make them impractical. At least one stack pointer is necessary to make any such machine reasonably easy for humans to program, and as soon as a stack pointer has been added to such an architecture then a relatively complex compiler is required for productivity. This is the approach of C machines. And that way freedom does not lie. The complexity of such a compiler outweighs the simplicity of the machine itself (which is not so simple anyway once it contains a stack pointer and therefore the attendant runtime complexities of stack operation, including stack overflow and stack underflow, must be addressed). In other words, once you add one stack pointer to an architecture, you are better off adding two stack pointers to it and making it a stack machine since a stack machine is much easier for humans to understand and can use a very simple compiler (provided you do not need to run C software). This can be summarized by the following maxim: <em>Register machines are for compilers. Stack machines for humans.</em></p>
+<p>So the basic approach of Freeputer 1.0 was correct: a stack machine. That way freedom lies. However, although Freeputer 1.0 is generally good, the prospect of porting it solo to two new platforms (JavaScript and ARM assembly language) proved sufficiently daunting not to be attempted. This indicated that ideally the virtual machine should be simplified in its 2.0 incarnation so as to be more easily portable. Furthermore, it was concluded that it would be wise to add some new features: to make robustness easier to achieve while maintaining correctness; to facilitate repetition; and to increase bytecode density while simplifying bytecode interpretation. Lastly, it was noted that the unfortunate dependency of the self-hosted Freelang compiler ('flc.fl') on megabytes of RAM when compiling itself from source was highly undesirable with respect to hardware freedom, and that it would be better to provide at least one language whose compiler required only kilobytes of RAM to compile itself. For all of these reasons a decision was made to design and create Freeputer 2.0 before creating any more software modules for the Freeputer platform.</p>
+<p>Considering these matters in depth, it was concluded that the Freeputer 1.0 design philosophy was strong in having three stacks rather than two. That is, the so-called software stack (ss) was very convenient and worthwhile in addition to the data stack (ds) and the return stack (rs). Although having three stacks made the machine more complex it made software more efficient and easier for humans to design, create, understand and debug. A large part of this benefit was because there was never any need to push temporary values to the return stack, so the state of the return stack could always be easily understood: it was simply a stack of return addresses. Temporary values were instead pushed to the software stack (ss). Freeputer 2.0 will retain this third stack and will rename it the temporary stack (ts). Furthermore, Freeputer 2.0 will add a fourth stack dedicated to the purpose of holding loop counters and supported by a repeat (rpt) instruction; this stack shall be called the counter stack (cs). This four-stack design greatly reduces stack-juggling compared to a two-stack design and is more efficient and easier to understand.</p>
+<p>Although Freeputer 1.0 used von Neumann architecture, currently for Freeputer 2.0 a Harvard architecture is proposed. This might seem surprising but has several advantages, including potentially making it easy to compile programs to native code. This does not prevent the dynamic loading and running of programs since ultimately the intention is to virtualize the FVM within the FVM; this isolation might aid security and robustness. The tentative data-memory limit of 2^30 words is due to quirks of C array indexing.</p>
+<h2 id="proposed-design">Proposed Design</h2>
 <ul>
 <li>Stack machine with 4 stacks: data (ds), temporary (ts), return (rs), counter (cs).</li>
 <li>Harvard architecture ensures ease of native implementation:
@@ -46,7 +49,7 @@
 <li>several convenient metadata instructions which:
 <ul>
 <li>make it easy to conditionally branch if prerequisites are not met;</li>
-<li>include the pmi, dmw, dsa, dse, tsa, tse, rsa, rse, csa and cse instructions.</li>
+<li>include the pmi, dmw, safe (+/- dsa, dse, tsa, tse, rsa, rse, csa, cse) instructions.</li>
 </ul></li>
 </ul></li>
 <li>The instruction set will include:
@@ -54,20 +57,15 @@
 <li>significantly fewer instructions than FVM 1.0;</li>
 <li>no instructions prematurely optimizing performance;</li>
 <li>a sufficiently large set of convenient RISC instructions;</li>
-<li>no CISC instructions (instead there will be RISC instructions plus rpt);</li>
+<li>no very CISC instructions (instead there will be RISC instructions plus rpt);</li>
+<li>perhaps such borderline things as: push, pop, geti, puti, incm, decm;</li>
 <li>the instructions: halt, fail.</li>
 </ul></li>
-<li>The I/O strategy is profoundly simple:
+<li>The I/O strategy is yet to be detemined:
 <ul>
-<li>the only I/O instructions are in, out; and</li>
-<li>these branch on failure but usually succeed; and</li>
-<li>they simply move 1 word to/from the data stack; and</li>
-<li>there is only 1 input stream (stdin) for the in instruction; and</li>
-<li>there is only 1 output stream (stdout) for the out instruction; and</li>
-<li>it is the responsibility of the <em>environ</em> to make these streams intelligent; and</li>
-<li>there is no limit to how intelligent an <em>environ</em> and these streams can be; and</li>
-<li>the protocol an <em>environ</em> uses is explicit in a program written for it; and</li>
-<li>correct outcomes require deployment to an appropriate <em>environ</em>.</li>
+<li>this is probably the main outstanding design challenge;</li>
+<li>wise decisions here would better support software modularity;</li>
+<li>wise decisions here would better support virtualization.</li>
 </ul></li>
 <li>The design might possibly include a ground state such as:
 <ul>
@@ -80,7 +78,7 @@
 <p>Copyright © Robert Gollagher 2017, 2018</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 11 April 2018 at 00:48<br />
+This document was last updated on 12 April 2018 at 16:26<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
