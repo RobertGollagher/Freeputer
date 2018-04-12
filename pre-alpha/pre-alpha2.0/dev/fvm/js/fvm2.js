@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180410+
- * Version:    pre-alpha-0.0.1.45+ for FVM 2.0
+ * Updated:    20180412+
+ * Version:    pre-alpha-0.0.1.50+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -14,10 +14,9 @@
  *
  *                                ( ) [ ] { }
  *
- * 
- * This implementation is now being experimentally cut down to a much
- * simpler (and possibly generic, configurable) stack machine in an effort
- * to find a way of reducing VM complexity by an order of magnitude.
+ *
+ * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
+ * This FVM 2.0 implementation is still very incomplete and very inconsistent.
  *
  * When run as a Web Worker, if using Chromium, you must start the browser by:
  *    chromium --allow-file-access-from-files
@@ -63,11 +62,6 @@ var modFVM = (function () { 'use strict';
 
   const INT_MAX =  2147483647;
   const INT_MIN = -2147483648;
-
-  // Radical experiments (including making stacks generic)
-  const PC_CELL = 0; // Later we will move the PC to cell 0.
-  const SP_CELL = 1; // Cell to hold address of generic stack pointer!
-
 
   // Experimental robustness features:
   const SAFE_MARGIN = 2; // SAFE branches unless data stack has this free
@@ -162,6 +156,17 @@ var modFVM = (function () { 'use strict';
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
 
+
+  const DSA   = 0x62000000|0
+  const DSE   = 0x63000000|0
+  const TSA   = 0x64000000|0
+  const TSE   = 0x65000000|0
+  const CSA   = 0x66000000|0
+  const CSE   = 0x67000000|0
+  const RSA   = 0x68000000|0
+  const RSE   = 0x69000000|0
+
+
   const DROP  = 0x70000000|0
   const SWAP  = 0x71000000|0
   const OVER  = 0x72000000|0
@@ -172,7 +177,6 @@ var modFVM = (function () { 'use strict';
   const SAFE  = 0x75000000|0
   const CATCH = 0x76000000|0
 
-  const SP    = 0x79000000|0
   const LIT   = 0x80000000|0
 
   const SYMBOLS = {
@@ -239,6 +243,15 @@ var modFVM = (function () { 'use strict';
     0x60000000: "call ",
     0x61000000: "ret  ",
 
+    0x62000000: "dsa  ",
+    0x63000000: "dse  ",
+    0x64000000: "tsa  ",
+    0x65000000: "tse  ",
+    0x66000000: "csa  ",
+    0x67000000: "cse  ",
+    0x68000000: "rsa  ",
+    0x69000000: "rse  ",
+
     0x70000000: "drop ",
     0x71000000: "swap ",
     0x72000000: "over ",
@@ -248,7 +261,6 @@ var modFVM = (function () { 'use strict';
     0x75000000: "safe ",
     0x76000000: "catch",
 
-    0x79000000: "sp   ",
     0x80000000: "lit  "
 
   };
@@ -265,12 +277,11 @@ var modFVM = (function () { 'use strict';
       this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
       this.loadProgram(config.program, this.pm);
 
-/*
+
       this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
       this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
       this.ts = new Stack(this,TS_UNDERFLOW,TS_OVERFLOW); // temporary stack
       this.cs = new Stack(this,CS_UNDERFLOW,CS_OVERFLOW); // counter stack or repeat stack
-*/
     };
 
     loadProgram(pgm, mem) {
@@ -305,9 +316,6 @@ var modFVM = (function () { 'use strict';
 
         var addr, val;
 
-        // Radical experiment (generic stack pointer for whole VM):
-        var vmsp;
-
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
           this.traceVM(instr);
@@ -321,15 +329,7 @@ var modFVM = (function () { 'use strict';
 
         // Handle immediates
         if (instr&MSb) {
-          // this.ds.doPush(instr&METADATA_MASK);
-
-          // Radical experiment:
-          //   - totally generic concept of stacks within program memory
-          //   - note that this has no stack-overflow check yet!
-          vmsp = this.load(SP_CELL);
-          this.store(vmsp,instr&METADATA_MASK);
-          vmsp -= 1;
-          this.store(SP_CELL, vmsp);
+          this.ds.doPush(instr&METADATA_MASK);
           continue;
         }
 
@@ -350,6 +350,17 @@ try {
              this.vZ = instr&PM_MASK;
              break;
           }
+          case DSA:     this.ds.doPush(this.ds.free()); break;
+          case DSE:     this.ds.doPush(this.ds.used()); break;
+          case TSA:     this.ds.doPush(this.ts.free()); break;
+          case TSE:     this.ds.doPush(this.ts.used()); break; 
+          case CSA:     this.ds.doPush(this.cs.free()); break;
+          case CSE:     this.ds.doPush(this.cs.used()); break; 
+          case RSA:     this.ds.doPush(this.rs.free()); break;
+          case RSE:     this.ds.doPush(this.rs.used()); break;
+          case PMW:     this.ds.doPush(PM_WORDS); break;
+          case DMW:     this.ds.doPush(DM_WORDS); break;
+          // TODO add memory metadata here
 // End of robustness block
 
 // This block is all done except corner cases:
@@ -373,7 +384,7 @@ try {
                           this.cs.doPop();
                        }
                        break;
-          /* nb perhaps need rpop/rpush/rpeek and/or could counter use rs/ts instead? */
+          /**/
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
           case RET:    this.vZ = this.rs.doPop(); break;
           case NOP:    break;
@@ -425,7 +436,6 @@ try {
           // TODO probably should add reverse-direction pop and push so as
           // to easily support bidirectional move and fill by use of rpt;
           // this is an alternative to adding CISC instructions.
-          // FIXME seems like a code smell
           case POP:    addr = this.ds.doPop();
                        val = this.load(addr);
                        this.store(addr,val+1);
@@ -440,9 +450,6 @@ try {
           case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
           case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; break;
           case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
-
-          // Radical experiment; sets address of general stack-pointer cell
-          case SP:     this.store(SP_CELL,instr&PM_MASK); break;
 
           case HALT:   return SUCCESS; break;
           case FAIL:   return FAILURE; break;
@@ -502,28 +509,15 @@ try {
       var traceStr =
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
-        mnem 
-        // Radical experiment: // FIXME
-        + " (sp " + modFmt.hex8(this.load(SP_CELL))
-        + " ... " + modFmt.hex8(this.load(this.load(SP_CELL)+1)) + ", "
-        + modFmt.hex8(this.load(this.load(SP_CELL)+2)) + " )";        
-
-
-/*
-        + " / " +
+        mnem + " / " +
         this.cs + "/ ( " +
         this.ds + ") [ " +
         this.ts + "] { " +
         this.rs + "}";
-*/
       this.fnTrc(traceStr);
     }
   }
 
-/* Radical experiment above, pushing stacks within VM program memory
-   rather than implementing a fixed number of stacks out here;
-   hence commenting out this Stack class. */
-/*
   class Stack {
     constructor(fvm, uerr, oerr) {
       this.uerr = uerr;
@@ -659,7 +653,6 @@ try {
       return str;
     }
   }
-*/
 
   class Config {
     constructor(prg) {

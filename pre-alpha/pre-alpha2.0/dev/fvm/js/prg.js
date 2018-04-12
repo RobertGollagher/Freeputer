@@ -6,15 +6,13 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180410+
+  Updated:    20180412+
   ------------------
   FREE: 
   LAST SYMBOL: g6
   ------------------
 
   NOTES:
-
-  - Radical experiment has partially begun: generic stacks (see far below).
 
   - This is written in an assembly language which aims to be C-compatible.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm2.js').
@@ -88,20 +86,7 @@ m{ mod(m5) /*bar*/
 m{ mod(m0) /*run*/
 
   u{
-    x0:
-
-      sp(0x100) // Radical experiment
-      lit(0x12345678);
-      halt
-
-      // TODO NEXT: add another instruction rp(0x200), to declare
-      // the location of the return stack. Thereafter the sp() and rp()
-      // instructions can be used to generically use multiple
-      // stacks programmatically within the VM without
-      // requiring the VM implementation itself to
-      // provide any fixed number of stacks.
-
-
+    x0: 
       lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
       lit(0x41) add call(m3.x1) /*io.send*/   // Output 'D' by addition
       call(m5.x1) /*bar.peach*/
