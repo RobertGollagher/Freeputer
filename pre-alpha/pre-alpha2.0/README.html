@@ -14,18 +14,19 @@
 <p>The ability to run Freeputer on bare metal (requiring neither file system nor operating system) will always remain of paramount importance. Future platforms could include other microcontrollers or soft microprocessors implemented as reconfigurable logic in <strong>FPGAs</strong>.</p>
 <h3 id="reasons-for-proposed-design">Reasons for Proposed Design</h3>
 <p>Although simplistic platforms (such as OISC machines and most MISC machines) may appear attractive at first glance, upon deeper examination they are found not to effectively partition complexity in a manner easily understood by humans and not to be suitable for general-purpose computing on platforms with extremely limited program memory. Therefore such an architecture was rejected for Freeputer 2.0.</p>
-<p>Moderately simple register machines (see 'qmisc.c') which lack a stack pointer suffer from the same drawbacks to a degree sufficient to make them impractical. At least one stack pointer is necessary to make any such machine reasonably easy for humans to program, and as soon as a stack pointer has been added to such an architecture then a relatively complex compiler is required for productivity. This is the approach of C machines. That way freedom does not lie. The complexity of such a compiler outweighs the simplicity of the machine itself (which is not so simple anyway once it contains a stack pointer and therefore the attendant runtime complexities of stack operation, including stack overflow and stack underflow, must be addressed). In other words, once you add one stack pointer to an architecture, you are better off adding two stack pointers to it and making it a stack machine since a stack machine is much easier for humans to understand and can use a very simple compiler (provided you do not need to run C software). This can be summarized by the following maxim: <em>Register machines are for compilers. Stack machines are for humans.</em></p>
+<p>Moderately simple register machines (see 'qmisc.c') which lack a stack pointer suffer from the same drawbacks to a degree sufficient to make them impractical. At least one stack pointer is necessary to make any such machine reasonably easy for humans to program, and as soon as a stack pointer has been added to such an architecture then a relatively complex compiler is required for productivity. This is the approach of C machines. That way freedom does not lie. The complexity of such a compiler outweighs the simplicity of the machine itself (which is not so simple anyway once it contains a stack pointer and therefore the attendant runtime complexities of stack operation, including stack overflow and stack underflow, must be addressed). In other words, once you add one stack pointer to an architecture you are better off adding two stack pointers to it and making it a stack machine since a stack machine is much easier for humans to understand and can use a very simple compiler (provided you do not need to run C software). This can be summarized by the following maxim: <em>Register machines are for compilers. Stack machines are for humans.</em></p>
 <p>So the fundamental approach of Freeputer 1.0 was correct: a stack machine. That way freedom lies. However, although Freeputer 1.0 is generally good, the prospect of porting it solo to two new platforms (JavaScript and ARM assembly language) proved sufficiently daunting not to be attempted. This indicated that ideally the virtual machine should be simplified in its 2.0 incarnation so as to be more easily portable. Furthermore, it was concluded that it would be wise to add some new features: to make robustness easier to achieve while maintaining correctness; to facilitate repetition; and to increase bytecode density while simplifying bytecode interpretation. Lastly, it was noted that the unfortunate dependency of the self-hosted Freelang compiler ('flc.fl') on megabytes of RAM when compiling itself from source was highly undesirable with respect to hardware freedom and that it would be better to provide at least one language whose compiler required only kilobytes of RAM to compile itself. For all of these reasons a decision was made to design and create Freeputer 2.0 before creating any more software modules for the Freeputer platform.</p>
 <p>Considering these matters in depth, it was concluded that the Freeputer 1.0 design philosophy was strong in having three stacks rather than two. That is, the so-called software stack (ss) was very convenient and worthwhile in addition to the data stack (ds) and the return stack (rs). Although having three stacks made the machine more complex it made software more efficient and easier for humans to design, create, understand and debug. A large part of this benefit was because there was never any need to push temporary values to the return stack, so the state of the return stack could always be easily understood: it was simply a stack of return addresses. Temporary values were instead pushed to the software stack (ss). Freeputer 2.0 will retain this third stack and will rename it the temporary stack (ts). Furthermore, Freeputer 2.0 will add a fourth stack dedicated to the purpose of holding loop counters and supported by a repeat (rpt) instruction; this stack shall be called the counter stack (cs). This four-stack design greatly reduces stack-juggling compared to a two-stack design and is more efficient and easier to understand.</p>
-<p>Although Freeputer 1.0 used von Neumann architecture, currently for Freeputer 2.0 a Harvard architecture is proposed. This might seem surprising but has several advantages, including potentially making it easy to compile programs to native code. This does not prevent the dynamic loading and running of programs since ultimately the intention is to virtualize the FVM within the FVM; this isolation might aid security and robustness. The tentative data-memory limit of 2^30 words is due to quirks of C array indexing.</p>
+<p>Although Freeputer 1.0 used von Neumann architecture, currently for Freeputer 2.0 a Harvard architecture is proposed. This might seem surprising but has several advantages, including potentially making it easy to compile programs to native code. This does not prevent the dynamic loading and running of programs since ultimately the intention is to virtualize the FVM within the FVM; this isolation might aid security and robustness. The tentative size limits of 2^30 words are due to quirks of C array indexing; perhaps these could be relaxed to a maximum of 2^32 words.</p>
+<p>The proposed I/O design is intended to allow the creation of software modules which can be reused forever in an extremely portable manner, long after current hardware and operating systems are no longer available. Therefore simplicity, portability and standardization are incomparably more important than performance. It is also important to understand that Freeputer is primarily intended to be used to perform correct computations (that is, to run reliable algorithms) which are independent of real elapsed time. All matters pertaining to real elapsed time are the responsibility of the <em>environ</em> in which Freeputer runs and are largely irrelevant to Freeputer itself. Accordingly, there are no interrupts in Freeputer I/O. Furthermore, all I/O is to and from the data stack and is done by means of dedicated I/O instructions. There is no memory-mapped I/O. This design allows Freeputer to safely and reliably perform correct calculations, largely without interruption and outside interference.</p>
 <h2 id="proposed-design">Proposed Design</h2>
 <ul>
-<li>Stack machine with 4 stacks: data (ds), temporary (ts), return (rs), counter (cs).</li>
+<li>Stack machine with 4 stacks: data (<em>ds</em>), temporary (<em>ts</em>), return (<em>rs</em>), counter (<em>cs</em>).</li>
 <li>Harvard architecture ensures ease of native implementation:
 <ul>
 <li>program logic is entirely independent of instruction encoding;</li>
-<li>program memory (pm) &lt;= 2^24 <em>instructions</em> (as reported by the pmi instruction);</li>
-<li>data memory (dm) &lt;= 2^30 <em>words</em> (as reported by the dmw instruction).</li>
+<li>program memory (<em>pm</em>) &lt;= 2^24 <em>instructions</em> (as reported by the pmi instruction);</li>
+<li>data memory (<em>dm</em>) &lt;= 2^30 <em>words</em> (as reported by the dmw instruction).</li>
 </ul></li>
 <li>Words and stack elements are 32-bit and arithmetic is two's complement.</li>
 <li>Non-native implementations use fixed-width 32-bit instructions (FW32):
@@ -59,26 +60,57 @@
 <li>a sufficiently large set of convenient RISC instructions;</li>
 <li>no very CISC instructions (instead there will be RISC instructions plus rpt);</li>
 <li>perhaps such borderline things as: push, pop, geti, puti, incm, decm;</li>
-<li>the instructions: halt, fail.</li>
+<li>the instructions: halt, fail</li>
 </ul></li>
-<li>The I/O strategy is yet to be detemined:
+<li>The I/O strategy is simple, portable and standardized:
 <ul>
-<li>this is probably the main outstanding design challenge;</li>
-<li>wise decisions here would better support software modularity;</li>
-<li>wise decisions here would better support virtualization.</li>
+<li>the outside world is known as the <em>environ</em>;</li>
+<li>there are only three I/O devices:
+<ol style="list-style-type: decimal">
+<li><code>stdin</code> (input stream):
+<ul>
+<li>reads a byte to the <em>ds</em>, blocking, branches on failure;</li>
+<li>public, connected to the <em>environ</em>.</li>
+</ul></li>
+<li><code>stdout</code> (output stream):
+<ul>
+<li>writes a byte from the <em>ds</em>, blocking, branches on failure;</li>
+<li>public, connected to the <em>environ</em>.</li>
+</ul></li>
+<li><code>stdhold</code> (word-indexed persistent local storage):
+<ul>
+<li>known as <em>standard hold</em> or simply the <em>hold</em>;</li>
+<li>capacity 0 to 2^30 <em>words</em> (as reported by the hw instruction);</li>
+<li>gets a word to the <em>ds</em>, blocking, branches on failure;</li>
+<li>puts a word from the <em>ds</em>, blocking, branches on failure;</li>
+<li>private, not connected to the <em>environ</em>.</li>
+</ul></li>
+</ol></li>
+<li>the <em>environ</em> determines the exact behaviour of <code>stdin</code> and <code>stdout</code>;</li>
+<li>the <em>environ</em> determines the exact protocol it uses for communication;</li>
+<li>such a protocol is then explicitly used by suitable Freeputer programs;</li>
+<li>all inputs (such as from keyboards, pipes, networks) are mediated by the <em>environ</em> via <code>stdin</code>;</li>
+<li>all outputs (such as to displays, pipes, networks) are mediated by the <em>environ</em> via <code>stdout</code>;</li>
+<li>in effect, <code>stdin</code> and <code>stdout</code> convey a <em>conversation</em> with messages and questions;</li>
+<li>otherwise, there are three possible <em>immediate signals</em> from the <em>environ</em>:
+<ol style="list-style-type: decimal">
+<li><code>start</code>: gracefully starts a Freeputer instance;</li>
+<li><code>pause</code>: gracefully pauses a Freeputer instance;</li>
+<li><code>kill</code>: kills a Freeputer instance.</li>
+</ol></li>
+<li>tracing will probably be replaced by debugging.</li>
 </ul></li>
 <li>The design might possibly include a ground state such as:
 <ul>
 <li>a REPL fallback after a trap ends execution; or</li>
 <li>a hypervisor.</li>
 </ul></li>
-<li>Support for tracing is optional.</li>
 </ul>
 <hr />
 <p>Copyright © Robert Gollagher 2017, 2018</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 12 April 2018 at 16:51<br />
+This document was last updated on 20 April 2018 at 18:34<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
