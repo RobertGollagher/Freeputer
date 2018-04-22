@@ -61,7 +61,7 @@ The proposed I/O design is intended to allow the creation of software modules wh
     - a sufficiently large set of convenient RISC instructions;
     - no very CISC instructions (instead there will be RISC instructions plus rpt);
     - perhaps such borderline things as: push, pop, geti, puti, incm, decm;
-    - the instructions: halt, fail
+    - the instructions: halt, fail.
 - The I/O strategy is simple, portable and standardized:
     - the outside world is known as the *environ*;
     - there are only three I/O devices:
@@ -99,7 +99,7 @@ Copyright © Robert Gollagher 2017, 2018
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 20 April 2018 at 18:34  
+This document was last updated on 20 April 2018 at 18:51  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

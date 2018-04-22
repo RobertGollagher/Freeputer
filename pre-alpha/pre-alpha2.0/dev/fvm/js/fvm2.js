@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180412+
- * Version:    pre-alpha-0.0.1.50+ for FVM 2.0
+ * Updated:    20180422+
+ * Version:    pre-alpha-0.0.1.51+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -415,13 +415,13 @@ try {
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
           // FIXME in theory OUT could branch on failure, should implement this
-          case OUT:    this.fnStdout(this.enbyte(this.ds.doPop())); break;
+          case OUT:    this.fnStdout(this.enbyte(this.ds.doPop()&0xff)); break;
           case IN:
               var inputChar = this.fnStdin();
               if (inputChar === undefined) { //FIXME use null not undefined for these
                   this.vZ = instr&PM_MASK;
               } else {
-                  this.ds.doPush(inputChar);
+                  this.ds.doPush(inputChar&0xff);
               }
               break;
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;

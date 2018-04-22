@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180412+
+  Updated:    20180422+
   ------------------
   FREE: 
   LAST SYMBOL: g6
@@ -14,9 +14,10 @@ var prgSrc = `
 
   NOTES:
 
+  - This little language is only ad hoc, what matters is the VM design.
   - This is written in an assembly language which aims to be C-compatible.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm2.js').
-  - The assembler is very simplistic (see 'fvma.js') and uses little memory.
+  - This assembler is very simplistic (see 'fvma.js') and uses little memory.
   - m0.x0 is the only forward reference the assembler allows
   - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
   - u symbols are local to a module (u0..uff)

@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180412+
- * Version:    pre-alpha-0.0.1.50+ for FVM 2.0
+ * Updated:    20180422+
+ * Version:    pre-alpha-0.0.1.51+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -68,7 +68,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 
   var inCursor = 0;
-  function inchar() {
+  function inchar() { // FIXME this is a rather crude an implementation
     var inputChars = fvmStdin.value;
     var result;
     if (inCursor < inputChars.length) {
@@ -79,7 +79,6 @@ function modFVMUI_init(prg) { 'use strict';
 
   function run() {
     inCursor = 0; // for fvmStdin
-
     var chr = x => String.fromCharCode(x);
     var fnTrc = x => fvmStdtrc.textContent+=x+'\n';
     var fnStdout = x => fvmStdout.textContent+=chr(x);
@@ -133,7 +132,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.50+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.51+</h2>
 
     <table class="fvmMaxed">
        <tr>
