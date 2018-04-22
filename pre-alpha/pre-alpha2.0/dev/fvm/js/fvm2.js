@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180422+
- * Version:    pre-alpha-0.0.1.51+ for FVM 2.0
+ * Updated:    20180423+
+ * Version:    pre-alpha-0.0.1.52+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -282,9 +282,10 @@ var modFVM = (function () { 'use strict';
       this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
-      this.hd = new DataView(new ArrayBuffer(HD_WORDS*WD_BYTES)); // The hold
+
       this.loadProgram(config.program, this.pm);
 
+      this.hd = config.hold; // FIXME exceptions
 
       this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
       this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
@@ -682,8 +683,9 @@ try {
   }
 
   class Config {
-    constructor(prg) {
-      this.program = prg;
+    constructor(prg, hold) {
+      this.program = prg; // FIXME ? unused
+      this.hold = hold;
       this.fnStdin = null;
       this.fnStdout = null;
     };
@@ -693,8 +695,8 @@ try {
     makeFVM: function(config) {
       return new FVM(config);
     },
-    makeConfig: function(prg) {
-      return new Config(prg);
+    makeConfig: function(prg,hold) {
+      return new Config(prg,hold);
     }
   };
 
@@ -713,7 +715,8 @@ function awaitReadStdin() {
 function invokeRun(e) {
   console.log('Message received by FVM to invoke its run');
   var prg = e.data[1];
-  var cf = modFVM.makeConfig(prg);
+  var hold = e.data[3];
+  var cf = modFVM.makeConfig(prg, hold);
   cf.fnStdout = x => postMessage([0,x]);
 
   stdinBuf = e.data[2];
@@ -722,8 +725,10 @@ function invokeRun(e) {
 
   cf.fnTrc = x => postMessage([2,x]);
   var exitCode = modFVM.makeFVM(cf).run();
+
+  // FIXME hold: consider situation if run stopped with exception
   console.log('Posting message back from FVM at end of run');
-  postMessage([3,exitCode]);
+  postMessage([3,exitCode,hold]);
 }
 
 onmessage = function(e) {

@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180422+
- * Version:    pre-alpha-0.0.1.51+ for FVM 2.0
+ * Updated:    20180423+
+ * Version:    pre-alpha-0.0.1.52+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -85,6 +85,7 @@ function modFVMUI_init(prg) { 'use strict';
     var fnStdin = inchar; // FIXME
 
     console.time("fvmRun");
+    console.time("fvmRunAndSave");
     var wkr = new Worker("fvm2.js");
 
     // A SharedArrayBuffer the size of a 2 words only:
@@ -92,6 +93,35 @@ function modFVMUI_init(prg) { 'use strict';
     //   - word 1 is the value for the Worker to read once ready to be read
     const stdinBuf = new SharedArrayBuffer(2*Int32Array.BYTES_PER_ELEMENT);
     const stdinArray = new Int32Array(stdinBuf);
+
+    // FIXME refactor this and also consider sessionStorage instead
+    const HD_WORDS = 1024; // size of hold to be created
+    const WD_BYTES = 4;
+    const HD_BYTES = HD_WORDS * WD_BYTES;
+    var hold = null;
+    var holdBase64 = null;
+    try{
+      holdBase64 = localStorage.getItem("holdBase64");
+    } catch (err) {
+      console.log("WARNING: localStorage not supported, hold will not be persisted");
+    }
+    if (holdBase64 == "null" || holdBase64 == null) {
+      hold = new DataView(new ArrayBuffer(HD_BYTES));
+      console.log("WARNING: no hold found, created new hold");
+    } else {
+        try { // holdBase64 string was retrieved from localStorage
+
+// FIXME remove this log statement
+console.log("holdBase64 as loaded: "+holdBase64);
+
+          var decodedHold = Uint8Array.from(atob(holdBase64), c => c.charCodeAt(0)).buffer;
+          hold = new DataView(decodedHold);
+          console.log("Loaded existing hold from local storage");
+        } catch (err) {
+          hold = new DataView(new ArrayBuffer(HD_BYTES));
+          console.log("WARNING: corrupt hold found, created new hold");
+        }
+    }
 
     wkr.onmessage = function(e) {
       switch(e.data[0]) {
@@ -111,13 +141,29 @@ function modFVMUI_init(prg) { 'use strict';
         case(3): // Message type 3 = end of FVM run
           console.timeEnd("fvmRun");
           fnTrc("VM exit code: " + e.data[1]);
+          console.log("Attempting to save hold...");
+          try{
+            var holdDataView = e.data[2];
+            var holdArrayBuffer = holdDataView.buffer;
+            var holdBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(holdArrayBuffer)));
+
+// FIXME remove this log statement
+console.log("holdBase64 to be saved: "+holdBase64);
+
+            localStorage.setItem("holdBase64",holdBase64);
+            console.log("Saved hold");
+            console.timeEnd("fvmRunAndSave");
+          } catch (err) {
+            console.log("WARNING: Could not save hold");
+            console.timeEnd("fvmRunAndSave");
+          }
           break;
         default:
           throw ("FIXME unhandled type of message from FVM");
           break;
       }
     }
-    wkr.postMessage([0,prg,stdinBuf]); // Causes the fvm run to begin
+    wkr.postMessage([0,prg,stdinBuf,hold]); // Causes the fvm run to begin
   };
 
   return {
@@ -132,7 +178,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.51+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.52+</h2>
 
     <table class="fvmMaxed">
        <tr>

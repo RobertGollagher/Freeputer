@@ -1,16 +1,12 @@
 var prgSrc = `
 /*
-  Copyright 2017, Robert Gollagher.
+  Copyright 2018, Robert Gollagher.
   SPDX-License-Identifier: GPL-3.0+
 
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180422+
-  ------------------
-  FREE: 
-  LAST SYMBOL: g6
-  ------------------
+  Updated:    20180423+
 
   NOTES:
 
@@ -31,9 +27,11 @@ var prgSrc = `
 
 */
 
-m{ mod(m1) /*forward*/ jump(m0.x0) }m
+// ---------------------------------------------------------------------------
 
-m{ mod(m2) /*incs*/
+m{ mod(m1) /*MODULE:forward*/ jump(m0.x0) /*run*/ }m
+
+m{ mod(m2) /*MODULE:incs*/
 
   // ( n1 -- n2 ) doIncs
   // Increment n1 times to give the number of increments n2.
@@ -48,7 +46,7 @@ m{ mod(m2) /*incs*/
 
 }m
 
-m{ mod(m3) /*io*/
+m{ mod(m3) /*MODULE:io*/
 
   // ( n -- ) send
   // Output n to stdout or fail if not possible.
@@ -68,31 +66,40 @@ m{ mod(m3) /*io*/
 
 }m
 
-// Testing remapping of module names -----------------------------------------
-m{ mod(m4) /*foo*/
-
-  // ( -- ) banana
-  u{ x1: nop ret }u
-
-}m
-
-m{ mod(m5) /*bar*/
-
-  // ( -- ) peach
-  u{ x1: call(m4.x1) /*foo.banana*/ ret }u
-
-}m
 // ---------------------------------------------------------------------------
 
 m{ mod(m0) /*run*/
 
   u{
     x0: 
-      lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
-      lit(0x2) add lit(0x0) put lit(0x0) get lit(0x1) add
-      lit(0x1) hold lit(0x1) give
-      lit(0x41) add call(m3.x1) /*io.send*/   // Output 'G' by addition
-      call(m5.x1) /*bar.peach*/
+
+      // DEMONSTRATING THE USE OF STDHOLD:
+      // =================================
+      // You can comment the next 5 lines out after running this once,
+      // and if your browser (Firefox) supports local storage
+      // the values will still be correctly retrieved below.
+      // Local storage is not yet working in Chrome.
+
+      // Store 9,1,2,3,4 to the first 5 words of stdhold:
+
+      lit(0x9) lit(0x0) hold
+      lit(0x1) lit(0x1) hold
+      lit(0x2) lit(0x2) hold
+      lit(0x3) lit(0x3) hold
+      lit(0x4) lit(0x4) hold // hold is now 9,1,2,3,4
+
+      // Load the first 5 words of stdhold:
+
+      lit(0x0) give drop
+      lit(0x1) give drop
+      lit(0x2) give drop
+      lit(0x3) give drop
+      lit(0x4) give drop
+
+      // Print 'A' and exit:
+
+      call(m3.x2) /*io.sendA*/
+
       halt
   }u
 
