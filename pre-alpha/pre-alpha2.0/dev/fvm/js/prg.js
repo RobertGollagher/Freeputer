@@ -89,7 +89,9 @@ m{ mod(m0) /*run*/
   u{
     x0: 
       lit(0x3) call(m2.x1) /*incs.doIncs*/    // Do 3 increments
-      lit(0x41) add call(m3.x1) /*io.send*/   // Output 'D' by addition
+      lit(0x2) add lit(0x0) put lit(0x0) get lit(0x1) add
+      lit(0x1) hold lit(0x1) give
+      lit(0x41) add call(m3.x1) /*io.send*/   // Output 'G' by addition
       call(m5.x1) /*bar.peach*/
       halt
   }u

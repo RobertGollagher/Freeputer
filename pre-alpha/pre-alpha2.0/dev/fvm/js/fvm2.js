@@ -88,6 +88,7 @@ var modFVM = (function () { 'use strict';
   const PM_MASK  = PM_WORDS-1
   const DM_WORDS = MAX_MEM_WORDS
   const DM_MASK  = DM_WORDS-1 // size: p3d3 (see '../../../README.md')
+  const HD_WORDS = S; // Hold size (change this line as desired)
 
   const WORD_BYTES = 4;
   const WORD_PWR = 2; // FIXME necessary any more?
@@ -116,6 +117,9 @@ var modFVM = (function () { 'use strict';
 
   const TRON  = 0x33000000|0 // FIXME find a better way than tron, troff
   const TROFF = 0x34000000|0
+
+  const HOLD  = 0x35000000|0
+  const GIVE  = 0x36000000|0
 
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -191,6 +195,9 @@ var modFVM = (function () { 'use strict';
     0x32000000: "mod  ",
     0x33000000: "tron ",
     0x34000000: "troff",
+
+    0x35000000: "hold ",
+    0x36000000: "give ",
 
     0x03000000: "or   ",
     0x04000000: "and  ",
@@ -275,6 +282,7 @@ var modFVM = (function () { 'use strict';
       this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
+      this.hd = new DataView(new ArrayBuffer(HD_WORDS*WD_BYTES)); // The hold
       this.loadProgram(config.program, this.pm);
 
 
@@ -414,7 +422,7 @@ try {
           case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
-          // FIXME in theory OUT could branch on failure, should implement this
+          // FIXME in theory all I/O could branch on failure, should implement this
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop()&0xff)); break;
           case IN:
               var inputChar = this.fnStdin();
@@ -424,6 +432,9 @@ try {
                   this.ds.doPush(inputChar&0xff);
               }
               break;
+          case GIVE:   this.ds.doPush(this.give(this.ds.doPop())); break;
+          case HOLD:   this.hold(this.ds.doPop(),this.ds.doPop()); break;
+
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
           case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
@@ -486,6 +497,22 @@ try {
         return this.dm.getUint32(addr*WD_BYTES, true);
       } catch (e) {
         throw BEYOND;
+      }
+    }
+
+    hold(addr,val) {
+      try {
+        this.hd.setInt32(addr*WD_BYTES, val, true);
+      } catch (e) {
+        throw BEYOND; // FIXME branch don't trap
+      }
+    }
+
+    give(addr) {
+      try {
+        return this.hd.getUint32(addr*WD_BYTES, true);
+      } catch (e) {
+        throw BEYOND; // FIXME branch don't trap
       }
     }
 

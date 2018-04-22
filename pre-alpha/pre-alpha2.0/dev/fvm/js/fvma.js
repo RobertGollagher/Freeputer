@@ -71,6 +71,8 @@ var modFVMA = (function () { 'use strict';
   const TRON  = 0x33000000|0
   const TROFF = 0x34000000|0
 
+  const HOLD  = 0x35000000|0
+  const GIVE  = 0x36000000|0
 
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -143,6 +145,8 @@ var modFVMA = (function () { 'use strict';
     tron:   TRON,
     troff:  TROFF,
 
+    hold:   HOLD,
+    give:   GIVE,
 
     add:    ADD,
     sub:    SUB,
