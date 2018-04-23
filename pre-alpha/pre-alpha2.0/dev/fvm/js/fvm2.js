@@ -673,6 +673,7 @@ try {
       return i;
     }
 
+/* // Classic: topmost element to the right
     toString() {
       var str = '';
       for (var i = STACK_1; i >= this.sp; i-=WORD_BYTES) {
@@ -680,6 +681,17 @@ try {
       }
       return str;
     }
+*/
+
+    // Modern: topmost element to the left
+    toString() {
+      var str = '';
+      for (var i = this.sp; i <= STACK_1; i+=WORD_BYTES) {
+        str = str + modFmt.hex8(this.elems.getUint32(i, true)) + ' ';
+      }
+      return str;
+    }
+
   }
 
   class Config {

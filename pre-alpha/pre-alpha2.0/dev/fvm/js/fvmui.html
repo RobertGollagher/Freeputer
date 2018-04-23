@@ -205,6 +205,8 @@ console.log("holdBase64 to be saved: "+holdBase64);
 If using Chrome you must start it with: <code>chrome --allow-file-access-from-files</code>. 
 If using Firefox 46-54 you must in <code>about:config</code> set: <code>javascript.options.shared_memory = true</code>.</br>
 </br>
+Local storage is used for stdhold persistence. For this to persist between FVM runs (in the same browser session) you must disable "Block third-party websites" in Chrome's settings. For this to further persist between browser sessions you would also disable "Keep local data only until you quit your browser" (or its equivalent in Firefox). </br>
+</br>
 Click "Run" to run the default program. The default program is a <code>nop</code> followed by a <code>halt</code>. 
 Click "Assemble" to assemble the Example Program. Then click "Run" to run the assembled program. 
 Click "Clear" to clear all output messages. Edit the Example Program if desired.<br/>

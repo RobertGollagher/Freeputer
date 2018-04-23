@@ -76,29 +76,33 @@ m{ mod(m0) /*run*/
       // DEMONSTRATING THE USE OF STDHOLD:
       // =================================
       // You can comment the next 5 lines out after running this once,
-      // and if your browser (Firefox) supports local storage
+      // and if your browser (Firefox or Chrome) supports local storage
       // the values will still be correctly retrieved below.
-      // Local storage is not yet working in Chrome.
+      // See browser settings advice on fvmui.html.
 
-      // Store 9,1,2,3,4 to the first 5 words of stdhold:
+      // Store A,B,C,D,E characters to the first 5 words of stdhold:
 
-      lit(0x9) lit(0x0) hold
-      lit(0x1) lit(0x1) hold
-      lit(0x2) lit(0x2) hold
-      lit(0x3) lit(0x3) hold
-      lit(0x4) lit(0x4) hold // hold is now 9,1,2,3,4
+      lit(0x41) lit(0x0) hold
+      lit(0x42) lit(0x1) hold
+      lit(0x43) lit(0x2) hold
+      lit(0x44) lit(0x3) hold
+      lit(0x45) lit(0x4) hold // hold is now A,B,C,D,E
 
       // Load the first 5 words of stdhold:
 
-      lit(0x0) give drop
-      lit(0x1) give drop
-      lit(0x2) give drop
-      lit(0x3) give drop
-      lit(0x4) give drop
+      lit(0x4) give
+      lit(0x3) give
+      lit(0x2) give
+      lit(0x1) give
+      lit(0x0) give // data stack now A,B,C,D,E
 
-      // Print 'A' and exit:
+      // Print these 5 elements:
 
-      call(m3.x2) /*io.sendA*/
+      lit(0x5) cpush s0: call(m3.x1) /*io.send*/ rpt(s0)
+
+      // Design note: maybe it would be easier just to trap and use catch
+      // rather than branching on failure? Has several advantages for
+      // simplicity although rather drastic.
 
       halt
   }u
