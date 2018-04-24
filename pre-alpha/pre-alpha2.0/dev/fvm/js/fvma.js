@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180423+
- * Version:    pre-alpha-0.0.1.52+ for FVM 2.0
+ * Updated:    20180424+
+ * Version:    pre-alpha-0.0.1.53+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -755,8 +755,8 @@ var modFVMA = (function () { 'use strict';
     }
 */
     parseHexLiteral(token, lineNum) {
-      if (token.match(/^lit\(0x[0-9a-f]{1,8}\)/)){
-        var symbolToken = token.substring(4,token.length-1);
+      if (token.match(/^i\(0x[0-9a-f]{1,8}\)/)){
+        var symbolToken = token.substring(2,token.length-1);
         var n = parseInt(symbolToken,16);
         if (n > 0x7fffffff) {
           throw lineNum + ":Literal value out of bounds:" + token;

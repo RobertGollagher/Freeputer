@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180423+
+  Updated:    20180424+
 
   NOTES:
 
@@ -36,13 +36,13 @@ m{ mod(m2) /*MODULE:incs*/
   // ( n1 -- n2 ) doIncs
   // Increment n1 times to give the number of increments n2.
   // This is only to test that the VM is working correctly. 
-  u{ x1: cpush lit(0x0) s0: inc rpt(s0) ret }u
+  u{ x1: cpush i(0x0) s0: inc rpt(s0) ret }u
 
   // ( -- 0x100000 ) doManyIncs
   // Do 1,048,576 increments to test VM performance.
   // Temporarily disable tracing while doing so.
   // See browser console for timer output.
-  u{ x2: lit(0x100000) troff call(x1) /*doIncs*/ tron ret }u
+  u{ x2: i(0x100000) troff call(x1) /*doIncs*/ tron ret }u
 
 }m
 
@@ -54,7 +54,7 @@ m{ mod(m3) /*MODULE:io*/
 
   // ( -- ) sendA
   // Output 'A' to stdout
-  u{ x2: lit(0x41) call(x1) /*send*/ ret }u
+  u{ x2: i(0x41) call(x1) /*send*/ ret }u
 
   // ( n -- ) nInOut
   // Output to stdout no more than n characters from stdin.
@@ -62,7 +62,7 @@ m{ mod(m3) /*MODULE:io*/
 
   // ( -- ) max9InOut
   // Output to stdout no more than 9 characters from stdin.
-  u{ x3: lit(0x9) call(u1) /*nInOut*/ ret }u
+  u{ x3: i(0x9) call(u1) /*nInOut*/ ret }u
 
 }m
 
@@ -82,23 +82,23 @@ m{ mod(m0) /*run*/
 
       // Store A,B,C,D,E characters to the first 5 words of stdhold:
 
-      lit(0x41) lit(0x0) hold
-      lit(0x42) lit(0x1) hold
-      lit(0x43) lit(0x2) hold
-      lit(0x44) lit(0x3) hold
-      lit(0x45) lit(0x4) hold // hold is now A,B,C,D,E
+      i(0x41) i(0x0) hold
+      i(0x42) i(0x1) hold
+      i(0x43) i(0x2) hold
+      i(0x44) i(0x3) hold
+      i(0x45) i(0x4) hold // hold is now A,B,C,D,E
 
       // Load the first 5 words of stdhold:
 
-      lit(0x4) give
-      lit(0x3) give
-      lit(0x2) give
-      lit(0x1) give
-      lit(0x0) give // data stack now A,B,C,D,E
+      i(0x4) give
+      i(0x3) give
+      i(0x2) give
+      i(0x1) give
+      i(0x0) give // data stack now A,B,C,D,E
 
       // Print these 5 elements:
 
-      lit(0x5) cpush s0: call(m3.x1) /*io.send*/ rpt(s0)
+      i(0x5) cpush s0: call(m3.x1) /*io.send*/ rpt(s0)
 
       // Design note: maybe it would be easier just to trap and use catch
       // rather than branching on failure? Has several advantages for

@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180423+
- * Version:    pre-alpha-0.0.1.52+ for FVM 2.0
+ * Updated:    20180424+
+ * Version:    pre-alpha-0.0.1.53+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
