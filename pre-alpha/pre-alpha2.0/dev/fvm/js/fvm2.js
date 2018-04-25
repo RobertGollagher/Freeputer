@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180424+
- * Version:    pre-alpha-0.0.1.53+ for FVM 2.0
+ * Updated:    20180425+
+ * Version:    pre-alpha-0.0.1.54+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -277,7 +277,7 @@ var modFVM = (function () { 'use strict';
       this.fnTrc = config.fnTrc;
       this.fnStdin = config.fnStdin;
       this.fnStdout = config.fnStdout;
-      this.tracing = true; // comment this line out unless debugging
+      //this.tracing = true; // comment this line out unless debugging
       this.vZ = 0|0; // program counter (not accesible) (maybe it should be)
       this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
@@ -427,7 +427,10 @@ try {
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop()&0xff)); break;
           case IN:
               var inputChar = this.fnStdin();
-              if (inputChar === undefined) { //FIXME use null not undefined for these
+              // Note: unfortunately 0 is used here to indicate
+              // that no input is available. Have to live with this for now
+              // until further refactoring is done.
+              if (inputChar == 0) {
                   this.vZ = instr&PM_MASK;
               } else {
                   this.ds.doPush(inputChar&0xff);
@@ -716,10 +719,11 @@ try {
 
 var stdinBuf;   // TODO make per FVM instance rather than global
 var stdinArray; // TODO make per FVM instance rather than global
+// FIXME NEXT more work on this function for when input unavailable
 function awaitReadStdin() {
   postMessage([1]);
   Atomics.wait(stdinArray,0,0); // TODO maybe add timeout here
-  var inWord = Atomics.load(stdinArray,1);
+  var inWord = Atomics.load(stdinArray,1); // FIXME should be byte-based
   Atomics.store(stdinArray,0,0);  // Flips ready flag back to 0 = not ready
   return inWord;
 }

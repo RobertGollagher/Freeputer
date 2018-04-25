@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180424+
- * Version:    pre-alpha-0.0.1.53+ for FVM 2.0
+ * Updated:    20180425+
+ * Version:    pre-alpha-0.0.1.54+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -70,9 +70,9 @@ function modFVMUI_init(prg) { 'use strict';
   var inCursor = 0;
   function inchar() { // FIXME this is a rather crude an implementation
     var inputChars = fvmStdin.value;
-    var result;
+    var result = null;
     if (inCursor < inputChars.length) {
-      result = fvmStdin.value.charCodeAt(inCursor++);
+      result = inputChars.charCodeAt(inCursor++);
     }
     return result;
   }
@@ -110,10 +110,6 @@ function modFVMUI_init(prg) { 'use strict';
       console.log("WARNING: no hold found, created new hold");
     } else {
         try { // holdBase64 string was retrieved from localStorage
-
-// FIXME remove this log statement
-console.log("holdBase64 as loaded: "+holdBase64);
-
           var decodedHold = Uint8Array.from(atob(holdBase64), c => c.charCodeAt(0)).buffer;
           hold = new DataView(decodedHold);
           console.log("Loaded existing hold from local storage");
@@ -123,14 +119,28 @@ console.log("holdBase64 as loaded: "+holdBase64);
         }
     }
 
+    /*
+    RUDIMENTARY IN/OUT IMPLEMENTATION -- DESIGN COMMENTS:
+      This method of implementing in and out (in the browser) is very slow.
+      However, it will do for now. Various schemes can be implemented later
+      to essentially provide an environ which has very rapid performance
+      of in and out, for example by using a larger SharedArrayBuffer
+      driven by some kind of explicit protocol used programmatically
+      (in its simplest form, it might send one line at a time).
+      Remote in and out could use a web socket, and so on.
+      But it would waste time to dwell on that now.
+      Finish the rest of the VM first.
+    */
     wkr.onmessage = function(e) {
       switch(e.data[0]) {
         // TODO Declare appropriate constants for message types
-        case(0): // Message type 0 = stdout
+        case(0): // Message type 0 = stdout       
           fnStdout(e.data[1]);
           break;
         case(1): // Message type 1 = stdin
-          Atomics.store(stdinArray,1,fnStdin()); // FIXME could fail undefined
+          // FIXME this mostly works but is a little too crude.
+          // Note: if fnStdin() returns null it gets converted into a 0 here:
+          Atomics.store(stdinArray,1,fnStdin());
           Atomics.store(stdinArray,0,1); // Flips flag to 1 = ready
           // Wake up the 1st agent waiting on element 0 of stdinArray
           Atomics.wake(stdinArray, 0, 1);
@@ -146,10 +156,6 @@ console.log("holdBase64 as loaded: "+holdBase64);
             var holdDataView = e.data[2];
             var holdArrayBuffer = holdDataView.buffer;
             var holdBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(holdArrayBuffer)));
-
-// FIXME remove this log statement
-console.log("holdBase64 to be saved: "+holdBase64);
-
             localStorage.setItem("holdBase64",holdBase64);
             console.log("Saved hold");
             console.timeEnd("fvmRunAndSave");
@@ -178,7 +184,7 @@ console.log("holdBase64 to be saved: "+holdBase64);
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.53+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.54+</h2>
 
     <table class="fvmMaxed">
        <tr>
@@ -221,8 +227,8 @@ The only supported forward reference is m0.x0.
             </tr>
           </table>
         </td>
-        <td width="60%">
-          <table class="fvmMaxed">
+        <td width="60%" style="vertical-align:top">
+          <table>
              <tr>
               <td>   
                 <input type="button" id="assemble" value="Assemble" title="Assemble program from Source" onclick="modFVMUI.asm()"/>  
@@ -236,15 +242,15 @@ The only supported forward reference is m0.x0.
             </tr>
             <tr>
               <td>
-                <table class="fvmMaxed">
+                <table>
                   <tr>
                     <td>
                       <b>Assembler</b>
                     </td>
                   </tr>
                   <tr>
-                    <td class="fvmOut fvmMid fvmScroll">
-                        <pre><code><span id="fvmAs"></span></code></pre>
+                    <td>
+                        <textarea id="fvmAs" class="fvmOut" cols="80" rows="8" readonly="true"></textarea>
                     </td>
                   </tr>
                 </table>
@@ -253,15 +259,15 @@ The only supported forward reference is m0.x0.
 
             <tr>
               <td>
-                <table class="fvmMaxed">
+                <table>
                   <tr>
                     <td>
-                      <b>stdin</b>
+                      <b>stdin:</b>
                     </td>
                   </tr>
                   <tr>
-                    <td class="fvmOut">
-                        <input type="text" id="fvmStdin" value="123456789"><br>
+                    <td>
+                        <textarea id="fvmStdin" class="fvmOut" cols="80" rows="8">123456789</textarea>
                     </td>
                   </tr>
                 </table>
@@ -272,15 +278,15 @@ The only supported forward reference is m0.x0.
 
             <tr>
               <td>
-                <table class="fvmMaxed">
+                <table>
                   <tr>
                     <td>
-                      <b>stdout</b>
+                      <b>stdout:</b>
                     </td>
                   </tr>
                   <tr>
-                    <td class="fvmOut fvmMid fvmScroll">
-                        <pre><code><span id="fvmStdout"></span></code></pre>
+                    <td>
+                        <textarea id="fvmStdout" class="fvmOut" cols="80" rows="8" readonly="true"></textarea>
                     </td>
                   </tr>
                 </table>
@@ -288,15 +294,15 @@ The only supported forward reference is m0.x0.
             </tr>
             <tr>
               <td>
-                <table class="fvmMaxed">
+                <table>
                   <tr>
                     <td>
-                      <b>stdtrc</b>
+                      <b>stdtrc:</b>
                     </td>
                   </tr>
                   <tr>
-                    <td class="fvmOut fvmLarge fvmScroll">
-                        <pre><code><span id="fvmStdtrc"></span></code></pre>
+                    <td>
+                        <textarea id="fvmStdtrc" class="fvmOut" cols="80" rows="8" readonly="true"></textarea>
                     </td>
                   </tr>
                 </table>

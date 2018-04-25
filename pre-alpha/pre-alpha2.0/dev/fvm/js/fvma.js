@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180424+
- * Version:    pre-alpha-0.0.1.53+ for FVM 2.0
+ * Updated:    20180425+
+ * Version:    pre-alpha-0.0.1.54+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript

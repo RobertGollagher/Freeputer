@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180424+
+  Updated:    20180425+
 
   NOTES:
 
@@ -23,6 +23,8 @@ var prgSrc = `
   - Modules are named by mod(m1)
   - The C-preprocessor would replace u{ with { __label__ s0, s1 ...
   - TODO Enforce use of u{ keyword prior to any locals
+  - TODO Consider if I/O trap rather than branch on failure could be viable
+  - TODO Consider flag- or stack-based strategy rather than traps
   - See 'fvma.js' for further caveats
 
 */
@@ -64,6 +66,14 @@ m{ mod(m3) /*MODULE:io*/
   // Output to stdout no more than 9 characters from stdin.
   u{ x3: i(0x9) call(u1) /*nInOut*/ ret }u
 
+  // ( n -- ) nInOutFast
+  // Output to stdout no more than n characters from stdin, quickly.
+  u{ s0: fail x4: cpush s1: in(s0) out(s0) rpt(s1) ret }u
+
+  // ( n -- ) inOutAll
+  // Output to stdout all available characters from stdin, then return.
+  u{ s0: ret s1: fail x5: in(s0) out(s1) jump(x5) ret }u
+
 }m
 
 // ---------------------------------------------------------------------------
@@ -71,39 +81,13 @@ m{ mod(m3) /*MODULE:io*/
 m{ mod(m0) /*run*/
 
   u{
-    x0: 
-
-      // DEMONSTRATING THE USE OF STDHOLD:
-      // =================================
-      // You can comment the next 5 lines out after running this once,
-      // and if your browser (Firefox or Chrome) supports local storage
-      // the values will still be correctly retrieved below.
-      // See browser settings advice on fvmui.html.
-
-      // Store A,B,C,D,E characters to the first 5 words of stdhold:
-
-      i(0x41) i(0x0) hold
-      i(0x42) i(0x1) hold
-      i(0x43) i(0x2) hold
-      i(0x44) i(0x3) hold
-      i(0x45) i(0x4) hold // hold is now A,B,C,D,E
-
-      // Load the first 5 words of stdhold:
-
-      i(0x4) give
-      i(0x3) give
-      i(0x2) give
-      i(0x1) give
-      i(0x0) give // data stack now A,B,C,D,E
-
-      // Print these 5 elements:
-
-      i(0x5) cpush s0: call(m3.x1) /*io.send*/ rpt(s0)
-
-      // Design note: maybe it would be easier just to trap and use catch
-      // rather than branching on failure? Has several advantages for
-      // simplicity although rather drastic.
-
+    s0:
+      fail
+    x0:
+      // troff
+      // Hint: try changing the amount of characters in the stdin text area
+      // and then run the program again.
+      call(m3.x5) /*io.inOutAll*/
       halt
   }u
 
