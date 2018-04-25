@@ -84,7 +84,7 @@ m{ mod(m0) /*run*/
     s0:
       fail
     x0:
-      // troff
+      tron
       // Hint: try changing the amount of characters in the stdin text area
       // and then run the program again.
       call(m3.x5) /*io.inOutAll*/
