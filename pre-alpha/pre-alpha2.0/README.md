@@ -55,8 +55,8 @@ The proposed I/O design is intended to allow the creation of software modules wh
         - otherwise functions as a no-op.
     - several convenient metadata instructions which:
         - make it easy to conditionally branch if prerequisites are not met.
-- The proposed instruction set includes:
-    0. **`NOP`**
+- The proposed instruction set includes:  
+    1. **`NOP`**
     1. **`CALL`**
     1. **`RET`**
     1. **`RPT`**
@@ -157,7 +157,7 @@ Copyright © Robert Gollagher 2017, 2018
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 27 April 2018 at 18:44  
+This document was last updated on 27 April 2018 at 23:13  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
