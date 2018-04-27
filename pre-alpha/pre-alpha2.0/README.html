@@ -26,7 +26,8 @@
 <ul>
 <li>program logic is entirely independent of instruction encoding;</li>
 <li>program memory (<em>pm</em>) &lt;= 2^24 <em>instructions</em> (as reported by the pmi instruction);</li>
-<li>data memory (<em>dm</em>) &lt;= 2^30 <em>words</em> (as reported by the dmw instruction).</li>
+<li>data memory (<em>dm</em>) &lt;= 2^30 <em>words</em> (as reported by the dmw instruction);</li>
+<li>rom memory (<em>rm</em>) &lt;= 2^30 <em>words</em> (as reported by the rmw instruction).</li>
 </ul></li>
 <li>Words and stack elements are 32-bit and arithmetic is two's complement.</li>
 <li>Non-native implementations use fixed-width 32-bit instructions (FW32):
@@ -36,32 +37,88 @@
 </ul></li>
 <li>The VM traps to fail fast and finally. This includes:
 <ul>
-<li>arithmetic traps (from add, sub, inc, dec, mul, div, mod); and</li>
+<li>arithmetic traps (from <strong><code>ADD, SUB, INC, DEC, MUL, DIV, MOD</code></strong>); and</li>
 <li>all other traps as seen in FVM 1.0; but</li>
 <li>without any reset capability.</li>
 </ul></li>
 <li>However, it is possible to achieve robustness using:
 <ul>
-<li>the catch instruction which:
+<li>the <strong><code>CATCH</code></strong> instruction which:
 <ul>
 <li>branches if the previously executed instruction trapped;</li>
 <li>otherwise functions as a no-op.</li>
 </ul></li>
 <li>several convenient metadata instructions which:
 <ul>
-<li>make it easy to conditionally branch if prerequisites are not met;</li>
-<li>include the pmi, dmw, safe (+/- dsa, dse, tsa, tse, rsa, rse, csa, cse) instructions.</li>
+<li>make it easy to conditionally branch if prerequisites are not met.</li>
 </ul></li>
 </ul></li>
-<li>The instruction set will include:
-<ul>
-<li>significantly fewer instructions than FVM 1.0;</li>
-<li>no instructions prematurely optimizing performance;</li>
-<li>a sufficiently large set of convenient RISC instructions;</li>
-<li>no very CISC instructions (instead there will be RISC instructions plus rpt);</li>
-<li>perhaps such borderline things as: push, pop, geti, puti, incm, decm;</li>
-<li>the instructions: halt, fail.</li>
-</ul></li>
+<li>The proposed instruction set includes:
+<ol start="0" style="list-style-type: decimal">
+<li><strong><code>NOP</code></strong></li>
+<li><strong><code>CALL</code></strong></li>
+<li><strong><code>RET</code></strong></li>
+<li><strong><code>RPT</code></strong></li>
+<li><strong><code>CPUSH</code></strong></li>
+<li><strong><code>CPOP</code></strong></li>
+<li><strong><code>CPEEK</code></strong></li>
+<li><strong><code>CDROP</code></strong></li>
+<li><strong><code>TPUSH</code></strong></li>
+<li><strong><code>TPOP</code></strong></li>
+<li><strong><code>TPEEK</code></strong></li>
+<li><strong><code>TPOKE</code></strong></li>
+<li><strong><code>TDROP</code></strong></li>
+<li><strong><code>LIT</code></strong></li>
+<li><strong><code>DROP</code></strong></li>
+<li><strong><code>SWAP</code></strong></li>
+<li><strong><code>OVER</code></strong></li>
+<li><strong><code>ROT</code></strong></li>
+<li><strong><code>DUP</code></strong></li>
+<li><strong><code>GET</code></strong></li>
+<li><strong><code>PUT</code></strong></li>
+<li><strong><code>GETI</code></strong></li>
+<li><strong><code>PUTI</code></strong></li>
+<li><strong><code>ROM</code></strong></li>
+<li><strong><code>ADD</code></strong></li>
+<li><strong><code>SUB</code></strong></li>
+<li><strong><code>MUL</code></strong></li>
+<li><strong><code>DIV</code></strong></li>
+<li><strong><code>MOD</code></strong></li>
+<li><strong><code>INC</code></strong></li>
+<li><strong><code>DEC</code></strong></li>
+<li><strong><code>OR</code></strong></li>
+<li><strong><code>AND</code></strong></li>
+<li><strong><code>XOR</code></strong></li>
+<li><strong><code>FLIP</code></strong></li>
+<li><strong><code>NEG</code></strong></li>
+<li><strong><code>SHL</code></strong></li>
+<li><strong><code>SHR</code></strong></li>
+<li><strong><code>HOLD</code></strong></li>
+<li><strong><code>GIVE</code></strong></li>
+<li><strong><code>IN</code></strong></li>
+<li><strong><code>OUT</code></strong></li>
+<li><strong><code>JUMP</code></strong></li>
+<li><strong><code>JMPZ</code></strong></li>
+<li><strong><code>JMPE</code></strong></li>
+<li><strong><code>JMPG</code></strong></li>
+<li><strong><code>JMPL</code></strong></li>
+<li><strong><code>HALT</code></strong></li>
+<li><strong><code>FAIL</code></strong></li>
+<li><strong><code>CATCH</code></strong></li>
+<li><strong><code>DSA</code></strong></li>
+<li><strong><code>DSE</code></strong></li>
+<li><strong><code>TSA</code></strong></li>
+<li><strong><code>TSE</code></strong></li>
+<li><strong><code>CSA</code></strong></li>
+<li><strong><code>CSE</code></strong></li>
+<li><strong><code>RSA</code></strong></li>
+<li><strong><code>RSE</code></strong></li>
+<li><strong><code>PMI</code></strong></li>
+<li><strong><code>DMW</code></strong></li>
+<li><strong><code>RMW</code></strong></li>
+<li><strong><code>TRON</code></strong></li>
+<li><strong><code>TROFF</code></strong></li>
+</ol></li>
 <li>The I/O strategy is simple, portable and standardized:
 <ul>
 <li>the outside world is known as the <em>environ</em>;</li>
@@ -98,7 +155,8 @@
 <li><code>pause</code>: gracefully pauses a Freeputer instance;</li>
 <li><code>kill</code>: kills a Freeputer instance.</li>
 </ol></li>
-<li>tracing will probably be replaced by debugging.</li>
+<li>some consideration may also be given to allowing <strong><code>IN</code></strong> and <strong><code>OUT</code></strong> by word;</li>
+<li>tracing may well be replaced by debugging.</li>
 </ul></li>
 <li>The design might possibly include a ground state such as:
 <ul>
@@ -110,7 +168,7 @@
 <p>Copyright © Robert Gollagher 2017, 2018</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 20 April 2018 at 18:51<br />
+This document was last updated on 27 April 2018 at 18:44<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />
