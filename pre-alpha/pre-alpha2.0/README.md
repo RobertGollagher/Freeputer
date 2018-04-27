@@ -117,6 +117,7 @@ The proposed I/O design is intended to allow the creation of software modules wh
     1. **`PMI`**
     1. **`DMW`**
     1. **`RMW`**
+    1. **`HW`**
     1. **`TRON`**
     1. **`TROFF`**
 - The I/O strategy is simple, portable and standardized:
@@ -130,7 +131,7 @@ The proposed I/O design is intended to allow the creation of software modules wh
             - public, connected to the *environ*.
         3. `stdhold` (word-indexed persistent local storage):
             - known as *standard hold* or simply the *hold*;
-            - capacity 0 to 2^30 *words* (as reported by the hw instruction);
+            - capacity 0 to 2^30 *words* (as reported by the **`hw`** instruction);
             - gets a word to the *ds*, blocking, branches on failure;
             - puts a word from the *ds*, blocking, branches on failure;
             - private, not connected to the *environ*.
@@ -157,7 +158,7 @@ Copyright © Robert Gollagher 2017, 2018
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 27 April 2018 at 23:13  
+This document was last updated on 28 April 2018 at 01:43  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)

@@ -85,6 +85,7 @@ m{ mod(m0) /*run*/
       fail
     x0:
       tron
+      hw
       rmw
       i(0x0) rom out(s0)
       i(0x1) rom out(s0)

@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20180428+
- * Version:    pre-alpha-0.0.1.58+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.59+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -139,6 +139,7 @@ var modFVM = (function () { 'use strict';
   const PMI   = 0x28000000|0
   const DMW   = 0x29000000|0
   const RMW   = 0x41000000|0
+  const HW    = 0x42000000|0
   const FAIL  = 0x40000000|0
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
@@ -203,6 +204,7 @@ var modFVM = (function () { 'use strict';
     0x28000000: "pmi  ",
     0x29000000: "dmw  ",
     0x41000000: "rmw  ",
+    0x42000000: "hw   ",
     0x40000000: "fail ",
 
     0x51000000: "tpoke",
@@ -335,6 +337,7 @@ try {
           case PMI:     this.ds.doPush(PM_WORDS); break;
           case DMW:     this.ds.doPush(DM_WORDS); break;
           case RMW:     this.ds.doPush(RM_WORDS); break;
+          case HW:      this.ds.doPush(HD_WORDS); break;
           case DROP:   this.ds.drop(); break;
           case SWAP:   this.ds.swap(); break;
           case OVER:   this.ds.over(); break;
