@@ -85,42 +85,11 @@ m{ mod(m0) /*run*/
       fail
     x0:
       tron
-      i(0x48) tpush
-      i(0x47) tpush
-      i(0x46) tpush
-      i(0x45) tpush
-      i(0x44) tpush
-      i(0x43) tpush
-      i(0x42) tpush
-      i(0x41) tpush
-
-      i(0x1) tpeek out(s0)
-      i(0x2) tpeek out(s0)
-      i(0x3) tpeek out(s0)
-      i(0x4) tpeek out(s0)
-      i(0x5) tpeek out(s0)
-      i(0x6) tpeek out(s0)
-      i(0x7) tpeek out(s0)
-      i(0x8) tpeek out(s0)
-
-      i(0x49) i(0x1) tpoke
-      i(0x4a) i(0x2) tpoke
-      i(0x4b) i(0x3) tpoke
-      i(0x4c) i(0x4) tpoke
-      i(0x4d) i(0x5) tpoke
-      i(0x4e) i(0x6) tpoke
-      i(0x4f) i(0x7) tpoke
-      i(0x50) i(0x8) tpoke
-
-      i(0x1) tpeek out(s0)
-      i(0x2) tpeek out(s0)
-      i(0x3) tpeek out(s0)
-      i(0x4) tpeek out(s0)
-      i(0x5) tpeek out(s0)
-      i(0x6) tpeek out(s0)
-      i(0x7) tpeek out(s0)
-      i(0x8) tpeek out(s0)
-
+      rmw
+      i(0x0) rom out(s0)
+      i(0x1) rom out(s0)
+      i(0x2) rom out(s0)
+      i(0xfff) rom out(s0)
       halt
   }u
 

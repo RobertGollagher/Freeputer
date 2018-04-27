@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20180428+
- * Version:    pre-alpha-0.0.1.57+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.58+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -81,6 +81,7 @@ var modFVMA = (function () { 'use strict';
   const PUT   = 0x09000000|0
   const GETI  = 0x0a000000|0
   const PUTI  = 0x0b000000|0
+  const ROM   = 0x0c000000|0
 
   const COPY  = 0x0f000000|0
   const INC   = 0x10000000|0
@@ -100,6 +101,7 @@ var modFVMA = (function () { 'use strict';
 
   const PMI   = 0x28000000|0
   const DMW   = 0x29000000|0
+  const RMW   = 0x41000000|0
 
   const FAIL  = 0x40000000|0
 
@@ -149,6 +151,7 @@ var modFVMA = (function () { 'use strict';
     put:    PUT,
     geti:   GETI,
     puti:   PUTI,
+    rom:    ROM,
 
     copy:   COPY,
     inc:    INC,
@@ -171,7 +174,7 @@ var modFVMA = (function () { 'use strict';
 
     pmi:    PMI,
     dmw:    DMW,
-
+    rmw:    RMW,
     fail:   FAIL,
 
     call:   CALL,

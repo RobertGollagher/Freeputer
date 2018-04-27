@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20180428+
- * Version:    pre-alpha-0.0.1.57+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.58+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -83,6 +83,8 @@ var modFVM = (function () { 'use strict';
   const DM_WORDS = MAX_MEM_WORDS
   const DM_MASK  = DM_WORDS-1 // size: p3d3 (see '../../../README.md')
   const HD_WORDS = S; // Hold size (change this line as desired)
+  const RM_WORDS = MAX_MEM_WORDS
+  const RM_MASK  = RM_WORDS-1
 
   const WORD_BYTES = 4;
   const WORD_PWR = 2; // FIXME necessary any more?
@@ -118,8 +120,7 @@ var modFVM = (function () { 'use strict';
   const PUT   = 0x09000000|0
   const GETI  = 0x0a000000|0
   const PUTI  = 0x0b000000|0
-  const INCM  = 0x0c000000|0
-  const DECM  = 0x0d000000|0
+  const ROM   = 0x0c000000|0
   const INC   = 0x10000000|0
   const DEC   = 0x11000000|0
   const FLIP  = 0x12000000|0
@@ -137,6 +138,7 @@ var modFVM = (function () { 'use strict';
   const OUT   = 0x27000000|0
   const PMI   = 0x28000000|0
   const DMW   = 0x29000000|0
+  const RMW   = 0x41000000|0
   const FAIL  = 0x40000000|0
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
@@ -180,6 +182,7 @@ var modFVM = (function () { 'use strict';
     0x09000000: "put  ",
     0x0a000000: "geti ",
     0x0b000000: "puti ",
+    0x0c000000: "rom  ",
 
     0x10000000: "inc  ",
     0x11000000: "dec  ",
@@ -199,7 +202,7 @@ var modFVM = (function () { 'use strict';
 
     0x28000000: "pmi  ",
     0x29000000: "dmw  ",
-
+    0x41000000: "rmw  ",
     0x40000000: "fail ",
 
     0x51000000: "tpoke",
@@ -247,6 +250,13 @@ var modFVM = (function () { 'use strict';
       this.tmp = 0|0; //tmp var only
       this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
       this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
+      this.rm = new DataView(new ArrayBuffer(RM_WORDS*WD_BYTES));
+
+      // FIXME should be a loadRm function here but this will do for testing
+      this.rmstore(0,0x41); // 'A'
+      this.rmstore(1,0x42); // 'B'
+      this.rmstore(2,0x43); // 'C'
+      this.rmstore(0xfff,0x5a); // 'Z'
 
       this.loadProgram(config.program, this.pm);
 
@@ -324,6 +334,7 @@ try {
           case RSE:     this.ds.doPush(this.rs.used()); break;
           case PMI:     this.ds.doPush(PM_WORDS); break;
           case DMW:     this.ds.doPush(DM_WORDS); break;
+          case RMW:     this.ds.doPush(RM_WORDS); break;
           case DROP:   this.ds.drop(); break;
           case SWAP:   this.ds.swap(); break;
           case OVER:   this.ds.over(); break;
@@ -382,6 +393,7 @@ try {
               break;
           case GIVE:   this.ds.doPush(this.give(this.ds.doPop())); break;
           case HOLD:   this.hold(this.ds.doPop(),this.ds.doPop()); break;
+          case ROM:    this.ds.doPush(this.rmload(this.ds.doPop())); break;
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
           case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
@@ -424,6 +436,23 @@ try {
         return this.dm.getUint32(addr*WD_BYTES, true);
       } catch (e) {
         throw BEYOND;
+      }
+    }
+
+    rmload(addr) {
+      try {
+        return this.rm.getUint32(addr*WD_BYTES, true);
+      } catch (e) {
+        throw BEYOND;
+      }
+    }
+
+    // FIXME Add a better means of ROM (rm) initialization
+    rmstore(addr,val) {
+      try {
+        this.rm.setInt32(addr*WD_BYTES, val, true);
+      } catch (e) {
+        throw 'ROM initialization failed' // FIXME
       }
     }
 
