@@ -38,9 +38,9 @@ The proposed I/O design is intended to allow the creation of software modules wh
 - Stack machine with 4 stacks: data (*ds*), temporary (*ts*), return (*rs*), counter (*cs*).
 - Harvard architecture ensures ease of native implementation:
     - program logic is entirely independent of instruction encoding;
-    - program memory (*pm*) <= 2^24 *instructions* (as reported by the pmi instruction);
-    - data memory (*dm*) <= 2^30 *words* (as reported by the dmw instruction);
-    - rom memory (*rm*) <= 2^30 *words* (as reported by the rmw instruction).
+    - program memory (*pm*) <= 2^24 *instructions* (as reported by the **`pmi`** instruction);
+    - data memory (*dm*) <= 2^30 *words* (as reported by the **`dmw`** instruction);
+    - rom memory (*rm*) <= 2^30 *words* (as reported by the **`rmw`** instruction).
 - Words and stack elements are 32-bit and arithmetic is two's complement.
 - Non-native implementations use fixed-width 32-bit instructions (FW32):
     - literals 1:31 (bit 31 *literal bit*, 30..0 *literal value*);

@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180425+
- * Version:    pre-alpha-0.0.1.54+ for FVM 2.0
+ * Updated:    20180428+
+ * Version:    pre-alpha-0.0.1.57+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -47,9 +47,7 @@ var modFVMA = (function () { 'use strict';
   const COMLINE= '//';
   const COMWORD= '/';
 
-  const PUSH  = 0x50000000|0
-  const POP   = 0x51000000|0
-
+  const TPOKE = 0x51000000|0
   const TPEEK = 0x52000000|0
   const CPEEK = 0x53000000|0
 
@@ -62,11 +60,9 @@ var modFVMA = (function () { 'use strict';
 
   const NOP   = 0x00000000|0 // Simple
 
-
   const MUL   = 0x30000000|0
   const DIV   = 0x31000000|0
   const MOD   = 0x32000000|0
-
 
   const TRON  = 0x33000000|0
   const TROFF = 0x34000000|0
@@ -85,8 +81,6 @@ var modFVMA = (function () { 'use strict';
   const PUT   = 0x09000000|0
   const GETI  = 0x0a000000|0
   const PUTI  = 0x0b000000|0
-  const INCM  = 0x0c000000|0
-  const DECM  = 0x0d000000|0
 
   const COPY  = 0x0f000000|0
   const INC   = 0x10000000|0
@@ -96,17 +90,15 @@ var modFVMA = (function () { 'use strict';
 
   const HALT  = 0x1c000000|0
   const JMPZ  = 0x1d000000|0 // Complex
-  const JMPB  = 0x1e000000|0
   const JMPE  = 0x1f000000|0
-  const JMPN  = 0x20000000|0
   const JMPG  = 0x21000000|0
   const JMPL  = 0x22000000|0
   const JUMP  = 0x23000000|0
   const RPT   = 0x24000000|0
-  const IN    = 0x26000000|0 // FIXME make complex
+  const IN    = 0x26000000|0
   const OUT   = 0x27000000|0
 
-  const PMW   = 0x28000000|0
+  const PMI   = 0x28000000|0
   const DMW   = 0x29000000|0
 
   const FAIL  = 0x40000000|0
@@ -129,7 +121,6 @@ var modFVMA = (function () { 'use strict';
   const ROT   = 0x73000000|0
   const DUP   = 0x74000000|0
 
-  const SAFE  = 0x75000000|0
   const CATCH = 0x76000000|0
 
   const LIT   = 0x80000000|0
@@ -140,7 +131,6 @@ var modFVMA = (function () { 'use strict';
     mul:    MUL,
     div:    DIV,
     mod:    MOD,
-
 
     tron:   TRON,
     troff:  TROFF,
@@ -159,8 +149,6 @@ var modFVMA = (function () { 'use strict';
     put:    PUT,
     geti:   GETI,
     puti:   PUTI,
-    incm:   INCM,
-    decm:   DECM,
 
     copy:   COPY,
     inc:    INC,
@@ -168,13 +156,11 @@ var modFVMA = (function () { 'use strict';
     flip:   FLIP,
     neg:    NEG,
 
-
     halt:   HALT,
-    push:   PUSH,
-    pop:    POP,
 
     tpush:  TPUSH,
     tpop:   TPOP,
+    tpoke:  TPOKE,
     tpeek:  TPEEK,
     cpush:  CPUSH,
     cpop:   CPOP,
@@ -183,12 +169,10 @@ var modFVMA = (function () { 'use strict';
     tdrop:  TDROP,
     cdrop:  CDROP,
 
-
-    pmw:    PMW,
+    pmi:    PMI,
     dmw:    DMW,
 
     fail:   FAIL,
-
 
     call:   CALL,
     ret:    RET,
@@ -209,7 +193,6 @@ var modFVMA = (function () { 'use strict';
     rot:    ROT,
     dup:    DUP,
 
-    safe:   SAFE,
     catch:  CATCH
 
   };
@@ -323,9 +306,7 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseCall(token)) {
       } else if (this.parseJump(token)) {
       } else if (this.parseJmpZ(token)) {
-      } else if (this.parseJmpB(token)) {
       } else if (this.parseJmpE(token)) {
-      } else if (this.parseJmpN(token)) {
       } else if (this.parseJmpG(token)) {
       } else if (this.parseJmpL(token)) {
       } else if (this.parseIn(token)) {
@@ -660,28 +641,10 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpB(token) {
-      if (this.refMatch('jmpb', token)) {
-        var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPB);
-      } else {
-        return false;
-      }
-    }
-
     parseJmpE(token) {
       if (this.refMatch('jmpe', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPE);
-      } else {
-        return false;
-      }
-    }
-
-    parseJmpN(token) {
-      if (this.refMatch('jmpn', token)) {
-        var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPN);
       } else {
         return false;
       }
