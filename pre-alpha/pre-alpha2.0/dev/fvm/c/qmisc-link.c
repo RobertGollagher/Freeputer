@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180429+
-Version:    pre-alpha-0.0.7.0+ for FVM 2.0
+Updated:    20171104+
+Version:    pre-alpha-0.0.6.0+ for FVM 2.0
 =======
 
                               This Edition:
@@ -17,11 +17,9 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
 
   Removed most notes so as not to prejudice lateral thinking during design.
 
-  MAJOR CHANGE:
-    There is now a link stack rather than a link register.
-    The terminology is go and resume (analagous to call and return).
-    The current number of elements on the link stack is held in vL.
-    The link stack is intentionally small and of a fixed size.
+  Currently in the process of converting this from a register machine
+  to a stack machine with 4 stacks: ds, ts, rs, cs as per recent experiments
+  with 'fvm2.js' but here in a native Harvard implementation for simplicity.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -45,22 +43,17 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
 #define SUCCESS 0
 #define FAILURE 1
 #define ILLEGAL 2
-#define LS_UNDERFLOW 3
-#define LS_OVERFLOW 4
 #define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
 #define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
 #define DM_MASK   DM_WORDS-1
-#define LS_LNKTS  0x100
-#define vL_MAX    LS_LNKTS-1
 #define nopasm "nop" // The name of the native hardware nop instruction
 // There are only 4 accessible registers:
 WORD vA = 0; // accumulator
 WORD vB = 0; // operand register
 WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
-WORD vL = 0; // link counter (not accessible)
-LNKT ls[LS_LNKTS]; // link stack (not accessible)
-WORD dm[DM_WORDS]; // data memory (Harvard architecture)
+LNKT vL = 0; // link register (not accessible)
+WORD dm[DM_WORDS]; // data memory (Harvard architecture of parent)
 int exampleProgram();
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
@@ -68,6 +61,7 @@ METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
+// CURRENTLY 34+ OPCODES
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
@@ -106,8 +100,6 @@ void Fromt()  { vA = vT; }
 void Fromr()  { vA = vR; }
 // Machine metadata
 void Mdm()    { vA = DM_WORDS; }
-void Lsa()    { vA = LS_LNKTS-vL; }
-void Lse()    { vA = vL; }
 // Other
 void Noop()   { ; }
 #define halt return enbyte(vA);
@@ -120,31 +112,11 @@ void Noop()   { ; }
 #define jmpu(label) if (vB == (vA|vB)) { goto label; } // all vB 0s unset in vA
 #define jump(label) goto label; // UNCONDITIONAL
 #define rpt(label) if ( vR != 0) { --vR; goto label; }
-#define go(label) { \
-  if (vL<vL_MAX) { \
-      __label__ lr; ls[++vL] = (LNKT)&&lr; goto label; lr: ; \
-  } else { \
-      vA = LS_OVERFLOW; halt \
-  } \
-}
-#define rs { \
-  if (vL>0) { \
-    goto *(ls[vL--]); \
-  } else { \
-      vA = LS_UNDERFLOW; halt \
-  } \
-}
+#define br(label) { __label__ lr; vL = (LNKT)&&lr; goto label; lr: ; }
+#define link goto *vL;
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
 #define out(label) putchar(vA); // If fail goto label
-// ===========================================================================
-#define i(x) Imm(x);
-// ===========================================================================
-#define dbg \
-{ __label__ pc; pc: \
-  printf("pc:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ls[vL]:%08x -- \
-ls[0]:%08x ls[1]:%08x ls[2]:%08x ls[3]:%08x\n", \
-&&pc, vA, vB, vT, vR, vL, ls[vL], ls[0], ls[1], ls[2], ls[3]); }
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
@@ -153,35 +125,7 @@ int main() {
 // ===========================================================================
 int exampleProgram() {
 
-dbg
-go(x0);
-halt 
 
-foo:
-  i(4)
-  dbg
-  rs
-bar:
-  i(3)
-  dbg
-  go(foo)
-  i(3)
-  dbg
-  rs
-baz:
-  i(2)
-  dbg
-  go(bar)
-  i(2)
-  dbg
-  rs
-x0:
-  i(1)
-  dbg
-  go(baz)
-  i(1)
-  dbg
-  rs
 }
 // ===========================================================================
 
