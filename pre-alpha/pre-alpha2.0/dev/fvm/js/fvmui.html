@@ -25,9 +25,10 @@ fvmSrc.textContent = prgSrc;
 //var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
 
   // A tiny default program
+  const TRON  = 0x33000000|0;
   const NOP   = 0x00000000|0;
   const HALT  = 0x1c000000|0;
-  var prg = new Uint32Array([NOP,HALT]).buffer;
+  var prg = new Uint32Array([TRON,NOP,HALT]).buffer;
   modFVMUI = modFVMUI_init(prg);
 };
 

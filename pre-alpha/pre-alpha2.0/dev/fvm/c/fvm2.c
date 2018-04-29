@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20171104+
-Version:    pre-alpha-0.0.6.5+ for FVM 2.0
+Updated:    20180428+
+Version:    pre-alpha-0.0.7.0+ for FVM 2.0
 =======
 
                               This Edition:
@@ -15,19 +15,12 @@ Version:    pre-alpha-0.0.6.5+ for FVM 2.0
 
                                ( ) [ ] { }
 
+  TODO Reconsider alternate arith strategy eg NaN/wrap/unsigned/other
+  mainly since could simplify VM and avoid undef behav. Consider JS also.
+
   Removed most notes so as not to prejudice lateral thinking during design.
 
-  Currently in the process of converting this from a register machine
-  to a stack machine with 4 stacks: ds, ts, rs, cs as per recent experiments
-  with 'fvm2.js' but here in a native Harvard implementation for simplicity.
-
   WORDs are unsigned to avoid undefined behaviour in C!
-
-  UPDATE: This 'fvm2.c' has demonstrated that a native Harvard implementation
-  of the new 4-stack architecture is feasible. Of course this implementation
-  is very, very incomplete. Parking this for now in favour of working on
-  an interpreted version in JavaScript; so for now work will continue
-  in 'fvm2.js' which is where the VM will be refined at first.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -59,8 +52,13 @@ static jmp_buf exc_env;
 static int exc_code;
 #define DS_UNDERFLOW 31
 #define DS_OVERFLOW 32
+#define RS_UNDERFLOW 33
+#define RS_OVERFLOW 34
+#define TS_UNDERFLOW 35
+#define TS_OVERFLOW 36
 #define CS_UNDERFLOW 37
 #define CS_OVERFLOW 38
+
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
@@ -92,6 +90,14 @@ WORD wdPop(WDSTACK *s, int error_code) {
   if ((s->sp)>0) {
     WORD wd = s->elem[--(s->sp)];
     return wd;
+  } else {
+    exc_code = error_code;
+    longjmp(exc_env, exc_code);
+  }
+}
+WORD wdDrop(WDSTACK *s, int error_code) {
+  if ((s->sp)>0) {
+    --(s->sp);
   } else {
     exc_code = error_code;
     longjmp(exc_env, exc_code);
@@ -148,9 +154,32 @@ WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
 WDSTACK ds, ts, cs; // data stack, temporary stack, counter stack
 NATSTACK rs; // return stack
 // ---------------------------------------------------------------------------
-// CURRENTLY 34+ OPCODES
+// Utilities
+// ---------------------------------------------------------------------------
+void dsTopTrace() {
+  printf("%x:",wdPeek(&ds,DS_UNDERFLOW));
+}
+#define tr dsTopTrace();
+// ---------------------------------------------------------------------------
+// Immediates
+void i(METADATA x) {  // bits 31..0
+  wdPush(enrange(x), &ds, DS_OVERFLOW);
+}
+// Metadata
+void Dsa()    { wdPush(wdFree(&ds), &ds, DS_OVERFLOW); }
+void Dse()    { wdPush(wdElems(&ds), &ds, DS_OVERFLOW); }
+void Tsa()    { wdPush(wdFree(&ts), &ds, TS_OVERFLOW); }
+void Tse()    { wdPush(wdElems(&ts), &ds, TS_OVERFLOW); }
+void Csa()    { wdPush(wdFree(&cs), &ds, CS_OVERFLOW); }
+void Cse()    { wdPush(wdElems(&cs), &ds, CS_OVERFLOW); }
+void Rsa()    { wdPush(natFree(&rs), &ds, RS_OVERFLOW); }
+void Rse()    { wdPush(natElems(&rs), &ds, RS_OVERFLOW); }
+
+// Stack operations
+void Drop()   { wdDrop(&ds, DS_UNDERFLOW); }
+
 // Arithmetic
-void Add()    { /*FIXME vA+=vB;*/ }
+void Add()    { wdPush(wdPop(&ds, DS_UNDERFLOW) + wdPop(&ds, DS_UNDERFLOW), &ds, DS_OVERFLOW); } // FIXME
 void Sub()    { /*FIXME vA-=vB;*/ }
 // Logic
 void Or()     { /*FIXME vA|=vB;*/ }
@@ -174,10 +203,7 @@ void Copy()   { /*FIXME dm[safe(vB+vA)] = dm[safe(vB)];*/ } // a smell?
 // Increments for addressing
 void Inc()    { /*FIXME ++vB;*/ }
 void Dec()    { /*FIXME --vB;*/ }
-// Immediates
-void Imm(METADATA x)    {  // bits 31..0
-  wdPush(enrange(x), &ds, DS_OVERFLOW);
-}
+
 void Flip()             { /*FIXME vB = vB^MSb;*/ }     // bit  32 (NOT might be better)
 
 // Machine metadata
@@ -202,17 +228,42 @@ void Noop()   { __asm(nopasm); }
 #define in(label) vA = getchar(); // If fail goto label
 */
 
-#define rpt(label) if (wdPeekAndDec(&cs, CS_UNDERFLOW) != 0) { goto label; }
+#define rpt(label) \
+if (wdPeekAndDec(&cs, CS_UNDERFLOW) != 0) { \
+  goto label; \
+} else { \
+  wdDrop(&cs, CS_UNDERFLOW); \
+}
+
+#define dsa Dsa();
+#define dse Dse();
+#define tsa Tsa();
+#define tse Tse();
+#define csa Csa();
+#define cse Cse();
+#define rsa Rsa();
+#define rse Rse();
+#define add Add();
+#define drop Drop();
 
 void ToCS() {
   WORD wd = wdPop(&ds, DS_UNDERFLOW);
   wdPush(wd, &cs, CS_OVERFLOW);
 }
 
+void In() {
+  WORD wd = getchar();  // FIXME
+  wdPush(wd, &ds, DS_OVERFLOW);
+}
+
 void Out() {
   WORD wd = wdPop(&ds, DS_UNDERFLOW);
   putchar(wd); // FIXME
 }
+
+#define in In();
+#define out Out();
+
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
@@ -225,23 +276,22 @@ int main() {
 }
 // ===========================================================================
 int exampleProgram() {
+/*
   // Performance test, 0x7fffffff repeats: 2.1/4.1 s without/with Noop()
-  Imm(0x7fffffff);
+  i(0x7fffffff);
   ToCS();
   perfLoop:
     //Noop();
     rpt(perfLoop)
+*/
 
-/*
-  Imm(4);
+  i(1000000);
   ToCS();
   loop:
-    Imm(10);
-    Imm(65);
-    Out();
-    Out();
+    in
+    out
     rpt(loop)
-*/
+
 }
 // ===========================================================================
 

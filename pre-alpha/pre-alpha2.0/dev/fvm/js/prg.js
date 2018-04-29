@@ -72,7 +72,7 @@ m{ mod(m3) /*MODULE:io*/
 
   // ( n -- ) inOutAll
   // Output to stdout all available characters from stdin, then return.
-  u{ s0: ret s1: fail x5: in(s0) out(s1) jump(x5) ret }u
+  u{ s0: ret s1: fail x5: in(s0) out(s1) jump(x5) }u
 
 }m
 
