@@ -6,7 +6,7 @@ Program:    qmisc.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180429+
-Version:    pre-alpha-0.0.7.0+ for FVM 2.0
+Version:    pre-alpha-0.0.7.1+ for FVM 2.0
 =======
 
                               This Edition:
@@ -22,6 +22,13 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
     The terminology is go and resume (analagous to call and return).
     The current number of elements on the link stack is held in vL.
     The link stack is intentionally small and of a fixed size.
+
+  NOTES:
+    Blank std.hld and std.rom files can be created thus:
+      head -c 67108864 /dev/zero > std.hld
+      head -c 262144 /dev/zero > std.rom
+
+    TODO endianness considerations, word/byte loading and I/O considerations
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -44,12 +51,16 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define ILLEGAL 2
-#define LS_UNDERFLOW 3
-#define LS_OVERFLOW 4
+#define GRACEFUL SUCCESS
 #define MAX_DM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
 #define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS.
 #define DM_MASK   DM_WORDS-1
+#define MAX_RM_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
+#define RM_WORDS  0x10000  // Must be some power of 2 <= MAX_RM_WORDS.
+#define RM_MASK   RM_WORDS-1
+#define MAX_HD_WORDS 0x10000000 // <= 2^(WD_BITS-4) due to C limitations.
+#define HD_WORDS  0x1000000  // Must be some power of 2 <= MAX_HD_WORDS.
+#define HD_MASK   HD_WORDS-1
 #define LS_LNKTS  0x100
 #define vL_MAX    LS_LNKTS-1
 #define nopasm "nop" // The name of the native hardware nop instruction
@@ -60,17 +71,33 @@ WORD vT = 0; // temporary register
 WORD vR = 0; // repeat register
 WORD vL = 0; // link counter (not accessible)
 LNKT ls[LS_LNKTS]; // link stack (not accessible)
-WORD dm[DM_WORDS]; // data memory (Harvard architecture)
+WORD dm[DM_WORDS]; // ram data memory (Harvard architecture)
+WORD rm[RM_WORDS]; // rom data memory (Harvard architecture)
+WORD hd[HD_WORDS]; // stdhld
+int startup();
+int shutdown(int excode);
 int exampleProgram();
+// ---------------------------------------------------------------------------
+#define rmFilename "std.rom"
+FILE *rmHandle;
+#define stdhldFilename "std.hld"
+FILE *stdhldHandle;
 // ---------------------------------------------------------------------------
 METADATA safe(METADATA addr) { return addr & DM_MASK; }
 METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
 METADATA enrange(METADATA x) { return x & METADATA_MASK; }
 METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
+WORD romsafe(WORD addr)      { return addr & RM_MASK; }
+WORD hdsafe(WORD addr)       { return addr & HD_MASK; }
 // ---------------------------------------------------------------------------
+// TODO Hold() Give() Hw() nb? < > catch tracing nb?
+
 // Arithmetic
 void Add()    { vA+=vB; }
 void Sub()    { vA-=vB; }
+void Mul()    { vA*=vB; }
+void Div()    { vA/=vB; }
+void Mod()    { vA%=vB; }
 // Logic
 void Or()     { vA|=vB; }
 void And()    { vA&=vB; }
@@ -108,8 +135,10 @@ void Fromr()  { vA = vR; }
 void Mdm()    { vA = DM_WORDS; }
 void Lsa()    { vA = LS_LNKTS-vL; }
 void Lse()    { vA = vL; }
+void Hw()     { vA = HD_WORDS; }
 // Other
-void Noop()   { ; }
+#define nopasm "nop" // The name of the native hardware nop instruction
+void Noop()   { __asm(nopasm); }
 #define halt return enbyte(vA);
 // Jumps (static only), maybe reduce these back to jump and jmpe only
 #define jmpa(label) if (vA == 0) { goto label; } // vA is 0
@@ -124,39 +153,158 @@ void Noop()   { ; }
   if (vL<vL_MAX) { \
       __label__ lr; ls[++vL] = (LNKT)&&lr; goto label; lr: ; \
   } else { \
-      vA = LS_OVERFLOW; halt \
+      vA = FAILURE; halt \
   } \
 }
 #define rs { \
   if (vL>0) { \
     goto *(ls[vL--]); \
   } else { \
-      vA = LS_UNDERFLOW; halt \
+      vA = FAILURE; halt \
   } \
 }
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
 #define out(label) putchar(vA); // If fail goto label
+void Rom()    { vA = rm[romsafe(vB)]; } // Reconsider failure of everything
+void Give()   { vA = hd[hdsafe(vB)]; }
+void Hold()   { hd[hdsafe(vB)] = vA; }
 // ===========================================================================
 #define i(x) Imm(x);
+#define add Add();
+#define inc Inc();
+#define dec Dec();
+#define shl Shl();
+#define shr Shr();
+#define swap Swap();
+#define tob Tob();
+#define tor Tor();
+#define tot Tot();
+#define fromb Fromb();
+#define fromt Fromt();
+#define hw Hw();
+#define rom Rom();
+#define hold Hold();
+#define give Give();
+#define nop Noop();
 // ===========================================================================
 #define dbg \
 { __label__ pc; pc: \
   printf("pc:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ls[vL]:%08x -- \
-ls[0]:%08x ls[1]:%08x ls[2]:%08x ls[3]:%08x\n", \
-&&pc, vA, vB, vT, vR, vL, ls[vL], ls[0], ls[1], ls[2], ls[3]); }
+ls[0]:%08x ls[1]:%08x ls[2]:%08x ls[3]:%08x hd[0]:%08x rm[0]:%08x\n", \
+&&pc, vA, vB, vT, vR, vL, ls[vL], ls[0], ls[1], ls[2], ls[3], hd[0], rm[0]); }
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
-  return exampleProgram();
+  assert(startup() == SUCCESS);
+  int excode = exampleProgram();
+  return shutdown(excode);
+}
+// ===========================================================================
+int startup() {
+  stdhldHandle = fopen(stdhldFilename, "r+b");
+  if (!stdhldHandle) return FAILURE;
+  if (fread(&hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  rmHandle = fopen(rmFilename, "rb");
+  if (!rmHandle) {
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  if (fread(&rm,WD_BYTES,RM_WORDS,rmHandle) < RM_WORDS) {
+    fclose(rmHandle);
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  return SUCCESS;
+}
+
+int shutdown(int excode) {
+  int shutdown = GRACEFUL;
+  if (fclose(rmHandle) == EOF) shutdown = FAILURE;
+  if (fseek(stdhldHandle,0,SEEK_SET) !=0) {
+    shutdown = FAILURE;
+  } else {
+    if (fwrite(&hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+      shutdown = FAILURE;
+    }
+  }
+  if (fclose(stdhldHandle) == EOF) shutdown = FAILURE;
+  assert(shutdown == GRACEFUL);
+  return excode;
 }
 // ===========================================================================
 int exampleProgram() {
 
-dbg
 go(x0);
-halt 
+end:
+  i(0)
+  fromb
+  halt
+fail:
+  i(1)
+  fromb
+  halt
 
+/*
+x0: // 4.2 seconds
+  i(0x7fffffff) fromb tor loop: nop rpt(loop) rs
+*/
+
+/*
+dbg
+x0:
+  i(0xffffff)
+  fromb
+  tor
+  i(0x50)
+  fromb
+  i(0)
+  loop:
+    hold
+    tot
+    fromb
+    i(1)
+    add
+    tob
+    fromt
+    rpt(loop)
+  rs
+*/
+
+// First use a hex editor to put the alphabet into the start of ROM, then
+//   this little program will print out the alphabet from ROM:
+testrom:
+  i(16)
+  fromb
+  tor
+  i(0)
+  loop:
+    rom
+    swap
+    tot
+    swap
+    out(end)
+    i(8)
+    shr
+    out(end)
+    shr
+    out(end)
+    shr
+    out(end)
+    fromt
+    tob
+    inc
+    rpt(loop)
+  rs
+
+x0:
+  go(testrom)
+  rs
+
+/*
 foo:
   i(4)
   dbg
@@ -182,6 +330,7 @@ x0:
   i(1)
   dbg
   rs
+*/
 }
 // ===========================================================================
 
