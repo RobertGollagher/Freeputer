@@ -29,6 +29,7 @@ Version:    pre-alpha-0.0.7.1+ for FVM 2.0
       head -c 262144 /dev/zero > std.rom
 
     TODO endianness considerations, word/byte loading and I/O considerations
+    - Reconsider display/input thoughts
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,

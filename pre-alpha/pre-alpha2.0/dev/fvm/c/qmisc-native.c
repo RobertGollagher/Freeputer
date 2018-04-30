@@ -41,7 +41,7 @@ Version:    pre-alpha-0.0.4.3+ for FVM 2.0
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define TRACING_ENABLED // Comment out unless debugging
+//#define TRACING_ENABLED // Comment out unless debugging
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -644,6 +644,8 @@ v_Rpt:
     jump(nexti)
 // ---------------------------------------------------------------------------
 v_Halt:
+printf("%08x CHILD: vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ",
+        vA, dm[v_vA], dm[v_vB], dm[v_vT], dm[v_vR], dm[v_vL]); //FIXME
   i(v_vA)
   get
   i(BYTE_MASK)
@@ -676,16 +678,21 @@ program:
   br(si)
   i(iADD)
   br(si)
-  i(2) // Performance test (C child does 0x7fffffff in 11-19 sec)
+  i(0x7fffffff) // Performance test (this C child does 7fffffff in 11-19 sec)
   flip  // 2 0x10000000 0x7fffffff  (i.e. fast but uses impenetrable gcc fu)
-  br(si)                         // ( 11 sec = 64 bit ; 19 sec = 32 bit)
-  i(iFROMB)
+  br(si)    // ( 11 sec = 64-bit ; 19 sec = 32-bit with gcc -O3)
+  i(iFROMB) // ( but is 246 sec on 64-bit without gcc -O3 optimization!)
   br(si)
   i(iTOR)
   br(si)
   i(iNOOP) // This is instruction 7 in this program.
   br(si)
   i(iRPT|7)
+  br(si)
+  i(0)
+  flip
+  br(si)
+  i(iFROMB)
   br(si)
   i(iHALT)
   br(si)
