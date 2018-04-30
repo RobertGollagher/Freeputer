@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
  * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.60+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.61+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -62,6 +62,9 @@ var modFVMA = (function () { 'use strict';
   const TOB   = 0x78000000|0
   const TOT   = 0x79000000|0
   const TOR   = 0x7a000000|0
+
+  const PUSH  = 0x7b000000|0
+  const POP   = 0x7c000000|0
 
   const NOP   = 0x00000000|0 // Simple
 
@@ -188,6 +191,9 @@ var modFVMA = (function () { 'use strict';
     tob:    TOB,
     tot:    TOT,
     tor:    TOR,
+
+    push:   PUSH,
+    pop:    POP,
 
     pmi:    PMI,
     dmw:    DMW,

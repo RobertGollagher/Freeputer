@@ -34,58 +34,15 @@ var prgSrc = `
 
 m{ mod(m1) /*MODULE:forward*/ jump(m0.x0) /*run*/ }m
 
-m{ mod(m2) /*MODULE:incs*/
-
-  // ( n1 -- n2 ) doIncs
-  // Increment n1 times to give the number of increments n2.
-  // This is only to test that the VM is working correctly. 
-  u{ x1: cpush i(0x0) s0: inc rpt(s0) ret }u
-
-  // ( -- 0x100000 ) doManyIncs
-  // Do 1,048,576 increments to test VM performance.
-  // Temporarily disable tracing while doing so.
-  // See browser console for timer output.
-  u{ x2: i(0x100000) troff call(x1) /*doIncs*/ tron ret }u
-
-}m
-
-m{ mod(m3) /*MODULE:io*/
-
-  // ( n -- ) send
-  // Output n to stdout or fail if not possible.
-  u{ s0: fail x1: out(s0) ret }u
-
-  // ( -- ) sendA
-  // Output 'A' to stdout
-  u{ x2: i(0x41) call(x1) /*send*/ ret }u
-
-  // ( n -- ) nInOut
-  // Output to stdout no more than n characters from stdin.
-  u{ s0: fail u1: cpush s1: in(s0) call(x1) /*send*/ rpt(s1) ret }u
-
-  // ( -- ) max9InOut
-  // Output to stdout no more than 9 characters from stdin.
-  u{ x3: i(0x9) call(u1) /*nInOut*/ ret }u
-
-  // ( n -- ) nInOutFast
-  // Output to stdout no more than n characters from stdin, quickly.
-  u{ s0: fail x4: cpush s1: in(s0) out(s0) rpt(s1) ret }u
-
-  // ( n -- ) inOutAll
-  // Output to stdout all available characters from stdin, then return.
-  u{ s0: ret s1: fail x5: in(s0) out(s1) jump(x5) }u
-
-}m
-
 m{ mod(m4) /*MODULE:sk*/ // Stack synthesis from QMISC instructions
 
   // ( -- ) init
-  u{ x1: i(0x1ff) fromb i(0x200) /*dsp*/ put ret }u
+  u{ x1: i(0x200) fromb i(0x200) /*dsp*/ put ret }u
 
   // ( n -- ) push
-  u{ x2: i(0x200) /*dsp*/ puti decm ret }u
+  u{ x2: i(0x200) /*dsp*/ decm puti ret }u
 
-  // ( n -- ) pop
+  // ( -- n ) pop
   u{ x3: i(0x200) /*dsp*/ geti incm ret }u
 
 }m
@@ -99,9 +56,22 @@ m{ mod(m0) /*run*/
       fail
     x0:
       call(m4.x1) /*sk.init*/
+      
+      /* Using push, pop (3) */     
+        // i(0x12345678) fromb
+        // i(0x200) push pop
+
+      /* Calling push, pop (10) */
+        // i(0x12345678) fromb
+        // call(m4.x2) /*sk.push*/
+        // call(m4.x3) /*sk.pop*/
+
+      /* Inlining (6) */
+        i(0x12345678) fromb
       tron
-      i(0x12345678) fromb call(m4.x2) /*sk.push*/
-      call(m4.x3) /*sk.pop*/
+        i(0x200) decm puti
+        i(0x77777777) fromb
+        i(0x200) geti incm
       halt
   }u
 

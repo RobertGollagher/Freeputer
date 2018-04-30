@@ -15,7 +15,10 @@ Version:    pre-alpha-0.0.7.1+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  Removed most notes so as not to prejudice lateral thinking during design.
+  20180430 DECISION: QMISC is REJECTED. The 4-stack-machine plan
+  currently in README.md really is the best compromise overall.
+  The performance of QMISC is too slow when having to emulate stacks.
+  The 4-stack-machine is a better generalist machine.
 
   MAJOR CHANGE:
     There is now a link stack rather than a link register.
@@ -181,6 +184,15 @@ void Hold()   { hd[hdsafe(vB)] = vA; }
 #define tob Tob();
 #define tor Tor();
 #define tot Tot();
+
+#define get Get();
+#define put Put();
+#define geti Geti();
+#define puti Puti();
+#define decm Decm();
+#define incm Incm();
+
+
 #define fromb Fromb();
 #define fromt Fromt();
 #define hw Hw();
@@ -192,8 +204,8 @@ void Hold()   { hd[hdsafe(vB)] = vA; }
 #define dbg \
 { __label__ pc; pc: \
   printf("pc:%08x vA:%08x vB:%08x vT:%08x vR:%08x vL:%08x ls[vL]:%08x -- \
-ls[0]:%08x ls[1]:%08x ls[2]:%08x ls[3]:%08x hd[0]:%08x rm[0]:%08x\n", \
-&&pc, vA, vB, vT, vR, vL, ls[vL], ls[0], ls[1], ls[2], ls[3], hd[0], rm[0]); }
+ls[0]:%08x ls[1]:%08x ls[2]:%08x dm[0x1ff]:%08x dm[0x200]:%08x hd[0]:%08x rm[0]:%08x\n", \
+&&pc, vA, vB, vT, vR, vL, ls[vL], ls[0], ls[1], ls[2], dm[0x1ff], dm[0x200], hd[0], rm[0]); }
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
@@ -239,6 +251,19 @@ int shutdown(int excode) {
 // ===========================================================================
 int exampleProgram() {
 
+/*
+go(begin)
+done:
+  halt
+begin:
+  i(0x7fffffff) // 4 seconds with -O3
+countdown:    // This is too slow, FVM1 can do 9 seconds with boundary checks
+  nop         //   and FVM1 is interpreted (not native like this 'qmisc.c').
+  dec
+  jmpb(done)
+  jump(countdown)
+*/
+
 go(x0);
 end:
   i(0)
@@ -248,6 +273,59 @@ fail:
   i(1)
   fromb
   halt
+
+
+// Stack emulation, init a SP
+initds:
+  i(0x200)
+  fromb
+  i(0x200) /*dsp*/
+  put
+  rs
+
+dpush:
+  i(0x200) /*dsp*/
+
+  get // stack overflow check, max stack size 2 elems
+  i(0x1fe)
+  jmpe(fail)
+  i(0x200)
+
+  decm
+  puti
+  rs
+
+dpop:
+  i(0x200) /*dsp*/
+
+  get // stack underflow check
+  i(0x200)
+  jmpe(fail)
+  i(0x200)
+
+  geti
+  incm
+  rs
+
+x0:
+  go(initds)
+  i(0x12345678)
+  fromb
+                // PERFORMANCE TEST: repeat {push a value then pop it again}
+  i(0x10000000) // 268 million =  10.1 sec without -O3, without boundary checks
+  fromb         // 268 million =  21.6 sec without -O3, with boundary checks
+  tor           // 268 million =   1.3 sec with -O3, without boundary checks
+dbg             // 268 million =   1.7 sec with -O3, with boundary checks
+  pploop:  // Although the above seems fast, in fact it is too slow,
+    i(0x66666666) // considering FVM1 does 9 seconds non-natively for a 2 billion
+    fromb         // countdown including boundary checks and full stack use.
+    go(dpush)
+    go(dpop)
+    rpt(pploop)
+dbg
+  rs
+
+
 
 /*
 x0: // 4.2 seconds
@@ -275,6 +353,7 @@ x0:
   rs
 */
 
+/*
 // First use a hex editor to put the alphabet into the start of ROM, then
 //   this little program will print out the alphabet from ROM:
 testrom:
@@ -304,6 +383,7 @@ testrom:
 x0:
   go(testrom)
   rs
+*/
 
 /*
 foo:

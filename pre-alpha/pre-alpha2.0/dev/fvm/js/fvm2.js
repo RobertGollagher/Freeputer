@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.60+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.61+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -16,10 +16,7 @@
  *
  * 20180430: See 'fvm2-mainline.js' for the proper, parked version of this.
  * This 'fvm2.js' is now being hacked into a QMISC approach for comparison
- * prior to deciding which of the two competing strategies to pursue.
- *
- * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
- * This FVM 2.0 implementation is still very incomplete and very inconsistent.
+ * prior to deciding which of the two competing strategies to pursue..
  *
  * When run as a Web Worker, if using Chromium, you must start the browser by:
  *    chromium --allow-file-access-from-files
@@ -29,14 +26,6 @@
  *
  * TODO
  * - think hard about assembly language format and forward references
- * - consider adding non-consuming instrs for convenience aka []
- * - third space needed (pm, dm, rom) such as for strings or von Neumann
- *
- * ===========================================================================
- * DESIGN NOTES:
- * - An environ can supply blocking I/O and/or non-blocking I/O;
- *   use an environ appropriate to the program at hand.
- *
  * ===========================================================================
  *
  * WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -66,14 +55,6 @@ var modFVM = (function () { 'use strict';
   const INT_MIN = -2147483648;
 
   const MATH_OVERFLOW = 21
-  const DS_UNDERFLOW = 31
-  const DS_OVERFLOW = 32
-  const RS_UNDERFLOW = 33
-  const RS_OVERFLOW = 34
-  const TS_UNDERFLOW = 35
-  const TS_OVERFLOW = 36
-  const CS_UNDERFLOW = 37
-  const CS_OVERFLOW = 38
 
   const XS = 0x100 // 1 kB
   const  S = 0x1000 // 16 kB
@@ -88,27 +69,18 @@ var modFVM = (function () { 'use strict';
   const HD_WORDS = S; // Hold size (change this line as desired)
   const RM_WORDS = MAX_MEM_WORDS
   const RM_MASK  = RM_WORDS-1
+  const LS_LNKTS = 0x100
+  const vL_MAX   = LS_LNKTS-1
 
   const WORD_BYTES = 4;
-  const WORD_PWR = 2; // FIXME necessary any more?
-  const STACK_ELEMS = 256;
-  const STACK_BYTES = STACK_ELEMS << WORD_PWR;
-  const STACK_1 = STACK_BYTES - WORD_BYTES;
-
-  const TPUSH = 0x54000000|0
-  const TPOP  = 0x55000000|0
-  const TPOKE = 0x51000000|0
-  const TPEEK = 0x52000000|0
-  const CPEEK = 0x53000000|0
-  const TDROP = 0x59000000|0
-  const CPUSH = 0x56000000|0
-  const CPOP  = 0x57000000|0
-  const CDROP = 0x58000000|0
 
   const FROMB = 0x77000000|0
   const TOB   = 0x78000000|0
   const TOT   = 0x79000000|0
   const TOR   = 0x7a000000|0
+
+  const PUSH  = 0x7b000000|0
+  const POP   = 0x7c000000|0
 
   const NOP   = 0x00000000|0
   const MUL   = 0x30000000|0
@@ -156,19 +128,7 @@ var modFVM = (function () { 'use strict';
   const FAIL  = 0x40000000|0
   const CALL  = 0x60000000|0
   const RET   = 0x61000000|0
-  const DSA   = 0x62000000|0
-  const DSE   = 0x63000000|0
-  const TSA   = 0x64000000|0
-  const TSE   = 0x65000000|0
-  const CSA   = 0x66000000|0
-  const CSE   = 0x67000000|0
-  const RSA   = 0x68000000|0
-  const RSE   = 0x69000000|0
-  const DROP  = 0x70000000|0
-  const SWAP  = 0x71000000|0
-  const OVER  = 0x72000000|0
-  const ROT   = 0x73000000|0
-  const DUP   = 0x74000000|0
+
   const CATCH = 0x76000000|0
   const LIT   = 0x80000000|0
 
@@ -223,39 +183,16 @@ var modFVM = (function () { 'use strict';
     0x42000000: "hw   ",
     0x40000000: "fail ",
 
-    0x51000000: "tpoke",
-    0x52000000: "tpeek",
-    0x53000000: "cpeek",
-
-    0x54000000: "tpush",
-    0x55000000: "tpop ",
-    0x59000000: "tdrop ",
-    0x56000000: "cpush",
-    0x57000000: "cpop ",
-    0x58000000: "cdrop",
-
     0x77000000: "fromb",
     0x78000000: "tob",
     0x79000000: "tot",
     0x7a000000: "tor",
 
+    0x7b000000: "push",
+    0x7c000000: "pop",
+
     0x60000000: "call ",
     0x61000000: "ret  ",
-
-    0x62000000: "dsa  ",
-    0x63000000: "dse  ",
-    0x64000000: "tsa  ",
-    0x65000000: "tse  ",
-    0x66000000: "csa  ",
-    0x67000000: "cse  ",
-    0x68000000: "rsa  ",
-    0x69000000: "rse  ",
-
-    0x70000000: "drop ",
-    0x71000000: "swap ",
-    0x72000000: "over ",
-    0x73000000: "rot  ",
-    0x74000000: "dup  ",
 
     0x76000000: "catch",
 
@@ -269,34 +206,29 @@ var modFVM = (function () { 'use strict';
       this.fnStdin = config.fnStdin;
       this.fnStdout = config.fnStdout;
       this.tracing = false;
-      this.vZ = 0|0; // program counter (not accessible) (maybe it should be)
-      this.tmp = 0|0; //tmp var only
-      this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
-      this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
-      this.rm = new DataView(new ArrayBuffer(RM_WORDS*WD_BYTES));
+      this.vZ = 0|0; // program counter (not accessible)
 
+      this.pm = new DataView(new ArrayBuffer(PM_WORDS*WD_BYTES)); // Harvard
+      this.loadProgram(config.program, this.pm);
+
+      this.dm = new DataView(new ArrayBuffer(DM_WORDS*WD_BYTES)); // Harvard
+
+      this.rm = new DataView(new ArrayBuffer(RM_WORDS*WD_BYTES));
       // FIXME should be a loadRm function here but this will do for testing
       this.rmstore(0,0x41); // 'A'
       this.rmstore(1,0x42); // 'B'
       this.rmstore(2,0x43); // 'C'
       this.rmstore(0xfff,0x5a); // 'Z'
 
-      this.loadProgram(config.program, this.pm);
-
       this.hd = config.hold; // FIXME exceptions
 
-      this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
-      this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
-      this.ts = new Stack(this,TS_UNDERFLOW,TS_OVERFLOW); // temporary stack
-      this.cs = new Stack(this,CS_UNDERFLOW,CS_OVERFLOW); // counter stack or repeat stack
-
-      // For QMISC experiment, here adding some QMISC registers and instrns;
-      // and we'll use the existing return stack for initial experiments
-      // just to save time on implementation here:
       this.vA = 0|0;
       this.vB = 0|0;
       this.vT = 0|0;
       this.vR = 0|0;
+      this.vL = 0|0; // link counter (not accessible)
+      // link stack (not accessible)
+      this.ls = new DataView(new ArrayBuffer(LS_LNKTS*WD_BYTES));
 
     };
 
@@ -345,13 +277,6 @@ var modFVM = (function () { 'use strict';
 
         ++this.vZ;
 
-/*        // Handle immediates
-        if (instr&MSb) {
-          this.ds.doPush(instr&METADATA_MASK);
-          continue;
-        }
-*/
-
         // Handle immediates
         if (instr&MSb) {
           this.vB = instr&METADATA_MASK;
@@ -365,77 +290,63 @@ var modFVM = (function () { 'use strict';
 try {
 
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
+          // TODO Remove tracing opcodes, replace with a debugging solution
+          case TRON:   this.tracing = true; break;
+          case TROFF:  this.tracing = false; break;
+
           case FROMB:   this.vA = this.vB; break;
           case TOB:     this.vB = this.vA; break;
           case TOT:     this.vT = this.vA; break;
           case TOR:     this.vR = this.vA; break;
 
+          case PMI:     this.vA = PM_WORDS; break;
+          case DMW:     this.vA = DM_WORDS; break;
+          case RMW:     this.vA = RM_WORDS; break;
+          case HW:      this.vA = HD_WORDS; break;
 
-          case DSA:     this.ds.doPush(this.ds.free()); break;
-          case DSE:     this.ds.doPush(this.ds.used()); break;
-          case TSA:     this.ds.doPush(this.ts.free()); break;
-          case TSE:     this.ds.doPush(this.ts.used()); break; 
-          case CSA:     this.ds.doPush(this.cs.free()); break;
-          case CSE:     this.ds.doPush(this.cs.used()); break; 
-          case RSA:     this.ds.doPush(this.rs.free()); break;
-          case RSE:     this.ds.doPush(this.rs.used()); break;
-          case PMI:     this.ds.doPush(PM_WORDS); break;
-          case DMW:     this.ds.doPush(DM_WORDS); break;
-          case RMW:     this.ds.doPush(RM_WORDS); break;
-          case HW:      this.ds.doPush(HD_WORDS); break;
-          case DROP:   this.ds.drop(); break;
-          case SWAP:   this.ds.swap(); break;
-          case OVER:   this.ds.over(); break;
-          case ROT:    this.ds.rot(); break;
-          case DUP:    this.ds.dup(); break;
-          case TPUSH:  this.ts.doPush(this.ds.doPop()); break;
-          case TPOP:   this.ds.doPush(this.ts.doPop()); break;
-          case TPEEK:  this.ds.doPush(this.ts.doPeekAt(this.ds.doPop())); break;
-          case TPOKE:  this.ts.doPokeAt(this.ds.doPop(),this.ds.doPop()); break;
-          case TDROP:  this.ts.drop(); break;
-          case CPUSH:  this.cs.doPush(this.ds.doPop()); break;
-          case CPOP:   this.ds.doPush(this.cs.doPop()); break;
-          case CPEEK:  this.ds.doPush(this.cs.doPeek()); break;
-          case CDROP:  this.cs.drop(); break;
-/*
-          case RPT:    if (this.cs.gtOne()) {
-                          this.cs.dec();
-                          this.vZ = instr&PM_MASK;
-                       } else {
-                          this.cs.doPop();
-                       }
-                       break;
-*/
           case RPT:    if (this.vR > 1) {
                           this.vR--;
                           this.vZ = instr&PM_MASK;
                        }
                        break;
 
-          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
-          case RET:    this.vZ = this.rs.doPop(); break;
-          case NOP:    break;
+          //case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
+          case CALL:   
+            if (this.vL<vL_MAX) {
+              this.lsstore(++(this.vL),this.vZ);
+              this.vZ = instr&PM_MASK;
+              break;
+            } else {
+              vA = FAILURE;
+              return this.enbyte(this.vA);
+            }
+          // case RET:    this.vZ = this.rs.doPop(); break;
+          case RET:
+            if (this.vL>0) {
+              this.vZ = this.lsload((this.vL)--)
+              break;
+            } else {
+              vA = FAILURE;
+              return this.enbyte(this.vA);
+            }
+
+          case NOP:    return this.enbyte(this.vA); break; // FIXME this is halt
           case CATCH:  break;
-          case ADD:    this.ds.apply2((a,b) => a+b); break;
-          case SUB:    this.ds.apply2((a,b) => a-b); break;
-          case MUL:    this.ds.apply2((a,b) => a*b); break;
-          // TODO Give 'proper' divide by zero trap for div, mod (not just math overflow)
-          case DIV:    this.ds.apply2((a,b) => a/b); break;
-          case MOD:    this.ds.apply2((a,b) => a%b); break;
-          case INC:    this.ds.apply1((a) => ++a); break;
-          case DEC:    this.ds.apply1((a) => --a); break;
-          // TODO Remove tracing opcodes, replace with a debugging solution
-          case TRON:   this.tracing = true; break;
-          case TROFF:  this.tracing = false; break;
-          case OR:     this.ds.apply2((a,b) => a|b); break;
-          case AND:    this.ds.apply2((a,b) => a&b); break;
-          case XOR:    this.ds.apply2((a,b) => a^b); break;
-          case FLIP:   this.ds.apply1((a) => a^MSb); break;
-          case NEG:    this.ds.apply1((a) => (~a)+1); break;
-          case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
-          case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
+          case ADD:    break;
+          case SUB:    break;
+          case MUL:    break;
+          case DIV:    break;
+          case MOD:    break;
+          case INC:    break;
+          case DEC:    break;
 
-
+          case OR:     /*this.ds.apply2((a,b) => a|b);*/ break;
+          case AND:    /*this.ds.apply2((a,b) => a&b);*/ break;
+          case XOR:    /*this.ds.apply2((a,b) => a^b);*/ break;
+          case FLIP:   /*this.ds.apply1((a) => a^MSb);*/ break;
+          case NEG:    /*this.ds.apply1((a) => (~a)+1);*/ break;
+          case SHL:    /*this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b)));*/ break;
+          case SHR:    /*this.ds.apply2((a,b) => a>>>this.enshift(b));*/ break;
           // FIXME in theory all I/O could branch on failure, should implement this
           case OUT:    this.fnStdout(this.enbyte(this.vA)); break;
           case IN:
@@ -449,49 +360,23 @@ try {
                   this.vA = inputChar&0xff;
               }
               break;
-
-
-/*
-          // FIXME in theory all I/O could branch on failure, should implement this
-          case OUT:    this.fnStdout(this.enbyte(this.ds.doPop()&0xff)); break;
-          case IN:
-              var inputChar = this.fnStdin();
-              // Note: unfortunately 0 is used here to indicate
-              // that no input is available. Have to live with this for now
-              // until further refactoring is done.
-              if (inputChar == 0) {
-                  this.vZ = instr&PM_MASK;
-              } else {
-                  this.ds.doPush(inputChar&0xff);
-              }
-              break;
-*/
-          case GIVE:   this.ds.doPush(this.give(this.ds.doPop())); break;
-          case HOLD:   this.hold(this.ds.doPop(),this.ds.doPop()); break;
-          //case ROM:    this.ds.doPush(this.rmload(this.ds.doPop())); break;
+          case GIVE:   this.vA = this.give(this.vB); break; // FIXME these
+          case HOLD:   this.hold(this.vB,this.vA); break;
           case ROM:    this.vA = (this.rmload(this.vB)); break;
-
-/*
-          case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
-          case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
-          case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
-          case PUTI:   this.store(this.load(this.ds.doPop()),this.ds.doPop()); break;
-*/
           case GET:    this.vA=this.load(this.safe(this.vB)); break;
           case PUT:    this.store(this.safe(this.vB),this.vA); break;
           case GETI:   sB = this.safe(this.vB); this.vA = this.load(this.safe(this.load(sB))); break;
           case PUTI:   sB = this.safe(this.vB); this.store(this.safe(this.load(sB)),this.vA); break;
-
+          // QMISC Note: no over/underflow checks here yet!
+          // Which is the reason these were removed from the regular instruction set.
+          case POP:    sB = this.safe(this.vB); this.vA = this.load(this.safe(this.load(sB)));
+                       this.store(sB,this.load(sB)+1); break;
+          case PUSH:   this.store(sB,this.load(sB)-1);
+                       sB = this.safe(this.vB); this.store(this.safe(this.load(sB)),this.vA); break;
           case DECM:   sB = this.safe(this.vB); this.store(sB,this.load(sB)-1); break;
           case INCM:   sB = this.safe(this.vB); this.store(sB,this.load(sB)+1); break;
-
           case JUMP:   this.vZ = instr&PM_MASK; break;
-          case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
-          case HALT:   return SUCCESS; break;
-          case FAIL:   return FAILURE; break;
+          case HALT:   return this.enbyte(this.vA); break;
           default: return ILLEGAL; break;
         }
       } catch(e) {
@@ -543,6 +428,22 @@ try {
       }
     }
 
+    lsload(addr) { // FIXME these
+      try {
+        return this.ls.getUint32(addr*WD_BYTES, true);
+      } catch (e) {
+        throw BEYOND;
+      }
+    }
+
+    lsstore(addr,val) {
+      try {
+        this.ls.setInt32(addr*WD_BYTES, val, true);
+      } catch (e) {
+        throw BEYOND;
+      }
+    }
+
     hold(addr,val) {
       try {
         this.hd.setInt32(addr*WD_BYTES, val, true);
@@ -584,191 +485,15 @@ try {
         " vB:" + modFmt.hex8(this.vB) +
         " vT:" + modFmt.hex8(this.vT) +
         " vR:" + modFmt.hex8(this.vR) +
+        " vL:" + modFmt.hex8(this.vL) +
+        " ls[0]:" + modFmt.hex8(this.lsload(0)) +
+        " ls[1]:" + modFmt.hex8(this.lsload(1)) +
+//        " ls[2]:" + modFmt.hex8(this.lsload(2)) +
         " dm[0x200]:" + modFmt.hex8(this.load(0x200)) +
-        " dm[0x1ff]:" + modFmt.hex8(this.load(0x1ff)) +
-        " dm[0x1fe]:" + modFmt.hex8(this.load(0x1fe)) ;
-/*
-        mnem + " / " +
-        this.cs + "/ ( " +
-        this.ds + ") [ " +
-        this.ts + "] { " +
-        this.rs + "}";
-*/
+        " dm[0x1ff]:" + modFmt.hex8(this.load(0x1ff));
+//        " dm[0x1fe]:" + modFmt.hex8(this.load(0x1fe)) ;
       this.fnTrc(traceStr);
     }
-  }
-
-  class Stack {
-    constructor(fvm, uerr, oerr) {
-      this.uerr = uerr;
-      this.oerr = oerr;
-      this.fvm = fvm;
-      this.elems = new DataView(new ArrayBuffer(STACK_BYTES));
-      this.sp = STACK_BYTES;
-    }
-
-    used() {
-      return (STACK_BYTES-this.sp)>>WORD_PWR;
-    }
-
-    free() {
-      return STACK_ELEMS-this.used();
-    }
-
-    dec() {
-      this.doReplace(this.doPeek()-1);
-    }
-
-    gtOne() {
-      return this.doPeek() > 1;
-    }
-
-    doReplace(i) {
-      if (this.sp <= STACK_1) {
-        this.elems.setInt32(this.sp, i, true);
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    doPush(i) {
-      if (this.sp >= WORD_BYTES) {
-        this.sp = (this.sp-WORD_BYTES);
-      } else {
-        throw this.oerr; // overflow
-        return;
-      }
-      this.elems.setInt32(this.sp, i, true);
-    }
-
-    drop() {
-      if (this.sp <= STACK_1) {
-        this.sp += WORD_BYTES;
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    swap() {
-      if (this.sp <= STACK_1+1) {
-        var a = this.elems.getInt32(this.sp, true);
-        var b = this.elems.getInt32(this.sp+WORD_BYTES, true);
-        this.elems.setInt32(this.sp, b, true);
-        this.elems.setInt32(this.sp+WORD_BYTES, a, true);
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    over() {
-      if (this.sp <= STACK_1-1) {
-        var elem = this.elems.getInt32(this.sp+WORD_BYTES, true);
-        this.doPush(elem);
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    rot() {
-      if (this.sp <= STACK_1-2) {
-        var a = this.elems.getInt32(this.sp+WORD_BYTES+WORD_BYTES, true);
-        var b = this.elems.getInt32(this.sp+WORD_BYTES, true);
-        var c = this.elems.getInt32(this.sp, true);
-        this.elems.setInt32(this.sp, a, true);
-        this.elems.setInt32(this.sp+WORD_BYTES, c, true);
-        this.elems.setInt32(this.sp+WORD_BYTES+WORD_BYTES, b, true);
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-
-    dup() {
-      var elem = this.doPeek();
-      this.doPush(elem);
-    }
-
-    doPop() {
-      if (this.sp <= STACK_1) {
-        var elem = this.elems.getInt32(this.sp, true);
-        this.sp += WORD_BYTES;
-        return elem;
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    doPeek() {
-      if (this.sp <= STACK_1) {
-        var elem = this.elems.getInt32(this.sp, true);
-        return elem;
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    doPeekAt(elemNum) {
-      if (elemNum < 1 || elemNum > STACK_ELEMS) {
-        throw this.uerr; // underflow
-      }
-      var elemAddr = (this.sp+((elemNum-1)*WORD_BYTES));
-      if (elemAddr <= STACK_1) {
-        var elem = this.elems.getInt32(elemAddr, true);
-        return elem;
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    doPokeAt(elemNum, val) {
-      if (elemNum < 1 || elemNum > STACK_ELEMS) {
-        throw this.uerr; // underflow
-      }
-      var elemAddr = (this.sp+((elemNum-1)*WORD_BYTES));
-      if (elemAddr <= STACK_1) {
-        this.elems.setInt32(elemAddr, val, true);
-      } else {
-        throw this.uerr; // underflow
-      }
-    }
-
-    apply1(f) {
-      var a = this.doPop();
-      this.doPush(this.verify(f(a), a));
-    }
-
-    apply2(f) {
-      var b = this.doPop();
-      var a = this.doPop();
-      this.doPush(this.verify(f(a,b), a, b));
-    }
-
-    verify(i, a , b) {
-      if (i < INT_MIN || i > INT_MAX) {
-        throw MATH_OVERFLOW;
-      }
-      return i;
-    }
-
-/* // Classic: topmost element to the right
-    toString() {
-      var str = '';
-      for (var i = STACK_1; i >= this.sp; i-=WORD_BYTES) {
-        str = str + modFmt.hex8(this.elems.getUint32(i, true)) + ' ';
-      }
-      return str;
-    }
-*/
-
-    // Modern: topmost element to the left
-    toString() {
-      var str = '';
-      for (var i = this.sp; i <= STACK_1; i+=WORD_BYTES) {
-        str = str + modFmt.hex8(this.elems.getUint32(i, true)) + ' ';
-      }
-      return str;
-    }
-
   }
 
   class Config {
