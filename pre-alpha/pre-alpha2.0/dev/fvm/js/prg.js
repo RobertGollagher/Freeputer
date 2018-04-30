@@ -6,10 +6,11 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180428+
+  Updated:    20180430+
 
   NOTES:
 
+  - Currently changing for QMISC experiment
   - This little language is only ad hoc, what matters is the VM design.
   - This is written in an assembly language which aims to be C-compatible.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm2.js').
@@ -76,6 +77,19 @@ m{ mod(m3) /*MODULE:io*/
 
 }m
 
+m{ mod(m4) /*MODULE:sk*/ // Stack synthesis from QMISC instructions
+
+  // ( -- ) init
+  u{ x1: i(0x1ff) fromb i(0x200) /*dsp*/ put ret }u
+
+  // ( n -- ) push
+  u{ x2: i(0x200) /*dsp*/ puti decm ret }u
+
+  // ( n -- ) pop
+  u{ x3: i(0x200) /*dsp*/ geti incm ret }u
+
+}m
+
 // ---------------------------------------------------------------------------
 
 m{ mod(m0) /*run*/
@@ -84,13 +98,10 @@ m{ mod(m0) /*run*/
     s0:
       fail
     x0:
+      call(m4.x1) /*sk.init*/
       tron
-      hw
-      rmw
-      i(0x0) rom out(s0)
-      i(0x1) rom out(s0)
-      i(0x2) rom out(s0)
-      i(0xfff) rom out(s0)
+      i(0x12345678) fromb call(m4.x2) /*sk.push*/
+      call(m4.x3) /*sk.pop*/
       halt
   }u
 

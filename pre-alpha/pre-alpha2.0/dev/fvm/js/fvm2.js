@@ -6,7 +6,7 @@
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
  * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.59+ for FVM 2.0
+ * Version:    pre-alpha-0.0.1.60+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -104,6 +104,12 @@ var modFVM = (function () { 'use strict';
   const CPUSH = 0x56000000|0
   const CPOP  = 0x57000000|0
   const CDROP = 0x58000000|0
+
+  const FROMB = 0x77000000|0
+  const TOB   = 0x78000000|0
+  const TOT   = 0x79000000|0
+  const TOR   = 0x7a000000|0
+
   const NOP   = 0x00000000|0
   const MUL   = 0x30000000|0
   const DIV   = 0x31000000|0
@@ -112,6 +118,10 @@ var modFVM = (function () { 'use strict';
   const TROFF = 0x34000000|0
   const HOLD  = 0x35000000|0
   const GIVE  = 0x36000000|0
+
+  const DECM  = 0x37000000|0
+  const INCM  = 0x38000000|0
+
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
   const OR    = 0x03000000|0
@@ -177,6 +187,9 @@ var modFVM = (function () { 'use strict';
     0x35000000: "hold ",
     0x36000000: "give ",
 
+    0x37000000: "decm ",
+    0x38000000: "incm ",
+
     0x03000000: "or   ",
     0x04000000: "and  ",
     0x05000000: "xor  ",
@@ -220,6 +233,11 @@ var modFVM = (function () { 'use strict';
     0x56000000: "cpush",
     0x57000000: "cpop ",
     0x58000000: "cdrop",
+
+    0x77000000: "fromb",
+    0x78000000: "tob",
+    0x79000000: "tot",
+    0x7a000000: "tor",
 
     0x60000000: "call ",
     0x61000000: "ret  ",
@@ -271,6 +289,15 @@ var modFVM = (function () { 'use strict';
       this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
       this.ts = new Stack(this,TS_UNDERFLOW,TS_OVERFLOW); // temporary stack
       this.cs = new Stack(this,CS_UNDERFLOW,CS_OVERFLOW); // counter stack or repeat stack
+
+      // For QMISC experiment, here adding some QMISC registers and instrns;
+      // and we'll use the existing return stack for initial experiments
+      // just to save time on implementation here:
+      this.vA = 0|0;
+      this.vB = 0|0;
+      this.vT = 0|0;
+      this.vR = 0|0;
+
     };
 
     loadProgram(pgm, mem) {
@@ -305,6 +332,8 @@ var modFVM = (function () { 'use strict';
 
         var addr, val;
 
+        var sB;
+
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
           this.traceVM(instr);
@@ -316,9 +345,16 @@ var modFVM = (function () { 'use strict';
 
         ++this.vZ;
 
-        // Handle immediates
+/*        // Handle immediates
         if (instr&MSb) {
           this.ds.doPush(instr&METADATA_MASK);
+          continue;
+        }
+*/
+
+        // Handle immediates
+        if (instr&MSb) {
+          this.vB = instr&METADATA_MASK;
           continue;
         }
 
@@ -329,6 +365,12 @@ var modFVM = (function () { 'use strict';
 try {
 
         switch(opcode) { // TODO Fix order. FIXME negative opcodes not thrown
+          case FROMB:   this.vA = this.vB; break;
+          case TOB:     this.vB = this.vA; break;
+          case TOT:     this.vT = this.vA; break;
+          case TOR:     this.vR = this.vA; break;
+
+
           case DSA:     this.ds.doPush(this.ds.free()); break;
           case DSE:     this.ds.doPush(this.ds.used()); break;
           case TSA:     this.ds.doPush(this.ts.free()); break;
@@ -355,6 +397,7 @@ try {
           case CPOP:   this.ds.doPush(this.cs.doPop()); break;
           case CPEEK:  this.ds.doPush(this.cs.doPeek()); break;
           case CDROP:  this.cs.drop(); break;
+/*
           case RPT:    if (this.cs.gtOne()) {
                           this.cs.dec();
                           this.vZ = instr&PM_MASK;
@@ -362,6 +405,13 @@ try {
                           this.cs.doPop();
                        }
                        break;
+*/
+          case RPT:    if (this.vR > 1) {
+                          this.vR--;
+                          this.vZ = instr&PM_MASK;
+                       }
+                       break;
+
           case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
           case RET:    this.vZ = this.rs.doPop(); break;
           case NOP:    break;
@@ -384,6 +434,24 @@ try {
           case NEG:    this.ds.apply1((a) => (~a)+1); break;
           case SHL:    this.ds.apply2((a,b) => a*Math.pow(2,this.enshift(b))); break;
           case SHR:    this.ds.apply2((a,b) => a>>>this.enshift(b)); break;
+
+
+          // FIXME in theory all I/O could branch on failure, should implement this
+          case OUT:    this.fnStdout(this.enbyte(this.vA)); break;
+          case IN:
+              var inputChar = this.fnStdin();
+              // Note: unfortunately 0 is used here to indicate
+              // that no input is available. Have to live with this for now
+              // until further refactoring is done.
+              if (inputChar == 0) {
+                  this.vZ = instr&PM_MASK;
+              } else {
+                  this.vA = inputChar&0xff;
+              }
+              break;
+
+
+/*
           // FIXME in theory all I/O could branch on failure, should implement this
           case OUT:    this.fnStdout(this.enbyte(this.ds.doPop()&0xff)); break;
           case IN:
@@ -397,13 +465,26 @@ try {
                   this.ds.doPush(inputChar&0xff);
               }
               break;
+*/
           case GIVE:   this.ds.doPush(this.give(this.ds.doPop())); break;
           case HOLD:   this.hold(this.ds.doPop(),this.ds.doPop()); break;
-          case ROM:    this.ds.doPush(this.rmload(this.ds.doPop())); break;
+          //case ROM:    this.ds.doPush(this.rmload(this.ds.doPop())); break;
+          case ROM:    this.vA = (this.rmload(this.vB)); break;
+
+/*
           case GET:    this.ds.doPush(this.load(this.ds.doPop())); break;
           case PUT:    this.store(this.ds.doPop(),this.ds.doPop()); break;
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
           case PUTI:   this.store(this.load(this.ds.doPop()),this.ds.doPop()); break;
+*/
+          case GET:    this.vA=this.load(this.safe(this.vB)); break;
+          case PUT:    this.store(this.safe(this.vB),this.vA); break;
+          case GETI:   sB = this.safe(this.vB); this.vA = this.load(this.safe(this.load(sB))); break;
+          case PUTI:   sB = this.safe(this.vB); this.store(this.safe(this.load(sB)),this.vA); break;
+
+          case DECM:   sB = this.safe(this.vB); this.store(sB,this.load(sB)-1); break;
+          case INCM:   sB = this.safe(this.vB); this.store(sB,this.load(sB)+1); break;
+
           case JUMP:   this.vZ = instr&PM_MASK; break;
           case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK; break;
           case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
@@ -498,11 +579,21 @@ try {
       var traceStr =
         modFmt.hex8(this.vZ) + " " +
         modFmt.hex8(instr) + " " +
+        mnem +
+        " vA:" + modFmt.hex8(this.vA) +
+        " vB:" + modFmt.hex8(this.vB) +
+        " vT:" + modFmt.hex8(this.vT) +
+        " vR:" + modFmt.hex8(this.vR) +
+        " dm[0x200]:" + modFmt.hex8(this.load(0x200)) +
+        " dm[0x1ff]:" + modFmt.hex8(this.load(0x1ff)) +
+        " dm[0x1fe]:" + modFmt.hex8(this.load(0x1fe)) ;
+/*
         mnem + " / " +
         this.cs + "/ ( " +
         this.ds + ") [ " +
         this.ts + "] { " +
         this.rs + "}";
+*/
       this.fnTrc(traceStr);
     }
   }

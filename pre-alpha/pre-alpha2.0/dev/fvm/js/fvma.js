@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180428+
- * Version:    pre-alpha-0.0.1.59+ for FVM 2.0
+ * Updated:    20180430+
+ * Version:    pre-alpha-0.0.1.60+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -58,6 +58,11 @@ var modFVMA = (function () { 'use strict';
   const CPOP  = 0x57000000|0
   const CDROP = 0x58000000|0
 
+  const FROMB = 0x77000000|0
+  const TOB   = 0x78000000|0
+  const TOT   = 0x79000000|0
+  const TOR   = 0x7a000000|0
+
   const NOP   = 0x00000000|0 // Simple
 
   const MUL   = 0x30000000|0
@@ -69,6 +74,9 @@ var modFVMA = (function () { 'use strict';
 
   const HOLD  = 0x35000000|0
   const GIVE  = 0x36000000|0
+
+  const DECM  = 0x37000000|0
+  const INCM  = 0x38000000|0
 
   const ADD   = 0x01000000|0
   const SUB   = 0x02000000|0
@@ -141,6 +149,9 @@ var modFVMA = (function () { 'use strict';
     hold:   HOLD,
     give:   GIVE,
 
+    decm:   DECM,
+    incm:   INCM,
+
     add:    ADD,
     sub:    SUB,
     or:     OR,
@@ -172,6 +183,11 @@ var modFVMA = (function () { 'use strict';
     cpush:  CPUSH,
     tdrop:  TDROP,
     cdrop:  CDROP,
+
+    fromb:  FROMB,
+    tob:    TOB,
+    tot:    TOT,
+    tor:    TOR,
 
     pmi:    PMI,
     dmw:    DMW,
