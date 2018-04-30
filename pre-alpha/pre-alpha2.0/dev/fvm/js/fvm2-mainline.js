@@ -14,9 +14,11 @@
  *
  *                                ( ) [ ] { }
  *
- * 20180430: See 'fvm2-mainline.js' for the proper, parked version of this.
- * This 'fvm2.js' is now being hacked into a QMISC approach for comparison
- * prior to deciding which of the two competing strategies to pursue.
+ * This 'fvm2-mainline.js' represents the design as described in 'README.md'
+ * as at 20180430. It is an exact copy of 'fvm2.js' at this time.
+ * Doing this to allow 'fvm2.js' to be hacked into a QMISC approach for
+ * comparison (similar to 'qmisc.c') before deciding which of the two
+ * competing strategies to pursue. 
  *
  * See 'pre-alpha/pre-alpha2.0/README.md' for the proposed design.
  * This FVM 2.0 implementation is still very incomplete and very inconsistent.
