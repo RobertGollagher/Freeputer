@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180430+
+  Updated:    20180501+
 
   NOTES:
 
@@ -25,6 +25,7 @@ var prgSrc = `
   - TODO Enforce use of u{ keyword prior to any locals
   - TODO Consider if I/O trap rather than branch on failure could be viable
   - TODO Consider flag- or stack-based strategy rather than traps
+  - TODO Consider C-like call syntax as no forward refs...
   - See 'fvma.js' for further caveats
 
 */

@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180428+
-Version:    pre-alpha-0.0.7.0+ for FVM 2.0
+Updated:    20180501+
+Version:    pre-alpha-0.0.8.0+ for FVM 2.0
 =======
 
                               This Edition:
@@ -15,12 +15,9 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  TODO Reconsider alternate arith strategy eg NaN/wrap/unsigned/other
-  mainly since could simplify VM and avoid undef behav. Consider JS also.
-
-  Removed most notes so as not to prejudice lateral thinking during design.
-
-  WORDs are unsigned to avoid undefined behaviour in C!
+  Gradually converting this old QMISC implementation to the new
+  4-stack-machine design outlined in 'pre-alpha2.0/README.md'.
+  Currently only partly converted, still very incomplete.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -28,47 +25,41 @@ Version:    pre-alpha-0.0.7.0+ for FVM 2.0
  experimentation and nothing more.
 ============================================================================*/
 #define TRACING_ENABLED // Comment out unless debugging
-
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
 #include <setjmp.h>
 #define BYTE uint8_t
-#define WORD uint32_t // Word type for Harvard data memory
+#define WORD int32_t  // Word type for Harvard data memory
 #define NAT uintptr_t // Native pointer type for Harvard program memory
 #define WD_BYTES 4
-#define METADATA WORD
 #define METADATA_MASK 0x7fffffff // 31 bits
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define MAX_DM_WORDS 0x10000000 // <= 2^28 due to C limitations
-#define DM_WORDS  0x10000  // Must be some power of 2 <= MAX_DM_WORDS
+#define STACK_CAPACITY 256
+#define STACK_MAX_INDEX STACK_CAPACITY-1
+#define MAX_DM_WORDS 0x10000000 // <= 2^28 due to C limitations.
+#define DM_WORDS  0x100  // Must be some power of 2 <= MAX_DM_WORDS.
 #define DM_MASK   DM_WORDS-1
-WORD dm[DM_WORDS]; // Harvard data memory
+#define MAX_RM_WORDS 0x10000000 // <= 2^28 due to C limitations.
+#define RM_WORDS  0x100  // Must be some power of 2 <= MAX_RM_WORDS.
+#define RM_MASK   RM_WORDS-1
+#define MAX_HD_WORDS 0x10000000 // <= 2^28 due to C limitations.
+#define HD_WORDS  0x100  // Must be some power of 2 <= MAX_HD_WORDS.
+#define HD_MASK   HD_WORDS-1
 int exampleProgram();
 static jmp_buf exc_env;
-static int exc_code;
-#define DS_UNDERFLOW 31
-#define DS_OVERFLOW 32
-#define RS_UNDERFLOW 33
-#define RS_OVERFLOW 34
-#define TS_UNDERFLOW 35
-#define TS_OVERFLOW 36
-#define CS_UNDERFLOW 37
-#define CS_OVERFLOW 38
-
+static int excode;
 // ---------------------------------------------------------------------------
-METADATA safe(METADATA addr) { return addr & DM_MASK; }
-METADATA enbyte(METADATA x)  { return x & BYTE_MASK; }
-METADATA enrange(METADATA x) { return x & METADATA_MASK; }
-METADATA enshift(METADATA x) { return x & SHIFT_MASK; }
+WORD safe(WORD addr) { return addr & DM_MASK; }
+WORD enbyte(WORD x)  { return x & BYTE_MASK; }
+WORD enrange(WORD x) { return x & METADATA_MASK; }
+WORD enshift(WORD x) { return x & SHIFT_MASK; }
 // ---------------------------------------------------------------------------
-// Logic for stacks
+// Stack logic
 // ---------------------------------------------------------------------------
-#define STACK_CAPACITY 256
-#define STACK_MAX_INDEX 255
 typedef struct WordStack {
   BYTE sp;
   WORD elem[STACK_CAPACITY];
@@ -77,42 +68,38 @@ typedef struct NativeStack {
   BYTE sp;
   NAT elem[STACK_CAPACITY];
 } NATSTACK;
-
-void wdPush(WORD x, WDSTACK *s, int error_code) {
+// ---------------------------------------------------------------------------
+void wdPush(WORD x, WDSTACK *s) {
   if ((s->sp) < STACK_MAX_INDEX) {
     s->elem[(s->sp)++] = x;
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPop(WDSTACK *s, int error_code) {
+WORD wdPop(WDSTACK *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[--(s->sp)];
     return wd;
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
-WORD wdDrop(WDSTACK *s, int error_code) {
+WORD wdDrop(WDSTACK *s) {
   if ((s->sp)>0) {
     --(s->sp);
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPeek(WDSTACK *s, int error_code) {
+WORD wdPeek(WDSTACK *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
     return wd;
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPeekAndDec(WDSTACK *s, int error_code) {
+WORD wdPeekAndDec(WDSTACK *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
     if (wd == 0) {
@@ -122,13 +109,12 @@ WORD wdPeekAndDec(WDSTACK *s, int error_code) {
       return wd-1;
     }
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
 int wdElems(WDSTACK *s) {return (s->sp);}
 int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
-
+// ---------------------------------------------------------------------------
 WORD natPush(NAT x, NATSTACK *s) {
   if ((s->sp) < STACK_MAX_INDEX) {
     s->elem[(s->sp)++] = x;
@@ -137,49 +123,54 @@ WORD natPush(NAT x, NATSTACK *s) {
     return FAILURE;
   }
 }
-NAT natPop(NATSTACK *s, int error_code) {
+NAT natPop(NATSTACK *s) {
   if ((s->sp)>0) {
     NAT nat = s->elem[--(s->sp)];
     return nat;
   } else {
-    exc_code = error_code;
-    longjmp(exc_env, exc_code);
+    longjmp(exc_env, FAILURE);
   }
 }
 WORD natElems(NATSTACK *s) {return (s->sp);}
 WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
 // ---------------------------------------------------------------------------
-// Stack declarations
+// FVM structure -- other implementations are possible,
+//   this one is for a native implementation with complete caches.
 // ---------------------------------------------------------------------------
-WDSTACK ds, ts, cs; // data stack, temporary stack, counter stack
-NATSTACK rs; // return stack
+typedef struct Fvm {
+  WORD dm[DM_WORDS]; // RAM data memory
+  WORD rm[RM_WORDS]; // ROM data memory
+  WORD hd[HD_WORDS]; // Hold memory
+  WDSTACK ds; // data stack
+  WDSTACK ts; // temporary stack
+  WDSTACK cs; // counter stack
+  NATSTACK rs; // return stack
+} FVM;
+FVM fvm;
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-void dsTopTrace() {
-  printf("%x:",wdPeek(&ds,DS_UNDERFLOW));
-}
-#define tr dsTopTrace();
+
 // ---------------------------------------------------------------------------
 // Immediates
-void i(METADATA x) {  // bits 31..0
-  wdPush(enrange(x), &ds, DS_OVERFLOW);
+void i(WORD x) {  // bits 31..0
+  /* wdPush(enrange(x), &ds); */
 }
 // Metadata
-void Dsa()    { wdPush(wdFree(&ds), &ds, DS_OVERFLOW); }
-void Dse()    { wdPush(wdElems(&ds), &ds, DS_OVERFLOW); }
-void Tsa()    { wdPush(wdFree(&ts), &ds, TS_OVERFLOW); }
-void Tse()    { wdPush(wdElems(&ts), &ds, TS_OVERFLOW); }
-void Csa()    { wdPush(wdFree(&cs), &ds, CS_OVERFLOW); }
-void Cse()    { wdPush(wdElems(&cs), &ds, CS_OVERFLOW); }
-void Rsa()    { wdPush(natFree(&rs), &ds, RS_OVERFLOW); }
-void Rse()    { wdPush(natElems(&rs), &ds, RS_OVERFLOW); }
+void Dsa()    { /*wdPush(wdFree(&ds), &ds); */}
+void Dse()    { /*wdPush(wdElems(&ds), &ds); */}
+void Tsa()    { /*wdPush(wdFree(&ts), &ds); */}
+void Tse()    { /*wdPush(wdElems(&ts), &ds); */}
+void Csa()    { /*wdPush(wdFree(&cs), &ds); */}
+void Cse()    { /*wdPush(wdElems(&cs), &ds); */}
+void Rsa()    { /*wdPush(natFree(&rs), &ds); */}
+void Rse()    { /*wdPush(natElems(&rs), &ds); */}
 
 // Stack operations
-void Drop()   { wdDrop(&ds, DS_UNDERFLOW); }
+void Drop()   { /* wdDrop(&ds); */}
 
 // Arithmetic
-void Add()    { wdPush(wdPop(&ds, DS_UNDERFLOW) + wdPop(&ds, DS_UNDERFLOW), &ds, DS_OVERFLOW); } // FIXME
+void Add()    { /*wdPush(wdPop(&ds) + wdPop(&ds), &ds); */} // FIXME
 void Sub()    { /*FIXME vA-=vB;*/ }
 // Logic
 void Or()     { /*FIXME vA|=vB;*/ }
@@ -211,8 +202,9 @@ void Mdm()    { /*FIXME vA = DM_WORDS;*/ }
 // Other
 #define nopasm "nop" // The name of the native hardware nop instruction
 void Noop()   { __asm(nopasm); }
+#define halt   { return SUCCESS; }
+#define fail  { return FAILURE; }
 /*FIXME
-#define halt return enbyte(vA);
 // Jumps (static only), maybe reduce these back to jump and jmpe only
 #define jmpa(label) if (vA == 0) { goto label; } // vA is 0
 #define jmpb(label) if (vB == 0) { goto label; } // vB is 0
@@ -227,14 +219,14 @@ void Noop()   { __asm(nopasm); }
 // Basic I/O (experimental)
 #define in(label) vA = getchar(); // If fail goto label
 */
-
+/*
 #define rpt(label) \
-if (wdPeekAndDec(&cs, CS_UNDERFLOW) != 0) { \
+if (wdPeekAndDec(&cs, FAILURE) != 0) { \
   goto label; \
 } else { \
-  wdDrop(&cs, CS_UNDERFLOW); \
+  wdDrop(&cs, FAILURE); \
 }
-
+*/
 #define dsa Dsa();
 #define dse Dse();
 #define tsa Tsa();
@@ -245,20 +237,26 @@ if (wdPeekAndDec(&cs, CS_UNDERFLOW) != 0) { \
 #define rse Rse();
 #define add Add();
 #define drop Drop();
-
+#define put Put();
 void ToCS() {
-  WORD wd = wdPop(&ds, DS_UNDERFLOW);
-  wdPush(wd, &cs, CS_OVERFLOW);
+/*
+  WORD wd = wdPop(&ds);
+  wdPush(wd, &cs, FAILURE);
+*/
 }
 
 void In() {
+/*
   WORD wd = getchar();  // FIXME
-  wdPush(wd, &ds, DS_OVERFLOW);
+  wdPush(wd, &ds);
+*/
 }
 
 void Out() {
-  WORD wd = wdPop(&ds, DS_UNDERFLOW);
+/*
+  WORD wd = wdPop(&ds);
   putchar(wd); // FIXME
+*/
 }
 
 #define in In();
@@ -267,11 +265,12 @@ void Out() {
 // ===========================================================================
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
+  assert(DM_WORDS <= MAX_DM_WORDS);
   if (!setjmp(exc_env)) {
     exampleProgram();
     return SUCCESS;
   } else {
-    return exc_code;
+    return FAILURE;
   }
 }
 // ===========================================================================
@@ -285,12 +284,7 @@ int exampleProgram() {
     rpt(perfLoop)
 */
 
-  i(1000000);
-  ToCS();
-  loop:
-    in
-    out
-    rpt(loop)
+  halt
 
 }
 // ===========================================================================

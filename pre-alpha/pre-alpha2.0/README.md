@@ -29,7 +29,7 @@ So the fundamental approach of Freeputer&nbsp;1.0 was correct: a stack machine. 
 
 Considering these matters in depth, it was concluded that the Freeputer&nbsp;1.0 design philosophy was strong in having three stacks rather than two. That is, the so-called software stack (ss) was very convenient and worthwhile in addition to the data stack (ds) and the return stack (rs). Although having three stacks made the machine more complex it made software more efficient and easier for humans to design, create, understand and debug. A large part of this benefit was because there was never any need to push temporary values to the return stack, so the state of the return stack could always be easily understood: it was simply a stack of return addresses. Temporary values were instead pushed to the software stack (ss). Freeputer&nbsp;2.0 will retain this third stack and will rename it the temporary stack (ts). Furthermore, Freeputer&nbsp;2.0 will add a fourth stack dedicated to the purpose of holding loop counters and supported by a repeat (rpt) instruction; this stack shall be called the counter stack (cs). This four-stack design greatly reduces stack-juggling compared to a two-stack design and is more efficient and easier to understand.
 
-Although Freeputer&nbsp;1.0 used von Neumann architecture, currently for Freeputer&nbsp;2.0 a Harvard architecture is proposed. This might seem surprising but has several advantages, including potentially making it easy to compile programs to native code. This does not prevent the dynamic loading and running of programs since ultimately the intention is to virtualize the FVM within the FVM; this isolation might aid security and robustness. The tentative size limits of 2^30 words are due to quirks of C array indexing; perhaps these could be relaxed to a maximum of 2^32 words.
+Although Freeputer&nbsp;1.0 used von Neumann architecture, currently for Freeputer&nbsp;2.0 a Harvard architecture is proposed. This might seem surprising but has several advantages, including potentially making it easy to compile programs to native code. This does not prevent the dynamic loading and running of programs since ultimately the intention is to virtualize the FVM within the FVM; this isolation might aid security and robustness. The tentative size limits of 2^28 words are due to quirks of C array indexing; perhaps these could be relaxed to a maximum of 2^32 words.
 
 The proposed I/O design is intended to allow the creation of software modules which can be reused forever in an extremely portable manner, long after current hardware and operating systems are no longer available. Therefore simplicity, portability and standardization are incomparably more important than performance. It is also important to understand that Freeputer is primarily intended to be used to perform correct computations (that is, to run reliable algorithms) which are independent of real elapsed time. All matters pertaining to real elapsed time are the responsibility of the *environ* in which Freeputer runs and are largely irrelevant to Freeputer itself. Accordingly, there are no interrupts in Freeputer I/O. Furthermore, all I/O is to and from the data stack and is done by means of dedicated I/O instructions. There is no memory-mapped I/O. This design allows Freeputer to safely and reliably perform correct calculations, largely without interruption and outside interference.
 
@@ -39,8 +39,8 @@ The proposed I/O design is intended to allow the creation of software modules wh
 - Harvard architecture ensures ease of native implementation:
     - program logic is entirely independent of instruction encoding;
     - program memory (*pm*) <= 2^24 *instructions* (as reported by the **`pmi`** instruction);
-    - data memory (*dm*) <= 2^30 *words* (as reported by the **`dmw`** instruction);
-    - rom memory (*rm*) <= 2^30 *words* (as reported by the **`rmw`** instruction).
+    - data memory (*dm*) <= 2^28 *words* (as reported by the **`dmw`** instruction);
+    - rom memory (*rm*) <= 2^28 *words* (as reported by the **`rmw`** instruction).
 - Words and stack elements are 32-bit and arithmetic is two's complement.
 - Non-native implementations use fixed-width 32-bit instructions (FW32):
     - literals 1:31 (bit 31 *literal bit*, 30..0 *literal value*);
@@ -131,7 +131,7 @@ The proposed I/O design is intended to allow the creation of software modules wh
             - public, connected to the *environ*.
         3. `stdhold` (word-indexed persistent local storage):
             - known as *standard hold* or simply the *hold*;
-            - capacity 0 to 2^30 *words* (as reported by the **`hw`** instruction);
+            - capacity 0 to 2^28 *words* (as reported by the **`hw`** instruction);
             - gets a word to the *ds*, blocking, branches on failure;
             - puts a word from the *ds*, blocking, branches on failure;
             - private, not connected to the *environ*.
@@ -158,7 +158,7 @@ Copyright © Robert Gollagher 2017, 2018
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 28 April 2018 at 01:43  
+This document was last updated on 1 May 2018 at 16:04  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
