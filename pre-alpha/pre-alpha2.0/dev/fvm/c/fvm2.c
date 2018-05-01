@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180501+
-Version:    pre-alpha-0.0.8.3+ for FVM 2.0
+Version:    pre-alpha-0.0.8.4+ for FVM 2.0
 =======
 
                               This Edition:
@@ -21,6 +21,8 @@ Version:    pre-alpha-0.0.8.3+ for FVM 2.0
 
   Experiments:
     - in, out as completely blocking forever (therefore no branch-on-failure)
+    - no catch instruction (incompatible with fast native implementation)
+    - replace catch with safe instruction
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -77,6 +79,8 @@ FILE *stdhldHandle;
 #define MAX_HD_WORDS 0x10000000 // <= 2^28 due to C limitations.
 #define HD_WORDS  0x100  // Must be some power of 2 <= MAX_HD_WORDS.
 #define HD_MASK   HD_WORDS-1
+#define MAX_PMI 0x1000000 // <= 2^24 by design.
+#define PMI MAX_PMI // Must be some power of 2 <= MAX_PMI.
 
 // ---------------------------------------------------------------------------
 // Declarations
@@ -219,7 +223,7 @@ void Put()    { ; }
 void Geti()   { ; }
 void Puti()   { ; }
 void Rom()    { ; }
-void Add()    { ; }
+void Add()    { wdPush(wdPop(&fvm.ds)+wdPop(&fvm.ds),&fvm.ds); } // FIXME
 void Sub()    { ; }
 void Mul()    { ; }
 void Div()    { ; }
@@ -238,25 +242,25 @@ void Give()   { ; }
 void In()     { wdPush(getchar(), &fvm.ds); }
 void Out()    { putchar(wdPop(&fvm.ds)); }
 // Jump
-void Jmpz()   { ; }
-void Jmpe()   { ; }
-void Jmpg()   { ; }
-void Jmpl()   { ; }
-void Halt()   { excode = SUCCESS; }
-void Fail()   { excode = FAILURE; }
-void Catch()  { ; }
-void Dsa()    { ; }
-void Dse()    { ; }
-void Tsa()    { ; }
-void Tse()    { ; }
-void Csa()    { ; }
-void Cse()    { ; }
-void Rsa()    { ; }
-void Rse()    { ; }
-void Pmi()    { ; }
-void Dmw()    { ; }
-void Rmw()    { ; }
-void Hw()     { ; }
+// Jmpz
+// Jmpe
+// Jmpg
+// Jmpl
+// Halt
+// Fail
+// Safe
+void Dsa()    { wdPush(wdElems(&fvm.ds),&fvm.ds); }
+void Dse()    { wdPush(wdFree(&fvm.ds),&fvm.ds); }
+void Tsa()    { wdPush(wdElems(&fvm.ts),&fvm.ds); }
+void Tse()    { wdPush(wdFree(&fvm.ts),&fvm.ds); }
+void Csa()    { wdPush(wdElems(&fvm.cs),&fvm.ds); }
+void Cse()    { wdPush(wdFree(&fvm.cs),&fvm.ds); }
+void Rsa()    { wdPush(natElems(&fvm.rs),&fvm.ds); }
+void Rse()    { wdPush(natFree(&fvm.rs),&fvm.ds); }
+void Pmi()    { wdPush(PMI,&fvm.ds); }
+void Dmw()    { wdPush(DM_WORDS,&fvm.ds); }
+void Rmw()    { wdPush(RM_WORDS,&fvm.ds); }
+void Hw()     { wdPush(HD_WORDS,&fvm.ds); }
 void Tron()   { ; }
 void Troff()  { ; }
 
@@ -308,13 +312,13 @@ void Troff()  { ; }
 #define in In();
 #define out Out();
 #define jump(label) goto label;
-#define jmpz() Jmpz();
-#define jmpe() Jmpe();
-#define jmpg() Jmpg();
-#define jmpl() Jmpl();
-#define halt Halt();
-#define fail Fail();
-#define catch Catch();
+#define jmpz(label) if (wdPop(&fvm.ds) == 0) { goto label; }
+#define jmpe(label) if (wdPop(&fvm.ds) == wdPop(&fvm.ds)) { goto label; }
+#define jmpg(label) if (wdPop(&fvm.ds) < wdPop(&fvm.ds)) { goto label; }
+#define jmpl(label) if (wdPop(&fvm.ds) > wdPop(&fvm.ds)) { goto label; }
+#define halt { excode = SUCCESS; return; }
+#define fail { excode = FAILURE; return; }
+#define safe(label) if (wdElems(&fvm.ds) < 2) {goto label; }
 #define dsa Dsa();
 #define dse Dse();
 #define tsa Tsa();
@@ -375,6 +379,7 @@ int shutdown(FVM *fvm) {
 // ---------------------------------------------------------------------------
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
+  assert(PMI <= MAX_PMI);
   assert(DM_WORDS <= MAX_DM_WORDS);
   assert(RM_WORDS <= MAX_RM_WORDS);
   assert(HD_WORDS <= MAX_HD_WORDS);
@@ -398,36 +403,15 @@ jump(x0)
 failed:
   fail
 
-baz:
-  i(0x43)
-  out
-  ret
-
-bar:
-  i(0x42)
-  out
-  call(baz)
-  ret
-
-foo:
+unsafe:
   i(0x41)
   out
-  call(bar)
-  ret
-
-x0:
-  call(foo)
   halt
 
-/*
 x0:
-  i(1000000) // 0.44 secs
-  cpush
-  loop:
-    in
-    out
-    rpt(loop)
+  safe(unsafe)
+  add
   halt
-*/
+
 }
 // ===========================================================================
