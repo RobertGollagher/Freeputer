@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180501+
-Version:    pre-alpha-0.0.8.1+ for FVM 2.0
+Version:    pre-alpha-0.0.8.2+ for FVM 2.0
 =======
 
                               This Edition:
@@ -32,6 +32,18 @@ Version:    pre-alpha-0.0.8.1+ for FVM 2.0
 #include <inttypes.h>
 #include <assert.h>
 #include <setjmp.h>
+
+// ---------------------------------------------------------------------------
+// Files -- other storage mechanisms can be logically equivalent
+//
+//   Blank std.hld and std.rom files can be created thus:
+//     head -c 1024 /dev/zero > std.hld
+//     head -c 1024 /dev/zero > std.rom
+// ---------------------------------------------------------------------------
+#define rmFilename "std.rom"
+FILE *rmHandle;
+#define stdhldFilename "std.hld"
+FILE *stdhldHandle;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -61,7 +73,7 @@ Version:    pre-alpha-0.0.8.1+ for FVM 2.0
 // ---------------------------------------------------------------------------
 // Declarations
 // ---------------------------------------------------------------------------
-int exampleProgram();
+void exampleProgram();
 static jmp_buf exc_env;
 static int excode;
 
@@ -72,6 +84,8 @@ WORD safe(WORD addr) { return addr & DM_MASK; }
 WORD enbyte(WORD x)  { return x & BYTE_MASK; }
 WORD enrange(WORD x) { return x & METADATA_MASK; }
 WORD enshift(WORD x) { return x & SHIFT_MASK; }
+WORD romsafe(WORD addr)      { return addr & RM_MASK; }
+WORD hdsafe(WORD addr)       { return addr & HD_MASK; }
 
 // ---------------------------------------------------------------------------
 // Stack logic
@@ -162,11 +176,13 @@ typedef struct Fvm {
   WDSTACK cs; // counter stack
   NATSTACK rs; // return stack
 } FVM;
-FVM fvm;
+FVM fvm; // One global instance only (for program source-code portability)
 
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+void Dbg()  { ; }
+#define dbg Dbg()
 
 // ---------------------------------------------------------------------------
 // Instruction set
@@ -218,8 +234,8 @@ void Jmpz()   { ; }
 void Jmpe()   { ; }
 void Jmpg()   { ; }
 void Jmpl()   { ; }
-void Halt()   { ; }
-void Fail()   { ; }
+void Halt()   { excode = SUCCESS; }
+void Fail()   { excode = FAILURE; }
 void Catch()  { ; }
 void Dsa()    { ; }
 void Dse()    { ; }
@@ -237,14 +253,126 @@ void Tron()   { ; }
 void Troff()  { ; }
 
 // ---------------------------------------------------------------------------
+// Programming language macros
+// ---------------------------------------------------------------------------
+#define nop Nop();
+#define call Call();
+#define ret Ret();
+#define rpt() Rpt();
+#define cpush Cpush();
+#define cpop Cpop();
+#define cpeek Cpeek();
+#define cdrop Cdrop();
+#define tpush Tpush();
+#define tpop Tpop();
+#define tpeek Tpeek();
+#define tpoke Tpoke();
+#define tdrop Tdrop();
+#define i() Lit();
+#define drop Drop();
+#define swap Swap();
+#define over Over();
+#define rot Rot();
+#define dup Dup();
+#define get Get();
+#define put Put();
+#define geti Geti();
+#define puti Puti();
+#define rom Rom();
+#define add Add();
+#define sub Sub();
+#define mul Mul();
+#define div Div();
+#define mod Mod();
+#define inc Inc();
+#define dec Dec();
+#define or Or() ;
+#define and And();
+#define xor Xor();
+#define flip Flip();
+#define neg Neg();
+#define shl Shl();
+#define shr Shr();
+#define hold Hold();
+#define give Give();
+#define in In() ;
+#define out Out();
+#define jump() Jump();
+#define jmpz() Jmpz();
+#define jmpe() Jmpe();
+#define jmpg() Jmpg();
+#define jmpl() Jmpl();
+#define halt Halt();
+#define fail Fail();
+#define catch Catch();
+#define dsa Dsa();
+#define dse Dse();
+#define tsa Tsa();
+#define tse Tse();
+#define csa Csa();
+#define cse Cse();
+#define rsa Rsa();
+#define rse Rse();
+#define pmi Pmi();
+#define dmw Dmw();
+#define rmw Rmw();
+#define hw Hw() ;
+#define tron Tron();
+#define troff Troff();
+
+// ---------------------------------------------------------------------------
+// I/O start-up 
+// ---------------------------------------------------------------------------
+int startup(FVM *fvm) {
+  stdhldHandle = fopen(stdhldFilename, "r+b");
+  if (!stdhldHandle) return FAILURE;
+  if (fread(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  rmHandle = fopen(rmFilename, "rb");
+  if (!rmHandle) {
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  if (fread(fvm->rm,WD_BYTES,RM_WORDS,rmHandle) < RM_WORDS) {
+    fclose(rmHandle);
+    fclose(stdhldHandle);
+    return FAILURE;
+  }
+  return SUCCESS;
+}
+
+// ---------------------------------------------------------------------------
+// I/O shutdown 
+// --------------------------------------------------------------------------
+int shutdown(FVM *fvm) {
+  int shutdown = SUCCESS;
+  if (fclose(rmHandle) == EOF) shutdown = FAILURE;
+  if (fseek(stdhldHandle,0,SEEK_SET) !=0) {
+    shutdown = FAILURE;
+  } else {
+    if (fwrite(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+      shutdown = FAILURE;
+    }
+  }
+  if (fclose(stdhldHandle) == EOF) shutdown = FAILURE;
+  return shutdown;
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 int main() {
   assert(sizeof(WORD) == WD_BYTES);
   assert(DM_WORDS <= MAX_DM_WORDS);
+  assert(RM_WORDS <= MAX_RM_WORDS);
+  assert(HD_WORDS <= MAX_HD_WORDS);
+  assert(startup(&fvm) == SUCCESS);
   if (!setjmp(exc_env)) {
     exampleProgram();
-    return SUCCESS;
+    assert(shutdown(&fvm) == SUCCESS);
+    return excode;
   } else {
     return FAILURE;
   }
@@ -253,9 +381,9 @@ int main() {
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
-int exampleProgram() {
+void exampleProgram() {
 
-  Halt();
+  halt
 
 }
 // ===========================================================================
