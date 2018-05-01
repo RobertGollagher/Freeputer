@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180501+
-Version:    pre-alpha-0.0.8.2+ for FVM 2.0
+Version:    pre-alpha-0.0.8.3+ for FVM 2.0
 =======
 
                               This Edition:
@@ -18,6 +18,9 @@ Version:    pre-alpha-0.0.8.2+ for FVM 2.0
   Gradually converting this old QMISC implementation to the new
   4-stack-machine design outlined in 'pre-alpha2.0/README.md'.
   Currently only partly converted, still very incomplete.
+
+  Experiments:
+    - in, out as completely blocking forever (therefore no branch-on-failure)
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -34,6 +37,12 @@ Version:    pre-alpha-0.0.8.2+ for FVM 2.0
 #include <setjmp.h>
 
 // ---------------------------------------------------------------------------
+// Platform-specific constants
+// ---------------------------------------------------------------------------
+#define nopasm "nop"  // The name of the native hardware nop instruction
+#define NAT uintptr_t // Native pointer type for Harvard program memory
+
+// ---------------------------------------------------------------------------
 // Files -- other storage mechanisms can be logically equivalent
 //
 //   Blank std.hld and std.rom files can be created thus:
@@ -46,12 +55,11 @@ FILE *rmHandle;
 FILE *stdhldHandle;
 
 // ---------------------------------------------------------------------------
-// Constants
+// Platform-independent constants
 // ---------------------------------------------------------------------------
 #define TRACING_ENABLED // Comment out unless debugging
 #define BYTE uint8_t
 #define WORD int32_t  // Word type for Harvard data memory
-#define NAT uintptr_t // Native pointer type for Harvard program memory
 #define WD_BYTES 4
 #define METADATA_MASK 0x7fffffff // 31 bits
 #define BYTE_MASK     0x000000ff
@@ -187,21 +195,21 @@ void Dbg()  { ; }
 // ---------------------------------------------------------------------------
 // Instruction set
 // ---------------------------------------------------------------------------
-void Nop()    { ; }
-void Call()   { ; }
-void Ret()    { ; }
-void Rpt()    { ; }
-void Cpush()  { ; }
-void Cpop()   { ; }
-void Cpeek()  { ; }
-void Cdrop()  { ; }
-void Tpush()  { ; }
-void Tpop()   { ; }
-void Tpeek()  { ; }
+void Noop()    { __asm(nopasm); }
+// Call
+// Ret
+// Rpt
+void Cpush()  { wdPush(wdPop(&fvm.ds),&fvm.cs); }
+void Cpop()   { wdPush(wdPop(&fvm.cs),&fvm.ds); }
+void Cpeek()  { wdPush(wdPeek(&fvm.cs),&fvm.ds); }
+void Cdrop()  { wdDrop(&fvm.cs); }
+void Tpush()  { wdPush(wdPop(&fvm.ds),&fvm.ts); }
+void Tpop()   { wdPush(wdPop(&fvm.ts),&fvm.ds); }
+void Tpeek()  { wdPush(wdPeek(&fvm.ts),&fvm.ds); }
 void Tpoke()  { ; }
-void Tdrop()  { ; }
-void Lit()    { ; }
-void Drop()   { ; }
+void Tdrop()  { wdDrop(&fvm.ts); }
+void Lit(WORD x)    { wdPush(x&METADATA_MASK,&fvm.ds); }
+void Drop()   { wdDrop(&fvm.ds); }
 void Swap()   { ; }
 void Over()   { ; }
 void Rot()    { ; }
@@ -227,9 +235,9 @@ void Shl()    { ; }
 void Shr()    { ; }
 void Hold()   { ; }
 void Give()   { ; }
-void In()     { ; }
-void Out()    { ; }
-void Jump()   { ; }
+void In()     { wdPush(getchar(), &fvm.ds); }
+void Out()    { putchar(wdPop(&fvm.ds)); }
+// Jump
 void Jmpz()   { ; }
 void Jmpe()   { ; }
 void Jmpg()   { ; }
@@ -255,10 +263,12 @@ void Troff()  { ; }
 // ---------------------------------------------------------------------------
 // Programming language macros
 // ---------------------------------------------------------------------------
-#define nop Nop();
-#define call Call();
-#define ret Ret();
-#define rpt() Rpt();
+#define noop Noop();
+#define call(label) { \
+  __label__ lr; natPush((NAT)&&lr,&fvm.rs); goto label; lr: ; \
+}
+#define ret { goto *(natPop(&fvm.rs)); }
+#define rpt(label) if (wdPeekAndDec(&fvm.cs) > 0) { goto label; }
 #define cpush Cpush();
 #define cpop Cpop();
 #define cpeek Cpeek();
@@ -268,7 +278,7 @@ void Troff()  { ; }
 #define tpeek Tpeek();
 #define tpoke Tpoke();
 #define tdrop Tdrop();
-#define i() Lit();
+#define i(x) Lit(x);
 #define drop Drop();
 #define swap Swap();
 #define over Over();
@@ -295,9 +305,9 @@ void Troff()  { ; }
 #define shr Shr();
 #define hold Hold();
 #define give Give();
-#define in In() ;
+#define in In();
 #define out Out();
-#define jump() Jump();
+#define jump(label) goto label;
 #define jmpz() Jmpz();
 #define jmpe() Jmpe();
 #define jmpg() Jmpg();
@@ -383,7 +393,41 @@ int main() {
 // ---------------------------------------------------------------------------
 void exampleProgram() {
 
+jump(x0)
+
+failed:
+  fail
+
+baz:
+  i(0x43)
+  out
+  ret
+
+bar:
+  i(0x42)
+  out
+  call(baz)
+  ret
+
+foo:
+  i(0x41)
+  out
+  call(bar)
+  ret
+
+x0:
+  call(foo)
   halt
 
+/*
+x0:
+  i(1000000) // 0.44 secs
+  cpush
+  loop:
+    in
+    out
+    rpt(loop)
+  halt
+*/
 }
 // ===========================================================================
