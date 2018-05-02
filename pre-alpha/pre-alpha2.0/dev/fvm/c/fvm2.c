@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180501+
-Version:    pre-alpha-0.0.8.5+ for FVM 2.0
+Version:    pre-alpha-0.0.8.6+ for FVM 2.0
 =======
 
                               This Edition:
@@ -23,6 +23,13 @@ Version:    pre-alpha-0.0.8.5+ for FVM 2.0
     - in, out as completely blocking forever (therefore no branch-on-failure)
     - no catch instruction (incompatible with fast native implementation)
     - replace catch with safe instruction
+    - for arithmetic, the two viable overflow strategies are trap or NaN,
+      but the former becomes extremely complex with respect to prevention
+      unless as prevention you are willing to resort to masking;
+      accordingly this implementation shall use NaN until such time
+      as it proves to be impractical, in which case it shall trap.
+
+  WARNING: most instructions are as yet untested.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -78,8 +85,11 @@ FILE *stdhldHandle;
 #define TRACING_ENABLED // Comment out unless debugging
 #define BYTE uint8_t
 #define WORD int32_t  // Word type for Harvard data memory
+#define WIDE int64_t  // Word type used for widening during arithmetic
+#define WIDE_MASK     0xffffffff00000000
 #define WD_BYTES 4
 #define METADATA_MASK 0x7fffffff // 31 bits
+#define FLIP_MASK     0x80000000
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
@@ -99,6 +109,9 @@ FILE *stdhldHandle;
 #define HD_MASK   HD_WORDS-1
 #define MAX_PMI 0x1000000 // <= 2^24 by design.
 #define PMI MAX_PMI // Must be some power of 2 <= MAX_PMI.
+#define NaN 0x80000000
+#define WORD_MAX 0x7fffffff
+#define WORD_MIN 0x80000001 
 
 // ---------------------------------------------------------------------------
 // Declarations
@@ -110,12 +123,12 @@ static int excode;
 // ---------------------------------------------------------------------------
 // Mask logic
 // ---------------------------------------------------------------------------
-WORD safe(WORD addr) { return addr & DM_MASK; }
+WORD dmsafe(WORD addr) { return addr & DM_MASK; }
 WORD enbyte(WORD x)  { return x & BYTE_MASK; }
 WORD enrange(WORD x) { return x & METADATA_MASK; }
 WORD enshift(WORD x) { return x & SHIFT_MASK; }
-WORD romsafe(WORD addr)      { return addr & RM_MASK; }
-WORD hdsafe(WORD addr)       { return addr & HD_MASK; }
+WORD rmsafe(WORD addr) { return addr & RM_MASK; }
+WORD hdsafe(WORD addr) { return addr & HD_MASK; }
 
 // ---------------------------------------------------------------------------
 // Stack logic
@@ -165,9 +178,16 @@ WORD wdPeek(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
+WORD wdPokeAt(WORD x, WDSTACK *s, WORD index) {
+  if (index > 0 && (s->sp)>=index) {
+    s->elem[(s->sp)-index] = x;
+  } else {
+    longjmp(exc_env, FAILURE);
+  }
+}
 WORD wdPeekAt(WDSTACK *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
-    WORD wd = s->elem[index-1];
+    WORD wd = s->elem[(s->sp)-index];
     return wd;
   } else {
     longjmp(exc_env, FAILURE);
@@ -176,8 +196,8 @@ WORD wdPeekAt(WDSTACK *s, WORD index) {
 WORD wdPeekAndDec(WDSTACK *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
-    if (wd == 0) {
-      return wd; // Already 0, do not decrement further
+    if (wd == 0 || wd ==NaN) {
+      return wd;
     } else {
       --(s->elem[(s->sp)-1]);
       return wd-1;
@@ -193,7 +213,7 @@ int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
     if (wdElems(s) == 0) {
       return "";
     } else { // FIXME TODO more elems
-      sprintf(s->traceBuf, "%08x...",wdPeekAt(s,1));
+      sprintf(s->traceBuf, "%08x..",wdPeekAt(s,1));
       return s->traceBuf;
     }
   }
@@ -218,7 +238,7 @@ NAT natPop(NATSTACK *s) {
 }
 WORD nsPeekAt(NATSTACK *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
-    NAT nat = s->elem[index-1];
+    NAT nat = s->elem[(s->sp)-index];
     return nat;
   } else {
     longjmp(exc_env, FAILURE);
@@ -231,7 +251,7 @@ WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
     if (natElems(s) == 0) {
       return "";
     } else { // FIXME TODO more elems
-      sprintf(s->traceBuf, "*%08x...",nsPeekAt(s,1));
+      sprintf(s->traceBuf, "*%08x..",nsPeekAt(s,1));
       return s->traceBuf;
     }
   }
@@ -269,7 +289,15 @@ void Cdrop()  { TRC("cdrop") wdDrop(&fvm.cs); }
 void Tpush()  { TRC("tpush") wdPush(wdPop(&fvm.ds),&fvm.ts); }
 void Tpop()   { TRC("tpop ") wdPush(wdPop(&fvm.ts),&fvm.ds); }
 void Tpeek()  { TRC("tpeek") wdPush(wdPeek(&fvm.ts),&fvm.ds); }
-void Tpoke()  { TRC("tpoke") ; }
+void Tpoke()  { TRC("tpoke") 
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n1 > wdElems(&fvm.ts)) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    wdPokeAt(n2,&fvm.ts,n1);
+  }
+}
 void Tdrop()  { TRC("tdrop") wdDrop(&fvm.ts); }
 void Lit(WORD x) { TRC("lit  ") wdPush(x&METADATA_MASK,&fvm.ds); }
 void Drop()   { TRC("drop ") wdDrop(&fvm.ds); }
@@ -277,34 +305,241 @@ void Swap()   { TRC("swap ") ; }
 void Over()   { TRC("over ") ; }
 void Rot()    { TRC("rot  ") ; }
 void Dup()    { TRC("dup  ") ; }
-void Get()    { TRC("get  ") ; }
-void Put()    { TRC("put  ") ; }
-void Geti()   { TRC("geti ") ; }
-void Puti()   { TRC("puti ") ; }
-void Rom()    { TRC("rom  ") ; }
-void Add()    { TRC("add  ") wdPush(wdPop(&fvm.ds)+wdPop(&fvm.ds),&fvm.ds); } // FIXME
-void Sub()    { TRC("sub  ") ; }
-void Mul()    { TRC("mul  ") ; }
-void Div()    { TRC("div  ") ; }
-void Mod()    { TRC("mod  ") ; }
-void Inc()    { TRC("inc  ") ; }
-void Dec()    { TRC("dec  ") ; }
-void Or()     { TRC("or   ") ; }
-void And()    { TRC("and  ") ; }
-void Xor()    { TRC("xor  ") ; }
-void Flip()   { TRC("flip ") ; }
-void Neg()    { TRC("neg  ") ; }
-void Shl()    { TRC("shl  ") ; }
-void Shr()    { TRC("shr  ") ; }
-void Hold()   { TRC("hold ") ; }
-void Give()   { TRC("give ") ; }
+// Traps if address NaN or outside address space
+void Get()    { TRC("get  ")
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || dmsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    wdPush(fvm.dm[n1],&fvm.ds);
+  }
+}
+// Traps if address NaN or outside address space
+void Put()    { TRC("put  ")
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || dmsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    fvm.dm[n1] = n2;
+  }
+}
+// Traps if address NaN or outside address space
+void Geti()   { TRC("geti ")
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || dmsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    WORD got = fvm.dm[n1];
+    if (got == NaN || dmsafe(got) != n1) {
+      longjmp(exc_env, FAILURE);
+    } else {
+      wdPush(fvm.dm[got],&fvm.ds);  
+    }
+  }
+}
+// Traps if address NaN or outside address space
+void Puti()   { TRC("puti ")
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || dmsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    WORD got = fvm.dm[n1];
+    if (got == NaN || dmsafe(got) != n1) {
+      longjmp(exc_env, FAILURE);
+    } else {
+      fvm.dm[got] = n2;
+    }
+  }
+}
+// Traps if address NaN or outside address space
+void Rom()    { TRC("rom  ")
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || rmsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    wdPush(fvm.rm[n1],&fvm.ds);
+  }
+}
+void Add()    { TRC("add  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WIDE wide = n2+n1;
+      if (wide&WIDE_MASK) {
+        wdPush(NaN,&fvm.ds);
+      } else {
+        wdPush((WORD)wide,&fvm.ds);
+      }
+  }
+}
+void Sub()    { TRC("sub  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WIDE wide = n2-n1;
+      if (wide&WIDE_MASK) {
+        wdPush(NaN,&fvm.ds);
+      } else {
+        wdPush((WORD)wide,&fvm.ds);
+      }
+  }
+}
+void Mul()    { TRC("mul  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WIDE wide = n2*n1;
+      if (wide&WIDE_MASK) {
+        wdPush(NaN,&fvm.ds);
+      } else {
+        wdPush((WORD)wide,&fvm.ds);
+      }
+  }
+}
+void Div()    { TRC("div  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN || n1 == 0) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WIDE wide = n2/n1;
+      if (wide&WIDE_MASK) {
+        wdPush(NaN,&fvm.ds);
+      } else {
+        wdPush((WORD)wide,&fvm.ds);
+      }
+  }
+}
+void Mod()    { TRC("mod  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN || n1 == 0) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WIDE wide = n2%n1;
+      if (wide&WIDE_MASK) {
+        wdPush(NaN,&fvm.ds);
+      } else {
+        wdPush((WORD)wide,&fvm.ds);
+      }
+  }
+}
+void Inc()    { TRC("inc  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || n1 == WORD_MAX) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WORD res = ++n1;
+      wdPush(res,&fvm.ds);
+  }
+}
+void Dec()    { TRC("dec  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || n1 == WORD_MIN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WORD res = --n1;
+      wdPush(res,&fvm.ds);
+  }
+}
+void Or()     { TRC("or   ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+    wdPush(n2|n1,&fvm.ds);
+  }
+}
+void And()    { TRC("and  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+    wdPush(n2&n1,&fvm.ds);
+  }
+}
+void Xor()    { TRC("xor  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+    wdPush(n2^n1,&fvm.ds);
+  }
+}
+void Flip()   { TRC("flip ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WORD res = n1^FLIP_MASK;
+      wdPush(res,&fvm.ds);
+  }
+}
+void Neg()    { TRC("neg  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+      WORD res = (~n1)+1;
+      wdPush(res,&fvm.ds);
+  }
+}
+void Shl()    { TRC("shl  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN || n1^SHIFT_MASK != 0) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+    wdPush(n2<<n1,&fvm.ds);
+  }
+}
+void Shr()    { TRC("shr  ") // BEWARE: Preserves NaN
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || n2 == NaN || n1^SHIFT_MASK != 0) {
+    wdPush(NaN,&fvm.ds);
+  } else {
+    wdPush(n2>>n1,&fvm.ds);
+  }
+}
+// Traps if address NaN or outside address space
+void Hold()   { TRC("hold ")
+  WORD n1 = wdPop(&fvm.ds);
+  WORD n2 = wdPop(&fvm.ds);
+  if (n1 == NaN || hdsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    fvm.hd[n1] = n2;
+  }
+}
+// Traps if address NaN or outside address space
+void Give()   { TRC("give ")
+  WORD n1 = wdPop(&fvm.ds);
+  if (n1 == NaN || hdsafe(n1) != n1) {
+    longjmp(exc_env, FAILURE);
+  } else {
+    wdPush(fvm.hd[n1],&fvm.ds);
+  }
+}
 void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
 void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
 // Jump
-// Jmpz
-// Jmpe
-// Jmpg
-// Jmpl
+// Jnan
+// Jnnz
+// Jnne
+// Jnng
+// Jnnl
 // Halt
 // Fail
 // Safe
@@ -332,14 +567,16 @@ void Troff()  { TRC("troff")
 }
 
 // ---------------------------------------------------------------------------
-// Programming language macros
+// Programming-language macros
 // ---------------------------------------------------------------------------
 #define noop Noop();
 #define call(label) { __label__ lr; \
   TRC("call ") natPush((NAT)&&lr,&fvm.rs); goto label; lr: ; \
 }
 #define ret { TRC("ret  ") goto *(natPop(&fvm.rs)); }
-#define rpt(label) { TRC("rpt ") if (wdPeekAndDec(&fvm.cs) > 0) goto label; }
+// Repeat if decremented counter not NaN and > 0
+#define rpt(label) { TRC("rpt ") \
+  WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && n1 > 0)  goto label; }
 #define cpush Cpush();
 #define cpop Cpop();
 #define cpeek Cpeek();
@@ -379,10 +616,24 @@ void Troff()  { TRC("troff")
 #define in In();
 #define out Out();
 #define jump(label) { TRC("jump ") goto label; }
-#define jmpz(label) { TRC("jmpz ") if (wdPop(&fvm.ds) == 0) goto label; }
-#define jmpe(label) { TRC("jmpe ") if (wdPop(&fvm.ds) == wdPop(&fvm.ds)) goto label; }
-#define jmpg(label) { TRC("jmpg ") if (wdPop(&fvm.ds) < wdPop(&fvm.ds)) goto label; }
-#define jmpl(label) { TRC("jmpl ") if (wdPop(&fvm.ds) > wdPop(&fvm.ds)) goto label; }
+// Jump if n is NaN. Preserve n.
+#define jnan(label) { TRC("jnan ") \
+  if (wdPeek(&fvm.ds) == NaN) goto label; }
+// Jump if n is 0. Preserve n.
+#define jnnz(label) { TRC("jnnz ") \
+  if (wdPeek(&fvm.ds) == 0) goto label; }
+// Jump if n2 == n1 and neither are NaN. Preserve n2.
+#define jnne(label) { TRC("jnne ") \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
+  if (n1 != NaN) && (n2 != NaN) && (n1 == n2) goto label; }
+// Jump if n2 > n1 and neither are NaN. Preserve n2.
+#define jnng(label) { TRC("jnne ") \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
+  if (n1 != NaN) && (n2 != NaN) && (n1 < n2) goto label; }
+// Jump if n2 < n1 and neither are NaN. Preserve n2.
+#define jnnl(label) { TRC("jnne ") \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
+  if (n1 != NaN) && (n2 != NaN) && (n1 > n2) goto label; }
 #define halt { TRC("halt ") excode = SUCCESS; return; }
 #define fail { TRC("fail ") excode = FAILURE; return; }
 #define safe(label) { TRC("safe ") if (wdElems(&fvm.ds) < 2) goto label; }
@@ -474,27 +725,15 @@ int main() {
 void exampleProgram() {
 
 tron
-call(x0)
-halt
-
-failed:
-  fail
-
-unsafe:
-  i(0x41)
-  out
+  call(x0)
+  i(0x3)
+  i(0x5)
+  put
+  noop
+  i(0x5)
+  get
   halt
-
 x0:
-  // safe(unsafe)
-  i(0x11111111)
-  cpush
-  i(0x33333333)
-  tpush
-  i(0x22222222)
-  safe(unsafe)
-  add
   ret
-
 }
 // ===========================================================================
