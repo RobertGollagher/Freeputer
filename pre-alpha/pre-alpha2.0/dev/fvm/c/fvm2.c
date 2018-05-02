@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180501+
-Version:    pre-alpha-0.0.8.6+ for FVM 2.0
+Updated:    20180502+
+Version:    pre-alpha-0.0.8.7+ for FVM 2.0
 =======
 
                               This Edition:
@@ -15,9 +15,9 @@ Version:    pre-alpha-0.0.8.6+ for FVM 2.0
 
                                ( ) [ ] { }
 
-  Gradually converting this old QMISC implementation to the new
-  4-stack-machine design outlined in 'pre-alpha2.0/README.md'.
-  Currently only partly converted, still very incomplete.
+  This is the new 4-stack-machine design outlined in 'pre-alpha2.0/README.md'.
+  WARNING: all instructions have now been implemented but
+  most instructions are as yet completely untested.
 
   Experiments:
     - in, out as completely blocking forever (therefore no branch-on-failure)
@@ -28,8 +28,6 @@ Version:    pre-alpha-0.0.8.6+ for FVM 2.0
       unless as prevention you are willing to resort to masking;
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
-
-  WARNING: most instructions are as yet untested.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -48,7 +46,7 @@ Version:    pre-alpha-0.0.8.6+ for FVM 2.0
 // ---------------------------------------------------------------------------
 // Tracing
 // ---------------------------------------------------------------------------
-#define TRACING_SUPPORTED // Uncomment this line to support tracing
+//#define TRACING_SUPPORTED // Uncomment this line to support tracing
 #ifdef TRACING_SUPPORTED
   #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
     fprintf(stdtrcHandle, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
@@ -163,24 +161,10 @@ WORD wdPop(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdDrop(WDSTACK *s) {
-  if ((s->sp)>0) {
-    --(s->sp);
-  } else {
-    longjmp(exc_env, FAILURE);
-  }
-}
 WORD wdPeek(WDSTACK *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
     return wd;
-  } else {
-    longjmp(exc_env, FAILURE);
-  }
-}
-WORD wdPokeAt(WORD x, WDSTACK *s, WORD index) {
-  if (index > 0 && (s->sp)>=index) {
-    s->elem[(s->sp)-index] = x;
   } else {
     longjmp(exc_env, FAILURE);
   }
@@ -206,19 +190,52 @@ WORD wdPeekAndDec(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
+WORD wdPokeAt(WORD x, WDSTACK *s, WORD index) {
+  if (index > 0 && (s->sp)>=index) {
+    s->elem[(s->sp)-index] = x;
+  } else {
+    longjmp(exc_env, FAILURE);
+  }
+}
+WORD wdDrop(WDSTACK *s) {
+  if ((s->sp)>0) {
+    --(s->sp);
+  } else {
+    longjmp(exc_env, FAILURE);
+  }
+}
+WORD wdDup(WDSTACK *s) {
+  wdPush(wdPeek(s),s);
+}
+WORD wdOver(WDSTACK *s) {
+  wdPush(wdPeekAt(s,2),s);
+}
+WORD wdSwap(WDSTACK *s) {
+  WORD n1 = wdPeekAt(s,1);
+  WORD n2 = wdPeekAt(s,2);
+  wdPokeAt(n1,s,2);
+  wdPokeAt(n2,s,1);
+}
+WORD wdRot(WDSTACK *s) {
+  WORD n1 = wdPeekAt(s,1);
+  WORD n2 = wdPeekAt(s,2);
+  WORD n3 = wdPeekAt(s,3);
+  wdPokeAt(n1,s,2);
+  wdPokeAt(n2,s,3);
+  wdPokeAt(n3,s,1);
+}
 int wdElems(WDSTACK *s) {return (s->sp);}
 int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
 #ifdef TRACING_SUPPORTED
   char* wsTrace(WDSTACK *s) {
     if (wdElems(s) == 0) {
       return "";
-    } else { // FIXME TODO more elems
+    } else { // TODO show more elems
       sprintf(s->traceBuf, "%08x..",wdPeekAt(s,1));
       return s->traceBuf;
     }
   }
 #endif
-
 // ---------------------------------------------------------------------------
 WORD natPush(NAT x, NATSTACK *s) {
   if ((s->sp) < STACK_MAX_INDEX) {
@@ -236,7 +253,7 @@ NAT natPop(NATSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD nsPeekAt(NATSTACK *s, WORD index) {
+WORD natPeekAt(NATSTACK *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
     NAT nat = s->elem[(s->sp)-index];
     return nat;
@@ -250,8 +267,8 @@ WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
   char* nsTrace(NATSTACK *s) {
     if (natElems(s) == 0) {
       return "";
-    } else { // FIXME TODO more elems
-      sprintf(s->traceBuf, "*%08x..",nsPeekAt(s,1));
+    } else { // TODO show more elems
+      sprintf(s->traceBuf, "*%08x..",natPeekAt(s,1));
       return s->traceBuf;
     }
   }
@@ -261,9 +278,9 @@ WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
 // FVM structure -- other structures can be logically equivalent
 // ---------------------------------------------------------------------------
 typedef struct Fvm {
-  WORD dm[DM_WORDS]; // RAM data memory
-  WORD rm[RM_WORDS]; // ROM data memory
-  WORD hd[HD_WORDS]; // Hold memory
+  WORD dm[DM_WORDS]; // Harvard RAM data memory
+  WORD rm[RM_WORDS]; // Harvard ROM data memory
+  WORD hd[HD_WORDS]; // hold
   WDSTACK ds; // data stack
   WDSTACK ts; // temporary stack
   WDSTACK cs; // counter stack
@@ -278,7 +295,7 @@ FVM fvm;
 // ---------------------------------------------------------------------------
 // Instruction set
 // ---------------------------------------------------------------------------
-void Noop()    { __asm(nopasm); }
+void Noop()   { TRC("noop ") __asm(nopasm); }
 // Call
 // Ret
 // Rpt
@@ -301,10 +318,10 @@ void Tpoke()  { TRC("tpoke")
 void Tdrop()  { TRC("tdrop") wdDrop(&fvm.ts); }
 void Lit(WORD x) { TRC("lit  ") wdPush(x&METADATA_MASK,&fvm.ds); }
 void Drop()   { TRC("drop ") wdDrop(&fvm.ds); }
-void Swap()   { TRC("swap ") ; }
-void Over()   { TRC("over ") ; }
-void Rot()    { TRC("rot  ") ; }
-void Dup()    { TRC("dup  ") ; }
+void Swap()   { TRC("swap ") wdSwap(&fvm.ds); }
+void Over()   { TRC("over ") wdOver(&fvm.ds); }
+void Rot()    { TRC("rot  ") wdRot(&fvm.ds); }
+void Dup()    { TRC("dup  ") wdDup(&fvm.ds); }
 // Traps if address NaN or outside address space
 void Get()    { TRC("get  ")
   WORD n1 = wdPop(&fvm.ds);
@@ -537,6 +554,7 @@ void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
 // Jump
 // Jnan
 // Jnnz
+// Jnnp
 // Jnne
 // Jnng
 // Jnnl
@@ -575,7 +593,7 @@ void Troff()  { TRC("troff")
 }
 #define ret { TRC("ret  ") goto *(natPop(&fvm.rs)); }
 // Repeat if decremented counter not NaN and > 0
-#define rpt(label) { TRC("rpt ") \
+#define rpt(label) { TRC("rpt  ") \
   WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && n1 > 0)  goto label; }
 #define cpush Cpush();
 #define cpop Cpop();
@@ -622,18 +640,22 @@ void Troff()  { TRC("troff")
 // Jump if n is 0. Preserve n.
 #define jnnz(label) { TRC("jnnz ") \
   if (wdPeek(&fvm.ds) == 0) goto label; }
+// Jump if n > 0. Preserve n.
+#define jnnp(label) { TRC("jnnp ") \
+  WORD n1 = wdPeek(&fvm.ds); \
+  if ((n1 != NaN) && (n1 > 0)) goto label; }
 // Jump if n2 == n1 and neither are NaN. Preserve n2.
 #define jnne(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
-  if (n1 != NaN) && (n2 != NaN) && (n1 == n2) goto label; }
+  if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) goto label; }
 // Jump if n2 > n1 and neither are NaN. Preserve n2.
 #define jnng(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
-  if (n1 != NaN) && (n2 != NaN) && (n1 < n2) goto label; }
+  if ((n1 != NaN) && (n2 != NaN) && (n1 < n2)) goto label; }
 // Jump if n2 < n1 and neither are NaN. Preserve n2.
 #define jnnl(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
-  if (n1 != NaN) && (n2 != NaN) && (n1 > n2) goto label; }
+  if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) goto label; }
 #define halt { TRC("halt ") excode = SUCCESS; return; }
 #define fail { TRC("fail ") excode = FAILURE; return; }
 #define safe(label) { TRC("safe ") if (wdElems(&fvm.ds) < 2) goto label; }
@@ -724,16 +746,39 @@ int main() {
 // ---------------------------------------------------------------------------
 void exampleProgram() {
 
-tron
-  call(x0)
-  i(0x3)
-  i(0x5)
-  put
-  noop
-  i(0x5)
-  get
+  // This is very fast indeed:
+  //   64-bit gcc -O3 does 7fffffff loops in 4.0 secs with the noop
+  //                                      or 2.0 secs without the noop.
+  //   Note: without gcc -O3 it is 17.9 and 16.9 secs respectively.
+  i(0x7fffffff)
+  cpush
+  loop:
+    noop
+    rpt(loop)                               
   halt
-x0:
-  ret
+ 
+/*
+  // 6.9 secs 64-bit gcc -O3 (or 2.0 seconds without the noop).
+  // Note: 37.9 secs 64-bit without gcc -O3!
+  i(0x7fffffff)
+  loop:
+    dec
+    jnnp(loop)
+  done:
+    halt
+*/
+
+/*
+  // 6.9 secs 64-bit gcc -O3 (or 2.0 seconds without the noop).
+  i(0x7fffffff)
+  loop:
+    dec
+    noop
+    jnnz(done)
+    jump(loop)
+  done:
+    halt
+*/
+
 }
 // ===========================================================================
