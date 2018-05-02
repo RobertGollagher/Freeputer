@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180502+
-Version:    pre-alpha-0.0.8.7+ for FVM 2.0
+Version:    pre-alpha-0.0.8.8+ for FVM 2.0
 =======
 
                               This Edition:
@@ -28,6 +28,8 @@ Version:    pre-alpha-0.0.8.7+ for FVM 2.0
       unless as prevention you are willing to resort to masking;
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
+  
+  Currently experimenting with language format
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -742,43 +744,121 @@ int main() {
 }
 
 // ---------------------------------------------------------------------------
+// Programming language -- very early experiments.
+//
+// Aim is a simple language equally suitable for native compilation
+// and for bytecode compilation, without requiring changes to source code,
+// and needing only a few kilobytes of RAM for the bytecode compiler.
+// This is just a bootstrapping language for initial freedom.
+// It will be used to write a self-hosted compiler.
+//
+// By convention the programmer shall use only 1 forward reference (m0_x0).
+// All other references are to be backward references.
+//
+// z symbols (z0..zff) are imported modules, mapped by #defines
+// x symbols (x0..xff) are exported from a module by export()
+// u symbols (u0..uff) are local to a module
+// s symbols (s0..sff) are local to a unit
+//
+//    module
+//      unit
+//        /* Code goes here*/
+//      endunit
+//    endmodule
+//
+// Will probably have to resort to the use of m4 but avoiding that for now.
+// ---------------------------------------------------------------------------
+#define ulabels u0,u1,u2,u3;
+#define slabels s0,s1,s2,s3;
+#define module { __label__ ulabels
+#define unit { __label__ slabels
+#define endmod ; }
+#define endunit ; }
+
+// ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
-void exampleProgram() {
+void exampleProgram() { 
 
-  // This is very fast indeed:
-  //   64-bit gcc -O3 does 7fffffff loops in 4.0 secs with the noop
-  //                                      or 2.0 secs without the noop.
-  //   Note: without gcc -O3 it is 17.9 and 16.9 secs respectively.
-  i(0x7fffffff)
-  cpush
-  loop:
-    noop
-    rpt(loop)                               
-  halt
- 
-/*
-  // 6.9 secs 64-bit gcc -O3 (or 2.0 seconds without the noop).
-  // Note: 37.9 secs 64-bit without gcc -O3!
-  i(0x7fffffff)
-  loop:
-    dec
-    jnnp(loop)
-  done:
-    halt
-*/
+  jump(m0_x0) /*run.main*/
 
-/*
-  // 6.9 secs 64-bit gcc -O3 (or 2.0 seconds without the noop).
-  i(0x7fffffff)
-  loop:
-    dec
-    noop
-    jnnz(done)
-    jump(loop)
-  done:
-    halt
-*/
+
+// ---------------------------------------------------------------------------
+/*MODULE:printer*/
+  /*ALIAS:m3*/
+  #define export(xn) m3 ## _ ## xn:
+  module
+    unit u0:
+      /*EXPORT:prnModName*/
+      export(x0)
+        i(0x6d)
+        out
+        out
+        i(0x0a)
+        out
+        ret
+    endunit
+    unit
+      /*EXPORT:prnIdent*/
+      export(x1)
+        i(0x33)
+        call(u0) /*prnModName*/
+        ret
+    endunit
+  endmod
+
+// ---------------------------------------------------------------------------
+/*MODULE:foo*/
+  /*ALIAS:m1*/
+  /*IMPORT:z1:printer*/
+  #define z1(xn) m3 ## _ ## xn
+  #define export(xn) m1 ## _ ## xn:
+  module
+    unit
+      /*EXPORT:prnIdent*/
+      export(x0)
+        i(0x31)
+        call(z1(x0)) /*printer.prnModName*/
+        ret
+    endunit
+  endmod
+
+// ---------------------------------------------------------------------------
+/*MODULE:bar*/
+  /*ALIAS:m2*/
+  /*IMPORT:z1:printer*/
+  #define export(xn) m2 ## _ ## xn:
+  #define z1(xn) m3 ## _ ## xn
+  module
+    unit
+      /*EXPORT:prnIdent*/
+      export(x0)
+        i(0x32)
+        call(z1(x0)) /*printer.prnModName*/
+        ret
+    endunit
+  endmod
+
+// ---------------------------------------------------------------------------
+/*MODULE:run*/
+  /*ALIAS:m0*/
+  /*IMPORT:z1:foo*/
+  /*IMPORT:z2:bar*/
+  /*IMPORT:z3:printer*/
+  #define export(xn) m0 ## _ ## xn: 
+  #define z1(xn) m1 ## _ ## xn 
+  #define z2(xn) m2 ## _ ## xn
+  #define z3(xn) m3 ## _ ## xn
+  module
+    unit
+      /*EXPORT:main*/
+      export(x0)
+        call(z1(x0)) /*foo.prnIdent*/
+        call(z2(x0)) /*bar.prnIdent*/
+        call(z3(x1)) /*printer.prnIdent*/
+        halt
+    endunit
+  endmod
 
 }
 // ===========================================================================
