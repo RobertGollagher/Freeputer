@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180502+
-Version:    pre-alpha-0.0.8.8+ for FVM 2.0
+Version:    pre-alpha-0.0.8.9+ for FVM 2.0
 =======
 
                               This Edition:
@@ -753,27 +753,36 @@ int main() {
 // It will be used to write a self-hosted compiler.
 //
 // By convention the programmer shall use only 1 forward reference (m0_x0).
-// All other references are to be backward references.
+// All other references are to be backward references. This allows
+// a bytecode compiler to function with mere kilobytes of RAM,
+// which is important for hardware freedom in development.
 //
 // z symbols (z0..zff) are imported modules, mapped by #defines
 // x symbols (x0..xff) are exported from a module by export()
 // u symbols (u0..uff) are local to a module
 // s symbols (s0..sff) are local to a unit
 //
-//    module
-//      unit
-//        /* Code goes here*/
-//      endunit
-//    endmodule
+// Preferred syntax would be something like this:
+//
+//  as(m0) use(m1,m2,m3)
+//  module(run) uses(z1,z2,z3) /*foo,bar,prn*/
+//    unit
+//      export(x0) /*main*/
+//        call(z1(x0)) /*foo.prnIdent*/
+//        call(z2(x0)) /*bar.prnIdent*/
+//        call(z3(x1)) /*prn.prnIdent*/
+//        halt
+//    endun
+//  endmod
 //
 // Will probably have to resort to the use of m4 but avoiding that for now.
 // ---------------------------------------------------------------------------
 #define ulabels u0,u1,u2,u3;
 #define slabels s0,s1,s2,s3;
-#define module { __label__ ulabels
+#define module(name) { __label__ ulabels /*name is igored*/
 #define unit { __label__ slabels
 #define endmod ; }
-#define endunit ; }
+#define endun ; }
 
 // ---------------------------------------------------------------------------
 // Program
@@ -784,80 +793,64 @@ void exampleProgram() {
 
 
 // ---------------------------------------------------------------------------
-/*MODULE:printer*/
-  /*ALIAS:m3*/
-  #define export(xn) m3 ## _ ## xn:
-  module
-    unit u0:
-      /*EXPORT:prnModName*/
-      export(x0)
+  #define export(xn) m3 ## _ ## xn: /*as(m3)*/
+  module(prn)
+    unit
+      export(x0) /*modName*/
+      u0:
         i(0x6d)
         out
         out
         i(0x0a)
         out
         ret
-    endunit
+    endun
     unit
-      /*EXPORT:prnIdent*/
-      export(x1)
+      export(x1) /*prnIdent*/
         i(0x33)
-        call(u0) /*prnModName*/
+        call(u0) /*modName*/
         ret
-    endunit
+    endun
   endmod
 
 // ---------------------------------------------------------------------------
-/*MODULE:foo*/
-  /*ALIAS:m1*/
-  /*IMPORT:z1:printer*/
-  #define z1(xn) m3 ## _ ## xn
-  #define export(xn) m1 ## _ ## xn:
-  module
+  #define export(xn) m1 ## _ ## xn: /*as(m1)*/
+  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
+  module(foo)
     unit
-      /*EXPORT:prnIdent*/
-      export(x0)
+      export(x0) /*prnIdent*/
         i(0x31)
-        call(z1(x0)) /*printer.prnModName*/
+        call(z1(x0)) /*prn.modName*/
         ret
-    endunit
+    endun
   endmod
 
 // ---------------------------------------------------------------------------
-/*MODULE:bar*/
-  /*ALIAS:m2*/
-  /*IMPORT:z1:printer*/
-  #define export(xn) m2 ## _ ## xn:
-  #define z1(xn) m3 ## _ ## xn
-  module
+  #define export(xn) m2 ## _ ## xn: /*as(m2)*/
+  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
+  module(bar)
     unit
-      /*EXPORT:prnIdent*/
-      export(x0)
+      export(x0) /*prnIdent*/
         i(0x32)
-        call(z1(x0)) /*printer.prnModName*/
+        call(z1(x0)) /*prn.modName*/
         ret
-    endunit
+    endun
   endmod
 
 // ---------------------------------------------------------------------------
-/*MODULE:run*/
-  /*ALIAS:m0*/
-  /*IMPORT:z1:foo*/
-  /*IMPORT:z2:bar*/
-  /*IMPORT:z3:printer*/
-  #define export(xn) m0 ## _ ## xn: 
-  #define z1(xn) m1 ## _ ## xn 
-  #define z2(xn) m2 ## _ ## xn
-  #define z3(xn) m3 ## _ ## xn
-  module
+
+  #define export(xn) m0 ## _ ## xn: /*as(m0)*/
+  #define z1(xn) m1 ## _ ## xn /*uses(foo)*/
+  #define z2(xn) m2 ## _ ## xn /*uses(bar)*/
+  #define z3(xn) m3 ## _ ## xn /*uses(prn)*/
+  module(run)
     unit
-      /*EXPORT:main*/
-      export(x0)
+      export(x0) /*main*/
         call(z1(x0)) /*foo.prnIdent*/
         call(z2(x0)) /*bar.prnIdent*/
-        call(z3(x1)) /*printer.prnIdent*/
+        call(z3(x1)) /*prn.prnIdent*/
         halt
-    endunit
+    endun
   endmod
 
 }
