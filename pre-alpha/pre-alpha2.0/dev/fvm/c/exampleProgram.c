@@ -6,7 +6,7 @@ Program:    exampleProgram.m4
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
 Updated:    20180503++
-Version:    pre-alpha-0.0.0.2+ for FVM 2.0
+Version:    pre-alpha-0.0.0.3+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -15,27 +15,38 @@ To build it do:
   m4 exampleProgram.m4 > exampleProgram.c
 
 The resulting 'exampleProgram.c' should never be modified by hand.
-It is currently included in 'fvm2.c' which you can then build by:
+It is currently included in 'fvm2.c' which you can then build and run by:
 
-  make OBJ=fvm2  
+  make good OBJ=fvm2
+  time ./fvm2; echo $?
+
+If you wish to examine the output of the C preprocessor you can do:
+
+  gcc -E fvm2.c
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-#define ulabels u0,u1,u2,u3;
-#define slabels s0,s1,s2,s3;
 // m4: 
 // m4: 
 // m4: 
-#define module(name) { __label__ ulabels /*name is igored*/
-#define unit { __label__ slabels
-#define endmod ; }
-#define endun ; }
+// m4: 
+// m4: 
 /* =========================================================================*/
 
 jump(m0_x0) /*run.main*/
+
+// ---------------------------------------------------------------------------
+  
+  module(math)
+    atom
+      m4_x1: /*add*/
+        add
+        ret
+    endat
+  #include "endmod.c"
 
 // ---------------------------------------------------------------------------
   
@@ -56,11 +67,11 @@ jump(m0_x0) /*run.main*/
         call(u0) /*modName*/
         ret
     endun
-  endmod
+  #include "endmod.c"
 
 // ---------------------------------------------------------------------------
   
-  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
+  #define z1(xn) m3_ ## xn /*prn*/
   module(foo)
     unit
       m1_x0: /*prnIdent*/
@@ -68,11 +79,11 @@ jump(m0_x0) /*run.main*/
         call(z1(x0)) /*prn.modName*/
         ret
     endun
-  endmod
+  #include "endmod.c"
 
 // ---------------------------------------------------------------------------
   
-  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
+  #define z1(xn) m3_ ## xn /*prn*/
   module(bar)
     unit
       m2_x0: /*prnIdent*/
@@ -80,20 +91,25 @@ jump(m0_x0) /*run.main*/
         call(z1(x0)) /*prn.modName*/
         ret
     endun
-  endmod
+  #include "endmod.c"
 
 // ---------------------------------------------------------------------------
 
   
-  #define z1(xn) m1 ## _ ## xn /*uses(foo)*/
-  #define z2(xn) m2 ## _ ## xn /*uses(bar)*/
-  #define z3(xn) m3 ## _ ## xn /*uses(prn)*/
+  #define z1(xn) m1_ ## xn /*foo*/
+  #define z2(xn) m2_ ## xn /*bar*/
+  #define z3(xn) m3_ ## xn /*prn*/
+  #define z4(xn) m4_ ## xn /*math*/
   module(run)
     unit
       m0_x0: /*main*/
-        call(z1(x0)) /*foo.prnIdent*/
-        call(z2(x0)) /*bar.prnIdent*/
-        call(z3(x1)) /*prn.prnIdent*/
+        call(z1(x0)) /*foo.prnIdent*/ // Should print 'm1'
+        call(z2(x0)) /*bar.prnIdent*/ // Should print 'm2'
+        call(z3(x1)) /*prn.prnIdent*/ // Should print 'm3'
+        i(0x40)
+        i(1)
+        call(z4(x1)) /*math.add*/
+        out // Should print 'A'
         halt
     endun
-  endmod
+  #include "endmod.c"

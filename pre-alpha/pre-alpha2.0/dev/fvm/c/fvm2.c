@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180503+
-Version:    pre-alpha-0.0.8.10+ for FVM 2.0
+Version:    pre-alpha-0.0.8.11+ for FVM 2.0
 =======
 
                               This Edition:
@@ -30,9 +30,12 @@ Version:    pre-alpha-0.0.8.10+ for FVM 2.0
       unless as prevention you are willing to resort to masking;
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
-    - note: add 'atom' (no side-effects) compilation unit.
   
   Currently experimenting with language format.
+
+  TODO Using m4 is tiresome. Implement a custom preprocessor for this,
+  which will allow a more concise and pleasing syntax for the language.
+  Also it can enforce the rules rather than relying on convention.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -51,7 +54,7 @@ Version:    pre-alpha-0.0.8.10+ for FVM 2.0
 // ---------------------------------------------------------------------------
 // Tracing
 // ---------------------------------------------------------------------------
-//#define TRACING_SUPPORTED // Uncomment this line to support tracing
+#define TRACING_SUPPORTED // Uncomment this line to support tracing
 #ifdef TRACING_SUPPORTED
   #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
     fprintf(stdtrcHandle, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
@@ -85,7 +88,6 @@ FILE *stdhldHandle;
 // ---------------------------------------------------------------------------
 // Platform-independent constants
 // ---------------------------------------------------------------------------
-#define TRACING_ENABLED // Comment out unless debugging
 #define BYTE uint8_t
 #define WORD int32_t  // Word type for Harvard data memory
 #define WIDE int64_t  // Word type used for widening during arithmetic
@@ -749,9 +751,7 @@ int main() {
 // ---------------------------------------------------------------------------
 // Programming language -- very early experiments.
 //
-// See 'exampleProgram.c'
-//
-// Aim is a simple language equally suitable for native compilation
+// // Aim is a simple language equally suitable for native compilation
 // and for bytecode compilation, without requiring changes to source code,
 // and needing only a few kilobytes of RAM for the bytecode compiler.
 // This is just a bootstrapping language for initial freedom.
@@ -764,13 +764,32 @@ int main() {
 //
 // z symbols (z0..zff) are imported modules, mapped by #defines
 // x symbols (x0..xff) are exported from a module by export()
-// u symbols (u0..uff) are local to a module
-// s symbols (s0..sff) are local to a unit
+// u symbols (u0..uff) are local to a module and represent units or atoms
+// s symbols (s0..sff) are local to a unit or atom
+//
+// An atom is a unit that performs no side-effects (that is, which uses only
+// the stacks and performs no I/O and no memory access). Currently this
+// is by convention and is not enforced. Atoms represent extremely
+// reusable software to be easily used in composition.
 //
 // Preferred syntax would be something like this:
 //
-//  as(m0) use(m1,m2,m3)
-//  module(run) uses(z1,z2,z3) /*foo,bar,prn*/
+//
+//  as(m4)
+//  module(math)
+//    atom
+//      export(x0) /*add*/
+//        add
+//        ret
+//    endat
+//  endmod
+//
+//
+//  as(m0)
+//  use(z1,m1) /*foo*/
+//  use(z2,m2) /*bar*/
+//  use(z3,m3) /*prn*/
+//  module(run)
 //    unit
 //      export(x0) /*main*/
 //        call(z1(x0)) /*foo.prnIdent*/
@@ -780,9 +799,16 @@ int main() {
 //    endun
 //  endmod
 //
-// Will probably have to resort to the use of m4 but avoiding that for now.
+//
+// To enable this scheme, m4 is being used. See 'exampleProgram.m4'
 // ---------------------------------------------------------------------------
-
+#define ulabels u0,u1,u2,u3,u4,u5,u6,u7;
+#define slabels s0,s1,s2,s3,s4,s5,s6,s7;
+#define module(name) { __label__ ulabels /*name is intentionally ignored*/
+#define unit { __label__ slabels
+#define endun ; } // See also 'endmod.c' and 'exampleProgram.m4'
+#define atom { __label__ slabels
+#define endat ; } // Note: atom is by convention for now, not yet enforced.
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
