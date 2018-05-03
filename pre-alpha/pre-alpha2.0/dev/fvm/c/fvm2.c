@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180502+
-Version:    pre-alpha-0.0.8.9+ for FVM 2.0
+Updated:    20180503+
+Version:    pre-alpha-0.0.8.10+ for FVM 2.0
 =======
 
                               This Edition:
@@ -746,6 +746,8 @@ int main() {
 // ---------------------------------------------------------------------------
 // Programming language -- very early experiments.
 //
+// See 'exampleProgram.c'
+//
 // Aim is a simple language equally suitable for native compilation
 // and for bytecode compilation, without requiring changes to source code,
 // and needing only a few kilobytes of RAM for the bytecode compiler.
@@ -779,6 +781,7 @@ int main() {
 // ---------------------------------------------------------------------------
 #define ulabels u0,u1,u2,u3;
 #define slabels s0,s1,s2,s3;
+#define as(mn) '#' ## define thismn mn
 #define module(name) { __label__ ulabels /*name is igored*/
 #define unit { __label__ slabels
 #define endmod ; }
@@ -789,69 +792,7 @@ int main() {
 // ---------------------------------------------------------------------------
 void exampleProgram() { 
 
-  jump(m0_x0) /*run.main*/
-
-
-// ---------------------------------------------------------------------------
-  #define export(xn) m3 ## _ ## xn: /*as(m3)*/
-  module(prn)
-    unit
-      export(x0) /*modName*/
-      u0:
-        i(0x6d)
-        out
-        out
-        i(0x0a)
-        out
-        ret
-    endun
-    unit
-      export(x1) /*prnIdent*/
-        i(0x33)
-        call(u0) /*modName*/
-        ret
-    endun
-  endmod
-
-// ---------------------------------------------------------------------------
-  #define export(xn) m1 ## _ ## xn: /*as(m1)*/
-  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
-  module(foo)
-    unit
-      export(x0) /*prnIdent*/
-        i(0x31)
-        call(z1(x0)) /*prn.modName*/
-        ret
-    endun
-  endmod
-
-// ---------------------------------------------------------------------------
-  #define export(xn) m2 ## _ ## xn: /*as(m2)*/
-  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
-  module(bar)
-    unit
-      export(x0) /*prnIdent*/
-        i(0x32)
-        call(z1(x0)) /*prn.modName*/
-        ret
-    endun
-  endmod
-
-// ---------------------------------------------------------------------------
-
-  #define export(xn) m0 ## _ ## xn: /*as(m0)*/
-  #define z1(xn) m1 ## _ ## xn /*uses(foo)*/
-  #define z2(xn) m2 ## _ ## xn /*uses(bar)*/
-  #define z3(xn) m3 ## _ ## xn /*uses(prn)*/
-  module(run)
-    unit
-      export(x0) /*main*/
-        call(z1(x0)) /*foo.prnIdent*/
-        call(z2(x0)) /*bar.prnIdent*/
-        call(z3(x1)) /*prn.prnIdent*/
-        halt
-    endun
-  endmod
+#include "exampleProgram.c"
 
 }
 // ===========================================================================
