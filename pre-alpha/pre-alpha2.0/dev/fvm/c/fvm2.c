@@ -19,6 +19,8 @@ Version:    pre-alpha-0.0.8.10+ for FVM 2.0
   WARNING: all instructions have now been implemented but
   most instructions are as yet completely untested.
 
+  See 'exampleProgram.m4' for build instructions.
+
   Experiments:
     - in, out as completely blocking forever (therefore no branch-on-failure)
     - no catch instruction (incompatible with fast native implementation)
@@ -28,8 +30,9 @@ Version:    pre-alpha-0.0.8.10+ for FVM 2.0
       unless as prevention you are willing to resort to masking;
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
+    - note: add 'atom' (no side-effects) compilation unit.
   
-  Currently experimenting with language format
+  Currently experimenting with language format.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -779,13 +782,6 @@ int main() {
 //
 // Will probably have to resort to the use of m4 but avoiding that for now.
 // ---------------------------------------------------------------------------
-#define ulabels u0,u1,u2,u3;
-#define slabels s0,s1,s2,s3;
-#define as(mn) '#' ## define thismn mn
-#define module(name) { __label__ ulabels /*name is igored*/
-#define unit { __label__ slabels
-#define endmod ; }
-#define endun ; }
 
 // ---------------------------------------------------------------------------
 // Program

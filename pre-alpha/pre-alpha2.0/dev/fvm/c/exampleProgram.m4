@@ -26,10 +26,10 @@ It is currently included in 'fvm2.c' which you can then build by:
 ============================================================================*/
 #define ulabels u0,u1,u2,u3;
 #define slabels s0,s1,s2,s3;
-// m4: 
-// m4: 
-// m4: 
-#define module(name) { __label__ ulabels /*name is igored*/
+// m4: define(`CONCAT',`$1$2$3')
+// m4: define(`as',`define(`thismn',`$1')')
+// m4: define(`export',CONCAT(thismn(),_,$1):)
+#define module(name) { __label__ ulabels /*name is ignored*/
 #define unit { __label__ slabels
 #define endmod ; }
 #define endun ; }
@@ -38,10 +38,10 @@ It is currently included in 'fvm2.c' which you can then build by:
 jump(m0_x0) /*run.main*/
 
 // ---------------------------------------------------------------------------
-  
+  as(m3)
   module(prn)
     unit
-      m3_x0: /*modName*/
+      export(x0) /*modName*/
       u0:
         i(0x6d)
         out
@@ -51,7 +51,7 @@ jump(m0_x0) /*run.main*/
         ret
     endun
     unit
-      m3_x1: /*prnIdent*/
+      export(x1) /*prnIdent*/
         i(0x33)
         call(u0) /*modName*/
         ret
@@ -59,11 +59,11 @@ jump(m0_x0) /*run.main*/
   endmod
 
 // ---------------------------------------------------------------------------
-  
-  #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
+  as(m1)
+  //#define z1(xn) m3 ## _ ## xn /*uses(prn)*/
   module(foo)
     unit
-      m1_x0: /*prnIdent*/
+      export(x0) /*prnIdent*/
         i(0x31)
         call(z1(x0)) /*prn.modName*/
         ret
@@ -71,11 +71,11 @@ jump(m0_x0) /*run.main*/
   endmod
 
 // ---------------------------------------------------------------------------
-  
+  as(m2)
   #define z1(xn) m3 ## _ ## xn /*uses(prn)*/
   module(bar)
     unit
-      m2_x0: /*prnIdent*/
+      export(x0) /*prnIdent*/
         i(0x32)
         call(z1(x0)) /*prn.modName*/
         ret
@@ -84,13 +84,13 @@ jump(m0_x0) /*run.main*/
 
 // ---------------------------------------------------------------------------
 
-  
+  as(m0)
   #define z1(xn) m1 ## _ ## xn /*uses(foo)*/
   #define z2(xn) m2 ## _ ## xn /*uses(bar)*/
   #define z3(xn) m3 ## _ ## xn /*uses(prn)*/
   module(run)
     unit
-      m0_x0: /*main*/
+      export(x0) /*main*/
         call(z1(x0)) /*foo.prnIdent*/
         call(z2(x0)) /*bar.prnIdent*/
         call(z3(x1)) /*prn.prnIdent*/
