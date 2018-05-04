@@ -2,23 +2,35 @@
 Copyright © 2018, Robert Gollagher.
 SPDX-License-Identifier: GPL-3.0+
 
-Program:    exampleProgram.m4
+Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
 Updated:    20180504+
-Version:    pre-alpha-0.0.0.5+ for FVM 2.0
+Version:    pre-alpha-0.0.0.6+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
-To build it do:
+This source is preprocessed with sed followed by m4 to produce the C source.
 
-  m4 exampleProgram.m4 > exampleProgram.c
+Thus to build it do:
+
+  sed -r 's/([z][0-9a-f]+)\.([x][0-9a-f]+)/\1(\2)/g' \
+  <exampleProgram.fp2 >exampleProgram.m4 \
+  && m4 -d exampleProgram.m4 > exampleProgram.c
+
+Or simply:
+
+  ./build.sh exampleProgram
 
 The resulting 'exampleProgram.c' should never be modified by hand.
 It is currently included in 'fvm2.c' which you can then build and run by:
 
   make good OBJ=fvm2
   time ./fvm2; echo $?
+
+Or to build and run simply:
+
+  ./go.sh exampleProgram
 
 If you wish to examine the output of the C preprocessor you can do:
 

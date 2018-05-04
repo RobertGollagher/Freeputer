@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180504+
-Version:    pre-alpha-0.0.8.14+ for FVM 2.0
+Version:    pre-alpha-0.0.8.15+ for FVM 2.0
 =======
 
                               This Edition:
@@ -19,7 +19,7 @@ Version:    pre-alpha-0.0.8.14+ for FVM 2.0
   WARNING: all instructions have now been implemented but
   most instructions are as yet completely untested.
 
-  See 'exampleProgram.m4' for build instructions.
+  See 'exampleProgram.fp2' for build instructions.
 
   Experiments:
     - now using stderr for tracing output
@@ -39,11 +39,6 @@ Version:    pre-alpha-0.0.8.14+ for FVM 2.0
       Think about file formats and hex editors.
   
   Currently experimenting with language format.
-
-  TODO Using m4 is tiresome. Implement a custom preprocessor for this,
-  which will allow a more concise and pleasing syntax for the language.
-  Also it can enforce the rules rather than relying on convention.
-  Perhaps use existing Unix utilities for same.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -800,15 +795,15 @@ int main() {
 //  module(run)
 //    unit(main)
 //      export(x0)
-//        call(z1(x0)) /*foo.prnIdent*/
-//        call(z2(x0)) /*bar.prnIdent*/
-//        call(z3(x1)) /*prn.prnIdent*/
+//        call(z1.x0) /*foo.prnIdent*/
+//        call(z2.x0) /*bar.prnIdent*/
+//        call(z3.x1) /*prn.prnIdent*/
 //        halt
 //    endun
 //  endmod
 //
 //
-// To enable this scheme, m4 is being used. See 'exampleProgram.m4'
+// To enable this scheme, sed and m4 are being used. See 'exampleProgram.fp2'
 // ---------------------------------------------------------------------------
 #define ulabels u0,u1,u2,u3,u4,u5,u6,u7;
 #define slabels s0,s1,s2,s3,s4,s5,s6,s7;
