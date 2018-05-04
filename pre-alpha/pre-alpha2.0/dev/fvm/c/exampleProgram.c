@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.m4
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180503++
-Version:    pre-alpha-0.0.0.3+ for FVM 2.0
+Updated:    20180504++
+Version:    pre-alpha-0.0.0.4+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -103,13 +103,34 @@ jump(m0_x0) /*run.main*/
   module(run)
     unit
       m0_x0: /*main*/
-        call(z1(x0)) /*foo.prnIdent*/ // Should print 'm1'
-        call(z2(x0)) /*bar.prnIdent*/ // Should print 'm2'
-        call(z3(x1)) /*prn.prnIdent*/ // Should print 'm3'
+        call(z1(x0)) /*foo.prnIdent*/ // Should print "m1\n"
+        call(z2(x0)) /*bar.prnIdent*/ // Should print "m2\n"
+        call(z3(x1)) /*prn.prnIdent*/ // Should print "m3\n"
+
         i(0x40)
         i(1)
         call(z4(x1)) /*math.add*/
-        out // Should print 'A'
+        out
+        i(0xa)
+        out // Should print "A\n"
+
+        tron
+
+        i(0x41424344)
+        i(0)
+        hold
+        i(0)
+        give
+
+        outw
+        i(0xa)
+        out // Should print "DCBA\n" (note: all is little endian, for now)
+
+        inw // If we read "1234\n"...
+        outw
+        i(0xa)
+        out // ...then this should print "1234\n"
+
         halt
     endun
   #include "endmod.c"

@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180503+
-Version:    pre-alpha-0.0.8.11+ for FVM 2.0
+Updated:    20180504+
+Version:    pre-alpha-0.0.8.12+ for FVM 2.0
 =======
 
                               This Edition:
@@ -30,12 +30,24 @@ Version:    pre-alpha-0.0.8.11+ for FVM 2.0
       unless as prevention you are willing to resort to masking;
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
+    - added inw, outw instructions (word I/O)
+      TODO consider *all* the endianness implications,
+      in memory and elsewhere; this might be different to Freeputer 1.0;
+      also consider re: the hold, rom. It might well be more sensible
+      to be big endian but this is not a trivial matter.
+      Think about file formats and hex editors.
   
   Currently experimenting with language format.
 
   TODO Using m4 is tiresome. Implement a custom preprocessor for this,
   which will allow a more concise and pleasing syntax for the language.
   Also it can enforce the rules rather than relying on convention.
+  Perhaps use existing Unix utilities for same.
+
+  TODO Consider using stderr instead of having a std.trc.
+  Perhaps redirect stderr automatically to 'std.trc' if it has not
+  already been redirected. Actually it is really not clear if
+  using stderr would be better than the current approach.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -292,6 +304,8 @@ typedef struct Fvm {
   WDSTACK ts; // temporary stack
   WDSTACK cs; // counter stack
   NATSTACK rs; // return stack
+  WORD readBuf;
+  WORD writeBuf;
   #ifdef TRACING_SUPPORTED
     WORD tracing;
   #endif
@@ -558,6 +572,14 @@ void Give()   { TRC("give ")
 }
 void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
 void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
+void Inw()    { TRC("inw  ") // TODO these could all fail
+  fread(&(fvm.readBuf),WD_BYTES,1,stdin);
+  wdPush(fvm.readBuf, &fvm.ds);
+}
+void Outw()   { TRC("outw ") 
+  fvm.writeBuf = wdPop(&fvm.ds);
+  fwrite(&(fvm.writeBuf),WD_BYTES,1,stdout);
+}
 // Jump
 // Jnan
 // Jnnz
@@ -640,6 +662,8 @@ void Troff()  { TRC("troff")
 #define give Give();
 #define in In();
 #define out Out();
+#define inw Inw();
+#define outw Outw();
 #define jump(label) { TRC("jump ") goto label; }
 // Jump if n is NaN. Preserve n.
 #define jnan(label) { TRC("jnan ") \
