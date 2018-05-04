@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180504+
-Version:    pre-alpha-0.0.8.12+ for FVM 2.0
+Version:    pre-alpha-0.0.8.13+ for FVM 2.0
 =======
 
                               This Edition:
@@ -22,6 +22,7 @@ Version:    pre-alpha-0.0.8.12+ for FVM 2.0
   See 'exampleProgram.m4' for build instructions.
 
   Experiments:
+    - now using stderr for tracing output
     - in, out as completely blocking forever (therefore no branch-on-failure)
     - no catch instruction (incompatible with fast native implementation)
     - replace catch with safe instruction
@@ -44,11 +45,6 @@ Version:    pre-alpha-0.0.8.12+ for FVM 2.0
   Also it can enforce the rules rather than relying on convention.
   Perhaps use existing Unix utilities for same.
 
-  TODO Consider using stderr instead of having a std.trc.
-  Perhaps redirect stderr automatically to 'std.trc' if it has not
-  already been redirected. Actually it is really not clear if
-  using stderr would be better than the current approach.
-
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -69,7 +65,7 @@ Version:    pre-alpha-0.0.8.12+ for FVM 2.0
 #define TRACING_SUPPORTED // Uncomment this line to support tracing
 #ifdef TRACING_SUPPORTED
   #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
-    fprintf(stdtrcHandle, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
+    fprintf(stderr, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
       &&ip, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
 #else
   #define TRC(mnem)
@@ -88,10 +84,6 @@ Version:    pre-alpha-0.0.8.12+ for FVM 2.0
 //     head -c 1024 /dev/zero > std.hld
 //     head -c 1024 /dev/zero > std.rom
 // ---------------------------------------------------------------------------
-#ifdef TRACING_SUPPORTED
-  #define stdtrcFilename "std.trc"
-  FILE *stdtrcHandle;
-#endif
 #define rmFilename "std.rom"
 FILE *rmHandle;
 #define stdhldFilename "std.hld"
@@ -709,11 +701,6 @@ void Troff()  { TRC("troff")
 // I/O start-up 
 // ---------------------------------------------------------------------------
 int startup(FVM *fvm) {
-  #ifdef TRACING_SUPPORTED
-    fvm->tracing = FALSE;
-    stdtrcHandle = fopen(stdtrcFilename, "w");
-    if (!stdtrcHandle) return FAILURE;
-  #endif
   stdhldHandle = fopen(stdhldFilename, "r+b");
   if (!stdhldHandle) return FAILURE;
   if (fread(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
@@ -738,9 +725,6 @@ int startup(FVM *fvm) {
 // --------------------------------------------------------------------------
 int shutdown(FVM *fvm) {
   int shutdown = SUCCESS;
-  #ifdef TRACING_SUPPORTED
-    if (fclose(stdtrcHandle) == EOF) shutdown = FAILURE;
-  #endif
   if (fclose(rmHandle) == EOF) shutdown = FAILURE;
   if (fseek(stdhldHandle,0,SEEK_SET) !=0) {
     shutdown = FAILURE;
