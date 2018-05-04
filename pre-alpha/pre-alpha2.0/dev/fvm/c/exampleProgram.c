@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.m4
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180504++
-Version:    pre-alpha-0.0.0.4+ for FVM 2.0
+Updated:    20180504+
+Version:    pre-alpha-0.0.0.5+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -41,8 +41,8 @@ jump(m0_x0) /*run.main*/
 // ---------------------------------------------------------------------------
   
   module(math)
-    atom
-      m4_x1: /*add*/
+    atom(add)
+      m4_x1:
         add
         ret
     endat
@@ -51,9 +51,8 @@ jump(m0_x0) /*run.main*/
 // ---------------------------------------------------------------------------
   
   module(prn)
-    unit
-      m3_x0: /*modName*/
-      u0:
+    unit(modName)
+      m3_x0: u0:
         i(0x6d)
         out
         out
@@ -61,8 +60,8 @@ jump(m0_x0) /*run.main*/
         out
         ret
     endun
-    unit
-      m3_x1: /*prnIdent*/
+    unit(prnIdent)
+      m3_x1:
         i(0x33)
         call(u0) /*modName*/
         ret
@@ -73,8 +72,8 @@ jump(m0_x0) /*run.main*/
   
   #define z1(xn) m3_ ## xn /*prn*/
   module(foo)
-    unit
-      m1_x0: /*prnIdent*/
+    unit(prnIdent)
+      m1_x0:
         i(0x31)
         call(z1(x0)) /*prn.modName*/
         ret
@@ -85,8 +84,8 @@ jump(m0_x0) /*run.main*/
   
   #define z1(xn) m3_ ## xn /*prn*/
   module(bar)
-    unit
-      m2_x0: /*prnIdent*/
+    unit(prnIdent)
+      m2_x0:
         i(0x32)
         call(z1(x0)) /*prn.modName*/
         ret
@@ -101,8 +100,8 @@ jump(m0_x0) /*run.main*/
   #define z3(xn) m3_ ## xn /*prn*/
   #define z4(xn) m4_ ## xn /*math*/
   module(run)
-    unit
-      m0_x0: /*main*/
+    unit(main)
+      m0_x0:
         call(z1(x0)) /*foo.prnIdent*/ // Should print "m1\n"
         call(z2(x0)) /*bar.prnIdent*/ // Should print "m2\n"
         call(z3(x1)) /*prn.prnIdent*/ // Should print "m3\n"

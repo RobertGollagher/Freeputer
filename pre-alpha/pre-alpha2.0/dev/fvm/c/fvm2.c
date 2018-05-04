@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180504+
-Version:    pre-alpha-0.0.8.13+ for FVM 2.0
+Version:    pre-alpha-0.0.8.14+ for FVM 2.0
 =======
 
                               This Edition:
@@ -785,8 +785,8 @@ int main() {
 //
 //  as(m4)
 //  module(math)
-//    atom
-//      export(x0) /*add*/
+//    atom(add)
+//      export(x0)
 //        add
 //        ret
 //    endat
@@ -798,8 +798,8 @@ int main() {
 //  use(z2,m2) /*bar*/
 //  use(z3,m3) /*prn*/
 //  module(run)
-//    unit
-//      export(x0) /*main*/
+//    unit(main)
+//      export(x0)
 //        call(z1(x0)) /*foo.prnIdent*/
 //        call(z2(x0)) /*bar.prnIdent*/
 //        call(z3(x1)) /*prn.prnIdent*/
@@ -812,10 +812,10 @@ int main() {
 // ---------------------------------------------------------------------------
 #define ulabels u0,u1,u2,u3,u4,u5,u6,u7;
 #define slabels s0,s1,s2,s3,s4,s5,s6,s7;
-#define module(name) { __label__ ulabels /*name is intentionally ignored*/
-#define unit { __label__ slabels
+#define module(name) { __label__ ulabels /*name is just documentation*/
+#define unit(name) { __label__ slabels   /*name is just documentation*/
 #define endun ; } // See also 'endmod.c' and 'exampleProgram.m4'
-#define atom { __label__ slabels
+#define atom(name) { __label__ slabels   /*name is just documentation*/
 #define endat ; } // Note: atom is by convention for now, not yet enforced.
 // ---------------------------------------------------------------------------
 // Program
