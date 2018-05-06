@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180504+
-Version:    pre-alpha-0.0.8.15+ for FVM 2.0
+Updated:    20180506+
+Version:    pre-alpha-0.0.8.17+ for FVM 2.0
 =======
 
                               This Edition:
@@ -37,9 +37,14 @@ Version:    pre-alpha-0.0.8.15+ for FVM 2.0
       also consider re: the hold, rom. It might well be more sensible
       to be big endian but this is not a trivial matter.
       Think about file formats and hex editors.
+      Would a byte machine live longer?
+    - TODO try #define and replace strategy while still needing
+      very little RAM for compiler
   
   Currently experimenting with language format.
 
+==============================================================================
+ WARNING: This code is written for little-endian hardware only.
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -115,7 +120,25 @@ FILE *stdhldHandle;
 #define PMI MAX_PMI // Must be some power of 2 <= MAX_PMI.
 #define NaN 0x80000000
 #define WORD_MAX 0x7fffffff
-#define WORD_MIN 0x80000001 
+#define WORD_MIN 0x80000001
+
+// ---------------------------------------------------------------------------
+// Endianness experiments
+// ---------------------------------------------------------------------------
+#define LITTLE_ENDIAN 0 // i.e. USE_NETWORK_ORDER = false
+#define BIG_ENDIAN 1    // i.e. USE_NETWORK_ORDER = true
+#define USE_NETWORK_ORDER BIG_ENDIAN
+#if USE_NETWORK_ORDER
+  WORD reverseBytes(WORD abcd) {
+    WORD dcba = (
+      abcd >> 24 & 0x000000ff |
+      abcd >>  8 & 0x0000ff00 |
+      abcd << 24 & 0xff000000 |
+      abcd <<  8 & 0x00ff0000
+    );
+    return dcba;
+  }
+#endif
 
 // ---------------------------------------------------------------------------
 // Declarations
@@ -560,12 +583,24 @@ void Give()   { TRC("give ")
 void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
 void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
 void Inw()    { TRC("inw  ") // TODO these could all fail
+#if USE_NETWORK_ORDER
+  fread(&(fvm.readBuf),WD_BYTES,1,stdin);
+  fvm.readBuf = reverseBytes(fvm.readBuf);
+  wdPush(fvm.readBuf, &fvm.ds);
+#else
   fread(&(fvm.readBuf),WD_BYTES,1,stdin);
   wdPush(fvm.readBuf, &fvm.ds);
+#endif
 }
-void Outw()   { TRC("outw ") 
+void Outw()   { TRC("outw ")
+#if USE_NETWORK_ORDER
+  fvm.writeBuf = wdPop(&fvm.ds);
+  fvm.writeBuf = reverseBytes(fvm.writeBuf);
+  fwrite(&(fvm.writeBuf),WD_BYTES,1,stdout);
+#else
   fvm.writeBuf = wdPop(&fvm.ds);
   fwrite(&(fvm.writeBuf),WD_BYTES,1,stdout);
+#endif
 }
 // Jump
 // Jnan
@@ -736,6 +771,7 @@ int shutdown(FVM *fvm) {
 // Entry point
 // ---------------------------------------------------------------------------
 int main() {
+  assert(WD_BYTES == 4);
   assert(sizeof(WORD) == WD_BYTES);
   assert(PMI <= MAX_PMI);
   assert(DM_WORDS <= MAX_DM_WORDS);
@@ -754,7 +790,7 @@ int main() {
 // ---------------------------------------------------------------------------
 // Programming language -- very early experiments.
 //
-// // Aim is a simple language equally suitable for native compilation
+// Aim is a simple language equally suitable for native compilation
 // and for bytecode compilation, without requiring changes to source code,
 // and needing only a few kilobytes of RAM for the bytecode compiler.
 // This is just a bootstrapping language for initial freedom.
@@ -809,7 +845,7 @@ int main() {
 #define slabels s0,s1,s2,s3,s4,s5,s6,s7;
 #define module(name) { __label__ ulabels /*name is just documentation*/
 #define unit(name) { __label__ slabels   /*name is just documentation*/
-#define endun ; } // See also 'endmod.c' and 'exampleProgram.m4'
+#define endun ; } // See also 'endmod.c' and 'exampleProgram.fp2'
 #define atom(name) { __label__ slabels   /*name is just documentation*/
 #define endat ; } // Note: atom is by convention for now, not yet enforced.
 // ---------------------------------------------------------------------------
