@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180506+
-Version:    pre-alpha-0.0.8.17+ for FVM 2.0
+Version:    pre-alpha-0.0.8.18+ for FVM 2.0
 =======
 
                               This Edition:
@@ -32,19 +32,16 @@ Version:    pre-alpha-0.0.8.17+ for FVM 2.0
       accordingly this implementation shall use NaN until such time
       as it proves to be impractical, in which case it shall trap.
     - added inw, outw instructions (word I/O)
-      TODO consider *all* the endianness implications,
-      in memory and elsewhere; this might be different to Freeputer 1.0;
-      also consider re: the hold, rom. It might well be more sensible
-      to be big endian but this is not a trivial matter.
-      Think about file formats and hex editors.
-      Would a byte machine live longer?
+    - FVM 2.0 shall be BIG-ENDIAN 'everywhere' (the opposite of FVM 1.0)
+      since this means memory, the hold, rom and output piped to or from
+      external files will all be human-readable in exactly the same
+      format. The endianness of elements on the stack is private;
+      thus hardware computation can be little-endian.
     - TODO try #define and replace strategy while still needing
       very little RAM for compiler
   
   Currently experimenting with language format.
 
-==============================================================================
- WARNING: This code is written for little-endian hardware only.
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -72,26 +69,10 @@ Version:    pre-alpha-0.0.8.17+ for FVM 2.0
 #endif
 
 // ---------------------------------------------------------------------------
-// Platform-specific constants
-// ---------------------------------------------------------------------------
-#define nopasm "nop"  // The name of the native hardware nop instruction
-#define NAT uintptr_t // Native pointer type for Harvard program memory
-
-// ---------------------------------------------------------------------------
-// Files -- other storage mechanisms can be logically equivalent
-//
-//   Blank std.hld and std.rom files can be created thus:
-//     head -c 1024 /dev/zero > std.hld
-//     head -c 1024 /dev/zero > std.rom
-// ---------------------------------------------------------------------------
-#define rmFilename "std.rom"
-FILE *rmHandle;
-#define stdhldFilename "std.hld"
-FILE *stdhldHandle;
-
-// ---------------------------------------------------------------------------
 // Platform-independent constants
 // ---------------------------------------------------------------------------
+#define FALSE 0
+#define TRUE 1
 #define BYTE uint8_t
 #define WORD int32_t  // Word type for Harvard data memory
 #define WIDE int64_t  // Word type used for widening during arithmetic
@@ -123,14 +104,14 @@ FILE *stdhldHandle;
 #define WORD_MIN 0x80000001
 
 // ---------------------------------------------------------------------------
-// Endianness experiments
+// Platform-specific constants
 // ---------------------------------------------------------------------------
-#define LITTLE_ENDIAN 0 // i.e. USE_NETWORK_ORDER = false
-#define BIG_ENDIAN 1    // i.e. USE_NETWORK_ORDER = true
-#define USE_NETWORK_ORDER BIG_ENDIAN
-#if USE_NETWORK_ORDER
-  WORD reverseBytes(WORD abcd) {
-    WORD dcba = (
+#define nopasm "nop"  // The name of the native hardware nop instruction
+#define NAT uintptr_t // Native pointer type for Harvard program memory
+#define CPU_LITTLE_ENDIAN TRUE
+#if CPU_LITTLE_ENDIAN
+  WORD reverseWord(WORD abcd) {
+    WORD dcba = ( // gcc -O3 on x86 uses bswap here so performance is good
       abcd >> 24 & 0x000000ff |
       abcd >>  8 & 0x0000ff00 |
       abcd << 24 & 0xff000000 |
@@ -139,6 +120,18 @@ FILE *stdhldHandle;
     return dcba;
   }
 #endif
+
+// ---------------------------------------------------------------------------
+// Files -- other storage mechanisms can be logically equivalent
+//
+//   Blank std.hld and std.rom files can be created thus:
+//     head -c 1024 /dev/zero > std.hld
+//     head -c 1024 /dev/zero > std.rom
+// ---------------------------------------------------------------------------
+#define rmFilename "std.rom"
+FILE *rmHandle;
+#define stdhldFilename "std.hld"
+FILE *stdhldHandle;
 
 // ---------------------------------------------------------------------------
 // Declarations
@@ -359,7 +352,12 @@ void Get()    { TRC("get  ")
   if (n1 == NaN || dmsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    wdPush(fvm.dm[n1],&fvm.ds);
+    // wdPush(fvm.dm[n1],&fvm.ds);
+    #if CPU_LITTLE_ENDIAN
+      wdPush(reverseWord(fvm.dm[n1]),&fvm.ds);
+    #else
+      wdPush(fvm.dm[n1],&fvm.ds);
+    #endif
   }
 }
 // Traps if address NaN or outside address space
@@ -369,7 +367,12 @@ void Put()    { TRC("put  ")
   if (n1 == NaN || dmsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    fvm.dm[n1] = n2;
+    //fvm.dm[n1] = n2;
+    #if CPU_LITTLE_ENDIAN
+      fvm.dm[n1] = reverseWord(n2);
+    #else
+      fvm.dm[n1] = n2;
+    #endif
   }
 }
 // Traps if address NaN or outside address space
@@ -378,11 +381,21 @@ void Geti()   { TRC("geti ")
   if (n1 == NaN || dmsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    WORD got = fvm.dm[n1];
+    // WORD got = fvm.dm[n1];
+    #if CPU_LITTLE_ENDIAN
+      WORD got = reverseWord(fvm.dm[n1]);
+    #else
+      WORD got = fvm.dm[n1];
+    #endif
     if (got == NaN || dmsafe(got) != n1) {
       longjmp(exc_env, FAILURE);
     } else {
-      wdPush(fvm.dm[got],&fvm.ds);  
+      //wdPush(fvm.dm[got],&fvm.ds);
+      #if CPU_LITTLE_ENDIAN
+        wdPush(reverseWord(fvm.dm[got]),&fvm.ds);
+      #else
+        wdPush(fvm.dm[got],&fvm.ds);
+      #endif
     }
   }
 }
@@ -393,11 +406,21 @@ void Puti()   { TRC("puti ")
   if (n1 == NaN || dmsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    WORD got = fvm.dm[n1];
+    //WORD got = fvm.dm[n1];
+    #if CPU_LITTLE_ENDIAN
+      WORD got = reverseWord(fvm.dm[n1]);
+    #else
+      WORD got = fvm.dm[n1];
+    #endif
     if (got == NaN || dmsafe(got) != n1) {
       longjmp(exc_env, FAILURE);
     } else {
-      fvm.dm[got] = n2;
+      //fvm.dm[got] = n2;
+      #if CPU_LITTLE_ENDIAN
+        fvm.dm[got] = reverseWord(n2);
+      #else
+        fvm.dm[got] = n2;
+      #endif
     }
   }
 }
@@ -407,7 +430,12 @@ void Rom()    { TRC("rom  ")
   if (n1 == NaN || rmsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    wdPush(fvm.rm[n1],&fvm.ds);
+    //wdPush(fvm.rm[n1],&fvm.ds);
+    #if CPU_LITTLE_ENDIAN
+      wdPush(reverseWord(fvm.rm[n1]),&fvm.ds);
+    #else
+      wdPush(fvm.rm[n1],&fvm.ds);
+    #endif
   }
 }
 void Add()    { TRC("add  ") // BEWARE: Preserves NaN
@@ -466,6 +494,7 @@ void Div()    { TRC("div  ") // BEWARE: Preserves NaN
       }
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Mod()    { TRC("mod  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -498,6 +527,7 @@ void Dec()    { TRC("dec  ") // BEWARE: Preserves NaN
       wdPush(res,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Or()     { TRC("or   ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -507,6 +537,7 @@ void Or()     { TRC("or   ") // BEWARE: Preserves NaN
     wdPush(n2|n1,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void And()    { TRC("and  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -516,6 +547,7 @@ void And()    { TRC("and  ") // BEWARE: Preserves NaN
     wdPush(n2&n1,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Xor()    { TRC("xor  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -525,6 +557,7 @@ void Xor()    { TRC("xor  ") // BEWARE: Preserves NaN
     wdPush(n2^n1,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Flip()   { TRC("flip ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   if (n1 == NaN) {
@@ -534,6 +567,7 @@ void Flip()   { TRC("flip ") // BEWARE: Preserves NaN
       wdPush(res,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Neg()    { TRC("neg  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   if (n1 == NaN) {
@@ -543,6 +577,7 @@ void Neg()    { TRC("neg  ") // BEWARE: Preserves NaN
       wdPush(res,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Shl()    { TRC("shl  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -552,6 +587,7 @@ void Shl()    { TRC("shl  ") // BEWARE: Preserves NaN
     wdPush(n2<<n1,&fvm.ds);
   }
 }
+// FIXME in C this would be implementation-defined behaviour
 void Shr()    { TRC("shr  ") // BEWARE: Preserves NaN
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
@@ -568,7 +604,11 @@ void Hold()   { TRC("hold ")
   if (n1 == NaN || hdsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    fvm.hd[n1] = n2;
+    #if CPU_LITTLE_ENDIAN
+      fvm.hd[n1] = reverseWord(n2);
+    #else
+      fvm.hd[n1] = n2;
+    #endif
   }
 }
 // Traps if address NaN or outside address space
@@ -577,15 +617,19 @@ void Give()   { TRC("give ")
   if (n1 == NaN || hdsafe(n1) != n1) {
     longjmp(exc_env, FAILURE);
   } else {
-    wdPush(fvm.hd[n1],&fvm.ds);
+    #if CPU_LITTLE_ENDIAN
+      wdPush(reverseWord(fvm.hd[n1]),&fvm.ds);
+    #else
+      wdPush(fvm.hd[n1],&fvm.ds);
+    #endif
   }
 }
 void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
 void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
 void Inw()    { TRC("inw  ") // TODO these could all fail
-#if USE_NETWORK_ORDER
+#if CPU_LITTLE_ENDIAN
   fread(&(fvm.readBuf),WD_BYTES,1,stdin);
-  fvm.readBuf = reverseBytes(fvm.readBuf);
+  fvm.readBuf = reverseWord(fvm.readBuf);
   wdPush(fvm.readBuf, &fvm.ds);
 #else
   fread(&(fvm.readBuf),WD_BYTES,1,stdin);
@@ -593,9 +637,9 @@ void Inw()    { TRC("inw  ") // TODO these could all fail
 #endif
 }
 void Outw()   { TRC("outw ")
-#if USE_NETWORK_ORDER
+#if CPU_LITTLE_ENDIAN
   fvm.writeBuf = wdPop(&fvm.ds);
-  fvm.writeBuf = reverseBytes(fvm.writeBuf);
+  fvm.writeBuf = reverseWord(fvm.writeBuf);
   fwrite(&(fvm.writeBuf),WD_BYTES,1,stdout);
 #else
   fvm.writeBuf = wdPop(&fvm.ds);
