@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180506+
-Version:    pre-alpha-0.0.0.7+ for FVM 2.0
+Updated:    20180508+
+Version:    pre-alpha-0.0.0.8+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -43,76 +43,75 @@ If you wish to examine the output of the C preprocessor you can do:
 ============================================================================*/
 // m4: define(`CONCAT',`$1$2$3')
 // m4: define(`as',`define(`thismn',`$1')')
-// m4: define(`export',CONCAT(thismn(),_,$1):)
-// m4: define(`use',`#define $1(xn) $2_ ## xn')
+// m4: define(`pub',CONCAT(thismn(),_,$1)/*$2*/) #x0...
+// m4: define(`loc',$1/*$2*/) #u0...
+// m4: define(`use',`#define $1(xn) $2_ ## xn /*$3*/')
 // m4: define(`endmod',`#include "endmod.c"')
+// m4: define(`d',`doo($1)/*$2*/')
 /* =========================================================================*/
 jump(m0_x0) /*run.main*/
 
 // ---------------------------------------------------------------------------
   as(m4)
   module(math)
-    atom(add)
-      export(x1)
+    atom
+      pub(x1,add):
         add
-        ret
+        done
     endat
   endmod
 
 // ---------------------------------------------------------------------------
   as(m3)
   module(prn)
-    unit(modName)
-      export(x0) u0:
+    unit
+      pub(x0,modName):
+      loc(u0,modName):
         i(0x6d)
         out
         out
         i(0x0a)
         out
-        ret
+        done
     endun
-    unit(prnIdent)
-      export(x1)
+    unit
+      pub(x1,prnIdent):
         i(0x33)
-        call(u0) /*modName*/
-        ret
+        d(u0,modName)
+        done
     endun
   endmod
 
 // ---------------------------------------------------------------------------
   as(m1)
-  use(z1,m3) /*prn*/
+  use(z1,m3,prn)
   module(foo)
-    unit(prnIdent)
-      export(x0)
+    unit
+      pub(x0,prnIdent):
         i(0x31)
-        call(z1.x0) /*prn.modName*/
-        ret
+        d(z1.x0,prn.modName)
+        done
     endun
   endmod
 
 // ---------------------------------------------------------------------------
   as(m2)
-  use(z1,m3) /*prn*/
+  use(z1,m3,prn)
   module(bar)
-    unit(prnIdent)
-      export(x0)
+    unit
+      pub(x0,prnIdent):
         i(0x32)
-        call(z1.x0) /*prn.modName*/
-        ret
+        d(z1.x0,prn.modName)
+        done
     endun
   endmod
 
 // ---------------------------------------------------------------------------
 
   as(m0)
-  use(z1,m1) /*foo*/
-  use(z2,m2) /*bar*/
-  use(z3,m3) /*prn*/
-  use(z4,m4) /*math*/
   module(run)
-    unit(main)
-      export(x0)
+    unit
+      pub(x0,main):
         tron
 
         i(0x41424344)

@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180506+
-Version:    pre-alpha-0.0.8.18+ for FVM 2.0
+Updated:    20180508+
+Version:    pre-alpha-0.0.8.20+ for FVM 2.0
 =======
 
                               This Edition:
@@ -37,7 +37,9 @@ Version:    pre-alpha-0.0.8.18+ for FVM 2.0
       external files will all be human-readable in exactly the same
       format. The endianness of elements on the stack is private;
       thus hardware computation can be little-endian.
-    - TODO try #define and replace strategy while still needing
+    - TODO NEXT continue thinking about doco names in language format
+      ìncluding in u0:, s0:, call etc etc
+    - TODO NEXT try #define and replace strategy while still needing
       very little RAM for compiler
   
   Currently experimenting with language format.
@@ -683,10 +685,10 @@ void Troff()  { TRC("troff")
 // Programming-language macros
 // ---------------------------------------------------------------------------
 #define noop Noop();
-#define call(label) { __label__ lr; \
-  TRC("call ") natPush((NAT)&&lr,&fvm.rs); goto label; lr: ; \
+#define doo(label) { __label__ lr; \
+  TRC("do   ") natPush((NAT)&&lr,&fvm.rs); goto label; lr: ; \
 }
-#define ret { TRC("ret  ") goto *(natPop(&fvm.rs)); }
+#define done { TRC("done ") goto *(natPop(&fvm.rs)); }
 // Repeat if decremented counter not NaN and > 0
 #define rpt(label) { TRC("rpt  ") \
   WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && n1 > 0)  goto label; }
@@ -888,9 +890,9 @@ int main() {
 #define ulabels u0,u1,u2,u3,u4,u5,u6,u7;
 #define slabels s0,s1,s2,s3,s4,s5,s6,s7;
 #define module(name) { __label__ ulabels /*name is just documentation*/
-#define unit(name) { __label__ slabels   /*name is just documentation*/
+#define unit { __label__ slabels
 #define endun ; } // See also 'endmod.c' and 'exampleProgram.fp2'
-#define atom(name) { __label__ slabels   /*name is just documentation*/
+#define atom { __label__ slabels
 #define endat ; } // Note: atom is by convention for now, not yet enforced.
 // ---------------------------------------------------------------------------
 // Program

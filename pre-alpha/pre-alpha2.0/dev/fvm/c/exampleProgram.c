@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180506+
-Version:    pre-alpha-0.0.0.7+ for FVM 2.0
+Updated:    20180508+
+Version:    pre-alpha-0.0.0.8+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -43,6 +43,8 @@ If you wish to examine the output of the C preprocessor you can do:
 ============================================================================*/
 // m4: 
 // m4: 
+// m4:  #x0...
+// m4:  #u0...
 // m4: 
 // m4: 
 // m4: 
@@ -52,30 +54,31 @@ jump(m0_x0) /*run.main*/
 // ---------------------------------------------------------------------------
   
   module(math)
-    atom(add)
-      m4_x1:
+    atom
+      m4_x1/*add*/:
         add
-        ret
+        done
     endat
   #include "endmod.c"
 
 // ---------------------------------------------------------------------------
   
   module(prn)
-    unit(modName)
-      m3_x0: u0:
+    unit
+      m3_x0/*modName*/:
+      u0/*modName*/:
         i(0x6d)
         out
         out
         i(0x0a)
         out
-        ret
+        done
     endun
-    unit(prnIdent)
-      m3_x1:
+    unit
+      m3_x1/*prnIdent*/:
         i(0x33)
-        call(u0) /*modName*/
-        ret
+        doo(u0)/*modName*/
+        done
     endun
   #include "endmod.c"
 
@@ -83,11 +86,11 @@ jump(m0_x0) /*run.main*/
   
   #define z1(xn) m3_ ## xn /*prn*/
   module(foo)
-    unit(prnIdent)
-      m1_x0:
+    unit
+      m1_x0/*prnIdent*/:
         i(0x31)
-        call(z1(x0)) /*prn.modName*/
-        ret
+        doo(z1(x0))/*prn.modName*/
+        done
     endun
   #include "endmod.c"
 
@@ -95,24 +98,20 @@ jump(m0_x0) /*run.main*/
   
   #define z1(xn) m3_ ## xn /*prn*/
   module(bar)
-    unit(prnIdent)
-      m2_x0:
+    unit
+      m2_x0/*prnIdent*/:
         i(0x32)
-        call(z1(x0)) /*prn.modName*/
-        ret
+        doo(z1(x0))/*prn.modName*/
+        done
     endun
   #include "endmod.c"
 
 // ---------------------------------------------------------------------------
 
   
-  #define z1(xn) m1_ ## xn /*foo*/
-  #define z2(xn) m2_ ## xn /*bar*/
-  #define z3(xn) m3_ ## xn /*prn*/
-  #define z4(xn) m4_ ## xn /*math*/
   module(run)
-    unit(main)
-      m0_x0:
+    unit
+      m0_x0/*main*/:
         tron
 
         i(0x41424344)
