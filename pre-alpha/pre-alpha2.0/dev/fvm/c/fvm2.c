@@ -38,7 +38,7 @@ Version:    pre-alpha-0.0.8.23+ for FVM 2.0
       format. The endianness of elements on the stack is private;
       thus hardware computation can be little-endian.
     - TODO consider reserving x0 everywhere etc
-  
+
   Currently experimenting with language format.
 
 ==============================================================================
@@ -329,7 +329,7 @@ void Cdrop()  { TRC("cdrop") wdDrop(&fvm.cs); }
 void Tpush()  { TRC("tpush") wdPush(wdPop(&fvm.ds),&fvm.ts); }
 void Tpop()   { TRC("tpop ") wdPush(wdPop(&fvm.ts),&fvm.ds); }
 void Tpeek()  { TRC("tpeek") wdPush(wdPeek(&fvm.ts),&fvm.ds); }
-void Tpoke()  { TRC("tpoke") 
+void Tpoke()  { TRC("tpoke")
   WORD n1 = wdPop(&fvm.ds);
   WORD n2 = wdPop(&fvm.ds);
   if (n1 == NaN || n1 > wdElems(&fvm.ts)) {
@@ -667,12 +667,12 @@ void Pmi()    { TRC("pmi  ") wdPush(PMI,&fvm.ds); }
 void Dmw()    { TRC("dmw  ") wdPush(DM_WORDS,&fvm.ds); }
 void Rmw()    { TRC("rmw  ") wdPush(RM_WORDS,&fvm.ds); }
 void Hw()     { TRC("hw   ") wdPush(HD_WORDS,&fvm.ds); }
-void Tron()   { TRC("tron ") 
+void Tron()   { TRC("tron ")
   #ifdef TRACING_SUPPORTED
     fvm.tracing = TRUE;
   #endif
 }
-void Troff()  { TRC("troff") 
+void Troff()  { TRC("troff")
   #ifdef TRACING_SUPPORTED
     fvm.tracing = FALSE;
   #endif
@@ -729,27 +729,42 @@ void Troff()  { TRC("troff")
 #define out Out();
 #define inw Inw();
 #define outw Outw();
-#define jump(label) { TRC("jump ") goto label; }
+#define jjump(label) { TRC("jump ") goto label; }
 // Jump if n is NaN. Preserve n.
-#define jnan(label) { TRC("jnan ") \
+#define jjnan(label) { TRC("jnan ") \
   if (wdPeek(&fvm.ds) == NaN) goto label; }
+
+
+// Jump if either n1 or n2 is NaN. Preserve both.
+#define jjorn(label) { TRC("jorn ") \
+  WORD n1 = wdPeek(&fvm.ds); WORD n2 = wdPeekAt(&fvm.ds,2); \
+  if ((n1 == NaN) || (n2 == NaN)) goto label; }
+
+// Jump if n1 and n2 are both NaN. Preserve both.
+#define jjann(label) { TRC("jann ") \
+  WORD n1 = wdPeek(&fvm.ds); WORD n2 = wdPeekAt(&fvm.ds,2); \
+  if ((n1 == NaN) && (n2 == NaN)) goto label; }
+
+
+
+
 // Jump if n is 0. Preserve n.
-#define jnnz(label) { TRC("jnnz ") \
+#define jjnnz(label) { TRC("jnnz ") \
   if (wdPeek(&fvm.ds) == 0) goto label; }
 // Jump if n > 0. Preserve n.
-#define jnnp(label) { TRC("jnnp ") \
+#define jjnnp(label) { TRC("jnnp ") \
   WORD n1 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n1 > 0)) goto label; }
 // Jump if n2 == n1 and neither are NaN. Preserve n2.
-#define jnne(label) { TRC("jnne ") \
+#define jjnne(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) goto label; }
 // Jump if n2 > n1 and neither are NaN. Preserve n2.
-#define jnng(label) { TRC("jnne ") \
+#define jjnng(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 < n2)) goto label; }
 // Jump if n2 < n1 and neither are NaN. Preserve n2.
-#define jnnl(label) { TRC("jnne ") \
+#define jjnnl(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) goto label; }
 #define halt { TRC("halt ") excode = SUCCESS; return; }
@@ -771,7 +786,7 @@ void Troff()  { TRC("troff")
 #define troff Troff();
 
 // ---------------------------------------------------------------------------
-// I/O start-up 
+// I/O start-up
 // ---------------------------------------------------------------------------
 int startup(FVM *fvm) {
   stdhldHandle = fopen(stdhldFilename, "r+b");
@@ -794,7 +809,7 @@ int startup(FVM *fvm) {
 }
 
 // ---------------------------------------------------------------------------
-// I/O shutdown 
+// I/O shutdown
 // --------------------------------------------------------------------------
 int shutdown(FVM *fvm) {
   int shutdown = SUCCESS;
@@ -893,7 +908,7 @@ int main() {
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
-void exampleProgram() { 
+void exampleProgram() {
 
 #include "exampleProgram.c"
 

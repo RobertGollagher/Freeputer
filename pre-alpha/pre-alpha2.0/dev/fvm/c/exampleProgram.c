@@ -36,6 +36,17 @@ If you wish to examine the output of the C preprocessor you can do:
 
   gcc -E fvm2.c
 
+Template for modules:
+
+// ---------------------------------------------------------------------------
+  as()
+  module()
+    unit
+      pub(,):
+        done
+    endun
+  endmod
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
@@ -43,33 +54,85 @@ If you wish to examine the output of the C preprocessor you can do:
 ============================================================================*/
 // m4: // Copyright © 2018, Robert Gollagher.
 // SPDX-License-Identifier: GPL-3.0+
-// 
+//
 // Program:    fpx.m4
 // Author :    Robert Gollagher   robert.gollagher@freeputer.net
 // Created:    20180503
 // Updated:    20180509+
 // Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 //
+// FIXME macro definitions are conflicting with comments, e.g. As
+//
+// m4: 
 // m4: 
 // m4: 
 // m4:  #x0...
 // m4:  #u0...
+// m4:  #s0...
+// m4: 
+// m4: 
+// m4: 
+// m4: 
+// m4: 
 // m4: 
 // m4: 
 // m4: 
 // m4: 
 
-
-
-jump(m0_x0)/*main.run*/
+tron
+jjump(m0_x0)/*main.run*/
 
 // ---------------------------------------------------------------------------
-  
+   /*m1*/
+  module(sk)
+  // sk: Stack Operations.
+    atom
+      m1_x1/*nip*/:
+      // (n1 n2)(n1)
+        swap
+        drop
+        done
+    endat
+    atom
+      m1_x2/*drop2*/:
+      // (n1 n2)()
+        drop
+        drop
+        done
+    endat
+  #include "endmod.c"
+
+// ---------------------------------------------------------------------------
+   /*m2*/
+  module(ch)
+  // ch: Character Operations.
+  //  These act on whole words.
+  //  These treat NaN As a character.
+    atom
+      s1/*yes*/:
+        i(0x1)
+        done
+      m2_x1/*eq*/:
+        // (n1 n2)(bool)
+        jjann(s1)/*yes*/
+        jjnne(s1)/*yes*/
+        i(0x0)
+        done
+    endat
+  #include "endmod.c"
+
+// ---------------------------------------------------------------------------
+   /*m0*/
+  #define z1(xn) m1_ ## xn /*sk*/
+  #define z2(xn) m2_ ## xn /*ch*/
   module(main)
     unit
       m0_x0/*run*/:
-        tron
-        noop
+        i(0x0)
+        flip
+        i(0x0)
+        flip
+        d(z2(x1))/*eq*/
         halt
     endun
   #include "endmod.c"

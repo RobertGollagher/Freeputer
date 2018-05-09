@@ -36,22 +36,77 @@ If you wish to examine the output of the C preprocessor you can do:
 
   gcc -E fvm2.c
 
+Template for modules:
+
+// ---------------------------------------------------------------------------
+  as()
+  module()
+    unit
+      pub(,):
+        done
+    endun
+  endmod
+
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
 // m4: include(`fpx.m4')
-
+tron
 launch
 
 // ---------------------------------------------------------------------------
+  as(m1)
+  module(sk)
+  // sk: Stack Operations.
+    atom
+      pub(x1,nip):
+      // (n1 n2)(n1)
+        swap
+        drop
+        done
+    endat
+    atom
+      pub(x2,drop2):
+      // (n1 n2)()
+        drop
+        drop
+        done
+    endat
+  endmod
+
+// ---------------------------------------------------------------------------
+  as(m2)
+  module(ch)
+  // ch: Character Operations.
+  //  These act on whole words.
+  //  These treat NaN As a character.
+    atom
+      pri(s1,yes):
+        i(0x1)
+        done
+      pub(x1,eq):
+        // (n1 n2)(bool)
+        jann(s1,yes)
+        jnne(s1,yes)
+        i(0x0)
+        done
+    endat
+  endmod
+
+// ---------------------------------------------------------------------------
   as(m0)
+  use(z1,m1,sk)
+  use(z2,m2,ch)
   module(main)
     unit
       pub(x0,run):
-        tron
-        noop
+        i(0x0)
+        flip
+        i(0x0)
+        flip
+        do(z2.x1,eq)
         halt
     endun
   endmod
