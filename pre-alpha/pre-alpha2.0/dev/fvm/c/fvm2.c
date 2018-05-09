@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180508+
-Version:    pre-alpha-0.0.8.20+ for FVM 2.0
+Updated:    20180509+
+Version:    pre-alpha-0.0.8.22+ for FVM 2.0
 =======
 
                               This Edition:
@@ -37,10 +37,7 @@ Version:    pre-alpha-0.0.8.20+ for FVM 2.0
       external files will all be human-readable in exactly the same
       format. The endianness of elements on the stack is private;
       thus hardware computation can be little-endian.
-    - TODO NEXT continue thinking about doco names in language format
-      ìncluding in u0:, s0:, call etc etc
-    - TODO NEXT try #define and replace strategy while still needing
-      very little RAM for compiler
+    - TODO consider reserving x0 everywhere etc
   
   Currently experimenting with language format.
 
@@ -685,7 +682,7 @@ void Troff()  { TRC("troff")
 // Programming-language macros
 // ---------------------------------------------------------------------------
 #define noop Noop();
-#define doo(label) { __label__ lr; \
+#define d(label) { __label__ lr; \
   TRC("do   ") natPush((NAT)&&lr,&fvm.rs); goto label; lr: ; \
 }
 #define done { TRC("done ") goto *(natPop(&fvm.rs)); }
@@ -859,27 +856,26 @@ int main() {
 //
 // Preferred syntax would be something like this:
 //
-//
 //  as(m4)
 //  module(math)
-//    atom(add)
-//      export(x0)
+//    atom
+//      exp(x0,add)
 //        add
-//        ret
+//        done
 //    endat
 //  endmod
 //
 //
 //  as(m0)
-//  use(z1,m1) /*foo*/
-//  use(z2,m2) /*bar*/
-//  use(z3,m3) /*prn*/
+//  use(z1,m1,foo)
+//  use(z2,m2,bar)
+//  use(z3,m3,prn)
 //  module(run)
-//    unit(main)
-//      export(x0)
-//        call(z1.x0) /*foo.prnIdent*/
-//        call(z2.x0) /*bar.prnIdent*/
-//        call(z3.x1) /*prn.prnIdent*/
+//    unit
+//      exp(x0,main):
+//        do(z1.x0,prnIdent)
+//        do(z2.x0,prnIdent)
+//        do(z3.x1,prnIdent)
 //        halt
 //    endun
 //  endmod
