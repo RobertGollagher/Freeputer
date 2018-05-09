@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180509+
-Version:    pre-alpha-0.0.8.22+ for FVM 2.0
+Version:    pre-alpha-0.0.8.23+ for FVM 2.0
 =======
 
                               This Edition:
@@ -870,9 +870,9 @@ int main() {
 //  use(z1,m1,foo)
 //  use(z2,m2,bar)
 //  use(z3,m3,prn)
-//  module(run)
+//  module(main)
 //    unit
-//      exp(x0,main):
+//      exp(x0,run):
 //        do(z1.x0,prnIdent)
 //        do(z2.x0,prnIdent)
 //        do(z3.x1,prnIdent)

@@ -6,7 +6,7 @@ Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
 Updated:    20180509+
-Version:    pre-alpha-0.0.0.10+ for FVM 2.0
+Version:    pre-alpha-0.0.0.11+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -41,23 +41,15 @@ If you wish to examine the output of the C preprocessor you can do:
  unstable and unreliable. It is considered to be suitable only for
  experimentation and nothing more.
 ============================================================================*/
-// m4: define(`CONCAT',`$1$2$3')
-// m4: define(`as',`define(`thismn',`$1')')
-// m4: define(`pub',CONCAT(thismn(),_,$1)/*$2*/) #x0...
-// m4: define(`loc',$1/*$2*/) #u0...
-// m4: define(`use',`#define $1(xn) $2_ ## xn /*$3*/')
-// m4: define(`endmod',`#include "endmod.c"')
-// m4: define(`do',`d($1)/*$2*/')
-// m4: define(`launch',`jump(m0_x0)/*run.main*/')
-/* =========================================================================*/
-// ---------------------------------------------------------------------------
+// m4: include(`fpx.m4')
+
 launch
 
 // ---------------------------------------------------------------------------
   as(m0)
-  module(run)
+  module(main)
     unit
-      pub(x0,main):
+      pub(x0,run):
         tron
         noop
         halt
