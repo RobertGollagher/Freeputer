@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180509+
-Version:    pre-alpha-0.0.0.11+ for FVM 2.0
+Updated:    20180510+
+Version:    pre-alpha-0.0.0.12+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -42,7 +42,7 @@ Template for modules:
   as()
   module()
     unit
-      pub(,):
+      PUB(,):
         done
     endun
   endmod
@@ -61,52 +61,71 @@ launch
   module(sk)
   // sk: Stack Operations.
     atom
-      pub(x1,nip):
+      PUB(x1,nip):
       // (n1 n2)(n1)
         swap
         drop
         done
-    endat
+    enda
     atom
-      pub(x2,drop2):
+      PUB(x2,drop2):
       // (n1 n2)()
         drop
         drop
         done
-    endat
-  endmod
+    enda
+  endm
+// ---------------------------------------------------------------------------
+  as(m3)
+  module(cn)
+  // cn: Constants.
+    atom
+      PUB(x1,nan):
+        // ()(NaN)
+        i(0x0)
+        flip
+        done
+    enda
+    atom
+      PUB(x2,true):
+        // ()(0x1)
+        i(0x1)
+        done
+    enda
+    atom
+      PUB(x3,false):
+        // ()(0x0)
+        i(0x0)
+        done
+    enda
+  endm
 
 // ---------------------------------------------------------------------------
   as(m2)
+  use(z1,m3,cn)
   module(ch)
   // ch: Character Operations.
   //  These act on whole words.
   //  These treat NaN As a character.
     atom
-      pri(s1,yes):
-        i(0x1)
-        done
-      pub(x1,eq):
-        // (n1 n2)(bool)
-        jann(s1,yes)
-        jnne(s1,yes)
-        i(0x0)
-        done
-    endat
-  endmod
+      PUB(x1,eq):
+        // (n1 n2)(bool) equality
+        jmpe(z1.x2,true)
+        jump(z1.x2,false)
+    enda
+  endm
 
 // ---------------------------------------------------------------------------
   as(m0)
   use(z1,m1,sk)
   use(z2,m2,ch)
+  use(z3,m3,ut)
   module(main)
     unit
-      pub(x0,run):
-        i(0x0)
-        flip
-        i(0x0)
-        flip
+      PUB(x0,run):
+        do(z3.x1,nan)
+        do(z3.x1,nan)
         do(z2.x1,eq)
         halt
-    endun
-  endmod
+    endu
+  endm

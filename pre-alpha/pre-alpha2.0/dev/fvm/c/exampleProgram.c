@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180509+
-Version:    pre-alpha-0.0.0.11+ for FVM 2.0
+Updated:    20180510+
+Version:    pre-alpha-0.0.0.12+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -42,7 +42,7 @@ Template for modules:
   as()
   module()
     unit
-      pub(,):
+      PUB(,):
         done
     endun
   endmod
@@ -58,8 +58,8 @@ Template for modules:
 // Program:    fpx.m4
 // Author :    Robert Gollagher   robert.gollagher@freeputer.net
 // Created:    20180503
-// Updated:    20180509+
-// Version:    pre-alpha-0.0.0.11+ for FVM 2.0
+// Updated:    20180510+
+// Version:    pre-alpha-0.0.0.12+ for FVM 2.0
 //
 // FIXME macro definitions are conflicting with comments, e.g. As
 //
@@ -69,6 +69,7 @@ Template for modules:
 // m4:  #x0...
 // m4:  #u0...
 // m4:  #s0...
+// m4: 
 // m4: 
 // m4: 
 // m4: 
@@ -92,47 +93,66 @@ jjump(m0_x0)/*main.run*/
         swap
         drop
         done
-    endat
+    enda
     atom
       m1_x2/*drop2*/:
       // (n1 n2)()
         drop
         drop
         done
-    endat
+    enda
+  #include "endmod.c"
+// ---------------------------------------------------------------------------
+   /*m3*/
+  module(cn)
+  // cn: Constants.
+    atom
+      m3_x1/*nan*/:
+        // ()(NaN)
+        i(0x0)
+        flip
+        done
+    enda
+    atom
+      m3_x2/*true*/:
+        // ()(0x1)
+        i(0x1)
+        done
+    enda
+    atom
+      m3_x3/*false*/:
+        // ()(0x0)
+        i(0x0)
+        done
+    enda
   #include "endmod.c"
 
 // ---------------------------------------------------------------------------
    /*m2*/
+  #define z1(xn) m3_ ## xn /*cn*/
   module(ch)
   // ch: Character Operations.
   //  These act on whole words.
   //  These treat NaN As a character.
     atom
-      s1/*yes*/:
-        i(0x1)
-        done
       m2_x1/*eq*/:
-        // (n1 n2)(bool)
-        jjann(s1)/*yes*/
-        jjnne(s1)/*yes*/
-        i(0x0)
-        done
-    endat
+        // (n1 n2)(bool) equality
+        jjmpe(z1(x2))/*true*/
+        jjump(z1(x2))/*false*/
+    enda
   #include "endmod.c"
 
 // ---------------------------------------------------------------------------
    /*m0*/
   #define z1(xn) m1_ ## xn /*sk*/
   #define z2(xn) m2_ ## xn /*ch*/
+  #define z3(xn) m3_ ## xn /*ut*/
   module(main)
     unit
       m0_x0/*run*/:
-        i(0x0)
-        flip
-        i(0x0)
-        flip
+        d(z3(x1))/*nan*/
+        d(z3(x1))/*nan*/
         d(z2(x1))/*eq*/
         halt
-    endun
+    endu
   #include "endmod.c"

@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180509+
-Version:    pre-alpha-0.0.8.23+ for FVM 2.0
+Updated:    20180510+
+Version:    pre-alpha-0.0.8.24+ for FVM 2.0
 =======
 
                               This Edition:
@@ -23,21 +23,15 @@ Version:    pre-alpha-0.0.8.23+ for FVM 2.0
 
   Experiments:
     - now using stderr for tracing output
-    - in, out as completely blocking forever (therefore no branch-on-failure)
-    - no catch instruction (incompatible with fast native implementation)
-    - replace catch with safe instruction
-    - for arithmetic, the two viable overflow strategies are trap or NaN,
-      but the former becomes extremely complex with respect to prevention
-      unless as prevention you are willing to resort to masking;
-      accordingly this implementation shall use NaN until such time
-      as it proves to be impractical, in which case it shall trap.
     - added inw, outw instructions (word I/O)
+    - stdin, stdout completely blocking forever (no branch-on-failure)
+    - no catch instruction (incompatible with fast native implementation)
+    - use NaN scheme rather than trapping (better for self-virtualization)
     - FVM 2.0 shall be BIG-ENDIAN 'everywhere' (the opposite of FVM 1.0)
       since this means memory, the hold, rom and output piped to or from
       external files will all be human-readable in exactly the same
       format. The endianness of elements on the stack is private;
       thus hardware computation can be little-endian.
-    - TODO consider reserving x0 everywhere etc
 
   Currently experimenting with language format.
 
@@ -745,20 +739,25 @@ void Troff()  { TRC("troff")
   WORD n1 = wdPeek(&fvm.ds); WORD n2 = wdPeekAt(&fvm.ds,2); \
   if ((n1 == NaN) && (n2 == NaN)) goto label; }
 
+// Jump if n2 == n1 and neither are NaN. Preserve n2.
+#define jjnne(label) { TRC("jnne ") \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
+  if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) goto label; }
+
+// Jump if n2 == n1 (even if they are NaN). Preserve n2.
+#define jjmpe(label) { TRC("jmpe ") \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
+  if (n1 == n2) goto label; }
 
 
 
 // Jump if n is 0. Preserve n.
 #define jjnnz(label) { TRC("jnnz ") \
   if (wdPeek(&fvm.ds) == 0) goto label; }
-// Jump if n > 0. Preserve n.
+// Jump if n > 0 and not NaN. Preserve n.
 #define jjnnp(label) { TRC("jnnp ") \
   WORD n1 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n1 > 0)) goto label; }
-// Jump if n2 == n1 and neither are NaN. Preserve n2.
-#define jjnne(label) { TRC("jnne ") \
-  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
-  if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) goto label; }
 // Jump if n2 > n1 and neither are NaN. Preserve n2.
 #define jjnng(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
@@ -864,6 +863,10 @@ int main() {
 // u symbols (u0..uff) are local to a module and represent units or atoms
 // s symbols (s0..sff) are local to a unit or atom
 //
+// By convention the 0 symbols (m0,x0,u0,s0) are never used except:
+//    - m0 for the main module and x0 for its run unit (the entry point)
+//    - special reserved purposes to be determined in the future
+//
 // An atom is a unit that performs no side-effects (that is, which uses only
 // the stacks and performs no I/O and no memory access). Currently this
 // is by convention and is not enforced. Atoms represent extremely
@@ -874,7 +877,7 @@ int main() {
 //  as(m4)
 //  module(math)
 //    atom
-//      exp(x0,add)
+//      PUB(x1,add)
 //        add
 //        done
 //    endat
@@ -887,9 +890,9 @@ int main() {
 //  use(z3,m3,prn)
 //  module(main)
 //    unit
-//      exp(x0,run):
-//        do(z1.x0,prnIdent)
-//        do(z2.x0,prnIdent)
+//      PUB(x0,run):
+//        do(z1.x1,prnIdent)
+//        do(z2.x1,prnIdent)
 //        do(z3.x1,prnIdent)
 //        halt
 //    endun
@@ -902,9 +905,9 @@ int main() {
 #define slabels s0,s1,s2,s3,s4,s5,s6,s7;
 #define module(name) { __label__ ulabels /*name is just documentation*/
 #define unit { __label__ slabels
-#define endun ; } // See also 'endmod.c' and 'exampleProgram.fp2'
+#define endu ; } // See also 'endmod.c' and 'exampleProgram.fp2'
 #define atom { __label__ slabels
-#define endat ; } // Note: atom is by convention for now, not yet enforced.
+#define enda ; } // Note: atom is by convention for now, not yet enforced.
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
