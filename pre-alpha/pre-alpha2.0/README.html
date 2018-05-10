@@ -29,29 +29,33 @@
 <li>data memory (<em>dm</em>) &lt;= 2^28 <em>words</em> (as reported by the <strong><code>dmw</code></strong> instruction);</li>
 <li>rom memory (<em>rm</em>) &lt;= 2^28 <em>words</em> (as reported by the <strong><code>rmw</code></strong> instruction).</li>
 </ul></li>
-<li>Words and stack elements are 32-bit and arithmetic is two's complement.</li>
 <li>Non-native implementations use fixed-width 32-bit instructions (FW32):
 <ul>
 <li>literals 1:31 (bit 31 <em>literal bit</em>, 30..0 <em>literal value</em>);</li>
 <li>other 8:24 (bits 31..24 <em>opcode</em>, 23..0 <em>instruction number</em>, <em>metadata</em>, or unused).</li>
 </ul></li>
-<li>The VM traps to fail fast and finally. This includes:
+<li>Stack elements are treated as signed 32-bit two's-complement words except:
 <ul>
-<li>arithmetic traps (from <strong><code>ADD, SUB, INC, DEC, MUL, DIV, MOD</code></strong>); and</li>
-<li>all other traps as seen in FVM 1.0; but</li>
-<li>without any reset capability.</li>
+<li>the reserved value 0x80000000 is treated as <strong>not a number</strong> (NaN).</li>
+</ul></li>
+<li>All word storage and word I/O is naturally <strong>big-endian</strong> (the opposite of FVM 1.0):
+<ul>
+<li>thus memory, hold, rom, streams and external files are human-readable;</li>
+<li>and word I/O is naturally in standard network byte order.</li>
+</ul></li>
+<li>The hardware endianness of stack elements is covert:
+<ul>
+<li>thus hardware computation can be <strong>little-endian</strong> if desired.</li>
+</ul></li>
+<li>The VM traps to fail fast and finally (similar to FVM 1.0) except that:
+<ul>
+<li>arithmetic only traps due to stack underflow or stack overflow;</li>
+<li>otherwise arithmetic does not trap but can result in NaN;</li>
+<li>there is no reset capability.</li>
 </ul></li>
 <li>However, it is possible to achieve robustness using:
 <ul>
-<li>the <strong><code>CATCH</code></strong> instruction which:
-<ul>
-<li>branches if the previously executed instruction trapped;</li>
-<li>otherwise functions as a no-op.</li>
-</ul></li>
-<li>several convenient metadata instructions which:
-<ul>
-<li>make it easy to conditionally branch if prerequisites are not met.</li>
-</ul></li>
+<li>several convenient metadata instructions.</li>
 </ul></li>
 <li>The proposed instruction set includes:
 <ol style="list-style-type: decimal">
@@ -96,7 +100,9 @@
 <li><strong><code>HOLD</code></strong></li>
 <li><strong><code>GIVE</code></strong></li>
 <li><strong><code>IN</code></strong></li>
+<li><strong><code>INW</code></strong></li>
 <li><strong><code>OUT</code></strong></li>
+<li><strong><code>OUTW</code></strong></li>
 <li><strong><code>JUMP</code></strong></li>
 <li><strong><code>JMPZ</code></strong></li>
 <li><strong><code>JMPE</code></strong></li>
@@ -104,7 +110,6 @@
 <li><strong><code>JMPL</code></strong></li>
 <li><strong><code>HALT</code></strong></li>
 <li><strong><code>FAIL</code></strong></li>
-<li><strong><code>CATCH</code></strong></li>
 <li><strong><code>DSA</code></strong></li>
 <li><strong><code>DSE</code></strong></li>
 <li><strong><code>TSA</code></strong></li>
@@ -127,20 +132,20 @@
 <ol style="list-style-type: decimal">
 <li><code>stdin</code> (input stream):
 <ul>
-<li>reads a byte to the <em>ds</em>, blocking, branches on failure;</li>
+<li>reads a byte or word to the <em>ds</em>, blocking;</li>
 <li>public, connected to the <em>environ</em>.</li>
 </ul></li>
 <li><code>stdout</code> (output stream):
 <ul>
-<li>writes a byte from the <em>ds</em>, blocking, branches on failure;</li>
+<li>writes a byte or word from the <em>ds</em>, blocking;</li>
 <li>public, connected to the <em>environ</em>.</li>
 </ul></li>
 <li><code>stdhold</code> (word-indexed persistent local storage):
 <ul>
 <li>known as <em>standard hold</em> or simply the <em>hold</em>;</li>
 <li>capacity 0 to 2^28 <em>words</em> (as reported by the <strong><code>hw</code></strong> instruction);</li>
-<li>gets a word to the <em>ds</em>, blocking, branches on failure;</li>
-<li>puts a word from the <em>ds</em>, blocking, branches on failure;</li>
+<li>gets a word to the <em>ds</em>, blocking;</li>
+<li>puts a word from the <em>ds</em>, blocking;</li>
 <li>private, not connected to the <em>environ</em>.</li>
 </ul></li>
 </ol></li>
@@ -156,7 +161,6 @@
 <li><code>pause</code>: gracefully pauses a Freeputer instance;</li>
 <li><code>kill</code>: kills a Freeputer instance.</li>
 </ol></li>
-<li>some consideration may also be given to allowing <strong><code>IN</code></strong> and <strong><code>OUT</code></strong> by word;</li>
 <li>tracing may well be replaced by debugging.</li>
 </ul></li>
 <li>The design might possibly include a ground state such as:
@@ -169,7 +173,7 @@
 <p>Copyright © Robert Gollagher 2017, 2018</p>
 <p>This document was written by Robert Gollagher.<br />
 This document was created on 3 March 2017.<br />
-This document was last updated on 1 May 2018 at 16:04<br />
+This document was last updated on 10 May 2018 at 15:37<br />
 This document is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
 <p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img src="doc/img/80x15.png" /></a></p>
 <p>The official Freeputer website is <a href="http://www.freeputer.net">freeputer.net</a>.<br />

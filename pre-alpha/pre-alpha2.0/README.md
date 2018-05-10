@@ -41,20 +41,22 @@ The proposed I/O design is intended to allow the creation of software modules wh
     - program memory (*pm*) <= 2^24 *instructions* (as reported by the **`pmi`** instruction);
     - data memory (*dm*) <= 2^28 *words* (as reported by the **`dmw`** instruction);
     - rom memory (*rm*) <= 2^28 *words* (as reported by the **`rmw`** instruction).
-- Words and stack elements are 32-bit and arithmetic is two's complement.
 - Non-native implementations use fixed-width 32-bit instructions (FW32):
     - literals 1:31 (bit 31 *literal bit*, 30..0 *literal value*);
     - other 8:24 (bits 31..24 *opcode*, 23..0 *instruction number*, *metadata*, or unused).
-- The VM traps to fail fast and finally. This includes:
-    - arithmetic traps (from **`ADD, SUB, INC, DEC, MUL, DIV, MOD`**); and
-    - all other traps as seen in FVM 1.0; but
-    - without any reset capability.
+- Stack elements are treated as signed 32-bit two's-complement words except:
+    - the reserved value 0x80000000 is treated as **not a number** (NaN).
+- All word storage and word I/O is naturally **big-endian** (the opposite of FVM 1.0):
+    - thus memory, hold, rom, streams and external files are human-readable;
+    - and word I/O is naturally in standard network byte order. 
+- The hardware endianness of stack elements is covert:
+    - thus hardware computation can be **little-endian** if desired.
+- The VM traps to fail fast and finally (similar to FVM 1.0) except that:
+    - arithmetic only traps due to stack underflow or stack overflow;
+    - otherwise arithmetic does not trap but can result in NaN;
+    - there is no reset capability.
 - However, it is possible to achieve robustness using:
-    - the **`CATCH`** instruction which:
-        - branches if the previously executed instruction trapped;
-        - otherwise functions as a no-op.
-    - several convenient metadata instructions which:
-        - make it easy to conditionally branch if prerequisites are not met.
+    - several convenient metadata instructions.
 - The proposed instruction set includes:  
     1. **`NOP`**
     1. **`CALL`**
@@ -97,7 +99,9 @@ The proposed I/O design is intended to allow the creation of software modules wh
     1. **`HOLD`**
     1. **`GIVE`**
     1. **`IN`**
+    1. **`INW`**
     1. **`OUT`**
+    1. **`OUTW`**
     1. **`JUMP`**
     1. **`JMPZ`**
     1. **`JMPE`**
@@ -105,7 +109,6 @@ The proposed I/O design is intended to allow the creation of software modules wh
     1. **`JMPL`**
     1. **`HALT`**
     1. **`FAIL`**
-    1. **`CATCH`**
     1. **`DSA`**
     1. **`DSE`**
     1. **`TSA`**
@@ -124,16 +127,16 @@ The proposed I/O design is intended to allow the creation of software modules wh
     - the outside world is known as the *environ*;
     - there are only three I/O devices:
         1. `stdin` (input stream):
-            - reads a byte to the *ds*, blocking, branches on failure;
+            - reads a byte or word to the *ds*, blocking;
             - public, connected to the *environ*.
         2. `stdout` (output stream):
-            - writes a byte from the *ds*, blocking, branches on failure;
+            - writes a byte or word from the *ds*, blocking;
             - public, connected to the *environ*.
         3. `stdhold` (word-indexed persistent local storage):
             - known as *standard hold* or simply the *hold*;
             - capacity 0 to 2^28 *words* (as reported by the **`hw`** instruction);
-            - gets a word to the *ds*, blocking, branches on failure;
-            - puts a word from the *ds*, blocking, branches on failure;
+            - gets a word to the *ds*, blocking;
+            - puts a word from the *ds*, blocking;
             - private, not connected to the *environ*.
     - the *environ* determines the exact behaviour of `stdin` and `stdout`;
     - the *environ* determines the exact protocol it uses for communication;
@@ -145,7 +148,6 @@ The proposed I/O design is intended to allow the creation of software modules wh
         1. `start`: gracefully starts a Freeputer instance;
         2. `pause`: gracefully pauses a Freeputer instance;
         3. `kill`: kills a Freeputer instance.
-    - some consideration may also be given to allowing **`IN`** and **`OUT`** by word;
     - tracing may well be replaced by debugging.
 - The design might possibly include a ground state such as:
     - a REPL fallback after a trap ends execution; or
@@ -158,7 +160,7 @@ Copyright © Robert Gollagher 2017, 2018
 
 This document was written by Robert Gollagher.  
 This document was created on 3 March 2017.  
-This document was last updated on 1 May 2018 at 16:04  
+This document was last updated on 10 May 2018 at 15:37  
 This document is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
 
 [![](doc/img/80x15.png)](http://creativecommons.org/licenses/by-sa/4.0/)
