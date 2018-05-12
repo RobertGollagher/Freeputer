@@ -5,13 +5,15 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180510+
-Version:    pre-alpha-0.0.8.24+ for FVM 2.0
+Updated:    20180512+
+Version:    pre-alpha-0.0.8.26+ for FVM 2.0
 =======
 
                               This Edition:
-                               Portable C
-                            for Linux and gcc
+                             Portable C for
+
+        1. FVMP_STDIO: gcc using <stdio.h> (eg Linux targets) 
+        2. FVMP_ARDUINO_IDE: Arduino IDE (eg Arduino or chipKIT targets)
 
                                ( ) [ ] { }
 
@@ -33,7 +35,11 @@ Version:    pre-alpha-0.0.8.24+ for FVM 2.0
       format. The endianness of elements on the stack is private;
       thus hardware computation can be little-endian.
 
-  Currently experimenting with language format.
+  Currently experimenting with language format and adding interpreter.
+
+  TODO NEXT test interpreted version on Arduino.
+  Then expand interpreter to support the full instruction set.
+  Then port to JavaScript and from there to Node.js.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -42,9 +48,39 @@ Version:    pre-alpha-0.0.8.24+ for FVM 2.0
 ============================================================================*/
 
 // ---------------------------------------------------------------------------
+// Choose target platform
+// ---------------------------------------------------------------------------
+#define FVMP_STDIO 0        // gcc using <stdio.h>
+#define FVMP_ARDUINO_IDE 1  // Arduino IDE
+#define FVMP FVMP_STDIO
+
+// ---------------------------------------------------------------------------
+// Choose implementation type
+// ---------------------------------------------------------------------------
+#define FVMI_NATIVE 0       // Run as native code
+#define FVMI_INTERPRETED 1  // Run as an interpreter
+#define FVMI FVMI_INTERPRETED
+#if FVMI != FVMI_NATIVE && FVMI != FVMI_INTERPRETED
+  #pragma GCC error "Problem: Invalid implementation type for compilation.\n \
+  Solution: You must set FVMI to FVMI_NATIVE or FVMI_INTERPRETED.\n \
+  Details: See 'fvm2.c' source."
+#endif
+
+// ---------------------------------------------------------------------------
 // Dependencies
 // ---------------------------------------------------------------------------
-#include <stdio.h>
+#if FVMP == FVMP_STDIO
+  #include <stdio.h>
+#elif FVMP == FVMP_ARDUINO_IDE
+  #include <Arduino.h>
+  /*int getchar() { return Serial.read(); }
+  int putchar(int c) { Serial.write(c); }*/
+#else
+  #pragma GCC error "Problem: Invalid target platform for compilation.\n \
+  Solution: You must set FVMP to FVMP_STDIO or FVMP_ARDUINO_IDE.\n \
+  Details: See 'fvm2.c' source."
+#endif
+
 #include <inttypes.h>
 #include <assert.h>
 #include <setjmp.h>
@@ -53,12 +89,24 @@ Version:    pre-alpha-0.0.8.24+ for FVM 2.0
 // Tracing
 // ---------------------------------------------------------------------------
 #define TRACING_SUPPORTED // Uncomment this line to support tracing
-#ifdef TRACING_SUPPORTED
-  #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
-    fprintf(stderr, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
-      &&ip, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
-#else
-  #define TRC(mnem)
+#if FVMI == FVMI_NATIVE
+  #ifdef TRACING_SUPPORTED
+    #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
+      fprintf(stderr, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
+        &&ip, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
+        wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
+  #else
+    #define TRC(mnem)
+  #endif
+#elif FVMI == FVMI_INTERPRETED
+  #ifdef TRACING_SUPPORTED
+    #define TRC(mnem) if (fvm.tracing) {  \
+      fprintf(stderr, "%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
+        fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
+        wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
+  #else
+    #define TRC(mnem)
+  #endif
 #endif
 
 // ---------------------------------------------------------------------------
@@ -71,12 +119,13 @@ Version:    pre-alpha-0.0.8.24+ for FVM 2.0
 #define WIDE int64_t  // Word type used for widening during arithmetic
 #define WIDE_MASK     0xffffffff00000000
 #define WD_BYTES 4
-#define METADATA_MASK 0x7fffffff // 31 bits
+#define IMM_MASK      0x7fffffff // 31 bits
 #define FLIP_MASK     0x80000000
 #define BYTE_MASK     0x000000ff
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
+#define ILLEGAL 2 // FIXME
 #define FALSE 0
 #define TRUE 1
 #define STACK_CAPACITY 256
@@ -92,6 +141,13 @@ Version:    pre-alpha-0.0.8.24+ for FVM 2.0
 #define HD_MASK   HD_WORDS-1
 #define MAX_PMI 0x1000000 // <= 2^24 by design.
 #define PMI MAX_PMI // Must be some power of 2 <= MAX_PMI.
+
+// FIXME only for FVMI_INTERPRETED, also add assertions
+#define PM_WORDS  0x100
+#define PM_MASK   PM_WORDS-1
+#define OPCODE_MASK   0xff000000
+#define METADATA_MASK 0x00ffffff
+
 #define NaN 0x80000000
 #define WORD_MAX 0x7fffffff
 #define WORD_MIN 0x80000001
@@ -127,9 +183,51 @@ FILE *rmHandle;
 FILE *stdhldHandle;
 
 // ---------------------------------------------------------------------------
+// Stack structure
+// ---------------------------------------------------------------------------
+typedef struct WdStack {
+  BYTE sp;
+  WORD elem[STACK_CAPACITY];
+  #ifdef TRACING_SUPPORTED
+    char traceBuf[20];
+  #endif
+} WDSTACK; // Arduino IDE cannot use this
+typedef struct NatStack {
+  BYTE sp;
+  NAT elem[STACK_CAPACITY];
+  #ifdef TRACING_SUPPORTED
+    char traceBuf[20];
+  #endif
+} NATSTACK; // Arduino IDE cannot use this
+
+// ---------------------------------------------------------------------------
+// FVM structure -- other structures can be logically equivalent
+// ---------------------------------------------------------------------------
+typedef struct Fvm {
+  #if FVMI ==FVMI_INTERPRETED
+    WORD pc; // program counter
+    WORD pm[DM_WORDS]; // Harvard program memory
+  #endif
+  WORD dm[DM_WORDS]; // Harvard RAM data memory
+  WORD rm[RM_WORDS]; // Harvard ROM data memory
+  WORD hd[HD_WORDS]; // hold
+  struct WdStack ds; // data stack
+  struct WdStack ts; // temporary stack
+  struct WdStack cs; // counter stack
+  struct NatStack rs; // return stack
+  WORD readBuf;
+  WORD writeBuf;
+  #ifdef TRACING_SUPPORTED
+    WORD tracing;
+  #endif
+} FVM;  // Arduino IDE cannot use this
+// One global instance only (for program source-code portability)
+FVM fvm;
+
+// ---------------------------------------------------------------------------
 // Declarations
 // ---------------------------------------------------------------------------
-void exampleProgram();
+void runProgram();
 static jmp_buf exc_env;
 static int excode;
 
@@ -138,37 +236,22 @@ static int excode;
 // ---------------------------------------------------------------------------
 WORD dmsafe(WORD addr) { return addr & DM_MASK; }
 WORD enbyte(WORD x)  { return x & BYTE_MASK; }
-WORD enrange(WORD x) { return x & METADATA_MASK; }
 WORD enshift(WORD x) { return x & SHIFT_MASK; }
 WORD rmsafe(WORD addr) { return addr & RM_MASK; }
 WORD hdsafe(WORD addr) { return addr & HD_MASK; }
+WORD pmsafe(WORD addr) { return addr & PM_MASK; }
 
 // ---------------------------------------------------------------------------
 // Stack logic
 // ---------------------------------------------------------------------------
-typedef struct WordStack {
-  BYTE sp;
-  WORD elem[STACK_CAPACITY];
-  #ifdef TRACING_SUPPORTED
-    char traceBuf[20];
-  #endif
-} WDSTACK;
-typedef struct NativeStack {
-  BYTE sp;
-  NAT elem[STACK_CAPACITY];
-  #ifdef TRACING_SUPPORTED
-    char traceBuf[20];
-  #endif
-} NATSTACK;
-// ---------------------------------------------------------------------------
-void wdPush(WORD x, WDSTACK *s) {
+void wdPush(WORD x, struct WdStack *s) {
   if ((s->sp) < STACK_MAX_INDEX) {
     s->elem[(s->sp)++] = x;
   } else {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPop(WDSTACK *s) {
+WORD wdPop(struct WdStack *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[--(s->sp)];
     return wd;
@@ -176,7 +259,7 @@ WORD wdPop(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPeek(WDSTACK *s) {
+WORD wdPeek(struct WdStack *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
     return wd;
@@ -184,7 +267,7 @@ WORD wdPeek(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPeekAt(WDSTACK *s, WORD index) {
+WORD wdPeekAt(struct WdStack *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
     WORD wd = s->elem[(s->sp)-index];
     return wd;
@@ -192,7 +275,7 @@ WORD wdPeekAt(WDSTACK *s, WORD index) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPeekAndDec(WDSTACK *s) {
+WORD wdPeekAndDec(struct WdStack *s) {
   if ((s->sp)>0) {
     WORD wd = s->elem[(s->sp)-1];
     if (wd == 0 || wd ==NaN) {
@@ -205,33 +288,33 @@ WORD wdPeekAndDec(WDSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdPokeAt(WORD x, WDSTACK *s, WORD index) {
+WORD wdPokeAt(WORD x, struct WdStack *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
     s->elem[(s->sp)-index] = x;
   } else {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdDrop(WDSTACK *s) {
+WORD wdDrop(struct WdStack *s) {
   if ((s->sp)>0) {
     --(s->sp);
   } else {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD wdDup(WDSTACK *s) {
+WORD wdDup(struct WdStack *s) {
   wdPush(wdPeek(s),s);
 }
-WORD wdOver(WDSTACK *s) {
+WORD wdOver(struct WdStack *s) {
   wdPush(wdPeekAt(s,2),s);
 }
-WORD wdSwap(WDSTACK *s) {
+WORD wdSwap(struct WdStack *s) {
   WORD n1 = wdPeekAt(s,1);
   WORD n2 = wdPeekAt(s,2);
   wdPokeAt(n1,s,2);
   wdPokeAt(n2,s,1);
 }
-WORD wdRot(WDSTACK *s) {
+WORD wdRot(struct WdStack *s) {
   WORD n1 = wdPeekAt(s,1);
   WORD n2 = wdPeekAt(s,2);
   WORD n3 = wdPeekAt(s,3);
@@ -239,10 +322,10 @@ WORD wdRot(WDSTACK *s) {
   wdPokeAt(n2,s,3);
   wdPokeAt(n3,s,1);
 }
-int wdElems(WDSTACK *s) {return (s->sp);}
-int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
+int wdElems(struct WdStack *s) {return (s->sp);}
+int wdFree(struct WdStack *s) {return STACK_MAX_INDEX - (s->sp);}
 #ifdef TRACING_SUPPORTED
-  char* wsTrace(WDSTACK *s) {
+  char* wsTrace(struct WdStack *s) {
     if (wdElems(s) == 0) {
       return "";
     } else { // TODO show more elems
@@ -252,7 +335,7 @@ int wdFree(WDSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
   }
 #endif
 // ---------------------------------------------------------------------------
-WORD natPush(NAT x, NATSTACK *s) {
+WORD natPush(NAT x, struct NatStack *s) {
   if ((s->sp) < STACK_MAX_INDEX) {
     s->elem[(s->sp)++] = x;
     return SUCCESS;
@@ -260,7 +343,7 @@ WORD natPush(NAT x, NATSTACK *s) {
     return FAILURE;
   }
 }
-NAT natPop(NATSTACK *s) {
+NAT natPop(struct NatStack *s) {
   if ((s->sp)>0) {
     NAT nat = s->elem[--(s->sp)];
     return nat;
@@ -268,7 +351,7 @@ NAT natPop(NATSTACK *s) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD natPeekAt(NATSTACK *s, WORD index) {
+WORD natPeekAt(struct NatStack *s, WORD index) {
   if (index > 0 && (s->sp)>=index) {
     NAT nat = s->elem[(s->sp)-index];
     return nat;
@@ -276,10 +359,10 @@ WORD natPeekAt(NATSTACK *s, WORD index) {
     longjmp(exc_env, FAILURE);
   }
 }
-WORD natElems(NATSTACK *s) {return (s->sp);}
-WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
+WORD natElems(struct NatStack *s) {return (s->sp);}
+WORD natFree(struct NatStack *s) {return STACK_MAX_INDEX - (s->sp);}
 #ifdef TRACING_SUPPORTED
-  char* nsTrace(NATSTACK *s) {
+  char* nsTrace(struct NatStack *s) {
     if (natElems(s) == 0) {
       return "";
     } else { // TODO show more elems
@@ -288,26 +371,6 @@ WORD natFree(NATSTACK *s) {return STACK_MAX_INDEX - (s->sp);}
     }
   }
 #endif
-
-// ---------------------------------------------------------------------------
-// FVM structure -- other structures can be logically equivalent
-// ---------------------------------------------------------------------------
-typedef struct Fvm {
-  WORD dm[DM_WORDS]; // Harvard RAM data memory
-  WORD rm[RM_WORDS]; // Harvard ROM data memory
-  WORD hd[HD_WORDS]; // hold
-  WDSTACK ds; // data stack
-  WDSTACK ts; // temporary stack
-  WDSTACK cs; // counter stack
-  NATSTACK rs; // return stack
-  WORD readBuf;
-  WORD writeBuf;
-  #ifdef TRACING_SUPPORTED
-    WORD tracing;
-  #endif
-} FVM;
-// One global instance only (for program source-code portability)
-FVM fvm;
 
 // ---------------------------------------------------------------------------
 // Instruction set
@@ -333,7 +396,7 @@ void Tpoke()  { TRC("tpoke")
   }
 }
 void Tdrop()  { TRC("tdrop") wdDrop(&fvm.ts); }
-void Lit(WORD x) { TRC("lit  ") wdPush(x&METADATA_MASK,&fvm.ds); }
+void Lit(WORD x) { TRC("lit  ") wdPush(x&IMM_MASK,&fvm.ds); }
 void Drop()   { TRC("drop ") wdDrop(&fvm.ds); }
 void Swap()   { TRC("swap ") wdSwap(&fvm.ds); }
 void Over()   { TRC("over ") wdOver(&fvm.ds); }
@@ -617,8 +680,15 @@ void Give()   { TRC("give ")
     #endif
   }
 }
-void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
-void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
+
+#if FVMP == FVMP_STDIO
+  void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
+  void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
+#elif FVMP == FVMP_ARDUINO_IDE
+  void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
+  void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
+#endif
+
 void Inw()    { TRC("inw  ") // TODO these could all fail
 #if CPU_LITTLE_ENDIAN
   fread(&(fvm.readBuf),WD_BYTES,1,stdin);
@@ -710,9 +780,9 @@ void Troff()  { TRC("troff")
 #define mod Mod();
 #define inc Inc();
 #define dec Dec();
-#define or Or() ;
-#define and And();
-#define xor Xor();
+#define orr Or() ;
+#define andd And();
+#define xorr Xor();
 #define flip Flip();
 #define neg Neg();
 #define shl Shl();
@@ -787,62 +857,94 @@ void Troff()  { TRC("troff")
 // ---------------------------------------------------------------------------
 // I/O start-up
 // ---------------------------------------------------------------------------
-int startup(FVM *fvm) {
-  stdhldHandle = fopen(stdhldFilename, "r+b");
-  if (!stdhldHandle) return FAILURE;
-  if (fread(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
-    fclose(stdhldHandle);
-    return FAILURE;
+#if FVMP == FVMP_STDIO
+  int startup(struct Fvm *fvm) {
+    stdhldHandle = fopen(stdhldFilename, "r+b");
+    if (!stdhldHandle) return FAILURE;
+    if (fread(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+      fclose(stdhldHandle);
+      return FAILURE;
+    }
+    rmHandle = fopen(rmFilename, "rb");
+    if (!rmHandle) {
+      fclose(stdhldHandle);
+      return FAILURE;
+    }
+    if (fread(fvm->rm,WD_BYTES,RM_WORDS,rmHandle) < RM_WORDS) {
+      fclose(rmHandle);
+      fclose(stdhldHandle);
+      return FAILURE;
+    }
+    return SUCCESS;
   }
-  rmHandle = fopen(rmFilename, "rb");
-  if (!rmHandle) {
-    fclose(stdhldHandle);
-    return FAILURE;
+#elif FVMP == FVMP_ARDUINO_IDE
+  // TODO load stdhold and rom
+  int startup(struct Fvm *fvm) {
+    Serial.begin(9600);
+    while (!Serial) {}
+    Serial.println("About to run VM..."); // FIXME
+    Serial.flush();
   }
-  if (fread(fvm->rm,WD_BYTES,RM_WORDS,rmHandle) < RM_WORDS) {
-    fclose(rmHandle);
-    fclose(stdhldHandle);
-    return FAILURE;
-  }
-  return SUCCESS;
-}
+#endif
 
 // ---------------------------------------------------------------------------
 // I/O shutdown
-// --------------------------------------------------------------------------
-int shutdown(FVM *fvm) {
-  int shutdown = SUCCESS;
-  if (fclose(rmHandle) == EOF) shutdown = FAILURE;
-  if (fseek(stdhldHandle,0,SEEK_SET) !=0) {
-    shutdown = FAILURE;
-  } else {
-    if (fwrite(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+// ---------------------------------------------------------------------------
+#if FVMP == FVMP_STDIO
+  int shutdown(struct Fvm *fvm) {
+    int shutdown = SUCCESS;
+    if (fclose(rmHandle) == EOF) shutdown = FAILURE;
+    if (fseek(stdhldHandle,0,SEEK_SET) !=0) {
       shutdown = FAILURE;
+    } else {
+      if (fwrite(fvm->hd,WD_BYTES,HD_WORDS,stdhldHandle) < HD_WORDS) {
+        shutdown = FAILURE;
+      }
     }
+    if (fclose(stdhldHandle) == EOF) shutdown = FAILURE;
+    return shutdown;
   }
-  if (fclose(stdhldHandle) == EOF) shutdown = FAILURE;
-  return shutdown;
-}
+#elif FVMP == FVMP_ARDUINO_IDE
+  // TODO store stdhold and rom
+  int shutdown(struct Fvm *fvm) {
+    Serial.print("Ran VM. Exit code: ");  // FIXME
+    Serial.println(excode);  // FIXME
+    Serial.flush();
+    return SUCCESS;
+  }
+#endif
+
 
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
-int main() {
-  assert(WD_BYTES == 4);
-  assert(sizeof(WORD) == WD_BYTES);
-  assert(PMI <= MAX_PMI);
-  assert(DM_WORDS <= MAX_DM_WORDS);
-  assert(RM_WORDS <= MAX_RM_WORDS);
-  assert(HD_WORDS <= MAX_HD_WORDS);
-  assert(startup(&fvm) == SUCCESS);
-  if (!setjmp(exc_env)) {
-    exampleProgram();
-    assert(shutdown(&fvm) == SUCCESS);
-    return excode;
-  } else {
-    return FAILURE;
-  }
+int run() {
+    assert(WD_BYTES == 4);
+    assert(sizeof(WORD) == WD_BYTES);
+    assert(PMI <= MAX_PMI);
+    assert(DM_WORDS <= MAX_DM_WORDS);
+    assert(RM_WORDS <= MAX_RM_WORDS);
+    assert(HD_WORDS <= MAX_HD_WORDS);
+    assert(startup(&fvm) == SUCCESS);
+    if (!setjmp(exc_env)) {
+      runProgram();
+      assert(shutdown(&fvm) == SUCCESS);
+      return excode;
+    } else {
+      return FAILURE;
+    }
 }
+
+#if FVMP == FVMP_STDIO
+  int main() {
+    return run();
+  }
+#elif FVMP == FVMP_ARDUINO_IDE
+  void setup() {
+    run();
+  }
+  void loop() {}
+#endif
 
 // ---------------------------------------------------------------------------
 // Programming language -- very early experiments.
@@ -908,12 +1010,66 @@ int main() {
 #define endu ; } // See also 'endmod.c' and 'exampleProgram.fp2'
 #define atom { __label__ slabels
 #define enda ; } // Note: atom is by convention for now, not yet enforced.
+
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
-void exampleProgram() {
 
-#include "exampleProgram.c"
+#if FVMI == FVMI_NATIVE
+void runProgram() {
+  #include "exampleProgram.c"
+}
+#elif FVMI == FVMI_INTERPRETED
+
+  // FIXME opcode order
+  #define ADD   0x01000000
+  #define TRON  0x02000000
+  #define HALT  0x7f000000
+  #define IM    0x80000000
+
+void inline incPc() {
+  fvm.pc = pmsafe(++(fvm.pc));
+}
+
+WORD inline wordAtPc() {
+  return fvm.pm[fvm.pc];
+}
+
+void runProgram() {
+
+  // An example program
+  WORD program[] = {
+    TRON,IM|3,IM|5,ADD,HALT
+  };
+
+  // Load program
+  for (int i=0; i<(sizeof(program)/WD_BYTES); i++) {
+    fvm.pm[i] = program[i];
+  }
+
+  // Reset program counter
+  fvm.pc = 0;
+
+  // Run interpreter
+  while(1) {
+    WORD instr = wordAtPc();
+    incPc();
+
+    // Handle immediates
+    if (instr&FLIP_MASK) {
+      Lit(instr);
+      continue;
+    }
+    // Handle all other instructions
+    WORD opcode = instr & OPCODE_MASK;
+    switch(opcode) { // FIXME add range checks
+      case ADD:   Add(); break;
+      case TRON:  Tron(); break;
+      case HALT:  excode = SUCCESS; return; break;
+      default:    excode = ILLEGAL; return; break;
+    }
+  }
 
 }
+#endif
 // ===========================================================================

@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180510+
-Version:    pre-alpha-0.0.0.12+ for FVM 2.0
+Updated:    20180511+
+Version:    pre-alpha-0.0.0.13+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -85,8 +85,8 @@ jjump(m0_x0)/*main.run*/
 
 // ---------------------------------------------------------------------------
    /*m1*/
-  module(sk)
-  // sk: Stack Operations.
+  module(st)
+  // st: Stack Operations.
     atom
       m1_x1/*nip*/:
       // (n1 n2)(n1)
@@ -104,11 +104,11 @@ jjump(m0_x0)/*main.run*/
   #include "endmod.c"
 // ---------------------------------------------------------------------------
    /*m3*/
-  module(cn)
-  // cn: Constants.
+  module(co)
+  // co: Constants.
     atom
       m3_x1/*nan*/:
-        // ()(NaN)
+        // ()(nan)
         i(0x0)
         flip
         done
@@ -129,7 +129,7 @@ jjump(m0_x0)/*main.run*/
 
 // ---------------------------------------------------------------------------
    /*m2*/
-  #define z1(xn) m3_ ## xn /*cn*/
+  #define z1(xn) m3_ ## xn /*co*/
   module(ch)
   // ch: Character Operations.
   //  These act on whole words.
@@ -138,15 +138,15 @@ jjump(m0_x0)/*main.run*/
       m2_x1/*eq*/:
         // (n1 n2)(bool) equality
         jjmpe(z1(x2))/*true*/
-        jjump(z1(x2))/*false*/
+        jjump(z1(x3))/*false*/
     enda
   #include "endmod.c"
 
 // ---------------------------------------------------------------------------
    /*m0*/
-  #define z1(xn) m1_ ## xn /*sk*/
+  #define z1(xn) m1_ ## xn /*st*/
   #define z2(xn) m2_ ## xn /*ch*/
-  #define z3(xn) m3_ ## xn /*ut*/
+  #define z3(xn) m3_ ## xn /*co*/
   module(main)
     unit
       m0_x0/*run*/:

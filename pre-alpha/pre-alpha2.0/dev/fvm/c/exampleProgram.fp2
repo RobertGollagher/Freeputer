@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    exampleProgram.fp2
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20180503
-Updated:    20180510+
-Version:    pre-alpha-0.0.0.12+ for FVM 2.0
+Updated:    20180511+
+Version:    pre-alpha-0.0.0.13+ for FVM 2.0
 
 This is an example program using the 'fvm2.c' virtual machine definition.
 
@@ -58,8 +58,8 @@ launch
 
 // ---------------------------------------------------------------------------
   as(m1)
-  module(sk)
-  // sk: Stack Operations.
+  module(st)
+  // st: Stack Operations.
     atom
       PUB(x1,nip):
       // (n1 n2)(n1)
@@ -77,11 +77,11 @@ launch
   endm
 // ---------------------------------------------------------------------------
   as(m3)
-  module(cn)
-  // cn: Constants.
+  module(co)
+  // co: Constants.
     atom
       PUB(x1,nan):
-        // ()(NaN)
+        // ()(nan)
         i(0x0)
         flip
         done
@@ -102,7 +102,7 @@ launch
 
 // ---------------------------------------------------------------------------
   as(m2)
-  use(z1,m3,cn)
+  use(z1,m3,co)
   module(ch)
   // ch: Character Operations.
   //  These act on whole words.
@@ -111,15 +111,15 @@ launch
       PUB(x1,eq):
         // (n1 n2)(bool) equality
         jmpe(z1.x2,true)
-        jump(z1.x2,false)
+        jump(z1.x3,false)
     enda
   endm
 
 // ---------------------------------------------------------------------------
   as(m0)
-  use(z1,m1,sk)
+  use(z1,m1,st)
   use(z2,m2,ch)
-  use(z3,m3,ut)
+  use(z3,m3,co)
   module(main)
     unit
       PUB(x0,run):
