@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180513+
-Version:    pre-alpha-0.0.8.27+ for FVM 2.0
+Version:    pre-alpha-0.0.8.28+ for FVM 2.0
 =======
 
                               This Edition:
@@ -37,8 +37,8 @@ Version:    pre-alpha-0.0.8.27+ for FVM 2.0
 
   Currently experimenting with language format and adding interpreter.
 
-  TODO expand interpreter to support the full instruction set.
-  Then port to JavaScript and from there to Node.js.
+  TODO port this latest VM design to JavaScript and from there to Node.js.
+  And also update the JavaScript compiler accordingly.
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -51,7 +51,7 @@ Version:    pre-alpha-0.0.8.27+ for FVM 2.0
 // ---------------------------------------------------------------------------
 #define FVMP_STDIO 0        // gcc using <stdio.h>
 #define FVMP_ARDUINO_IDE 1  // Arduino IDE (supports FVMI_INTERPRETED only)
-#define FVMP FVMP_ARDUINO_IDE
+#define FVMP FVMP_STDIO
 
 // ---------------------------------------------------------------------------
 // Choose implementation type
@@ -106,7 +106,7 @@ Version:    pre-alpha-0.0.8.27+ for FVM 2.0
       #define TRC(mnem) if (fvm.tracing) {  \
         fprintf(stderr, "%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
           fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
-          wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
+          wsTrace(&fvm.ts), wsTrace(&fvm.rs)); }
     #else
       #define TRC(mnem)
     #endif
@@ -125,7 +125,7 @@ Version:    pre-alpha-0.0.8.27+ for FVM 2.0
       #define TRC(mnem) if (fvm.tracing) {  \
         sprintf(traceFmt, "%08x %s / %s / ( %s ) [ %s ] { %s }", \
           fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
-          wsTrace(&fvm.ts), nsTrace(&fvm.rs)); } \
+          wsTrace(&fvm.ts), wsTrace(&fvm.rs)); } \
       Serial.println(traceFmt);
     #else
       #define TRC(mnem)
@@ -164,7 +164,7 @@ Version:    pre-alpha-0.0.8.27+ for FVM 2.0
 #define HD_WORDS  0x100  // Must be some power of 2 <= MAX_HD_WORDS.
 #define HD_MASK   HD_WORDS-1
 #define MAX_PMI 0x1000000 // <= 2^24 by design.
-#define PMI MAX_PMI // Must be some power of 2 <= MAX_PMI.
+#define PM_CELLS MAX_PMI // Must be some power of 2 <= MAX_PMI.
 
 // FIXME only for FVMI_INTERPRETED, also add assertions
 #define PM_WORDS  0x100
@@ -231,6 +231,10 @@ typedef struct Fvm {
   #if FVMI ==FVMI_INTERPRETED
     WORD pc; // program counter
     WORD pm[DM_WORDS]; // Harvard program memory
+    struct WdStack rs; // return stack
+  #endif
+  #if FVMI == FVMI_NATIVE
+    struct NatStack rs; // return stack
   #endif
   WORD dm[DM_WORDS]; // Harvard RAM data memory
   WORD rm[RM_WORDS]; // Harvard ROM data memory
@@ -238,7 +242,6 @@ typedef struct Fvm {
   struct WdStack ds; // data stack
   struct WdStack ts; // temporary stack
   struct WdStack cs; // counter stack
-  struct NatStack rs; // return stack
   WORD readBuf;
   WORD writeBuf;
   #ifdef TRACING_SUPPORTED
@@ -749,9 +752,14 @@ void Tsa()    { TRC("tsa  ") wdPush(wdElems(&fvm.ts),&fvm.ds); }
 void Tse()    { TRC("tse  ") wdPush(wdFree(&fvm.ts),&fvm.ds); }
 void Csa()    { TRC("csa  ") wdPush(wdElems(&fvm.cs),&fvm.ds); }
 void Cse()    { TRC("cse  ") wdPush(wdFree(&fvm.cs),&fvm.ds); }
-void Rsa()    { TRC("rsa  ") wdPush(natElems(&fvm.rs),&fvm.ds); }
-void Rse()    { TRC("rse  ") wdPush(natFree(&fvm.rs),&fvm.ds); }
-void Pmi()    { TRC("pmi  ") wdPush(PMI,&fvm.ds); }
+#if FVMI == FVMI_NATIVE
+  void Rsa()    { TRC("rsa  ") wdPush(natElems(&fvm.rs),&fvm.ds); }
+  void Rse()    { TRC("rse  ") wdPush(natFree(&fvm.rs),&fvm.ds); }
+#elif FVMI == FVMI_INTERPRETED
+  void Rsa()    { TRC("rsa  ") wdPush(wdFree(&fvm.rs),&fvm.ds); }
+  void Rse()    { TRC("rse  ") wdPush(wdFree(&fvm.rs),&fvm.ds); }
+#endif
+void Pmi()    { TRC("pmi  ") wdPush(PM_CELLS,&fvm.ds); }
 void Dmw()    { TRC("dmw  ") wdPush(DM_WORDS,&fvm.ds); }
 void Rmw()    { TRC("rmw  ") wdPush(RM_WORDS,&fvm.ds); }
 void Hw()     { TRC("hw   ") wdPush(HD_WORDS,&fvm.ds); }
@@ -776,7 +784,7 @@ void Troff()  { TRC("troff")
 #define done { TRC("done ") goto *(natPop(&fvm.rs)); }
 // Repeat if decremented counter not NaN and > 0
 #define rpt(label) { TRC("rpt  ") \
-  WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && n1 > 0)  goto label; }
+  WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && (n1 > 0)) goto label; }
 #define cpush Cpush();
 #define cpop Cpop();
 #define cpeek Cpeek();
@@ -821,30 +829,22 @@ void Troff()  { TRC("troff")
 // Jump if n is NaN. Preserve n.
 #define jjnan(label) { TRC("jnan ") \
   if (wdPeek(&fvm.ds) == NaN) goto label; }
-
-
 // Jump if either n1 or n2 is NaN. Preserve both.
 #define jjorn(label) { TRC("jorn ") \
   WORD n1 = wdPeek(&fvm.ds); WORD n2 = wdPeekAt(&fvm.ds,2); \
   if ((n1 == NaN) || (n2 == NaN)) goto label; }
-
 // Jump if n1 and n2 are both NaN. Preserve both.
 #define jjann(label) { TRC("jann ") \
   WORD n1 = wdPeek(&fvm.ds); WORD n2 = wdPeekAt(&fvm.ds,2); \
   if ((n1 == NaN) && (n2 == NaN)) goto label; }
-
 // Jump if n2 == n1 and neither are NaN. Preserve n2.
 #define jjnne(label) { TRC("jnne ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) goto label; }
-
 // Jump if n2 == n1 (even if they are NaN). Preserve n2.
 #define jjmpe(label) { TRC("jmpe ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
   if (n1 == n2) goto label; }
-
-
-
 // Jump if n is 0. Preserve n.
 #define jjnnz(label) { TRC("jnnz ") \
   if (wdPeek(&fvm.ds) == 0) goto label; }
@@ -853,11 +853,11 @@ void Troff()  { TRC("troff")
   WORD n1 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n1 > 0)) goto label; }
 // Jump if n2 > n1 and neither are NaN. Preserve n2.
-#define jjnng(label) { TRC("jnne ") \
+#define jjnng(label) { TRC("jnng ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 < n2)) goto label; }
 // Jump if n2 < n1 and neither are NaN. Preserve n2.
-#define jjnnl(label) { TRC("jnne ") \
+#define jjnnl(label) { TRC("jnnl ") \
   WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) goto label; }
 #define halt { TRC("halt ") excode = SUCCESS; return; }
@@ -946,7 +946,7 @@ void Troff()  { TRC("troff")
 int run() {
     assert(WD_BYTES == 4);
     assert(sizeof(WORD) == WD_BYTES);
-    assert(PMI <= MAX_PMI);
+    assert(PM_CELLS <= MAX_PMI);
     assert(DM_WORDS <= MAX_DM_WORDS);
     assert(RM_WORDS <= MAX_RM_WORDS);
     assert(HD_WORDS <= MAX_HD_WORDS);
@@ -1046,12 +1046,78 @@ void runProgram() {
 }
 #elif FVMI == FVMI_INTERPRETED
 
-  // FIXME opcode order
-  #define NOP   0x00000000
-  #define ADD   0x01000000
-  #define TRON  0x02000000
-  #define HALT  0x7f000000
+  // FIXME rationalize opcode order (these initial allocations are arbitrary)
+  #define NOOP  0x00000000
+  #define DO    0x01000000
+  #define DONE  0x02000000
+  #define RPT   0x03000000
+  #define CPUSH 0x04000000
+  #define CPOP  0x05000000
+  #define CPEEK 0x06000000
+  #define CDROP 0x07000000
+  #define TPUSH 0x08000000 // note: 0x0000000d available
+  #define TPOP  0x09000000
+  #define TPEEK 0x0a000000
+  #define TOKE  0x0b000000
+  #define TDROP 0x0c000000
   #define IM    0x80000000
+  #define DROP  0x0e000000
+  #define SWAP  0x0f000000
+  #define OVER  0x10000000
+  #define ROT   0x11000000
+  #define DUP   0x12000000
+  #define GET   0x13000000
+  #define PUT   0x14000000
+  #define GETI  0x15000000
+  #define PUTI  0x16000000
+  #define ROM   0x17000000
+  #define ADD   0x18000000
+  #define SUB   0x19000000
+  #define MUL   0x1a000000
+  #define DIV   0x1b000000
+  #define MOD   0x1c000000
+  #define INC   0x1d000000
+  #define DEC   0x1e000000
+  #define OR    0x1f000000
+  #define AND   0x20000000
+  #define XOR   0x21000000
+  #define FLIP  0x22000000
+  #define NEG   0x23000000
+  #define SHL   0x24000000
+  #define SHR   0x25000000
+  #define HOLD  0x26000000
+  #define GIVE  0x27000000
+  #define IN    0x28000000
+  #define OUT   0x29000000
+  #define INW   0x2a000000
+  #define OUTW  0x2b000000
+  #define JUMP  0x2c000000
+  #define JNAN  0x2d000000
+  #define JORN  0x2e000000
+  #define JANN  0x2f000000
+  #define JNNE  0x30000000
+  #define JMPE  0x31000000
+  #define JNNZ  0x32000000
+  #define JNNP  0x33000000
+  #define JNNG  0x34000000
+  #define JNNL  0x35000000
+  #define HALT  0x36000000
+  #define FAIL  0x37000000
+  #define SAFE  0x38000000
+  #define DSA   0x39000000
+  #define DSE   0x3a000000
+  #define TSA   0x3b000000
+  #define TSE   0x3c000000
+  #define CSA   0x3d000000
+  #define CSE   0x3e000000
+  #define RSA   0x3f000000
+  #define RSE   0x40000000
+  #define PMI   0x41000000
+  #define DMW   0x42000000
+  #define RMW   0x43000000
+  #define HW    0x44000000
+  #define TRON  0x45000000
+  #define TROFF 0x46000000
 
 void inline incPc() {
   fvm.pc = pmsafe(++(fvm.pc));
@@ -1065,7 +1131,7 @@ void runProgram() {
 
   // An example program
   WORD program[] = {
-    TRON,IM|3,IM|5,ADD,HALT
+    TRON,IM|7,IM|11,ADD,HALT
   };
 
   // Load program
@@ -1088,12 +1154,187 @@ void runProgram() {
     }
     // Handle all other instructions
     WORD opcode = instr & OPCODE_MASK;
-    switch(opcode) { // FIXME add boundary checks
-      case NOP:   Noop(); break;
+    switch(opcode) { // FIXME add boundary traps
+
+      case NOOP:  Noop(); break;
+      case DO:    {
+                    TRC("do   ")
+                    wdPush(fvm.pc,&fvm.rs);
+                    fvm.pc = instr&PM_MASK;
+                  }
+                  break;
+      case DONE:  {
+                    TRC("done ")
+                    fvm.pc = wdPop(&fvm.rs);
+                  }
+                  break;
+      case RPT:   {
+                    TRC("rpt  ")
+                    WORD n1 = wdPeekAndDec(&fvm.cs);
+                    if ((n1 != NaN) && (n1 > 0)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case CPUSH: Cpush(); break;
+      case CPOP:  Cpop(); break;
+      case CPEEK: Cpeek(); break;
+      case CDROP: Cdrop(); break;
+      case TPUSH: Tpush(); break;
+      case TPOP:  Tpop();  break;
+      case TPEEK: Tpeek(); break;
+      case TOKE:  Tpoke(); break;
+      case TDROP: Tdrop(); break;
+      case DROP:  Drop(); break;
+      case SWAP:  Swap(); break;
+      case OVER:  Over(); break;
+      case ROT:   Rot(); break;
+      case DUP:   Dup(); break;
+      case GET:   Get(); break;
+      case PUT:   Put(); break;
+      case GETI:  Geti(); break;
+      case PUTI:  Puti(); break;
+      case ROM:   Rom(); break;
       case ADD:   Add(); break;
+      case SUB:   Sub(); break;
+      case MUL:   Mul(); break;
+      case DIV:   Div(); break;
+      case MOD:   Mod(); break;
+      case INC:   Inc(); break;
+      case DEC:   Dec(); break;
+      case OR:    Or() ; break;
+      case AND:   And(); break;
+      case XOR:   Xor(); break;
+      case FLIP:  Flip(); break;
+      case NEG:   Neg(); break;
+      case SHL:   Shl(); break;
+      case SHR:   Shr(); break;
+      case HOLD:  Hold(); break;
+      case GIVE:  Give(); break;
+      case IN:    In(); break;
+      case OUT:   Out(); break;
+      case INW:   Inw(); break;
+      case OUTW:  Outw(); break;
+      case JUMP:  {
+                    TRC("jump ")
+                    fvm.pc = instr&PM_MASK;
+                  }
+                  break;
+      case JNAN:  {
+                    TRC("jnan ")
+                    if (wdPeek(&fvm.ds) == NaN) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JORN:  {
+                    TRC("jorn ")
+                    WORD n1 = wdPeek(&fvm.ds);
+                    WORD n2 = wdPeekAt(&fvm.ds,2);
+                    if ((n1 == NaN) || (n2 == NaN)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JANN:  {
+                    TRC("jann ")
+                    WORD n1 = wdPeek(&fvm.ds);
+                    WORD n2 = wdPeekAt(&fvm.ds,2);
+                    if ((n1 == NaN) && (n2 == NaN)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JNNE:  {
+                    TRC("jnne ")
+                    WORD n1 = wdPeek(&fvm.ds);
+                    WORD n2 = wdPeekAt(&fvm.ds,2);
+                    if ((n1 != NaN) && (n2 != NaN) && (n1 == n2)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JMPE:  {
+                    TRC("jmpe ")
+                    WORD n1 = wdPeek(&fvm.ds);
+                    WORD n2 = wdPeekAt(&fvm.ds,2);
+                    if (n1 == n2) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JNNZ:  {
+                    TRC("jnnz ")
+                    if (wdPeek(&fvm.ds) == 0) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JNNP:  {
+                    TRC("jnnp ")
+                    WORD n1 = wdPeek(&fvm.ds);
+                    if ((n1 != NaN) && (n1 > 0)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JNNG:  {
+                    TRC("jnng ")
+                    WORD n1 = wdPop(&fvm.ds);
+                    WORD n2 = wdPop(&fvm.ds);
+                    if ((n1 != NaN) && (n2 != NaN) && (n1 < n2)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case JNNL:  {
+                    TRC("jnnl ")
+                    WORD n1 = wdPop(&fvm.ds);
+                    WORD n2 = wdPop(&fvm.ds);
+                    if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case HALT:  {
+                    TRC("halt ")
+                    excode = SUCCESS;
+                    return;
+                  }
+                  break;
+      case FAIL:  {
+                    TRC("fail ")
+                    excode = FAILURE;
+                    return;
+                  }
+                  break;
+      case SAFE:  {
+                    TRC("safe ")
+                    if (wdElems(&fvm.ds) < 2) {
+                      fvm.pc = instr&PM_MASK;
+                    }
+                  }
+                  break;
+      case DSA:   Dsa(); break;
+      case DSE:   Dse(); break;
+      case TSA:   Tsa(); break;
+      case TSE:   Tse(); break;
+      case CSA:   Csa(); break;
+      case CSE:   Cse(); break;
+      case RSA:   Rsa(); break;
+      case RSE:   Rse(); break;
+      case PMI:   Pmi(); break;
+      case DMW:   Dmw(); break;
+      case RMW:   Rmw(); break;
+      case HW:    Hw() ; break;
       case TRON:  Tron(); break;
-      case HALT:  TRC("halt ") excode = SUCCESS; return; break;
-      default:    TRC("ILLEG") excode = ILLEGAL; return; break;
+      case TROFF: Troff(); break;
+      default:    {
+                    TRC("ILLEG")
+                    excode = ILLEGAL;
+                    return;
+                  }
+                  break;
     }
   }
 
