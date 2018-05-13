@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180513+
-Version:    pre-alpha-0.0.8.28+ for FVM 2.0
+Version:    pre-alpha-0.0.8.29+ for FVM 2.0
 =======
 
                               This Edition:
@@ -90,7 +90,7 @@ Version:    pre-alpha-0.0.8.28+ for FVM 2.0
 // ---------------------------------------------------------------------------
 // Tracing
 // ---------------------------------------------------------------------------
-#define TRACING_SUPPORTED // Uncomment this line to support tracing
+//#define TRACING_SUPPORTED // Uncomment this line to support tracing
 #if FVMP == FVMP_STDIO
   #if FVMI == FVMI_NATIVE
     #ifdef TRACING_SUPPORTED
@@ -1047,7 +1047,7 @@ void runProgram() {
 #elif FVMI == FVMI_INTERPRETED
 
   // FIXME rationalize opcode order (these initial allocations are arbitrary)
-  #define NOOP  0x00000000
+  #define NOP  0x00000000
   #define DO    0x01000000
   #define DONE  0x02000000
   #define RPT   0x03000000
@@ -1131,7 +1131,13 @@ void runProgram() {
 
   // An example program
   WORD program[] = {
-    TRON,IM|7,IM|11,ADD,HALT
+    // TRON,IM|7,IM|11,ADD,HALT
+
+    // Performance test for interpreter
+    // on 64-bit desktop: 0x7fffffff nop repeats:
+    // - in 21.2 sec: gcc -03
+    // - in 20.5 sec: gcc -march=native -mfpmath=sse -Ofast -flto -funroll-loops
+    IM|0x7fffffff,CPUSH,NOP,RPT|2,HALT
   };
 
   // Load program
@@ -1156,7 +1162,7 @@ void runProgram() {
     WORD opcode = instr & OPCODE_MASK;
     switch(opcode) { // FIXME add boundary traps
 
-      case NOOP:  Noop(); break;
+      case NOP:   Noop(); break;
       case DO:    {
                     TRC("do   ")
                     wdPush(fvm.pc,&fvm.rs);

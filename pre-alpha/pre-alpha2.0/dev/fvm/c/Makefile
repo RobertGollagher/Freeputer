@@ -4,8 +4,8 @@
 # Program:    A rudimentary 'Makefile' for 'tvm.c' SRM implementation
 # Author :    Robert Gollagher   robert.gollagher@freeputer.net
 # Created:    2017
-# Updated:    20170729
-# Version:    pre-alpha-0.0.0.3
+# Updated:    20180513
+# Version:    pre-alpha-0.0.0.4
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,6 +52,8 @@ tvm32: $(DEPS)
 	$(CC) -o $(OBJ) $(SRCS) -m32
 good: $(DEPS)
 	$(CC) -o $(OBJ) $(SRCS) -O3
+fast: $(DEPS)
+	$(CC) -march=native -mfpmath=sse -Ofast -flto -funroll-loops -o $(OBJ) $(SRCS)
 cpp: $(DEPS)
 	$(CPPC) -o $(OBJ) $(SRCS)
 x86: $(DEPS)
