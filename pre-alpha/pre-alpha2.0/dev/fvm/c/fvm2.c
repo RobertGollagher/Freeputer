@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0+
 Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
-Updated:    20180512+
-Version:    pre-alpha-0.0.8.26+ for FVM 2.0
+Updated:    20180513+
+Version:    pre-alpha-0.0.8.27+ for FVM 2.0
 =======
 
                               This Edition:
@@ -37,8 +37,7 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
 
   Currently experimenting with language format and adding interpreter.
 
-  TODO NEXT test interpreted version on Arduino.
-  Then expand interpreter to support the full instruction set.
+  TODO expand interpreter to support the full instruction set.
   Then port to JavaScript and from there to Node.js.
 
 ==============================================================================
@@ -51,8 +50,8 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
 // Choose target platform
 // ---------------------------------------------------------------------------
 #define FVMP_STDIO 0        // gcc using <stdio.h>
-#define FVMP_ARDUINO_IDE 1  // Arduino IDE
-#define FVMP FVMP_STDIO
+#define FVMP_ARDUINO_IDE 1  // Arduino IDE (supports FVMI_INTERPRETED only)
+#define FVMP FVMP_ARDUINO_IDE
 
 // ---------------------------------------------------------------------------
 // Choose implementation type
@@ -65,6 +64,11 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
   Solution: You must set FVMI to FVMI_NATIVE or FVMI_INTERPRETED.\n \
   Details: See 'fvm2.c' source."
 #endif
+#if FVMI == FVMI_NATIVE && FVMP == FVMP_ARDUINO_IDE
+  #pragma GCC error "Problem: Invalid implementation type for compilation.\n \
+  Solution: For FVMP_ARDUINO_IDE you must set FVMI to FVMI_INTERPRETED.\n \
+  Details: See 'fvm2.c' source."
+#endif
 
 // ---------------------------------------------------------------------------
 // Dependencies
@@ -73,8 +77,6 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
   #include <stdio.h>
 #elif FVMP == FVMP_ARDUINO_IDE
   #include <Arduino.h>
-  /*int getchar() { return Serial.read(); }
-  int putchar(int c) { Serial.write(c); }*/
 #else
   #pragma GCC error "Problem: Invalid target platform for compilation.\n \
   Solution: You must set FVMP to FVMP_STDIO or FVMP_ARDUINO_IDE.\n \
@@ -89,23 +91,45 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
 // Tracing
 // ---------------------------------------------------------------------------
 #define TRACING_SUPPORTED // Uncomment this line to support tracing
-#if FVMI == FVMI_NATIVE
-  #ifdef TRACING_SUPPORTED
-    #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
-      fprintf(stderr, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
-        &&ip, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
-        wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
-  #else
-    #define TRC(mnem)
+#if FVMP == FVMP_STDIO
+  #if FVMI == FVMI_NATIVE
+    #ifdef TRACING_SUPPORTED
+      #define TRC(mnem) if (fvm.tracing) { __label__ ip; ip: \
+        fprintf(stderr, "*%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
+          &&ip, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
+          wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
+    #else
+      #define TRC(mnem)
+    #endif
+  #elif FVMI == FVMI_INTERPRETED
+    #ifdef TRACING_SUPPORTED
+      #define TRC(mnem) if (fvm.tracing) {  \
+        fprintf(stderr, "%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
+          fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
+          wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
+    #else
+      #define TRC(mnem)
+    #endif
   #endif
-#elif FVMI == FVMI_INTERPRETED
-  #ifdef TRACING_SUPPORTED
-    #define TRC(mnem) if (fvm.tracing) {  \
-      fprintf(stderr, "%08x %s / %s / ( %s ) [ %s ] { %s } \n", \
-        fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
-        wsTrace(&fvm.ts), nsTrace(&fvm.rs)); }
-  #else
-    #define TRC(mnem)
+#elif FVMP == FVMP_ARDUINO_IDE
+  #if FVMI == FVMI_NATIVE
+    #ifdef TRACING_SUPPORTED
+      #pragma GCC error \
+      "Unsupported configuration: Arduino+Native+Tracing."
+    #else
+      #define TRC(mnem)
+    #endif
+  #elif FVMI == FVMI_INTERPRETED
+    #ifdef TRACING_SUPPORTED
+      char traceFmt[80]; // WARNING: only barely wide enough for traceFmt!
+      #define TRC(mnem) if (fvm.tracing) {  \
+        sprintf(traceFmt, "%08x %s / %s / ( %s ) [ %s ] { %s }", \
+          fvm.pc, mnem, wsTrace(&fvm.cs), wsTrace(&fvm.ds), \
+          wsTrace(&fvm.ts), nsTrace(&fvm.rs)); } \
+      Serial.println(traceFmt);
+    #else
+      #define TRC(mnem)
+    #endif
   #endif
 #endif
 
@@ -125,7 +149,7 @@ Version:    pre-alpha-0.0.8.26+ for FVM 2.0
 #define SHIFT_MASK    0x0000001f
 #define SUCCESS 0
 #define FAILURE 1
-#define ILLEGAL 2 // FIXME
+#define ILLEGAL FAILURE
 #define FALSE 0
 #define TRUE 1
 #define STACK_CAPACITY 256
@@ -685,8 +709,8 @@ void Give()   { TRC("give ")
   void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
   void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
 #elif FVMP == FVMP_ARDUINO_IDE
-  void In()     { TRC("in   ") wdPush(getchar(), &fvm.ds); }
-  void Out()    { TRC("out  ") putchar(wdPop(&fvm.ds)); }
+  void In()     { TRC("in   ") wdPush(Serial.read(), &fvm.ds); }
+  void Out()    { TRC("out  ") Serial.write(wdPop(&fvm.ds)); }
 #endif
 
 void Inw()    { TRC("inw  ") // TODO these could all fail
@@ -884,6 +908,7 @@ void Troff()  { TRC("troff")
     while (!Serial) {}
     Serial.println("About to run VM..."); // FIXME
     Serial.flush();
+    return SUCCESS;
   }
 #endif
 
@@ -1022,6 +1047,7 @@ void runProgram() {
 #elif FVMI == FVMI_INTERPRETED
 
   // FIXME opcode order
+  #define NOP   0x00000000
   #define ADD   0x01000000
   #define TRON  0x02000000
   #define HALT  0x7f000000
@@ -1062,11 +1088,12 @@ void runProgram() {
     }
     // Handle all other instructions
     WORD opcode = instr & OPCODE_MASK;
-    switch(opcode) { // FIXME add range checks
+    switch(opcode) { // FIXME add boundary checks
+      case NOP:   Noop(); break;
       case ADD:   Add(); break;
       case TRON:  Tron(); break;
-      case HALT:  excode = SUCCESS; return; break;
-      default:    excode = ILLEGAL; return; break;
+      case HALT:  TRC("halt ") excode = SUCCESS; return; break;
+      default:    TRC("ILLEG") excode = ILLEGAL; return; break;
     }
   }
 
