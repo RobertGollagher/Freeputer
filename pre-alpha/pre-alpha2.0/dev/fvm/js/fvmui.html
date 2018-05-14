@@ -5,8 +5,8 @@
  * File:       fvmui.html
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.62+ for FVM 2.0
+ * Updated:    20180514+
+ * Version:    pre-alpha-0.0.1.63+ for FVM 2.0
 -->
 <!DOCTYPE html>
 <html>
@@ -25,9 +25,9 @@ fvmSrc.textContent = prgSrc;
 //var prg = Uint8Array.from(atob(prgBase64), c => c.charCodeAt(0)).buffer;
 
   // A tiny default program
-  const TRON  = 0x33000000|0;
+  const TRON  = 0x45000000|0;
   const NOP   = 0x00000000|0;
-  const HALT  = 0x1c000000|0;
+  const HALT  = 0x36000000|0;
   var prg = new Uint32Array([TRON,NOP,HALT]).buffer;
   modFVMUI = modFVMUI_init(prg);
 };
@@ -185,7 +185,7 @@ function modFVMUI_init(prg) { 'use strict';
 
 <body>
   <div class="fvmDiv">
-    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.62+</h2>
+    <h2>FVM2 <span class="fvmWarning">Incomplete</span> pre-alpha-0.0.1.63+</h2>
 
     <table class="fvmMaxed">
        <tr>

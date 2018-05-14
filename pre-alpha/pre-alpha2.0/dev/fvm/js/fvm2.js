@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.62+ for FVM 2.0
+ * Updated:    20180514+
+ * Version:    pre-alpha-0.0.1.63+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -23,6 +23,10 @@
  * Uses SharedArrayBuffer (ES2017), so on Firefox 46-54 about:config needs:
  *    javascript.options.shared_memory = true
  *
+ * WARNING: The new instruction set has just been ported from 'fvm2.c'
+ * to this 'fvm2.js' implementation and is largely untested.
+ * WARNING: NaN functionality not yet ported.
+ *
  * ===========================================================================
  *
  * WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -38,7 +42,6 @@ var modFVM = (function () { 'use strict';
   const WD_BYTES = 4
   const WD_BITS = WD_BYTES*8
   const MSb = 0x80000000|0 // Bit mask for most significant bit
-  const IM = MSb
   const METADATA_MASK = 0x7fffffff|0 // 31 bits
   const OPCODE_MASK   = 0xff000000|0
   const BYTE_MASK     = 0x000000ff|0
@@ -46,20 +49,11 @@ var modFVM = (function () { 'use strict';
   const SUCCESS = 0
   const FAILURE = 1
   const ILLEGAL = 2
-  const BEYOND = 3
+  const BEYOND = FAILURE
 
   const INT_MAX =  2147483647;
   const INT_MIN = -2147483648;
-
-  const MATH_OVERFLOW = 21
-  const DS_UNDERFLOW = 31
-  const DS_OVERFLOW = 32
-  const RS_UNDERFLOW = 33
-  const RS_OVERFLOW = 34
-  const TS_UNDERFLOW = 35
-  const TS_OVERFLOW = 36
-  const CS_UNDERFLOW = 37
-  const CS_OVERFLOW = 38
+  const NAN = 0x80000000
 
   const XS = 0x100 // 1 kB
   const  S = 0x1000 // 16 kB
@@ -76,159 +70,158 @@ var modFVM = (function () { 'use strict';
   const RM_MASK  = RM_WORDS-1
 
   const WORD_BYTES = 4;
-  const WORD_PWR = 2; // FIXME necessary any more?
+  const WORD_PWR = 2;
   const STACK_ELEMS = 256;
   const STACK_BYTES = STACK_ELEMS << WORD_PWR;
   const STACK_1 = STACK_BYTES - WORD_BYTES;
 
-  const TPUSH = 0x54000000|0
-  const TPOP  = 0x55000000|0
-  const TPOKE = 0x51000000|0
-  const TPEEK = 0x52000000|0
-  const CPEEK = 0x53000000|0
-  const TDROP = 0x59000000|0
-  const CPUSH = 0x56000000|0
-  const CPOP  = 0x57000000|0
-  const CDROP = 0x58000000|0
+  // FIXME rationalize opcode order (these initial allocations are arbitrary)
   const NOP   = 0x00000000|0
-  const MUL   = 0x30000000|0
-  const DIV   = 0x31000000|0
-  const MOD   = 0x32000000|0
-  const TRON  = 0x33000000|0
-  const TROFF = 0x34000000|0
-  const HOLD  = 0x35000000|0
-  const GIVE  = 0x36000000|0
-  const ADD   = 0x01000000|0
-  const SUB   = 0x02000000|0
-  const OR    = 0x03000000|0
-  const AND   = 0x04000000|0
-  const XOR   = 0x05000000|0
-  const SHL   = 0x06000000|0
-  const SHR   = 0x07000000|0
-  const GET   = 0x08000000|0
-  const PUT   = 0x09000000|0
-  const GETI  = 0x0a000000|0
-  const PUTI  = 0x0b000000|0
-  const ROM   = 0x0c000000|0
-  const INC   = 0x10000000|0
-  const DEC   = 0x11000000|0
-  const FLIP  = 0x12000000|0
-  const NEG   = 0x13000000|0
-  const HALT  = 0x1c000000|0
-  const JMPZ  = 0x1d000000|0 // Complex
-  const JMPB  = 0x1e000000|0
-  const JMPE  = 0x1f000000|0
-  const JMPN  = 0x20000000|0
-  const JMPG  = 0x21000000|0
-  const JMPL  = 0x22000000|0
-  const JUMP  = 0x23000000|0
-  const RPT   = 0x24000000|0
-  const IN    = 0x26000000|0
-  const OUT   = 0x27000000|0
-  const PMI   = 0x28000000|0
-  const DMW   = 0x29000000|0
-  const RMW   = 0x41000000|0
-  const HW    = 0x42000000|0
-  const FAIL  = 0x40000000|0
-  const CALL  = 0x60000000|0
-  const RET   = 0x61000000|0
-  const DSA   = 0x62000000|0
-  const DSE   = 0x63000000|0
-  const TSA   = 0x64000000|0
-  const TSE   = 0x65000000|0
-  const CSA   = 0x66000000|0
-  const CSE   = 0x67000000|0
-  const RSA   = 0x68000000|0
-  const RSE   = 0x69000000|0
-  const DROP  = 0x70000000|0
-  const SWAP  = 0x71000000|0
-  const OVER  = 0x72000000|0
-  const ROT   = 0x73000000|0
-  const DUP   = 0x74000000|0
-  const CATCH = 0x76000000|0
-  const LIT   = 0x80000000|0
+  const DO    = 0x01000000|0
+  const DONE  = 0x02000000|0
+  const RPT   = 0x03000000|0
+  const CPUSH = 0x04000000|0
+  const CPOP  = 0x05000000|0
+  const CPEEK = 0x06000000|0
+  const CDROP = 0x07000000|0
+  const TPUSH = 0x08000000|0
+  const TPOP  = 0x09000000|0
+  const TPEEK = 0x0a000000|0
+  const TPOKE = 0x0b000000|0
+  const TDROP = 0x0c000000|0
+  const IM    = 0x80000000|0  // note: 0x0000000d available
+  const DROP  = 0x0e000000|0
+  const SWAP  = 0x0f000000|0
+  const OVER  = 0x10000000|0
+  const ROT   = 0x11000000|0
+  const DUP   = 0x12000000|0
+  const GET   = 0x13000000|0
+  const PUT   = 0x14000000|0
+  const GETI  = 0x15000000|0
+  const PUTI  = 0x16000000|0
+  const ROM   = 0x17000000|0
+  const ADD   = 0x18000000|0
+  const SUB   = 0x19000000|0
+  const MUL   = 0x1a000000|0
+  const DIV   = 0x1b000000|0
+  const MOD   = 0x1c000000|0
+  const INC   = 0x1d000000|0
+  const DEC   = 0x1e000000|0
+  const OR    = 0x1f000000|0
+  const AND   = 0x20000000|0
+  const XOR   = 0x21000000|0
+  const FLIP  = 0x22000000|0
+  const NEG   = 0x23000000|0
+  const SHL   = 0x24000000|0
+  const SHR   = 0x25000000|0
+  const HOLD  = 0x26000000|0
+  const GIVE  = 0x27000000|0
+  const IN    = 0x28000000|0
+  const OUT   = 0x29000000|0
+  const INW   = 0x2a000000|0
+  const OUTW  = 0x2b000000|0
+  const JUMP  = 0x2c000000|0
+  const JNAN  = 0x2d000000|0
+  const JORN  = 0x2e000000|0
+  const JANN  = 0x2f000000|0
+  const JNNE  = 0x30000000|0
+  const JMPE  = 0x31000000|0
+  const JNNZ  = 0x32000000|0
+  const JNNP  = 0x33000000|0
+  const JNNG  = 0x34000000|0
+  const JNNL  = 0x35000000|0
+  const HALT  = 0x36000000|0
+  const FAIL  = 0x37000000|0
+  const SAFE =  0x38000000|0
+  const DSA   = 0x39000000|0
+  const DSE   = 0x3a000000|0
+  const TSA   = 0x3b000000|0
+  const TSE   = 0x3c000000|0
+  const CSA   = 0x3d000000|0
+  const CSE   = 0x3e000000|0
+  const RSA   = 0x3f000000|0
+  const RSE   = 0x40000000|0
+  const PMI   = 0x41000000|0
+  const DMW   = 0x42000000|0
+  const RMW   = 0x43000000|0
+  const HW    = 0x44000000|0
+  const TRON  = 0x45000000|0
+  const TROFF = 0x46000000|0
+
 
   const SYMBOLS = {
 
-    0x00000000: "nop  ",
-    0x01000000: "add  ",
-    0x02000000: "sub  ",
-
-    0x30000000: "mul  ",
-    0x31000000: "div  ",
-    0x32000000: "mod  ",
-    0x33000000: "tron ",
-    0x34000000: "troff",
-
-    0x35000000: "hold ",
-    0x36000000: "give ",
-
-    0x03000000: "or   ",
-    0x04000000: "and  ",
-    0x05000000: "xor  ",
-    0x06000000: "shl  ",
-    0x07000000: "shr  ",
-    0x08000000: "get  ",
-    0x09000000: "put  ",
-    0x0a000000: "geti ",
-    0x0b000000: "puti ",
-    0x0c000000: "rom  ",
-
-    0x10000000: "inc  ",
-    0x11000000: "dec  ",
-    0x12000000: "flip ",
-
-    0x13000000: "neg  ",
-
-    0x1c000000: "halt ",
-    0x1d000000: "jmpz ",
-    0x1f000000: "jmpe ",
-    0x21000000: "jmpg ",
-    0x22000000: "jmpl ",
-    0x23000000: "jump ",
-    0x24000000: "rpt  ",
-    0x26000000: "in   ",
-    0x27000000: "out  ",
-
-    0x28000000: "pmi  ",
-    0x29000000: "dmw  ",
-    0x41000000: "rmw  ",
-    0x42000000: "hw   ",
-    0x40000000: "fail ",
-
-    0x51000000: "tpoke",
-    0x52000000: "tpeek",
-    0x53000000: "cpeek",
-
-    0x54000000: "tpush",
-    0x55000000: "tpop ",
-    0x59000000: "tdrop ",
-    0x56000000: "cpush",
-    0x57000000: "cpop ",
-    0x58000000: "cdrop",
-
-    0x60000000: "call ",
-    0x61000000: "ret  ",
-
-    0x62000000: "dsa  ",
-    0x63000000: "dse  ",
-    0x64000000: "tsa  ",
-    0x65000000: "tse  ",
-    0x66000000: "csa  ",
-    0x67000000: "cse  ",
-    0x68000000: "rsa  ",
-    0x69000000: "rse  ",
-
-    0x70000000: "drop ",
-    0x71000000: "swap ",
-    0x72000000: "over ",
-    0x73000000: "rot  ",
-    0x74000000: "dup  ",
-
-    0x76000000: "catch",
-
-    0x80000000: "lit  "
-
+    0x00000000: "noop ",
+    0x01000000: "do   ",
+    0x02000000: "done ",
+    0x03000000: "rpt  ",
+    0x04000000: "cpush",
+    0x05000000: "cpop ",
+    0x06000000: "cpeek",
+    0x07000000: "cdrop",
+    0x08000000: "tpush",
+    0x09000000: "tpop ",
+    0x0a000000: "tpeek",
+    0x0b000000: "tpoke",
+    0x0c000000: "tdrop",
+    0x80000000: "lit  ", // FIXME
+    0x0e000000: "drop ",
+    0x0f000000: "swap ",
+    0x10000000: "over ",
+    0x11000000: "rot  ",
+    0x12000000: "dup  ",
+    0x13000000: "get  ",
+    0x14000000: "put  ",
+    0x15000000: "geti ",
+    0x16000000: "puti ",
+    0x17000000: "rom  ",
+    0x18000000: "add  ",
+    0x19000000: "sub  ",
+    0x1a000000: "mul  ",
+    0x1b000000: "div  ",
+    0x1c000000: "mod  ",
+    0x1d000000: "inc  ",
+    0x1e000000: "dec  ",
+    0x1f000000: "or   ",
+    0x20000000: "and  ",
+    0x21000000: "xor  ",
+    0x22000000: "flip ",
+    0x23000000: "neg  ",
+    0x24000000: "shl  ",
+    0x25000000: "shr  ",
+    0x26000000: "hold ",
+    0x27000000: "give ",
+    0x28000000: "in   ",
+    0x29000000: "out  ",
+    0x2a000000: "inw  ",
+    0x2b000000: "outw ",
+    0x2c000000: "jump ",
+    0x2d000000: "jnan ",
+    0x2e000000: "jorn ",
+    0x2f000000: "jann ",
+    0x30000000: "jnne ",
+    0x31000000: "jmpe ",
+    0x32000000: "jnnz ",
+    0x33000000: "jnnp ",
+    0x34000000: "jnng ",
+    0x35000000: "jnnl ",
+    0x36000000: "halt ",
+    0x37000000: "fail ",
+    0x38000000: "safe ",
+    0x39000000: "dsa  ",
+    0x3a000000: "dse  ",
+    0x3b000000: "tsa  ",
+    0x3c000000: "tse  ",
+    0x3d000000: "csa  ",
+    0x3e000000: "cse  ",
+    0x3f000000: "rsa  ",
+    0x40000000: "rse  ",
+    0x41000000: "pmi  ",
+    0x42000000: "dmw  ",
+    0x43000000: "rmw  ",
+    0x44000000: "hw   ",
+    0x45000000: "tron ",
+    0x46000000: "troff"
   };
 
   class FVM {
@@ -253,10 +246,10 @@ var modFVM = (function () { 'use strict';
 
       this.hd = config.hold; // FIXME exceptions
 
-      this.rs = new Stack(this,RS_UNDERFLOW,RS_OVERFLOW); // return stack
-      this.ds = new Stack(this,DS_UNDERFLOW,DS_OVERFLOW); // data stack
-      this.ts = new Stack(this,TS_UNDERFLOW,TS_OVERFLOW); // temporary stack
-      this.cs = new Stack(this,CS_UNDERFLOW,CS_OVERFLOW); // counter stack or repeat stack
+      this.rs = new Stack(this,FAILURE,FAILURE); // return stack
+      this.ds = new Stack(this,FAILURE,FAILURE); // data stack
+      this.ts = new Stack(this,FAILURE,FAILURE); // temporary stack
+      this.cs = new Stack(this,FAILURE,FAILURE); // counter stack or repeat stack
     };
 
     loadProgram(pgm, mem) {
@@ -289,7 +282,7 @@ var modFVM = (function () { 'use strict';
       this.initVM();
       while(true) {
 
-        var addr, val;
+        var addr, val, n1, n2;
 
         var instr = this.pmload(this.vZ);
         if (this.tracing) {
@@ -348,10 +341,10 @@ try {
                           this.cs.doPop();
                        }
                        break;
-          case CALL:   this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
-          case RET:    this.vZ = this.rs.doPop(); break;
+          case DO:     this.rs.doPush(this.vZ); this.vZ = instr&PM_MASK; break;
+          case DONE:   this.vZ = this.rs.doPop(); break;
           case NOP:    break;
-          case CATCH:  break;
+          case SAFE:   if(this.ds.used() < 2) this.vZ = instr&PM_MASK; break;
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
           case MUL:    this.ds.apply2((a,b) => a*b); break;
@@ -383,6 +376,19 @@ try {
                   this.ds.doPush(inputChar&0xff);
               }
               break;
+          // FIXME endianness of outw, inw
+          case OUTW:    this.fnStdout(this.ds.doPop()); break;
+          case INW:
+              var inputChar = this.fnStdin(); // FIXME this is not a word yet!
+              // Note: unfortunately 0 is used here to indicate
+              // that no input is available. Have to live with this for now
+              // until further refactoring is done.
+              if (inputChar == 0) {
+                  this.vZ = instr&PM_MASK;
+              } else {
+                  this.ds.doPush(inputChar);
+              }
+              break;
           case GIVE:   this.ds.doPush(this.give(this.ds.doPop())); break;
           case HOLD:   this.hold(this.ds.doPop(),this.ds.doPop()); break;
           case ROM:    this.ds.doPush(this.rmload(this.ds.doPop())); break;
@@ -391,26 +397,69 @@ try {
           case GETI:   this.ds.doPush(this.load(this.load(this.ds.doPop()))); break;
           case PUTI:   this.store(this.load(this.ds.doPop()),this.ds.doPop()); break;
           case JUMP:   this.vZ = instr&PM_MASK; break;
-          case JMPE:   if (this.ds.doPop() == this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPG:   if (this.ds.doPop() > this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPL:   if (this.ds.doPop() < this.ds.doPop()) this.vZ = instr&PM_MASK; break;
-          case JMPZ:   if (this.ds.doPop() == 0) this.vZ = instr&PM_MASK; break;
+          // Jump if n is NaN. Preserve n.
+          case JNAN:    if (this.ds.doPeek() == NAN) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if either n1 or n2 is NaN. Preserve both.
+          case JORN:    n1 = this.ds.doPeek();
+                        n2 = this.ds.doPeekAt(2);
+                        if ((n1 == NAN) || (n2 == NAN )) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n1 and n2 are both NaN. Preserve both.
+          case JANN:    n1 = this.ds.doPeek();
+                        n2 = this.ds.doPeekAt(2);
+                        if ((n1 == NAN) && (n2 == NAN)) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n2 == n1 and neither are NaN. Preserve n2.
+          case JNNE:    n1 = this.ds.doPeek();
+                        n2 = this.ds.doPeekAt(2);
+                        if ((n1 != NAN) && (n2 != NAN) && (n1 == n2)) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n2 == n1 (even if they are NaN). Preserve n2.
+          case JMPE:    if (this.ds.doPop() == this.ds.doPeek()) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n is 0. Preserve n.
+          case JNNZ:    if (this.ds.doPeek() == 0) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n > 0 and not NaN. Preserve n.
+          case JNNP:    n1 = this.ds.doPeek();
+                        if ((n1 != NAN) && (n1 > 0)) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          
+          // Jump if n2 > n1 and neither are NaN. Preserve n2.
+          case JNNG:    n1 = this.ds.doPop();
+                        n2 = this.ds.doPeek();
+                        if ((n1 != NAN) && (n2 != NAN) && (n1 < n2)) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
+          // Jump if n2 < n1 and neither are NaN. Preserve n2.
+          case JNNL:    n1 = this.ds.doPop();
+                        n2 = this.ds.doPeek();
+                        if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) {
+                          this.vZ = instr&PM_MASK;
+                        }
+                        break;
           case HALT:   return SUCCESS; break;
           case FAIL:   return FAILURE; break;
           default: return ILLEGAL; break;
         }
       } catch(e) {
-          var nextInstr = this.pmload(this.vZ);
-          var nextOpcode = nextInstr & OPCODE_MASK;
-          if (nextOpcode == CATCH) {
-            if (this.tracing) {
-              this.traceVM(nextInstr, true);
-            }
-            this.vZ = nextInstr&PM_MASK;
-          } else {
-            // FIXME need to go here if e is not a trap!
-            return e;
-          }
+          return e;
         }
       }
     }
@@ -640,7 +689,7 @@ try {
 
     verify(i, a , b) {
       if (i < INT_MIN || i > INT_MAX) {
-        throw MATH_OVERFLOW;
+        throw FAILURE;
       }
       return i;
     }

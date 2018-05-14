@@ -18,6 +18,7 @@
 // m4: define(`use',`#define $1(xn) $2_ ## xn /*$3*/')
 // m4: define(`endm',`#include "endmod.c"')
 // m4: define(`do',`d($1)/*$2*/')
+// m4: define(`rpt',`rrpt($1)/*$2*/')
 // m4: define(`jump',`jjump($1)/*$2*/')
 // m4: define(`jnan',`jjnan($1)/*$2*/')
 // m4: define(`jann',`jjann($1)/*$2*/')

@@ -6,7 +6,7 @@ Program:    fvm2.c
 Author :    Robert Gollagher   robert.gollagher@freeputer.net
 Created:    20170729
 Updated:    20180513+
-Version:    pre-alpha-0.0.8.29+ for FVM 2.0
+Version:    pre-alpha-0.0.8.30+ for FVM 2.0
 =======
 
                               This Edition:
@@ -39,6 +39,7 @@ Version:    pre-alpha-0.0.8.29+ for FVM 2.0
 
   TODO port this latest VM design to JavaScript and from there to Node.js.
   And also update the JavaScript compiler accordingly.
+  Consider allowing different stack sizes (good for virtualization).
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,
@@ -58,7 +59,7 @@ Version:    pre-alpha-0.0.8.29+ for FVM 2.0
 // ---------------------------------------------------------------------------
 #define FVMI_NATIVE 0       // Run as native code
 #define FVMI_INTERPRETED 1  // Run as an interpreter
-#define FVMI FVMI_INTERPRETED
+#define FVMI FVMI_NATIVE
 #if FVMI != FVMI_NATIVE && FVMI != FVMI_INTERPRETED
   #pragma GCC error "Problem: Invalid implementation type for compilation.\n \
   Solution: You must set FVMI to FVMI_NATIVE or FVMI_INTERPRETED.\n \
@@ -90,7 +91,7 @@ Version:    pre-alpha-0.0.8.29+ for FVM 2.0
 // ---------------------------------------------------------------------------
 // Tracing
 // ---------------------------------------------------------------------------
-//#define TRACING_SUPPORTED // Uncomment this line to support tracing
+#define TRACING_SUPPORTED // Uncomment this line to support tracing
 #if FVMP == FVMP_STDIO
   #if FVMI == FVMI_NATIVE
     #ifdef TRACING_SUPPORTED
@@ -783,7 +784,7 @@ void Troff()  { TRC("troff")
 }
 #define done { TRC("done ") goto *(natPop(&fvm.rs)); }
 // Repeat if decremented counter not NaN and > 0
-#define rpt(label) { TRC("rpt  ") \
+#define rrpt(label) { TRC("rpt  ") \
   WORD n1 = wdPeekAndDec(&fvm.cs); if ((n1 != NaN) && (n1 > 0)) goto label; }
 #define cpush Cpush();
 #define cpop Cpop();
@@ -854,11 +855,11 @@ void Troff()  { TRC("troff")
   if ((n1 != NaN) && (n1 > 0)) goto label; }
 // Jump if n2 > n1 and neither are NaN. Preserve n2.
 #define jjnng(label) { TRC("jnng ") \
-  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 < n2)) goto label; }
 // Jump if n2 < n1 and neither are NaN. Preserve n2.
 #define jjnnl(label) { TRC("jnnl ") \
-  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPop(&fvm.ds); \
+  WORD n1 = wdPop(&fvm.ds); WORD n2 = wdPeek(&fvm.ds); \
   if ((n1 != NaN) && (n2 != NaN) && (n1 > n2)) goto label; }
 #define halt { TRC("halt ") excode = SUCCESS; return; }
 #define fail { TRC("fail ") excode = FAILURE; return; }
@@ -1047,7 +1048,7 @@ void runProgram() {
 #elif FVMI == FVMI_INTERPRETED
 
   // FIXME rationalize opcode order (these initial allocations are arbitrary)
-  #define NOP  0x00000000
+  #define NOP   0x00000000
   #define DO    0x01000000
   #define DONE  0x02000000
   #define RPT   0x03000000
@@ -1055,12 +1056,12 @@ void runProgram() {
   #define CPOP  0x05000000
   #define CPEEK 0x06000000
   #define CDROP 0x07000000
-  #define TPUSH 0x08000000 // note: 0x0000000d available
+  #define TPUSH 0x08000000
   #define TPOP  0x09000000
   #define TPEEK 0x0a000000
-  #define TOKE  0x0b000000
+  #define TPOKE 0x0b000000
   #define TDROP 0x0c000000
-  #define IM    0x80000000
+  #define IM    0x80000000 // note: 0x0000000d available
   #define DROP  0x0e000000
   #define SWAP  0x0f000000
   #define OVER  0x10000000
@@ -1131,13 +1132,18 @@ void runProgram() {
 
   // An example program
   WORD program[] = {
-    // TRON,IM|7,IM|11,ADD,HALT
+    TRON,IM|7,IM|11,ADD,HALT
 
-    // Performance test for interpreter
+    // Performance test for this interpreter
     // on 64-bit desktop: 0x7fffffff nop repeats:
     // - in 21.2 sec: gcc -03
     // - in 20.5 sec: gcc -march=native -mfpmath=sse -Ofast -flto -funroll-loops
-    IM|0x7fffffff,CPUSH,NOP,RPT|2,HALT
+    // IM|0x7fffffff,CPUSH,NOP,RPT|2,HALT
+
+    // Note: native performance
+    // on 64-bit desktop: 0x7fffffff nop repeats:
+    // - in 4.1 sec: gcc -03
+    // - in 4.1 sec: gcc -march=native -mfpmath=sse -Ofast -flto -funroll-loops
   };
 
   // Load program
@@ -1189,7 +1195,7 @@ void runProgram() {
       case TPUSH: Tpush(); break;
       case TPOP:  Tpop();  break;
       case TPEEK: Tpeek(); break;
-      case TOKE:  Tpoke(); break;
+      case TPOKE: Tpoke(); break;
       case TDROP: Tdrop(); break;
       case DROP:  Drop(); break;
       case SWAP:  Swap(); break;

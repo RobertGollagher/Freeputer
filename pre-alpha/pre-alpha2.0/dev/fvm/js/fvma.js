@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180430+
- * Version:    pre-alpha-0.0.1.62+ for FVM 2.0
+ * Updated:    20180514+
+ * Version:    pre-alpha-0.0.1.63+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -47,142 +47,138 @@ var modFVMA = (function () { 'use strict';
   const COMLINE= '//';
   const COMWORD= '/';
 
-  const TPOKE = 0x51000000|0
-  const TPEEK = 0x52000000|0
-  const CPEEK = 0x53000000|0
+  // FIXME rationalize opcode order (these initial allocations are arbitrary)
+  const NOP   = 0x00000000|0
+  const DO    = 0x01000000|0
+  const DONE  = 0x02000000|0
+  const RPT   = 0x03000000|0
+  const CPUSH = 0x04000000|0
+  const CPOP  = 0x05000000|0
+  const CPEEK = 0x06000000|0
+  const CDROP = 0x07000000|0
+  const TPUSH = 0x08000000|0
+  const TPOP  = 0x09000000|0
+  const TPEEK = 0x0a000000|0
+  const TPOKE = 0x0b000000|0
+  const TDROP = 0x0c000000|0
+  const IM    = 0x80000000|0  // note: 0x0000000d available
+  const DROP  = 0x0e000000|0
+  const SWAP  = 0x0f000000|0
+  const OVER  = 0x10000000|0
+  const ROT   = 0x11000000|0
+  const DUP   = 0x12000000|0
+  const GET   = 0x13000000|0
+  const PUT   = 0x14000000|0
+  const GETI  = 0x15000000|0
+  const PUTI  = 0x16000000|0
+  const ROM   = 0x17000000|0
+  const ADD   = 0x18000000|0
+  const SUB   = 0x19000000|0
+  const MUL   = 0x1a000000|0
+  const DIV   = 0x1b000000|0
+  const MOD   = 0x1c000000|0
+  const INC   = 0x1d000000|0
+  const DEC   = 0x1e000000|0
+  const OR    = 0x1f000000|0
+  const AND   = 0x20000000|0
+  const XOR   = 0x21000000|0
+  const FLIP  = 0x22000000|0
+  const NEG   = 0x23000000|0
+  const SHL   = 0x24000000|0
+  const SHR   = 0x25000000|0
+  const HOLD  = 0x26000000|0
+  const GIVE  = 0x27000000|0
+  const IN    = 0x28000000|0
+  const OUT   = 0x29000000|0
+  const INW   = 0x2a000000|0
+  const OUTW  = 0x2b000000|0
+  const JUMP  = 0x2c000000|0
+  const JNAN  = 0x2d000000|0
+  const JORN  = 0x2e000000|0
+  const JANN  = 0x2f000000|0
+  const JNNE  = 0x30000000|0
+  const JMPE  = 0x31000000|0
+  const JNNZ  = 0x32000000|0
+  const JNNP  = 0x33000000|0
+  const JNNG  = 0x34000000|0
+  const JNNL  = 0x35000000|0
+  const HALT  = 0x36000000|0
+  const FAIL  = 0x37000000|0
+  const SAFE =  0x38000000|0
+  const DSA   = 0x39000000|0
+  const DSE   = 0x3a000000|0
+  const TSA   = 0x3b000000|0
+  const TSE   = 0x3c000000|0
+  const CSA   = 0x3d000000|0
+  const CSE   = 0x3e000000|0
+  const RSA   = 0x3f000000|0
+  const RSE   = 0x40000000|0
+  const PMI   = 0x41000000|0
+  const DMW   = 0x42000000|0
+  const RMW   = 0x43000000|0
+  const HW    = 0x44000000|0
+  const TRON  = 0x45000000|0
+  const TROFF = 0x46000000|0
 
-  const TPUSH = 0x54000000|0
-  const TPOP  = 0x55000000|0
-  const TDROP = 0x59000000|0
-  const CPUSH = 0x56000000|0
-  const CPOP  = 0x57000000|0
-  const CDROP = 0x58000000|0
-
-  const NOP   = 0x00000000|0 // Simple
-
-  const MUL   = 0x30000000|0
-  const DIV   = 0x31000000|0
-  const MOD   = 0x32000000|0
-
-  const TRON  = 0x33000000|0
-  const TROFF = 0x34000000|0
-
-  const HOLD  = 0x35000000|0
-  const GIVE  = 0x36000000|0
-
-  const ADD   = 0x01000000|0
-  const SUB   = 0x02000000|0
-  const OR    = 0x03000000|0
-  const AND   = 0x04000000|0
-  const XOR   = 0x05000000|0
-  const SHL   = 0x06000000|0
-  const SHR   = 0x07000000|0
-  const GET   = 0x08000000|0
-  const PUT   = 0x09000000|0
-  const GETI  = 0x0a000000|0
-  const PUTI  = 0x0b000000|0
-  const ROM   = 0x0c000000|0
-
-  const COPY  = 0x0f000000|0
-  const INC   = 0x10000000|0
-  const DEC   = 0x11000000|0
-  const FLIP  = 0x12000000|0
-  const NEG   = 0x13000000|0
-
-  const HALT  = 0x1c000000|0
-  const JMPZ  = 0x1d000000|0 // Complex
-  const JMPE  = 0x1f000000|0
-  const JMPG  = 0x21000000|0
-  const JMPL  = 0x22000000|0
-  const JUMP  = 0x23000000|0
-  const RPT   = 0x24000000|0
-  const IN    = 0x26000000|0
-  const OUT   = 0x27000000|0
-
-  const PMI   = 0x28000000|0
-  const DMW   = 0x29000000|0
-  const RMW   = 0x41000000|0
-  const HW    = 0x42000000|0
-
-  const FAIL  = 0x40000000|0
-
-  const CALL  = 0x60000000|0
-  const RET   = 0x61000000|0
-
-  const DSA   = 0x62000000|0
-  const DSE   = 0x63000000|0
-  const TSA   = 0x64000000|0
-  const TSE   = 0x65000000|0
-  const CSA   = 0x66000000|0
-  const CSE   = 0x67000000|0
-  const RSA   = 0x68000000|0
-  const RSE   = 0x69000000|0
-
-  const DROP  = 0x70000000|0
-  const SWAP  = 0x71000000|0
-  const OVER  = 0x72000000|0
-  const ROT   = 0x73000000|0
-  const DUP   = 0x74000000|0
-
-  const CATCH = 0x76000000|0
-
-  const LIT   = 0x80000000|0
 
   const SYMBOLS = { // Note: simple only here, complex in code below
     nop:    NOP,
-
-    mul:    MUL,
-    div:    DIV,
-    mod:    MOD,
-
-    tron:   TRON,
-    troff:  TROFF,
-
-    hold:   HOLD,
-    give:   GIVE,
-
-    add:    ADD,
-    sub:    SUB,
-    or:     OR,
-    and:    AND,
-    xor:    XOR,
-    shl:    SHL,
-    shr:    SHR,
+    do:     DO,
+    done:   DONE,
+    // RPT,
+    cpush:  CPUSH,
+    cpop:   CPOP,
+    cpeek:  CPEEK,
+    cdrop:  CDROP,
+    tpush:  TPUSH,
+    tpop:   TPOP,
+    tpeek:  TPEEK,
+    tpoke:  TPOKE,
+    trop:   TDROP,
+    // IM,
+    drop:   DROP,
+    swap:   SWAP,
+    over:   OVER,
+    rot:    ROT,
+    dup:    DUP,
     get:    GET,
     put:    PUT,
     geti:   GETI,
     puti:   PUTI,
     rom:    ROM,
-
-    copy:   COPY,
+    add:    ADD,
+    sub:    SUB,
+    mul:    MUL,
+    div:    DIV,
+    mod:    MOD,
     inc:    INC,
     dec:    DEC,
+    or:     OR,
+    and:    AND,
+    xor:    XOR,
     flip:   FLIP,
     neg:    NEG,
-
+    shl:    SHL,
+    shr:    SHR,
+    hold:   HOLD,
+    give:   GIVE,
+    // IN,
+    // OUT,
+    // INW,
+    // OUTW,
+    // JUMP,
+    // JNAN,
+    // JORN,
+    // JANN,
+    // JNNE,
+    // JMPE,
+    // JNNZ,
+    // JNNP,
+    // JNNG,
+    // JNNL,
     halt:   HALT,
-
-    tpush:  TPUSH,
-    tpop:   TPOP,
-    tpoke:  TPOKE,
-    tpeek:  TPEEK,
-    cpush:  CPUSH,
-    cpop:   CPOP,
-    cpeek:  CPEEK,
-    cpush:  CPUSH,
-    tdrop:  TDROP,
-    cdrop:  CDROP,
-
-    pmi:    PMI,
-    dmw:    DMW,
-    rmw:    RMW,
-    hw:     HW,
     fail:   FAIL,
-
-    call:   CALL,
-    ret:    RET,
-    lit:    LIT,
-
+    safe:   SAFE,
     dsa:    DSA,
     dse:    DSE,
     tsa:    TSA,
@@ -191,14 +187,12 @@ var modFVMA = (function () { 'use strict';
     cse:    CSE,
     rsa:    RSA,
     rse:    RSE,
-
-    drop:   DROP,
-    swap:   SWAP,
-    over:   OVER,
-    rot:    ROT,
-    dup:    DUP,
-
-    catch:  CATCH
+    pmi:    PMI,
+    dmw:    DMW,
+    rmw:    RMW,
+    hw:     HW,
+    tron:   TRON,
+    troff:  TROFF
 
   };
 
@@ -308,12 +302,17 @@ var modFVMA = (function () { 'use strict';
       } else if (this.parseDef(token)) {
       } else if (this.parseRef(token)) {
       } else if (this.parseHere(token, lineNum)) {
-      } else if (this.parseCall(token)) {
+      } else if (this.parseDo(token)) {
       } else if (this.parseJump(token)) {
-      } else if (this.parseJmpZ(token)) {
-      } else if (this.parseJmpE(token)) {
-      } else if (this.parseJmpG(token)) {
-      } else if (this.parseJmpL(token)) {
+      } else if (this.parseJnan(token)) {
+      } else if (this.parseJorn(token)) {
+      } else if (this.parseJann(token)) {
+      } else if (this.parseJnne(token)) {
+      } else if (this.parseJmpe(token)) {
+      } else if (this.parseJnnz(token)) {
+      } else if (this.parseJnnp(token)) {
+      } else if (this.parseJnng(token)) {
+      } else if (this.parseJnnl(token)) {
       } else if (this.parseIn(token)) {
       } else if (this.parseOut(token)) {
       } else if (this.parseRpt(token)) {
@@ -619,10 +618,10 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseCall(token) {
-      if (this.refMatch('call', token)) {
-        var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, CALL);
+    parseDo(token) {
+      if (this.refMatch('do', token)) {
+        var symbolToken = token.substring(3,token.length-1);
+        return this.parseRef(symbolToken, DO);
       } else {
         return false;
       }
@@ -637,16 +636,43 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpZ(token) {
-      if (this.refMatch('jmpz', token)) {
+    parseJnan(token) {
+      if (this.refMatch('jnan', token)) {
         var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPZ);
+        return this.parseRef(symbolToken, JNAN);
       } else {
         return false;
       }
     }
 
-    parseJmpE(token) {
+    parseJorn(token) {
+      if (this.refMatch('jorn', token)) {
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JORN);
+      } else {
+        return false;
+      }
+    }
+
+    parseJann(token) {
+      if (this.refMatch('jann', token)) {
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JANN);
+      } else {
+        return false;
+      }
+    }
+
+    parseJnne(token) {
+      if (this.refMatch('jnne', token)) {
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JNNE);
+      } else {
+        return false;
+      }
+    }
+
+    parseJmpe(token) {
       if (this.refMatch('jmpe', token)) {
         var symbolToken = token.substring(5,token.length-1);
         return this.parseRef(symbolToken, JMPE);
@@ -655,19 +681,37 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-    parseJmpG(token) {
-      if (this.refMatch('jmpg', token)) {
+    parseJnnz(token) {
+      if (this.refMatch('jnnz', token)) {
         var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPG);
+        return this.parseRef(symbolToken, JNNZ);
       } else {
         return false;
       }
     }
 
-    parseJmpL(token) {
-      if (this.refMatch('jmpl', token)) {
+    parseJnnp(token) {
+      if (this.refMatch('jnnp', token)) {
         var symbolToken = token.substring(5,token.length-1);
-        return this.parseRef(symbolToken, JMPL);
+        return this.parseRef(symbolToken, JNNP);
+      } else {
+        return false;
+      }
+    }
+
+    parseJnng(token) {
+      if (this.refMatch('jnng', token)) {
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JNNG);
+      } else {
+        return false;
+      }
+    }
+
+    parseJnnl(token) {
+      if (this.refMatch('jnnl', token)) {
+        var symbolToken = token.substring(5,token.length-1);
+        return this.parseRef(symbolToken, JNNL);
       } else {
         return false;
       }
@@ -715,7 +759,7 @@ var modFVMA = (function () { 'use strict';
         if (n > 0x7fffffff) {
           throw lineNum + ":Literal value out of bounds:" + token;
         }
-        this.use(n|LIT);
+        this.use(n|IM);
         return true;
       } else {
         return false;
@@ -729,7 +773,7 @@ var modFVMA = (function () { 'use strict';
         if (n > 0x7fffffff) {
           throw lineNum + ":Literal value out of bounds:" + token;
         }
-        this.use(n|LIT);
+        this.use(n|IM);
         return true;
       } else {
         return false;
