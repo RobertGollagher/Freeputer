@@ -765,6 +765,13 @@ try {
   };
 
 })(); // modFVM
+try {
+  // For use by Node.js only
+  if(exports) {
+    exports.makeFVM = modFVM.makeFVM
+    exports.makeConfig = modFVM.makeConfig
+  }
+} catch(e) {}
 
 var stdinBuf;   // TODO make per FVM instance rather than global
 var stdinArray; // TODO make per FVM instance rather than global
@@ -824,8 +831,3 @@ var modFmt = (function () { 'use strict';
   };
 
 })(); // modFmt
-
-
-
-
-
