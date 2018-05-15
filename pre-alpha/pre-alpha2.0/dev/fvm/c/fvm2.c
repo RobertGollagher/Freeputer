@@ -39,7 +39,9 @@ Version:    pre-alpha-0.0.8.30+ for FVM 2.0
 
   TODO port this latest VM design to JavaScript and from there to Node.js.
   And also update the JavaScript compiler accordingly.
-  Consider allowing different stack sizes (good for virtualization).
+
+  Later:
+    - Consider allowing different stack sizes (good for virtualization).
 
 ==============================================================================
  WARNING: This is pre-alpha software and as such may well be incomplete,

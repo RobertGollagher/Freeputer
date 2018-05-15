@@ -404,8 +404,8 @@ var modFVMA = (function () { 'use strict';
         var expectModuleNum;
         var intValue
 //      if (token.match(/[m][0-9a-f]{1,4}/)){
-        if (token.match(/^mod\(m[0-9a-f]{1,4}\)$/)){
-            var symbolToken = token.substring(4,token.length-1);
+        if (token.match(/^as\(m[0-9a-f]{1,4}\)$/)){
+            var symbolToken = token.substring(3,token.length-1);
             intValue = this.symbolToInt(symbolToken);
         } /*else if (token.match(/^mod\(m[0-9a-f]{1,4},m[0-9a-f]{1,4}\)$/)){
             var symbolToken = token.substring(5,token.length-1); // FIXME
@@ -435,9 +435,8 @@ var modFVMA = (function () { 'use strict';
       }
     }
 
-     // FIXME Unclear if this can work with the C preprocessor
      parseModuleStart(token, lineNum) {
-       if (token === 'm{'){
+       if (token === 'module'){
          if (this.currentModuleNum !== null) {
            throw lineNum + ":Cannot nest modules: " + token;
          }
@@ -450,7 +449,7 @@ var modFVMA = (function () { 'use strict';
      }
 
      parseModuleEnd(token) {
-       if (token === '}m'){
+       if (token === 'endmod'){
          this.currentModuleNum = null;
          this.clearLocalsu();
          return true;

@@ -6,7 +6,7 @@ var prgSrc = `
   Program:    prg.js (also known as 'prg.c')
   Author :    Robert Gollagher   robert.gollagher@freeputer.net
   Created:    20170911
-  Updated:    20180514+
+  Updated:    20180515+
 
   NOTES:
 
@@ -32,69 +32,28 @@ var prgSrc = `
 
 // ---------------------------------------------------------------------------
 
-m{ mod(m1) /*MODULE:forward*/ jump(m0.x0) /*run*/ }m
+module
+  as(m1)
+  jump(m0.x0) /*main.run*/
+endmod
 
-m{ mod(m2) /*MODULE:incs*/
-
-  // ( n1 -- n2 ) doIncs
-  // Increment n1 times to give the number of increments n2.
-  // This is only to test that the VM is working correctly. 
-  u{ x1: cpush i(0x0) s0: inc rpt(s0) done }u
-
-  // ( -- 0x100000 ) doManyIncs
-  // Do 1,048,576 increments to test VM performance.
-  // Temporarily disable tracing while doing so.
-  // See browser console for timer output.
-  u{ x2: i(0x100000) troff do(x1) /*doIncs*/ tron done }u
-
-}m
-
-m{ mod(m3) /*MODULE:io*/
-
-  // ( n -- ) send
-  // Output n to stdout or fail if not possible.
-  u{ s0: fail x1: out(s0) done }u
-
-  // ( -- ) sendA
-  // Output 'A' to stdout
-  u{ x2: i(0x41) do(x1) /*send*/ done }u
-
-  // ( n -- ) nInOut
-  // Output to stdout no more than n characters from stdin.
-  u{ s0: fail u1: cpush s1: in(s0) do(x1) /*send*/ rpt(s1) done }u
-
-  // ( -- ) max9InOut
-  // Output to stdout no more than 9 characters from stdin.
-  u{ x3: i(0x9) do(u1) /*nInOut*/ done }u
-
-  // ( n -- ) nInOutFast
-  // Output to stdout no more than n characters from stdin, quickly.
-  u{ s0: fail x4: cpush s1: in(s0) out(s0) rpt(s1) done }u
-
-  // ( n -- ) inOutAll
-  // Output to stdout all available characters from stdin, then return.
-  u{ s0: done s1: fail x5: in(s0) out(s1) jump(x5) }u
-
-}m
 
 // ---------------------------------------------------------------------------
 
-m{ mod(m0) /*run*/
+module 
+
+  as(m0) /*main*/
 
   u{
     s0:
       fail
     x0:
       tron
-      hw
-      rmw
-      i(0x0) rom out(s0)
-      i(0x1) rom out(s0)
-      i(0x2) rom out(s0)
-      i(0xfff) rom out(s0)
+      i(0x41)
+      out(s0)
       halt
   }u
 
-}m
+endmod
 
 `;

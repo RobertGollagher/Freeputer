@@ -5,8 +5,8 @@
  * Program:    fvm2.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170303
- * Updated:    20180514+
- * Version:    pre-alpha-0.0.1.63+ for FVM 2.0
+ * Updated:    20180515+
+ * Version:    pre-alpha-0.0.1.64+ for FVM 2.0
  *
  *                               This Edition:
  *                                JavaScript
@@ -25,7 +25,6 @@
  *
  * WARNING: The new instruction set has just been ported from 'fvm2.c'
  * to this 'fvm2.js' implementation and is largely untested.
- * WARNING: NaN functionality not yet ported.
  *
  * ===========================================================================
  *
@@ -348,9 +347,24 @@ try {
           case ADD:    this.ds.apply2((a,b) => a+b); break;
           case SUB:    this.ds.apply2((a,b) => a-b); break;
           case MUL:    this.ds.apply2((a,b) => a*b); break;
-          // TODO Give 'proper' divide by zero trap for div, mod (not just math overflow)
-          case DIV:    this.ds.apply2((a,b) => a/b); break;
-          case MOD:    this.ds.apply2((a,b) => a%b); break;
+          case DIV:    var b = this.doPop();
+                       var a = this.doPop();
+                       if (a == NAN || b == NAN || b == 0) {
+                         this.doPush(NAN);
+                       } else {
+                         this.doPush(this.verify((a/b)|0));
+                       }
+                       break;
+          // FIXME this might be implementation-defined behaviour?
+          // FIXME also, in general, endianness of JavaScript on platforms.
+          case MOD:    var b = this.doPop();
+                       var a = this.doPop();
+                       if (a == NAN || b == NAN || b == 0) {
+                         this.doPush(NAN);
+                       } else {
+                         this.doPush(this.verify((a%b)|0));
+                       }
+                       break;
           case INC:    this.ds.apply1((a) => ++a); break;
           case DEC:    this.ds.apply1((a) => --a); break;
           // TODO Remove tracing opcodes, replace with a debugging solution
@@ -465,6 +479,7 @@ try {
     }
 
     store(addr,val) {
+      if(addr == NAN) throw BEYOND;
       try {
         this.dm.setInt32(addr*WD_BYTES, val, true);
       } catch (e) {
@@ -473,6 +488,7 @@ try {
     }
 
     load(addr) {
+      if(addr == NAN) throw BEYOND;
       try {
         return this.dm.getUint32(addr*WD_BYTES, true);
       } catch (e) {
@@ -481,6 +497,7 @@ try {
     }
 
     rmload(addr) {
+      if(addr == NAN) throw BEYOND;
       try {
         return this.rm.getUint32(addr*WD_BYTES, true);
       } catch (e) {
@@ -498,6 +515,7 @@ try {
     }
 
     hold(addr,val) {
+      if(addr == NAN) throw BEYOND;
       try {
         this.hd.setInt32(addr*WD_BYTES, val, true);
       } catch (e) {
@@ -506,6 +524,7 @@ try {
     }
 
     give(addr) {
+      if(addr == NAN) throw BEYOND;
       try {
         return this.hd.getUint32(addr*WD_BYTES, true);
       } catch (e) {
@@ -560,7 +579,11 @@ try {
     }
 
     dec() {
-      this.doReplace(this.doPeek()-1);
+      wd = this.doPeek();
+      if (wd != 0 && wd !=NAN) {
+        --wd;
+      }
+      this.doReplace(wd);
     }
 
     gtOne() {
@@ -665,7 +688,7 @@ try {
     }
 
     doPokeAt(elemNum, val) {
-      if (elemNum < 1 || elemNum > STACK_ELEMS) {
+      if (elemNum == NAN || elemNum < 1 || elemNum > STACK_ELEMS) {
         throw this.uerr; // underflow
       }
       var elemAddr = (this.sp+((elemNum-1)*WORD_BYTES));
@@ -678,18 +701,26 @@ try {
 
     apply1(f) {
       var a = this.doPop();
-      this.doPush(this.verify(f(a), a));
+      if (a == NAN) {
+        this.doPush(NAN);
+      } else {
+        this.doPush(this.verify(f(a), a));
+      }
     }
 
     apply2(f) {
       var b = this.doPop();
       var a = this.doPop();
-      this.doPush(this.verify(f(a,b), a, b));
+      if (a == NAN || b == NAN) {
+        this.doPush(NAN);
+      } else {
+        this.doPush(this.verify(f(a,b), a, b));
+      }
     }
 
     verify(i, a , b) {
       if (i < INT_MIN || i > INT_MAX) {
-        throw FAILURE;
+        return NAN;
       }
       return i;
     }
