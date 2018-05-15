@@ -13,6 +13,7 @@ var prgSrc = `
   - This little language is only ad hoc, what matters is the VM design.
   - This is written in an assembly language which aims to be C-compatible.
   - This is a demonstration program for FVM2 pre-alpha (see 'fvm2.js').
+  - This assembler does not yet support the same full syntax seen in 'fpx.m4'.
   - This assembler is very simplistic (see 'fvma.js') and uses little memory.
   - m0.x0 is the only forward reference the assembler allows
   - x symbols are exported from a module (e.g. x0 in m1 is m1.x0)
@@ -31,29 +32,23 @@ var prgSrc = `
 */
 
 // ---------------------------------------------------------------------------
-
+as(m1)
 module
-  as(m1)
   jump(m0.x0) /*main.run*/
-endmod
-
+endm
 
 // ---------------------------------------------------------------------------
-
-module 
-
-  as(m0) /*main*/
-
-  u{
-    s0:
+as(m0) /*main*/
+module
+  unit
+    pri(s0):
       fail
-    x0:
+    PUB(x0):
       tron
       i(0x41)
       out(s0)
       halt
-  }u
-
-endmod
+  endu
+endm
 
 `;

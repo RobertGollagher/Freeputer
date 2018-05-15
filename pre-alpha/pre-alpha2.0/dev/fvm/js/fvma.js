@@ -5,8 +5,8 @@
  * Program:    fvma.js
  * Author :    Robert Gollagher   robert.gollagher@freeputer.net
  * Created:    20170611
- * Updated:    20180514+
- * Version:    pre-alpha-0.0.1.63+ for FVM 2.0
+ * Updated:    20180515+
+ * Version:    pre-alpha-0.0.1.64+ for FVM 2.0
  *
  *                     This Edition of the Assembler:
  *                                JavaScript
@@ -213,7 +213,6 @@ var modFVMA = (function () { 'use strict';
       this.dict = {};
       this.expectDecl = false;
       this.expectDef = false;
-      this.expectModuleNum = false;
       this.currentModuleNum = null;
       this.Decl = "";
       // x0 symbol is reserved for /*start*/ label...
@@ -293,7 +292,7 @@ var modFVMA = (function () { 'use strict';
       //} else if (this.parseComword(token, lineNum)) {
       } else if (this.expectingDecl(token, lineNum)) {
       } else if (this.expectingCond(token, lineNum)) {
-      } else if (this.expectingModuleNum(token, lineNum)) {
+      } else if (this.parseModuleNum(token, lineNum)) {
       } else if (this.parseModuleStart(token,lineNum)) {
       } else if (this.parseModuleEnd(token)) {
       } else if (this.disallowGlobals(token, lineNum)) {
@@ -399,31 +398,16 @@ var modFVMA = (function () { 'use strict';
        }      
      }
 
-    expectingModuleNum(token, lineNum) {
-      if (this.expectModuleNum) {
-        var expectModuleNum;
-        var intValue
-//      if (token.match(/[m][0-9a-f]{1,4}/)){
-        if (token.match(/^as\(m[0-9a-f]{1,4}\)$/)){
-            var symbolToken = token.substring(3,token.length-1);
-            intValue = this.symbolToInt(symbolToken);
-        } /*else if (token.match(/^mod\(m[0-9a-f]{1,4},m[0-9a-f]{1,4}\)$/)){
-            var symbolToken = token.substring(5,token.length-1); // FIXME
-            intValue = this.symbolToInt(symbolToken);
-        } */else {
-          throw lineNum + ":Illegal module name (must be like m1):" + token;
-        }
-/* FIXME
-        if (this.dict[intValue]) {
-          throw lineNum + ":Already defined:" + token;
-        } else {
-*/
-          this.currentModuleNum = intValue;
-          this.expectModuleNum = false;
-//        }
+    parseModuleNum(token, lineNum) { // TODO stricter location logic
+      var intValue
+      if (token.match(/^as\(m[0-9a-f]{1,4}\)$/)) {
+        var symbolToken = token.substring(3,token.length-1);
+        intValue = this.symbolToInt(symbolToken);
+        this.currentModuleNum = intValue;
         return true;
+      } else {
+        return false;
       }
-      return false;
     }
 
     disallowGlobals(token, lineNum) {
@@ -437,10 +421,11 @@ var modFVMA = (function () { 'use strict';
 
      parseModuleStart(token, lineNum) {
        if (token === 'module'){
+/*
          if (this.currentModuleNum !== null) {
            throw lineNum + ":Cannot nest modules: " + token;
          }
-         this.expectModuleNum = true;
+*/
          this.clearLocalsu();
          return true;
        } else {
@@ -449,7 +434,7 @@ var modFVMA = (function () { 'use strict';
      }
 
      parseModuleEnd(token) {
-       if (token === 'endmod'){
+       if (token === 'endm'){
          this.currentModuleNum = null;
          this.clearLocalsu();
          return true;
@@ -483,7 +468,7 @@ var modFVMA = (function () { 'use strict';
      // The C preprocessor would replace {unit with { __label__ s0, s1 ...
      parseUnit(token) { // FIXME this is inefficient
         var intValue;
-        if (token == 'u{' || token == '}u'){ // FIXME weak logic
+        if (token == 'unit' || token == 'endu'){ // FIXME weak logic
           this.clearLocals();
           return true;
         }
@@ -492,18 +477,18 @@ var modFVMA = (function () { 'use strict';
 
      parseLabelDecl(token, lineNum) { // TODO refactor this whole assembler later, add u
         var intValue;
-        if (token === 'x0:') {
+        if (token === 'PUB(x0):') {
            this.x0label = this.prgElems.cursor;
            this.decl = ""; // FIXME redundant?
            this.expectDef = false; // FIXME redundant?
            return true;
         }
-        if (token.match(/[s][0-9a-f]{1,3}:/)){ // FIXME sff limit make more robust
-            intValue = this.symbolToInt(token.substring(0,token.length-1));
-        } else if (token.match(/[u][0-9a-f]{1,3}:/)){ // FIXME uff limit make more robust
-            intValue = this.symbolToInt(token.substring(0,token.length-1));
-        } else if (token.match(/[x][0-9a-f]{1,4}:/)){
-            intValue = this.symbolToInt(token.substring(0,token.length-1));
+        if (token.match(/pri\([s][0-9a-f]{1,3}\):/)){ // FIXME sff limit make more robust
+            intValue = this.symbolToInt(token.substring(4,token.length-2));
+        } else if (token.match(/loc\([u][0-9a-f]{1,3}\):/)){ // FIXME uff limit make more robust
+            intValue = this.symbolToInt(token.substring(4,token.length-2));
+        } else if (token.match(/PUB\([x][0-9a-f]{1,4}\):/)){
+            intValue = this.symbolToInt(token.substring(4,token.length-2));
             intValue |= (this.currentModuleNum << 16);
         } else {
           return false;
